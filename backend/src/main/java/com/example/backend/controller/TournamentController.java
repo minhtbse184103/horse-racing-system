@@ -5,6 +5,7 @@ import com.example.backend.dto.request.*;
 import com.example.backend.entity.*;
 import com.example.backend.service.*;
 import jakarta.validation.Valid;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -36,8 +37,10 @@ public class TournamentController {
     }
 
     @PostMapping
-    public Tournament createTournament(@Valid @RequestBody CreateTournamentRequest request) {
-        return tournamentService.createTournament(request);
+    public Tournament createTournament(
+            @Valid @RequestBody CreateTournamentRequest request,
+            Authentication authentication) {
+        return tournamentService.createTournament(request, authentication.getName());
     }
 
     @PutMapping("/{id}")

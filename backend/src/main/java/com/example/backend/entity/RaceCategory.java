@@ -9,6 +9,8 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.math.BigDecimal;
+
 @Getter
 @Setter
 @Entity
@@ -24,10 +26,10 @@ public class RaceCategory {
     private String categoryName;
 
     @Column(name = "maxHorseWeight")
-    private Double maxHorseWeight;
+    private BigDecimal maxHorseWeight;
 
     @Column(name = "maxJockeyWeight")
-    private Double maxJockeyWeight;
+    private BigDecimal maxJockeyWeight;
 
     @Column(name = "minRounds")
     private Integer minRounds;

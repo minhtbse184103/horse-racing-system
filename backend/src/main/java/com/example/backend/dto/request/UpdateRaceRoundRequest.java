@@ -4,7 +4,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 public class UpdateRaceRoundRequest {
 
@@ -21,7 +21,7 @@ public class UpdateRaceRoundRequest {
     private BigDecimal distanceCoefficient;
 
     @NotNull(message = "Scheduled time is required")
-    private LocalDateTime scheduledTime;
+    private LocalDate scheduledTime;
 
     public Integer getRoundNumber() {
         return roundNumber;
@@ -35,7 +35,7 @@ public class UpdateRaceRoundRequest {
         return distanceCoefficient;
     }
 
-    public LocalDateTime getScheduledTime() {
+    public LocalDate getScheduledTime() {
         return scheduledTime;
     }
 }

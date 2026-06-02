@@ -1,6 +1,5 @@
 package com.example.backend.controller;
 
-
 import com.example.backend.dto.request.*;
 import com.example.backend.entity.*;
 import com.example.backend.service.*;
@@ -45,15 +44,15 @@ public class RaceRoundController {
         return raceRoundService.getRaceRoundsByRaceId(raceId);
     }
 
-@PutMapping("/{id}")
-public RaceRound updateRaceRound(
-        @PathVariable Integer id,
-        @Valid @RequestBody UpdateRaceRoundRequest request
-) {
-    return raceRoundService.updateRaceRound(id, request);
-}
-@DeleteMapping("/{id}")
-public RaceRound cancelRaceRound(@PathVariable Integer id) {
-    return raceRoundService.cancelRaceRound(id);
-}
+    @PutMapping("/{id}")
+    public RaceRound updateRaceRound(
+            @PathVariable Integer id,
+            @Valid @RequestBody UpdateRaceRoundRequest request) {
+        return raceRoundService.updateRaceRound(id, request);
+    }
+
+    @DeleteMapping("/{id}")
+    public RaceRound cancelRaceRound(@PathVariable Integer id) {
+        return raceRoundService.cancelRaceRound(id);
+    }
 }

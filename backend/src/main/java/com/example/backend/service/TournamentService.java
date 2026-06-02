@@ -4,37 +4,39 @@ package com.example.backend.service;
 import com.example.backend.dto.request.*;
 import com.example.backend.entity.*;
 import com.example.backend.repository.*;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import com.example.backend.entity.Race;
-import com.example.backend.repository.RaceRepository;
-import com.example.backend.entity.RaceRound;
-import com.example.backend.repository.RaceRoundRepository;
+import com.example.backend.exception.ApiException;
 import java.util.List;
 
 @Service
 public class TournamentService {
-private final RaceRepository raceRepository;
-private final RaceRoundRepository raceRoundRepository;
+    private final RaceRepository raceRepository;
+    private final RaceRoundRepository raceRoundRepository;
     private final TournamentRepository tournamentRepository;
+    private final UserRepository userRepository;
+
     public Tournament getTournamentById(Integer id) {
-    return tournamentRepository.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("Tournament does not exist."));
-}
-   public TournamentService(
-        TournamentRepository tournamentRepository,
-        RaceRepository raceRepository,
-        RaceRoundRepository raceRoundRepository
-) {
-    this.tournamentRepository = tournamentRepository;
-    this.raceRepository = raceRepository;
-    this.raceRoundRepository = raceRoundRepository;
-}
+        return tournamentRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Tournament does not exist."));
+    }
+
+    public TournamentService(
+            TournamentRepository tournamentRepository,
+            RaceRepository raceRepository,
+            RaceRoundRepository raceRoundRepository,
+            UserRepository userRepository) {
+        this.tournamentRepository = tournamentRepository;
+        this.raceRepository = raceRepository;
+        this.raceRoundRepository = raceRoundRepository;
+        this.userRepository = userRepository;
+    }
 
     public List<Tournament> getAllTournaments() {
         return tournamentRepository.findAll();
     }
 
-    public Tournament createTournament(CreateTournamentRequest request) {
+    public Tournament createTournament(CreateTournamentRequest request, String adminEmail) {
         if (request.getStartDate().isAfter(request.getEndDate())) {
             throw new IllegalArgumentException("Start date cannot be after end date.");
         }
@@ -43,14 +45,16 @@ private final RaceRoundRepository raceRoundRepository;
             throw new IllegalArgumentException("Registration deadline cannot be after start date.");
         }
 
-        Tournament tournament = new Tournament();
+        User admin = userRepository.findByEmail(adminEmail)
+                .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Admin account does not exist."));
 
+        Tournament tournament = new Tournament();
         tournament.setName(request.getName());
         tournament.setLocation(request.getLocation());
         tournament.setStartDate(request.getStartDate());
         tournament.setEndDate(request.getEndDate());
-        tournament.setRegistrationDeadline(request.getRegistrationDeadline());
-        tournament.setCreatedBy(null);
+        tournament.setRegistrationDeadline(request.getRegistrationDeadline().atTime(23, 59, 59));
+        tournament.setCreatedBy(admin.getUserID());
         tournament.setStatus("Draft");
 
         return tournamentRepository.save(tournament);
@@ -76,7 +80,7 @@ private final RaceRoundRepository raceRoundRepository;
     tournament.setLocation(request.getLocation());
     tournament.setStartDate(request.getStartDate());
     tournament.setEndDate(request.getEndDate());
-    tournament.setRegistrationDeadline(request.getRegistrationDeadline());
+    tournament.setRegistrationDeadline(request.getRegistrationDeadline().atTime(23, 59, 59));
 
     return tournamentRepository.save(tournament);
 }

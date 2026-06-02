@@ -74,8 +74,8 @@ public class RaceRoundService {
         )) {
             throw new IllegalArgumentException("This round number already exists for the race.");
         }
-        if (request.getScheduledTime().toLocalDate().isBefore(tournament.getStartDate())
-        ||      request.getScheduledTime().toLocalDate().isAfter(tournament.getEndDate())) {
+        if (request.getScheduledTime().isBefore(tournament.getStartDate())
+        ||      request.getScheduledTime().isAfter(tournament.getEndDate())) {
             throw new IllegalArgumentException("Scheduled time must be within the tournament date range.");
 }
         RaceRound raceRound = new RaceRound();
@@ -84,7 +84,7 @@ public class RaceRoundService {
         raceRound.setRoundNumber(request.getRoundNumber());
         raceRound.setDistance(request.getDistance());
         raceRound.setDistanceCoefficient(request.getDistanceCoefficient());
-        raceRound.setScheduledTime(request.getScheduledTime());
+        raceRound.setScheduledTime(request.getScheduledTime().atStartOfDay());
         raceRound.setStatus("Scheduled");
 
         return raceRoundRepository.save(raceRound);
@@ -120,15 +120,15 @@ public class RaceRoundService {
         throw new IllegalArgumentException("This round number already exists for the race.");
     }
 
-    if (request.getScheduledTime().toLocalDate().isBefore(tournament.getStartDate())
-            || request.getScheduledTime().toLocalDate().isAfter(tournament.getEndDate())) {
+    if (request.getScheduledTime().isBefore(tournament.getStartDate())
+            || request.getScheduledTime().isAfter(tournament.getEndDate())) {
         throw new IllegalArgumentException("Scheduled time must be within the tournament date range.");
     }
 
     raceRound.setRoundNumber(request.getRoundNumber());
     raceRound.setDistance(request.getDistance());
     raceRound.setDistanceCoefficient(request.getDistanceCoefficient());
-    raceRound.setScheduledTime(request.getScheduledTime());
+    raceRound.setScheduledTime(request.getScheduledTime().atStartOfDay());
 
     return raceRoundRepository.save(raceRound);
 }

@@ -267,4 +267,3 @@ INSERT INTO RaceCategory
 VALUES
 (1,'Amateur',450,55,1,2,'Giải nghiệp dư'),
 (2,'Professional',550,65,2,3,'Giải chuyên nghiệp'),
-(3,'Elite',650,75,3,5,'Giải đỉnh cao');

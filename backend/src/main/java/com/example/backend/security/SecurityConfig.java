@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -40,12 +41,23 @@ public class SecurityConfig {
 
                         .requestMatchers(SWAGGER_WHITELIST).permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers(
+                        .requestMatchers(HttpMethod.GET,
                                 "/api/race-categories/**",
                                 "/api/tournaments/**",
                                 "/api/races/**",
-                                "/api/race-rounds/**")
-                        .permitAll()
+                                "/api/race-rounds/**").permitAll()
+                        .requestMatchers(HttpMethod.POST,
+                                "/api/tournaments/**",
+                                "/api/races/**",
+                                "/api/race-rounds/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT,
+                                "/api/tournaments/**",
+                                "/api/races/**",
+                                "/api/race-rounds/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.DELETE,
+                                "/api/tournaments/**",
+                                "/api/races/**",
+                                "/api/race-rounds/**").hasRole("ADMIN")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/user/me").authenticated()
                         .requestMatchers("/api/user/all").hasRole("ADMIN")

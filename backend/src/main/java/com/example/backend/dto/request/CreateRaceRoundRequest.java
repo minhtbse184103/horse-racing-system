@@ -2,7 +2,7 @@ package com.example.backend.dto.request;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 public class CreateRaceRoundRequest {
     @NotNull(message = "Race is required")
@@ -17,7 +17,7 @@ public class CreateRaceRoundRequest {
     @Positive(message = "Distance co-efficient must be a positive number")
     private BigDecimal distanceCoefficient;
     @NotNull(message = "Scheduled time is required")
-    private LocalDateTime scheduledTime;
+    private LocalDate scheduledTime;
 
     public Integer getRaceId() {
         return raceId;
@@ -35,7 +35,7 @@ public class CreateRaceRoundRequest {
         return distanceCoefficient;
     }
 
-    public LocalDateTime getScheduledTime() {
+    public LocalDate getScheduledTime() {
         return scheduledTime;
     }
 }
