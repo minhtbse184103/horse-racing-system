@@ -40,6 +40,12 @@ public class SecurityConfig {
 
                         .requestMatchers(SWAGGER_WHITELIST).permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers(
+                                "/api/race-categories/**",
+                                "/api/tournaments/**",
+                                "/api/races/**",
+                                "/api/race-rounds/**")
+                        .permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/user/me").authenticated()
                         .requestMatchers("/api/user/all").hasRole("ADMIN")
