@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
+import { getCurrentUser, getToken, login, logout, saveAuthSession } from './services/authService';
+import { createUser, deleteUser, getUsers, updateUser } from './services/userService';
 import {
   getCurrentUser,
   getToken,
@@ -458,6 +460,432 @@ function getInitialPage() {
   return window.location.pathname === '/register' ? 'register' : 'login';
 }
 
+const adminRoles = ['ADMIN', 'OWNER', 'JOCKEY', 'REFEREE', 'SPECTATOR'];
+const userStatuses = ['ACTIVE', 'INACTIVE', 'BLOCKED'];
+
+function getUserId(user) {
+  return user?.id ?? user?.Id ?? user?.userID ?? user?.userId;
+}
+
+function emptyUserForm() {
+  return {
+    email: '',
+    fullName: '',
+    phone: '',
+    password: '',
+    roleName: 'SPECTATOR',
+    status: 'ACTIVE'
+  };
+}
+
+function AdminDashboard({ currentUser, onLogout }) {
+  const [users, setUsers] = useState([]);
+  const [formValues, setFormValues] = useState(emptyUserForm());
+  const [editingUser, setEditingUser] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [message, setMessage] = useState('');
+  const [error, setError] = useState('');
+
+  const activeUsers = users.filter((user) => user.status === 'ACTIVE').length;
+  const inactiveUsers = users.filter((user) => user.status === 'INACTIVE').length;
+  const blockedUsers = users.filter((user) => user.status === 'BLOCKED').length;
+
+  useEffect(() => {
+    loadUsers();
+  }, []);
+
+  async function loadUsers() {
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const data = await getUsers();
+      setUsers(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setError(err.message || 'Không thể tải danh sách user.');
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  function handleChange(event) {
+    const { name, value } = event.target;
+    setFormValues((current) => ({ ...current, [name]: value }));
+    setError('');
+    setMessage('');
+  }
+
+  function handleEdit(user) {
+    setEditingUser(user);
+    setFormValues({
+      email: user.email || '',
+      fullName: user.fullName || '',
+      phone: user.phone || '',
+      password: '',
+      roleName: user.role || 'SPECTATOR',
+      status: user.status || 'ACTIVE'
+    });
+    setMessage('');
+    setError('');
+  }
+
+  function handleCancelEdit() {
+    setEditingUser(null);
+    setFormValues(emptyUserForm());
+    setMessage('');
+    setError('');
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+
+    if (!formValues.email.trim()) {
+      setError('Email không được để trống.');
+      return;
+    }
+
+    if (!formValues.fullName.trim()) {
+      setError('Họ tên không được để trống.');
+      return;
+    }
+
+    if (!formValues.phone.trim()) {
+      setError('Số điện thoại không được để trống.');
+      return;
+    }
+
+    if (!editingUser && !formValues.password) {
+      setError('Password không được để trống khi tạo user.');
+      return;
+    }
+
+    setIsSaving(true);
+    setError('');
+    setMessage('');
+
+    try {
+      if (editingUser) {
+        const userId = getUserId(editingUser);
+
+        await updateUser(userId, {
+          email: formValues.email.trim(),
+          fullName: formValues.fullName.trim(),
+          phone: formValues.phone.trim(),
+          roleName: formValues.roleName,
+          status: formValues.status
+        });
+
+        setMessage('Cập nhật user thành công.');
+      } else {
+        await createUser({
+          email: formValues.email.trim(),
+          fullName: formValues.fullName.trim(),
+          phone: formValues.phone.trim(),
+          password: formValues.password,
+          roleName: formValues.roleName
+        });
+
+        setMessage('Tạo user thành công.');
+      }
+
+      setEditingUser(null);
+      setFormValues(emptyUserForm());
+      await loadUsers();
+    } catch (err) {
+      setError(err.message || 'Lưu user thất bại.');
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  async function handleDelete(user) {
+    const userId = getUserId(user);
+    const confirmDelete = window.confirm(
+      `Bạn có chắc muốn xóa user "${user.fullName || user.email}" không?\nBackend sẽ chuyển status user sang INACTIVE.`
+    );
+
+    if (!confirmDelete) return;
+
+    setError('');
+    setMessage('');
+
+    try {
+      await deleteUser(userId);
+      setMessage('Xóa user thành công.');
+      await loadUsers();
+    } catch (err) {
+      setError(err.message || 'Xóa user thất bại.');
+    }
+  }
+
+  return (
+    <main className="admin-shell">
+      <aside className="admin-sidebar">
+        <div className="admin-brand">
+          <div className="admin-logo">🏇</div>
+          <div>
+            <strong>Horse Racing</strong>
+            <span>Admin Dashboard</span>
+          </div>
+        </div>
+
+        <nav className="admin-nav">
+          <button className="admin-nav-item active" type="button">
+            Quản lý user
+          </button>
+        </nav>
+
+        <div className="admin-profile">
+          <span>Đang đăng nhập</span>
+          <strong>{currentUser?.fullName || currentUser?.email}</strong>
+          <small>{currentUser?.role}</small>
+        </div>
+
+        <button className="admin-logout" type="button" onClick={onLogout}>
+          Đăng xuất
+        </button>
+      </aside>
+
+      <section className="admin-main">
+        <header className="admin-header">
+          <div>
+            <p className="eyebrow">Admin</p>
+            <h1>Quản lý người dùng</h1>
+            <p>Admin có thể tạo, xem, cập nhật và xóa user trong hệ thống.</p>
+          </div>
+
+          <button className="refresh-button" type="button" onClick={loadUsers} disabled={isLoading}>
+            {isLoading ? 'Đang tải...' : 'Làm mới'}
+          </button>
+        </header>
+
+        <section className="admin-stats">
+          <div>
+            <span>Tổng user</span>
+            <strong>{users.length}</strong>
+          </div>
+          <div>
+            <span>ACTIVE</span>
+            <strong>{activeUsers}</strong>
+          </div>
+          <div>
+            <span>INACTIVE</span>
+            <strong>{inactiveUsers}</strong>
+          </div>
+          <div>
+            <span>BLOCKED</span>
+            <strong>{blockedUsers}</strong>
+          </div>
+        </section>
+
+        {error && (
+          <div className="admin-alert error" role="alert">
+            {error}
+          </div>
+        )}
+
+        {message && (
+          <div className="admin-alert success" role="status">
+            {message}
+          </div>
+        )}
+
+        <section className="admin-grid">
+          <form className="admin-card admin-form" onSubmit={handleSubmit}>
+            <div className="admin-card-header">
+              <div>
+                <h2>{editingUser ? 'Cập nhật user' : 'Tạo user mới'}</h2>
+                <p>
+                  {editingUser
+                    ? 'Chỉnh thông tin user. Password không được cập nhật ở form này.'
+                    : 'Tạo tài khoản mới cho Admin, Owner, Jockey, Referee hoặc Spectator.'}
+                </p>
+              </div>
+            </div>
+
+            <label className="field-label" htmlFor="adminFullName">
+              Họ tên
+            </label>
+            <input
+              className="input"
+              id="adminFullName"
+              name="fullName"
+              type="text"
+              placeholder="Nguyễn Văn A"
+              value={formValues.fullName}
+              onChange={handleChange}
+              disabled={isSaving}
+            />
+
+            <label className="field-label" htmlFor="adminEmail">
+              Email
+            </label>
+            <input
+              className="input"
+              id="adminEmail"
+              name="email"
+              type="email"
+              placeholder="example@gmail.com"
+              value={formValues.email}
+              onChange={handleChange}
+              disabled={isSaving}
+            />
+
+            <label className="field-label" htmlFor="adminPhone">
+              Số điện thoại
+            </label>
+            <input
+              className="input"
+              id="adminPhone"
+              name="phone"
+              type="tel"
+              placeholder="0901234567"
+              value={formValues.phone}
+              onChange={handleChange}
+              disabled={isSaving}
+            />
+
+            {!editingUser && (
+              <>
+                <label className="field-label" htmlFor="adminPassword">
+                  Password
+                </label>
+                <input
+                  className="input"
+                  id="adminPassword"
+                  name="password"
+                  type="password"
+                  placeholder="Tối thiểu 6 ký tự"
+                  value={formValues.password}
+                  onChange={handleChange}
+                  disabled={isSaving}
+                />
+              </>
+            )}
+
+            <label className="field-label" htmlFor="adminRole">
+              Vai trò
+            </label>
+            <select
+              className="input"
+              id="adminRole"
+              name="roleName"
+              value={formValues.roleName}
+              onChange={handleChange}
+              disabled={isSaving}
+            >
+              {adminRoles.map((role) => (
+                <option key={role} value={role}>
+                  {role}
+                </option>
+              ))}
+            </select>
+
+            {editingUser && (
+              <>
+                <label className="field-label" htmlFor="adminStatus">
+                  Trạng thái
+                </label>
+                <select
+                  className="input"
+                  id="adminStatus"
+                  name="status"
+                  value={formValues.status}
+                  onChange={handleChange}
+                  disabled={isSaving}
+                >
+                  {userStatuses.map((status) => (
+                    <option key={status} value={status}>
+                      {status}
+                    </option>
+                  ))}
+                </select>
+              </>
+            )}
+
+            <div className="admin-form-actions">
+              <button className="primary-button" type="submit" disabled={isSaving}>
+                {isSaving ? 'Đang lưu...' : editingUser ? 'Cập nhật user' : 'Tạo user'}
+              </button>
+
+              {editingUser && (
+                <button className="outline-button" type="button" onClick={handleCancelEdit} disabled={isSaving}>
+                  Hủy sửa
+                </button>
+              )}
+            </div>
+          </form>
+
+          <section className="admin-card user-table-card">
+            <div className="admin-card-header">
+              <div>
+                <h2>Danh sách user</h2>
+                <p>Danh sách được lấy từ API /api/admin/users.</p>
+              </div>
+            </div>
+
+            {isLoading ? (
+              <p className="table-empty">Đang tải danh sách user...</p>
+            ) : users.length === 0 ? (
+              <p className="table-empty">Chưa có user nào.</p>
+            ) : (
+              <div className="table-wrapper">
+                <table className="user-table">
+                  <thead>
+                    <tr>
+                      <th>ID</th>
+                      <th>Họ tên</th>
+                      <th>Email</th>
+                      <th>Phone</th>
+                      <th>Role</th>
+                      <th>Status</th>
+                      <th>Thao tác</th>
+                    </tr>
+                  </thead>
+
+                  <tbody>
+                    {users.map((user) => {
+                      const userId = getUserId(user);
+
+                      return (
+                        <tr key={userId || user.email}>
+                          <td>{userId}</td>
+                          <td>{user.fullName || 'N/A'}</td>
+                          <td>{user.email}</td>
+                          <td>{user.phone || 'N/A'}</td>
+                          <td>
+                            <span className="role-badge">{user.role}</span>
+                          </td>
+                          <td>
+                            <span className={`status-badge ${String(user.status || '').toLowerCase()}`}>
+                              {user.status || 'N/A'}
+                            </span>
+                          </td>
+                          <td>
+                            <div className="table-actions">
+                              <button type="button" onClick={() => handleEdit(user)}>
+                                Sửa
+                              </button>
+                              <button className="danger-action" type="button" onClick={() => handleDelete(user)}>
+                                Xóa
+                              </button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        </section>
+      </section>
+    </main>
+  );
+}
+
 export default function App() {
   const [user, setUser] = useState(() => (getToken() ? getCurrentUser() : null));
   const [page, setPage] = useState(getInitialPage);
@@ -480,6 +908,10 @@ export default function App() {
     logout();
     setUser(null);
     navigateTo('/login');
+  }
+
+  if (user?.role === 'ADMIN') {
+    return <AdminDashboard currentUser={user} onLogout={handleLogout} />;
   }
 
   if (user) {
