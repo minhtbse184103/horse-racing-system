@@ -1,25 +1,24 @@
 package com.example.backend.dto.request;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 public class CreateRaceRequest {
 @NotNull(message = "Tournament is required")
     private Integer tournamentId;
     @NotNull(message = "Race Category is required")
     private Integer categoryId;
-    @NotBlank(message = "Race name is required")   
-    private String raceName;
+    @NotNull(message = "Scheduled time is required")
+    private LocalDateTime scheduledTime;
     @NotNull(message = "Max participants is required")
     @Positive(message = "Max participants must be a positive number")
     private Integer maxParticipants;
     @NotNull(message = "Lane count is required")
     @Positive(message = "Lane count must be a positive number")
     private Integer laneCount;
-    @NotBlank(message = "Track is required")
-    private String track;
+
     @NotNull(message = "Prize pool is required")
     @PositiveOrZero(message = "Prize pool must be a positive number")
     private BigDecimal prizePool;
@@ -32,9 +31,7 @@ public class CreateRaceRequest {
         return categoryId;
     }
 
-    public String getRaceName() {
-        return raceName;
-    }
+
 
     public Integer getMaxParticipants() {
         return maxParticipants;
@@ -44,10 +41,9 @@ public class CreateRaceRequest {
         return laneCount;
     }
 
-    public String getTrack() {
-        return track;
+    public LocalDateTime getScheduledTime() {
+        return scheduledTime;
     }
-
     public BigDecimal getPrizePool() {
         return prizePool;
     }

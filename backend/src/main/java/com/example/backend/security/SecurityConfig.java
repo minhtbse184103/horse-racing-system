@@ -44,20 +44,16 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET,
                                 "/api/race-categories/**",
                                 "/api/tournaments/**",
-                                "/api/races/**",
-                                "/api/race-rounds/**").permitAll()
+                                "/api/races/**").permitAll()
                         .requestMatchers(HttpMethod.POST,
                                 "/api/tournaments/**",
-                                "/api/races/**",
-                                "/api/race-rounds/**").hasRole("ADMIN")
+                                "/api/races/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT,
                                 "/api/tournaments/**",
-                                "/api/races/**",
-                                "/api/race-rounds/**").hasRole("ADMIN")
+                                "/api/races/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE,
                                 "/api/tournaments/**",
-                                "/api/races/**",
-                                "/api/race-rounds/**").hasRole("ADMIN")
+                                "/api/races/**").hasRole("ADMIN")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .requestMatchers("/api/user/me").authenticated()
                         .requestMatchers("/api/user/all").hasRole("ADMIN")

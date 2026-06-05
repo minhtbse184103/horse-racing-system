@@ -1,10 +1,9 @@
 package com.example.backend.dto.request;
 
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
-
+import java.time.LocalDateTime;
 import java.math.BigDecimal;
 
 public class UpdateRaceRequest {
@@ -12,8 +11,8 @@ public class UpdateRaceRequest {
     @NotNull(message = "Race category is required")
     private Integer categoryId;
 
-    @NotBlank(message = "Race name is required")
-    private String raceName;
+    @NotNull(message = "Scheduled time is required")
+    private LocalDateTime scheduledTime;
 
     @NotNull(message = "Max participants is required")
     @Positive(message = "Max participants must be a positive number")
@@ -23,8 +22,7 @@ public class UpdateRaceRequest {
     @Positive(message = "Lane count must be a positive number")
     private Integer laneCount;
 
-    @NotBlank(message = "Track is required")
-    private String track;
+
 
     @NotNull(message = "Prize pool is required")
     @PositiveOrZero(message = "Prize pool must be zero or greater")
@@ -34,9 +32,7 @@ public class UpdateRaceRequest {
         return categoryId;
     }
 
-    public String getRaceName() {
-        return raceName;
-    }
+
 
     public Integer getMaxParticipants() {
         return maxParticipants;
@@ -46,10 +42,9 @@ public class UpdateRaceRequest {
         return laneCount;
     }
 
-    public String getTrack() {
-        return track;
+    public LocalDateTime getScheduledTime() {
+        return scheduledTime;
     }
-
     public BigDecimal getPrizePool() {
         return prizePool;
     }
