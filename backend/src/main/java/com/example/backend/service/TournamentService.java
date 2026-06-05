@@ -7,12 +7,12 @@ import com.example.backend.repository.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import com.example.backend.exception.ApiException;
+import com.example.backend.constant.EventStatus;
 import java.util.List;
 
 @Service
 public class TournamentService {
     private final RaceRepository raceRepository;
-    private final RaceRoundRepository raceRoundRepository;
     private final TournamentRepository tournamentRepository;
     private final UserRepository userRepository;
 
@@ -24,11 +24,9 @@ public class TournamentService {
     public TournamentService(
             TournamentRepository tournamentRepository,
             RaceRepository raceRepository,
-            RaceRoundRepository raceRoundRepository,
             UserRepository userRepository) {
         this.tournamentRepository = tournamentRepository;
         this.raceRepository = raceRepository;
-        this.raceRoundRepository = raceRoundRepository;
         this.userRepository = userRepository;
     }
 
@@ -48,6 +46,15 @@ public class TournamentService {
         User admin = userRepository.findByEmail(adminEmail)
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Admin account does not exist."));
 
+        if (tournamentRepository.existsByLocationIgnoreCaseAndStartDateAndEndDateAndStatusNot(
+                request.getLocation(),
+                request.getStartDate(),
+                request.getEndDate(),
+                EventStatus.CANCELLED
+        )) {
+            throw new IllegalArgumentException("Tournament already exists at this location with the same start date and end date.");
+        }
+
         Tournament tournament = new Tournament();
         tournament.setName(request.getName());
         tournament.setLocation(request.getLocation());
@@ -55,7 +62,7 @@ public class TournamentService {
         tournament.setEndDate(request.getEndDate());
         tournament.setRegistrationDeadline(request.getRegistrationDeadline().atTime(23, 59, 59));
         tournament.setCreatedBy(admin.getUserID());
-        tournament.setStatus("Draft");
+        tournament.setStatus(EventStatus.DRAFT);
 
         return tournamentRepository.save(tournament);
     }
@@ -64,7 +71,7 @@ public class TournamentService {
     Tournament tournament = tournamentRepository.findById(id)
             .orElseThrow(() -> new IllegalArgumentException("Tournament does not exist."));
 
-    if (!"Draft".equals(tournament.getStatus())) {
+    if (!EventStatus.DRAFT.equals(tournament.getStatus())) {
         throw new IllegalArgumentException("Only draft tournaments can be updated.");
     }
 
@@ -74,6 +81,16 @@ public class TournamentService {
 
     if (request.getRegistrationDeadline().isAfter(request.getStartDate())) {
         throw new IllegalArgumentException("Registration deadline cannot be after start date.");
+    }
+
+    if (tournamentRepository.existsByLocationIgnoreCaseAndStartDateAndEndDateAndStatusNotAndTournamentIdNot(
+            request.getLocation(),
+            request.getStartDate(),
+            request.getEndDate(),
+            EventStatus.CANCELLED,
+            id
+    )) {
+        throw new IllegalArgumentException("Tournament already exists at this location with the same start date and end date.");
     }
 
     tournament.setName(request.getName());
@@ -88,27 +105,20 @@ public Tournament cancelTournament(Integer id) {
     Tournament tournament = tournamentRepository.findById(id)
             .orElseThrow(() -> new IllegalArgumentException("Tournament does not exist."));
 
-    if (!"Draft".equals(tournament.getStatus())) {
+    if (!EventStatus.DRAFT.equals(tournament.getStatus())) {
         throw new IllegalArgumentException("Only draft tournaments can be cancelled.");
     }
 
     List<Race> races = raceRepository.findByTournamentId(tournament.getTournamentId());
 
     for (Race race : races) {
-        race.setStatus("Cancelled");
+        race.setStatus(EventStatus.CANCELLED);
+        race.setRaceNumber(null);
 
-        List<RaceRound> raceRounds = raceRoundRepository.findByRaceId(race.getRaceId());
-
-        for (RaceRound raceRound : raceRounds) {
-            raceRound.setStatus("Cancelled");
-        }
-
-        raceRoundRepository.saveAll(raceRounds);
     }
-
     raceRepository.saveAll(races);
 
-    tournament.setStatus("Cancelled");
+    tournament.setStatus(EventStatus.CANCELLED);
 
     return tournamentRepository.save(tournament);
 }

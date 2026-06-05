@@ -3,10 +3,9 @@ package com.example.backend.service;
 import com.example.backend.dto.request.*;
 import com.example.backend.entity.*;
 import com.example.backend.repository.*;
-import com.example.backend.entity.RaceRound;
-import com.example.backend.repository.RaceRoundRepository;
 import com.example.backend.repository.RaceCategoryRepository;
 import com.example.backend.repository.TournamentRepository;
+import com.example.backend.constant.EventStatus;
 import org.springframework.stereotype.Service;
 
 
@@ -14,7 +13,6 @@ import java.util.List;
 
 @Service
 public class RaceService {
-    private final RaceRoundRepository raceRoundRepository;
     private final RaceRepository raceRepository;
     private final TournamentRepository tournamentRepository;
     private final RaceCategoryRepository raceCategoryRepository;
@@ -22,13 +20,11 @@ public class RaceService {
     public RaceService(
         RaceRepository raceRepository,
         TournamentRepository tournamentRepository,
-        RaceCategoryRepository raceCategoryRepository,
-        RaceRoundRepository raceRoundRepository
+        RaceCategoryRepository raceCategoryRepository
 ) {
     this.raceRepository = raceRepository;
     this.tournamentRepository = tournamentRepository;
     this.raceCategoryRepository = raceCategoryRepository;
-    this.raceRoundRepository = raceRoundRepository;
 }
 
     public List<Race> getAllRaces() {
@@ -49,7 +45,7 @@ public Race getRaceById(Integer id) {
         var tournament = tournamentRepository.findById(request.getTournamentId())
         .orElseThrow(() -> new IllegalArgumentException("Tournament does not exist."));
 
-if (!"Draft".equals(tournament.getStatus())) {
+if (!EventStatus.DRAFT.equals(tournament.getStatus())) {
     throw new IllegalArgumentException("Only draft tournaments can have new races.");
 }
 
@@ -59,25 +55,42 @@ if (!"Draft".equals(tournament.getStatus())) {
         if (request.getLaneCount() > request.getMaxParticipants()) {
             throw new IllegalArgumentException("Lane count cannot be greater than maximum participants.");
 }
+        if (request.getScheduledTime().toLocalDate().isBefore(tournament.getStartDate())
+                || request.getScheduledTime().toLocalDate().isAfter(tournament.getEndDate())) {
+            throw new IllegalArgumentException("Race scheduled time must be within the tournament date range.");
+        }
+
+        if (raceRepository.existsByTournamentIdAndScheduledTimeAndStatusNot(
+                request.getTournamentId(),
+                request.getScheduledTime(),
+                EventStatus.CANCELLED
+        )) {
+            throw new IllegalArgumentException("Another active race already exists at this scheduled time in this tournament");
+        }
         Race race = new Race();
 
         race.setTournamentId(request.getTournamentId());
         race.setCategoryId(request.getCategoryId());
-        race.setRaceName(request.getRaceName());
+        race.setScheduledTime(request.getScheduledTime());
         race.setMaxParticipants(request.getMaxParticipants());
         race.setLaneCount(request.getLaneCount());
-        race.setTrack(request.getTrack());
         race.setPrizePool(request.getPrizePool());
-        race.setStatus("Draft");
+        race.setStatus(EventStatus.DRAFT);
 
-        return raceRepository.save(race);
+        Race savedRace = raceRepository.save(race);
+
+        reorderRaceNumbers(savedRace.getTournamentId());
+
+        return savedRace;
     }
 
     public Race updateRace(Integer id, UpdateRaceRequest request) {
     Race race = raceRepository.findById(id)
             .orElseThrow(() -> new IllegalArgumentException("Race does not exist."));
+        Tournament tournament = tournamentRepository.findById(race.getTournamentId())
+                .orElseThrow(() -> new IllegalArgumentException("Tournament does not exist."));
 
-    if (!"Draft".equals(race.getStatus())) {
+    if (!EventStatus.DRAFT.equals(race.getStatus())) {
         throw new IllegalArgumentException("Only draft races can be updated.");
     }
 
@@ -88,36 +101,59 @@ if (!"Draft".equals(tournament.getStatus())) {
     if (request.getLaneCount() > request.getMaxParticipants()) {
         throw new IllegalArgumentException("Lane count cannot be greater than maximum participants.");
     }
-
+        if (request.getScheduledTime().toLocalDate().isBefore(tournament.getStartDate())
+                || request.getScheduledTime().toLocalDate().isAfter(tournament.getEndDate())) {
+            throw new IllegalArgumentException("Race scheduled time must be within the tournament date range.");
+        }
+        if (raceRepository.existsByTournamentIdAndScheduledTimeAndRaceIdNotAndStatusNot(
+                race.getTournamentId(),
+                request.getScheduledTime(),
+                race.getRaceId(),
+                EventStatus.CANCELLED
+        )) {
+            throw new IllegalArgumentException("Another active race already exists at this scheduled time in this tournament");
+        }
     race.setCategoryId(request.getCategoryId());
-    race.setRaceName(request.getRaceName());
+        race.setScheduledTime(request.getScheduledTime());
     race.setMaxParticipants(request.getMaxParticipants());
     race.setLaneCount(request.getLaneCount());
-    race.setTrack(request.getTrack());
     race.setPrizePool(request.getPrizePool());
 
-    return raceRepository.save(race);
+    Race savedRace = raceRepository.save(race);
+    reorderRaceNumbers(savedRace.getTournamentId());
+
+    return savedRace;
 }
 public Race cancelRace(Integer id) {
     Race race = raceRepository.findById(id)
             .orElseThrow(() -> new IllegalArgumentException("Race does not exist."));
 
-    if (!"Draft".equals(race.getStatus())) {
+    if (!EventStatus.DRAFT.equals(race.getStatus())) {
         throw new IllegalArgumentException("Only draft races can be cancelled.");
     }
 
-    List<RaceRound> raceRounds = raceRoundRepository.findByRaceId(race.getRaceId());
 
-    for (RaceRound raceRound : raceRounds) {
-        raceRound.setStatus("Cancelled");
-    }
+    race.setStatus(EventStatus.CANCELLED);
+    race.setRaceNumber(null);
 
-    raceRoundRepository.saveAll(raceRounds);
+    Race savedRace = raceRepository.save(race);
+    reorderRaceNumbers(savedRace.getTournamentId());
 
-    race.setStatus("Cancelled");
-
-    return raceRepository.save(race);
+    return savedRace;
 }
 
+    private void reorderRaceNumbers(Integer tournamentId) {
+        List<Race> races = raceRepository
+                .findByTournamentIdAndStatusNotOrderByScheduledTimeAscRaceIdAsc(
+                        tournamentId,
+                        EventStatus.CANCELLED
+                );
+
+        for (int i = 0; i < races.size(); i++) {
+            races.get(i).setRaceNumber(i + 1);
+        }
+
+        raceRepository.saveAll(races);
+    }
 
 }

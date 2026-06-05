@@ -8,9 +8,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
-
-import java.math.BigDecimal;
-
 @Getter
 @Setter
 @Entity
@@ -25,17 +22,23 @@ public class RaceCategory {
     @Column(name = "categoryName")
     private String categoryName;
 
-    @Column(name = "maxHorseWeight")
-    private BigDecimal maxHorseWeight;
+    @Column(name = "trackSurface")
+    private String trackSurface;
 
-    @Column(name = "maxJockeyWeight")
-    private BigDecimal maxJockeyWeight;
+    @Column(name = "minHorseAge")
+    private Integer minHorseAge;
 
-    @Column(name = "minRounds")
-    private Integer minRounds;
+    @Column(name = "allowedGender")
+    private String allowedGender;
 
-    @Column(name = "maxRounds")
-    private Integer maxRounds;
+    @Column(name = "distanceText")
+    private String distanceText;
+
+    @Column(name = "distanceMeter")
+    private Integer distanceMeter;
+
+    @Column(name = "distanceType")
+    private String distanceType;
 
     @Column(name = "description")
     private String description;
