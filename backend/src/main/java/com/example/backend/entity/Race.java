@@ -8,6 +8,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
+import java.time.LocalDateTime;
 
 import java.math.BigDecimal;
 
@@ -28,17 +29,17 @@ public class Race {
     @Column(name = "categoryID")
     private Integer categoryId;
 
-    @Column(name = "raceName")
-    private String raceName;
+    @Column(name = "scheduledTime")
+    private LocalDateTime scheduledTime;
+
+    @Column(name = "raceNumber")
+    private Integer raceNumber;
 
     @Column(name = "maxParticipants")
     private Integer maxParticipants;
 
     @Column(name = "laneCount")
     private Integer laneCount;
-
-    @Column(name = "track")
-    private String track;
 
     @Column(name = "prizePool")
     private BigDecimal prizePool;
