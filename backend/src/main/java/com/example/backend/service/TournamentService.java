@@ -18,7 +18,7 @@ public class TournamentService {
 
     public Tournament getTournamentById(Integer id) {
         return tournamentRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Tournament does not exist."));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Tournament does not exist."));
     }
 
     public TournamentService(
@@ -36,11 +36,11 @@ public class TournamentService {
 
     public Tournament createTournament(CreateTournamentRequest request, String adminEmail) {
         if (request.getStartDate().isAfter(request.getEndDate())) {
-            throw new IllegalArgumentException("Start date cannot be after end date.");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Start date cannot be after end date.");
         }
 
         if (request.getRegistrationDeadline().isAfter(request.getStartDate())) {
-            throw new IllegalArgumentException("Registration deadline cannot be after start date.");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Registration deadline cannot be after start date.");
         }
 
         User admin = userRepository.findByEmail(adminEmail)
@@ -52,7 +52,7 @@ public class TournamentService {
                 request.getEndDate(),
                 EventStatus.CANCELLED
         )) {
-            throw new IllegalArgumentException("Tournament already exists at this location with the same start date and end date.");
+            throw new ApiException(HttpStatus.CONFLICT, "Tournament already exists at this location with the same start date and end date.");
         }
 
         Tournament tournament = new Tournament();
@@ -69,18 +69,18 @@ public class TournamentService {
 
     public Tournament updateTournament(Integer id, UpdateTournamentRequest request) {
     Tournament tournament = tournamentRepository.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("Tournament does not exist."));
+            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Tournament does not exist."));
 
     if (!EventStatus.DRAFT.equals(tournament.getStatus())) {
-        throw new IllegalArgumentException("Only draft tournaments can be updated.");
+        throw new ApiException(HttpStatus.BAD_REQUEST, "Only draft tournaments can be updated.");
     }
 
     if (request.getStartDate().isAfter(request.getEndDate())) {
-        throw new IllegalArgumentException("Start date cannot be after end date.");
+        throw new ApiException(HttpStatus.BAD_REQUEST, "Start date cannot be after end date.");
     }
 
     if (request.getRegistrationDeadline().isAfter(request.getStartDate())) {
-        throw new IllegalArgumentException("Registration deadline cannot be after start date.");
+        throw new ApiException(HttpStatus.BAD_REQUEST, "Registration deadline cannot be after start date.");
     }
 
     if (tournamentRepository.existsByLocationIgnoreCaseAndStartDateAndEndDateAndStatusNotAndTournamentIdNot(
@@ -90,7 +90,7 @@ public class TournamentService {
             EventStatus.CANCELLED,
             id
     )) {
-        throw new IllegalArgumentException("Tournament already exists at this location with the same start date and end date.");
+        throw new ApiException(HttpStatus.CONFLICT, "Tournament already exists at this location with the same start date and end date.");
     }
 
     tournament.setName(request.getName());
@@ -103,10 +103,10 @@ public class TournamentService {
 }
 public Tournament cancelTournament(Integer id) {
     Tournament tournament = tournamentRepository.findById(id)
-            .orElseThrow(() -> new IllegalArgumentException("Tournament does not exist."));
+            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Tournament does not exist."));
 
     if (!EventStatus.DRAFT.equals(tournament.getStatus())) {
-        throw new IllegalArgumentException("Only draft tournaments can be cancelled.");
+        throw new ApiException(HttpStatus.BAD_REQUEST, "Only draft tournaments can be cancelled.");
     }
 
     List<Race> races = raceRepository.findByTournamentId(tournament.getTournamentId());

@@ -3,7 +3,9 @@ package com.example.backend.service;
 
 import com.example.backend.dto.request.*;
 import com.example.backend.entity.*;
+import com.example.backend.exception.ApiException;
 import com.example.backend.repository.*;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -23,6 +25,6 @@ public class RaceCategoryService {
 
     public RaceCategory getRaceCategoryById(Integer id) {
         return raceCategoryRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Race category does not exist."));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Race category does not exist."));
     }
 }
