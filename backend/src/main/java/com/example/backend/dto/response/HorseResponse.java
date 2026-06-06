@@ -11,10 +11,11 @@ import lombok.Getter;
 public class HorseResponse {
     private Integer horseId;
     private Integer ownerId;
-    private String name;
+    private String horseName;
     private String breed;
     private String gender;
-    private Integer age;
+    private String color;
+    private LocalDate dayOfBirth;
     private BigDecimal weight;
     private LocalDate healthCertExpiry;
     private String status;

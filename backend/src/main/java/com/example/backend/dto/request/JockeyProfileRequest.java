@@ -1,7 +1,6 @@
 package com.example.backend.dto.request;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -11,24 +10,16 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class UpdateHorseRequest {
+public class JockeyProfileRequest {
 
-    @NotBlank(message = "Horse name is required")
-    private String horseName;
-
-    private String breed;
-
-    private String gender;
-
-    private String color;
-
-    private LocalDate dayOfBirth;
+    @NotBlank(message = "License number is required")
+    private String licenseNo;
 
     @NotNull(message = "Weight is required")
     @Positive(message = "Weight must be a positive number")
     private BigDecimal weight;
 
-    private LocalDate healthCertExpiry;
+    private String ranking;
 
     private String status;
 }

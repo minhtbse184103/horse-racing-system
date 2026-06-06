@@ -4,8 +4,8 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
-import jakarta.validation.constraints.PositiveOrZero;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -14,15 +14,17 @@ import lombok.Setter;
 public class CreateHorseRequest {
 
     @NotBlank(message = "Horse name is required")
-    private String name;
+    private String horseName;
 
     private String breed;
 
     private String gender;
 
-    @PositiveOrZero(message = "Age must be zero or positive")
-    private Integer age;
+    private String color;
 
+    private LocalDate dayOfBirth;
+
+    @NotNull(message = "Weight is required")
     @Positive(message = "Weight must be a positive number")
     private BigDecimal weight;
 

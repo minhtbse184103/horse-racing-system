@@ -7,13 +7,13 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-
 
 @Getter
 @Setter
@@ -29,24 +29,34 @@ public class JockeyInvitation {
     @Column(name = "invitationID")
     private Integer invitationId;
 
-    @Column(name = "regID")
-    private Integer regId;
+    @Column(name = "registrationID", nullable = false)
+    private Integer registrationId;
 
-    @Column(name = "ownerID")
+    @Column(name = "ownerID", nullable = false)
     private Integer ownerId;
 
-    @Column(name = "jockeyID")
+    @Column(name = "jockeyID", nullable = false)
     private Integer jockeyId;
 
-    @Column(name = "sentAt")
-    private LocalDateTime sentAt;
+    @Column(name = "status")
+    private String status;
 
-    @Column(name = "respondedAt")
-    private LocalDateTime respondedAt;
+    @Column(name = "message")
+    private String message;
+
+    @Column(name = "createdAt")
+    private LocalDateTime createdAt;
 
     @Column(name = "expiredAt")
     private LocalDateTime expiredAt;
 
-    @Column(name = "status")
-    private String status;
+    @Column(name = "respondedAt")
+    private LocalDateTime respondedAt;
+
+    @PrePersist
+    void prePersist() {
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+    }
 }

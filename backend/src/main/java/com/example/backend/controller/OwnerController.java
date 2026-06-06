@@ -15,8 +15,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.backend.dto.request.CreateHorseRequest;
+import com.example.backend.dto.request.InviteJockeyRequest;
 import com.example.backend.dto.request.UpdateHorseRequest;
 import com.example.backend.dto.response.HorseResponse;
+import com.example.backend.dto.response.JockeyInvitationResponse;
 import com.example.backend.dto.response.OwnerDashboardResponse;
 import com.example.backend.service.OwnerService;
 
@@ -63,5 +65,21 @@ public class OwnerController {
     public ResponseEntity<Void> deleteHorse(@PathVariable Integer horseId) {
         ownerService.deleteHorse(horseId);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/invitations")
+    public List<JockeyInvitationResponse> getMyInvitations() {
+        return ownerService.getMyInvitations();
+    }
+
+    @PostMapping("/invitations")
+    public ResponseEntity<JockeyInvitationResponse> inviteJockey(
+            @Valid @RequestBody InviteJockeyRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(ownerService.inviteJockey(request));
+    }
+
+    @PutMapping("/invitations/{invitationId}/cancel")
+    public JockeyInvitationResponse cancelInvitation(@PathVariable Integer invitationId) {
+        return ownerService.cancelInvitation(invitationId);
     }
 }
