@@ -1,50 +1,38 @@
 package com.example.backend.dto.request;
+
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
-import jakarta.validation.constraints.PositiveOrZero;
-import java.math.BigDecimal;
+
 import java.time.LocalDateTime;
 
 public class CreateRaceRequest {
-@NotNull(message = "Tournament is required")
-    private Integer tournamentId;
-    @NotNull(message = "Race Category is required")
-    private Integer categoryId;
-    @NotNull(message = "Scheduled time is required")
-    private LocalDateTime scheduledTime;
-    @NotNull(message = "Max participants is required")
-    @Positive(message = "Max participants must be a positive number")
-    private Integer maxParticipants;
-    @NotNull(message = "Lane count is required")
-    @Positive(message = "Lane count must be a positive number")
-    private Integer laneCount;
 
-    @NotNull(message = "Prize pool is required")
-    @PositiveOrZero(message = "Prize pool must be a positive number")
-    private BigDecimal prizePool;
+    @NotNull(message = "Tournament round is required")
+    private Integer roundId;
 
-    public Integer getTournamentId() {
-        return tournamentId;
+    @NotNull(message = "Start time is required")
+    private LocalDateTime startTime;
+
+    @NotNull(message = "End time is required")
+    private LocalDateTime endTime;
+
+    @NotNull(message = "Distance is required")
+    @Positive(message = "Distance must be positive")
+    private Integer distance;
+
+    public Integer getRoundId() {
+        return roundId;
     }
 
-    public Integer getCategoryId() {
-        return categoryId;
+    public LocalDateTime getStartTime() {
+        return startTime;
     }
 
-
-
-    public Integer getMaxParticipants() {
-        return maxParticipants;
+    public LocalDateTime getEndTime() {
+        return endTime;
     }
 
-    public Integer getLaneCount() {
-        return laneCount;
-    }
-
-    public LocalDateTime getScheduledTime() {
-        return scheduledTime;
-    }
-    public BigDecimal getPrizePool() {
-        return prizePool;
+    public Integer getDistance() {
+        return distance;
     }
 }
