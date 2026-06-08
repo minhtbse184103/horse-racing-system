@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from 'react';
-import { getCurrentUser, getToken, login, logout, saveAuthSession } from './services/authService';
 import { createUser, deleteUser, getUsers, updateUser } from './services/userService';
 import {
   getCurrentUser,
