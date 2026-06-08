@@ -34,4 +34,18 @@ public interface RegistrationRepository extends JpaRepository<Registration, Inte
     @Query("select count(r) from Registration r where r.registrationId in :registrationIds and r.status in :statuses")
     long countByRegistrationIdInAndStatusIn(@Param("registrationIds") Collection<Integer> registrationIds,
                                             @Param("statuses") Collection<String> statuses);
+
+    @Query("""
+            select count(r)
+            from Registration r
+            where r.tournamentId = :tournamentId
+              and r.jockeyId = :jockeyId
+              and r.status in :statuses
+              and (:excludedRegistrationId is null or r.registrationId <> :excludedRegistrationId)
+            """)
+    long countByTournamentIdAndJockeyIdAndStatusInExcludingRegistration(
+            @Param("tournamentId") Integer tournamentId,
+            @Param("jockeyId") Integer jockeyId,
+            @Param("statuses") Collection<String> statuses,
+            @Param("excludedRegistrationId") Integer excludedRegistrationId);
 }

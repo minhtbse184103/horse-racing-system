@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import com.example.backend.entity.JockeyInvitation;
@@ -20,6 +22,21 @@ public interface JockeyInvitationRepository extends JpaRepository<JockeyInvitati
     Optional<JockeyInvitation> findByInvitationIdAndJockeyId(Integer invitationId, Integer jockeyId);
 
     boolean existsByRegistrationIdAndJockeyIdAndStatus(Integer registrationId, Integer jockeyId, String status);
+
+    @Query("""
+            select count(i) > 0
+            from JockeyInvitation i
+            join Registration r on r.registrationId = i.registrationId
+            where r.tournamentId = :tournamentId
+              and i.jockeyId = :jockeyId
+              and i.status = :invitationStatus
+              and r.status in :registrationStatuses
+            """)
+    boolean existsActiveInvitationForTournamentAndJockey(
+            @Param("tournamentId") Integer tournamentId,
+            @Param("jockeyId") Integer jockeyId,
+            @Param("invitationStatus") String invitationStatus,
+            @Param("registrationStatuses") Collection<String> registrationStatuses);
 
     void deleteByRegistrationIdIn(Collection<Integer> registrationIds);
 }
