@@ -1,5 +1,6 @@
 const EMAIL_REGEX = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
 const PHONE_REGEX = /^\+?[0-9]{9,15}$/;
+const PUBLIC_ROLES = ['OWNER', 'JOCKEY', 'SPECTATOR'];
 
 export function validateLoginForm(values) {
   const errors = {};
@@ -21,7 +22,6 @@ export function validateLoginForm(values) {
 
 export function validateSignupForm(values) {
   const errors = {};
-  const publicRoles = ['OWNER', 'JOCKEY', 'SPECTATOR'];
 
   if (!values.fullName?.trim()) {
     errors.fullName = 'Họ tên không được để trống.';
@@ -47,8 +47,42 @@ export function validateSignupForm(values) {
     errors.password = 'Password phải từ 6 đến 72 ký tự.';
   }
 
-  if (!values.roleName || !publicRoles.includes(values.roleName)) {
+  if (!values.roleName || !PUBLIC_ROLES.includes(values.roleName)) {
     errors.roleName = 'Role chỉ được là OWNER, JOCKEY hoặc SPECTATOR.';
+  }
+
+  return errors;
+}
+
+export function validateHorseForm(values) {
+  const errors = {};
+
+  if (!values.name?.trim()) {
+    errors.name = 'Tên ngựa không được để trống.';
+  }
+
+  if (!values.breed?.trim()) {
+    errors.breed = 'Giống ngựa không được để trống.';
+  }
+
+  if (values.age === '') {
+    errors.age = 'Tuổi ngựa không được để trống.';
+  } else if (Number(values.age) < 0) {
+    errors.age = 'Tuổi ngựa phải lớn hơn hoặc bằng 0.';
+  }
+
+  if (values.weight === '') {
+    errors.weight = 'Cân nặng không được để trống.';
+  } else if (Number(values.weight) <= 0) {
+    errors.weight = 'Cân nặng phải lớn hơn 0.';
+  }
+
+  if (!values.healthCertExpiry) {
+    errors.healthCertExpiry = 'Hạn giấy sức khỏe không được để trống.';
+  }
+
+  if (!values.status) {
+    errors.status = 'Trạng thái ngựa không được để trống.';
   }
 
   return errors;

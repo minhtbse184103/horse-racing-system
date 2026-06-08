@@ -1,70 +1,27 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+import API_BASE_URL from '../configs/apiConfig';
+import { httpRequest } from '../api/httpClient';
 
-function getErrorMessage(data, fallbackMessage) {
-  if (!data) return fallbackMessage;
-  if (typeof data === 'string') return data;
-  if (typeof data.message === 'string') return data.message;
-  if (typeof data.error === 'string') return data.error;
-  if (Array.isArray(data.errors) && data.errors.length > 0) {
-    return data.errors.map((error) => error.defaultMessage || error.message || String(error)).join('\n');
-  }
-  return fallbackMessage;
+export function login({ email, password }) {
+  return httpRequest('/api/auth/login', {
+    method: 'POST',
+    auth: false,
+    body: { email, password },
+    fallbackError: 'Đăng nhập thất bại. Vui lòng thử lại.'
+  }).then((data) => {
+    if (!data?.token || !data?.user) {
+      throw new Error('Đăng nhập thất bại. Hệ thống chưa trả đủ thông tin đăng nhập.');
+    }
+    return data;
+  });
 }
 
-export async function login({ email, password }) {
-  const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+export function signup({ email, fullName, phone, password, roleName }) {
+  return httpRequest('/api/auth/signup', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ email, password })
+    auth: false,
+    body: { email, fullName, phone, password, roleName },
+    fallbackError: 'Đăng ký thất bại. Vui lòng thử lại.'
   });
-
-  let data = null;
-  try {
-    data = await response.json();
-  } catch {
-    // Backend may return empty body in some errors.
-  }
-
-  if (!response.ok) {
-    throw new Error(getErrorMessage(data, 'Đăng nhập thất bại. Vui lòng thử lại.'));
-  }
-
-  if (!data?.token || !data?.user) {
-    throw new Error('Response login không hợp lệ: thiếu token hoặc user.');
-  }
-
-  return data;
-}
-
-export async function signup({ email, fullName, phone, password, roleName }) {
-  const response = await fetch(`${API_BASE_URL}/api/auth/signup`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      email,
-      fullName,
-      phone,
-      password,
-      roleName
-    })
-  });
-
-  let data = null;
-  try {
-    data = await response.json();
-  } catch {
-    // Backend may return empty body in some errors.
-  }
-
-  if (!response.ok) {
-    throw new Error(getErrorMessage(data, 'Đăng ký thất bại. Vui lòng thử lại.'));
-  }
-
-  return data;
 }
 
 export function startGoogleLogin() {
