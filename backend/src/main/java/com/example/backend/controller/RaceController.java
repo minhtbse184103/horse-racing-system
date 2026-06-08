@@ -29,6 +29,10 @@ public class RaceController {
     public List<Race> getRacesByTournamentId(@PathVariable Integer tournamentId) {
         return raceService.getRacesByTournamentId(tournamentId);
     }
+    @GetMapping("/by-round/{roundId}")
+    public List<Race> getRacesByRoundId(@PathVariable Integer roundId) {
+        return raceService.getRacesByRoundId(roundId);
+    }
 
     @GetMapping
     public List<Race> getAllRaces() {

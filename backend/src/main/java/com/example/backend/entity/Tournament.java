@@ -1,11 +1,6 @@
 package com.example.backend.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -23,8 +18,8 @@ public class Tournament {
     @Column(name = "tournamentID")
     private Integer tournamentId;
 
-    @Column(name = "name")
-    private String name;
+    @Column(name = "tournamentName")
+    private String tournamentName;
 
     @Column(name = "location")
     private String location;
@@ -38,9 +33,36 @@ public class Tournament {
     @Column(name = "registrationDeadline")
     private LocalDateTime registrationDeadline;
 
+    @Column(name = "minParticipants")
+    private Integer minParticipants;
+
+    @Column(name = "maxParticipants")
+    private Integer maxParticipants;
+
+    @Column(name = "conditionID")
+    private Integer conditionId;
+
     @Column(name = "status")
     private String status;
 
     @Column(name = "createdBy")
     private Integer createdBy;
+
+    @Column(name = "createdAt")
+    private LocalDateTime createdAt;
+
+    @Column(name = "updatedAt")
+    private LocalDateTime updatedAt;
+
+    @PrePersist
+    void prePersist() {
+        LocalDateTime now = LocalDateTime.now();
+        createdAt = now;
+        updatedAt = now;
+    }
+
+    @PreUpdate
+    void preUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 }

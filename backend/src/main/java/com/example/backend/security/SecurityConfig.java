@@ -44,9 +44,10 @@ public class SecurityConfig {
                         .requestMatchers(SWAGGER_WHITELIST).permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET,
-                                "/api/race-categories/**",
                                 "/api/tournaments/**",
-                                "/api/races/**").permitAll()
+                                "/api/races/**",
+                                "/api/tournament-conditions/**",
+                                "/api/tournament-rounds/**").permitAll()
                         .requestMatchers(HttpMethod.POST,
                                 "/api/tournaments/**",
                                 "/api/races/**").hasRole("ADMIN")

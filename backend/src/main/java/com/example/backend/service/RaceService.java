@@ -1,161 +1,243 @@
 package com.example.backend.service;
 
-import com.example.backend.dto.request.*;
-import com.example.backend.entity.*;
-import com.example.backend.repository.*;
-import com.example.backend.repository.RaceCategoryRepository;
-import com.example.backend.repository.TournamentRepository;
 import com.example.backend.constant.EventStatus;
+import com.example.backend.dto.request.CreateRaceRequest;
+import com.example.backend.dto.request.UpdateRaceRequest;
+import com.example.backend.entity.Race;
+import com.example.backend.entity.Tournament;
+import com.example.backend.entity.TournamentRound;
 import com.example.backend.exception.ApiException;
+import com.example.backend.repository.RaceRepository;
+import com.example.backend.repository.TournamentRepository;
+import com.example.backend.repository.TournamentRoundRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
-
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class RaceService {
+    private static final Set<String> RACE_SETUP_TOURNAMENT_STATUSES = Set.of(
+            EventStatus.DRAFT,
+            EventStatus.OPEN_FOR_REGISTRATION,
+            EventStatus.CLOSED_REGISTRATION
+    );
+
     private final RaceRepository raceRepository;
+    private final TournamentRoundRepository tournamentRoundRepository;
     private final TournamentRepository tournamentRepository;
-    private final RaceCategoryRepository raceCategoryRepository;
 
     public RaceService(
-        RaceRepository raceRepository,
-        TournamentRepository tournamentRepository,
-        RaceCategoryRepository raceCategoryRepository
-) {
-    this.raceRepository = raceRepository;
-    this.tournamentRepository = tournamentRepository;
-    this.raceCategoryRepository = raceCategoryRepository;
-}
+            RaceRepository raceRepository,
+            TournamentRoundRepository tournamentRoundRepository,
+            TournamentRepository tournamentRepository
+    ) {
+        this.raceRepository = raceRepository;
+        this.tournamentRoundRepository = tournamentRoundRepository;
+        this.tournamentRepository = tournamentRepository;
+    }
 
     public List<Race> getAllRaces() {
         return raceRepository.findAll();
     }
-    public List<Race> getRacesByTournamentId(Integer tournamentId) {
-    if (!tournamentRepository.existsById(tournamentId)) {
-        throw new ApiException(HttpStatus.NOT_FOUND, "Tournament does not exist.");
+
+    public Race getRaceById(Integer id) {
+        return raceRepository.findById(id)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "Race does not exist."
+                ));
     }
 
-    return raceRepository.findByTournamentId(tournamentId);
-}
-public Race getRaceById(Integer id) {
-    return raceRepository.findById(id)
-            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Race does not exist."));
-}
+    public List<Race> getRacesByRoundId(Integer roundId) {
+        if (!tournamentRoundRepository.existsById(roundId)) {
+            throw new ApiException(
+                    HttpStatus.NOT_FOUND,
+                    "Tournament round does not exist."
+            );
+        }
+
+        return raceRepository.findByRoundIdOrderByRaceOrderAsc(roundId);
+    }
+
+    public List<Race> getRacesByTournamentId(Integer tournamentId) {
+        if (!tournamentRepository.existsById(tournamentId)) {
+            throw new ApiException(
+                    HttpStatus.NOT_FOUND,
+                    "Tournament does not exist."
+            );
+        }
+
+        List<Integer> roundIds = tournamentRoundRepository
+                .findByTournamentIdOrderByRoundOrderAsc(tournamentId)
+                .stream()
+                .map(TournamentRound::getRoundId)
+                .toList();
+
+        if (roundIds.isEmpty()) {
+            return List.of();
+        }
+
+        return raceRepository.findByRoundIdIn(roundIds);
+    }
+
     public Race createRace(CreateRaceRequest request) {
-        var tournament = tournamentRepository.findById(request.getTournamentId())
-        .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Tournament does not exist."));
+        TournamentRound round = getRound(request.getRoundId());
+        Tournament tournament = getTournament(round.getTournamentId());
 
-if (!EventStatus.DRAFT.equals(tournament.getStatus())) {
-    throw new ApiException(HttpStatus.BAD_REQUEST, "Only draft tournaments can have new races.");
-}
+        validateTournamentAllowsRaceSetup(tournament);
+        validateRaceTime(request.getStartTime(), request.getEndTime(), tournament);
+        List<Integer> tournamentRoundIds =
+                getTournamentRoundIds(tournament.getTournamentId());
 
-        if (!raceCategoryRepository.existsById(request.getCategoryId())) {
-            throw new ApiException(HttpStatus.NOT_FOUND, "Race category does not exist.");
-        }
-        if (request.getLaneCount() > request.getMaxParticipants()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Lane count cannot be greater than maximum participants.");
-}
-        if (request.getScheduledTime().toLocalDate().isBefore(tournament.getStartDate())
-                || request.getScheduledTime().toLocalDate().isAfter(tournament.getEndDate())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Race scheduled time must be within the tournament date range.");
-        }
-
-        if (raceRepository.existsByTournamentIdAndScheduledTimeAndStatusNot(
-                request.getTournamentId(),
-                request.getScheduledTime(),
+        if (raceRepository.existsOverlappingRace(
+                tournamentRoundIds,
+                request.getStartTime(),
+                request.getEndTime(),
                 EventStatus.CANCELLED
         )) {
-            throw new ApiException(HttpStatus.CONFLICT, "Another active race already exists at this scheduled time in this tournament");
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "Another active race overlaps with this race time."
+            );
         }
-        Race race = new Race();
+        long existingRaceCount = raceRepository.countByRoundId(round.getRoundId());
 
-        race.setTournamentId(request.getTournamentId());
-        race.setCategoryId(request.getCategoryId());
-        race.setScheduledTime(request.getScheduledTime());
-        race.setMaxParticipants(request.getMaxParticipants());
-        race.setLaneCount(request.getLaneCount());
-        race.setPrizePool(request.getPrizePool());
+        if ("Final".equalsIgnoreCase(round.getRoundName()) && existingRaceCount >= 1) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Final round can have only one race."
+            );
+        }
+
+        int raceOrder = Math.toIntExact(existingRaceCount + 1);
+
+        Race race = new Race();
+        race.setRoundId(round.getRoundId());
+        race.setRaceOrder(raceOrder);
+        race.setRaceName(generateRaceName(round, raceOrder));
+        race.setStartTime(request.getStartTime());
+        race.setEndTime(request.getEndTime());
+        race.setDistance(request.getDistance());
         race.setStatus(EventStatus.DRAFT);
 
-        Race savedRace = raceRepository.save(race);
-
-        reorderRaceNumbers(savedRace.getTournamentId());
-
-        return savedRace;
+        return raceRepository.save(race);
     }
 
     public Race updateRace(Integer id, UpdateRaceRequest request) {
-    Race race = raceRepository.findById(id)
-            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Race does not exist."));
-        Tournament tournament = tournamentRepository.findById(race.getTournamentId())
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Tournament does not exist."));
+        Race race = getRaceById(id);
+        TournamentRound round = getRound(race.getRoundId());
+        Tournament tournament = getTournament(round.getTournamentId());
 
-    if (!EventStatus.DRAFT.equals(race.getStatus())) {
-        throw new ApiException(HttpStatus.BAD_REQUEST, "Only draft races can be updated.");
-    }
+        validateTournamentAllowsRaceSetup(tournament);
 
-    if (!raceCategoryRepository.existsById(request.getCategoryId())) {
-        throw new ApiException(HttpStatus.NOT_FOUND, "Race category does not exist.");
-    }
-
-    if (request.getLaneCount() > request.getMaxParticipants()) {
-        throw new ApiException(HttpStatus.BAD_REQUEST, "Lane count cannot be greater than maximum participants.");
-    }
-        if (request.getScheduledTime().toLocalDate().isBefore(tournament.getStartDate())
-                || request.getScheduledTime().toLocalDate().isAfter(tournament.getEndDate())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Race scheduled time must be within the tournament date range.");
+        if (!EventStatus.DRAFT.equals(race.getStatus())) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Only draft races can be updated."
+            );
         }
-        if (raceRepository.existsByTournamentIdAndScheduledTimeAndRaceIdNotAndStatusNot(
-                race.getTournamentId(),
-                request.getScheduledTime(),
+
+        validateRaceTime(request.getStartTime(), request.getEndTime(), tournament);
+        List<Integer> tournamentRoundIds =
+                getTournamentRoundIds(tournament.getTournamentId());
+
+        if (raceRepository.existsOverlappingRaceExcludingCurrent(
+                tournamentRoundIds,
                 race.getRaceId(),
+                request.getStartTime(),
+                request.getEndTime(),
                 EventStatus.CANCELLED
         )) {
-            throw new ApiException(HttpStatus.CONFLICT, "Another active race already exists at this scheduled time in this tournament");
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "Another active race overlaps with this race time."
+            );
         }
-    race.setCategoryId(request.getCategoryId());
-        race.setScheduledTime(request.getScheduledTime());
-    race.setMaxParticipants(request.getMaxParticipants());
-    race.setLaneCount(request.getLaneCount());
-    race.setPrizePool(request.getPrizePool());
+        race.setStartTime(request.getStartTime());
+        race.setEndTime(request.getEndTime());
+        race.setDistance(request.getDistance());
 
-    Race savedRace = raceRepository.save(race);
-    reorderRaceNumbers(savedRace.getTournamentId());
-
-    return savedRace;
-}
-public Race cancelRace(Integer id) {
-    Race race = raceRepository.findById(id)
-            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Race does not exist."));
-
-    if (!EventStatus.DRAFT.equals(race.getStatus())) {
-        throw new ApiException(HttpStatus.BAD_REQUEST, "Only draft races can be cancelled.");
+        return raceRepository.save(race);
     }
 
+    public Race cancelRace(Integer id) {
+        Race race = getRaceById(id);
+        TournamentRound round = getRound(race.getRoundId());
+        Tournament tournament = getTournament(round.getTournamentId());
 
-    race.setStatus(EventStatus.CANCELLED);
-    race.setRaceNumber(null);
+        validateTournamentAllowsRaceSetup(tournament);
 
-    Race savedRace = raceRepository.save(race);
-    reorderRaceNumbers(savedRace.getTournamentId());
-
-    return savedRace;
-}
-
-    private void reorderRaceNumbers(Integer tournamentId) {
-        List<Race> races = raceRepository
-                .findByTournamentIdAndStatusNotOrderByScheduledTimeAscRaceIdAsc(
-                        tournamentId,
-                        EventStatus.CANCELLED
-                );
-
-        for (int i = 0; i < races.size(); i++) {
-            races.get(i).setRaceNumber(i + 1);
+        if (!EventStatus.DRAFT.equals(race.getStatus())) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Only draft races can be cancelled."
+            );
         }
 
-        raceRepository.saveAll(races);
+        race.setStatus(EventStatus.CANCELLED);
+        return raceRepository.save(race);
     }
 
+    private TournamentRound getRound(Integer roundId) {
+        return tournamentRoundRepository.findById(roundId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "Tournament round does not exist."
+                ));
+    }
+
+    private Tournament getTournament(Integer tournamentId) {
+        return tournamentRepository.findById(tournamentId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "Tournament does not exist."
+                ));
+    }
+
+    private void validateTournamentAllowsRaceSetup(Tournament tournament) {
+        if (!RACE_SETUP_TOURNAMENT_STATUSES.contains(tournament.getStatus())) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Races can only be configured while registration is not ongoing or finished."
+            );
+        }
+    }
+
+    private void validateRaceTime(
+            java.time.LocalDateTime startTime,
+            java.time.LocalDateTime endTime,
+            Tournament tournament
+    ) {
+        if (!startTime.isBefore(endTime)) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Race start time must be before end time."
+            );
+        }
+
+        if (startTime.toLocalDate().isBefore(tournament.getStartDate())
+                || endTime.toLocalDate().isAfter(tournament.getEndDate())) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Race time must be within the tournament date range."
+            );
+        }
+    }
+
+    private String generateRaceName(TournamentRound round, int raceOrder) {
+        if ("Final".equalsIgnoreCase(round.getRoundName())) {
+            return "Final";
+        }
+
+        return round.getRoundName() + " " + raceOrder;
+    }
+    private List<Integer> getTournamentRoundIds(Integer tournamentId) {
+        return tournamentRoundRepository
+                .findByTournamentIdOrderByRoundOrderAsc(tournamentId)
+                .stream()
+                .map(TournamentRound::getRoundId)
+                .toList();
+    }
 }

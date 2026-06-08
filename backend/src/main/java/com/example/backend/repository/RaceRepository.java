@@ -1,27 +1,51 @@
 package com.example.backend.repository;
 
-
-import com.example.backend.entity.*;
+import com.example.backend.entity.Race;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
+
 import java.util.List;
+
 public interface RaceRepository extends JpaRepository<Race, Integer> {
 
-List<Race> findByTournamentId(Integer tournamentId);
-List<Race> findByTournamentIdAndStatusNotOrderByScheduledTimeAscRaceIdAsc(
-            Integer tournamentId,
-            String status
+    List<Race> findByRoundIdOrderByRaceOrderAsc(Integer roundId);
+
+    long countByRoundId(Integer roundId);
+    boolean existsByRoundIdAndRaceOrder(Integer roundId, Integer raceOrder);
+
+    List<Race> findByRoundIdIn(List<Integer> roundIds);
+    @Query("""
+        SELECT COUNT(r) > 0
+        FROM Race r
+        WHERE r.roundId IN :roundIds
+        AND r.status <> :cancelledStatus
+        AND r.startTime < :endTime
+        AND r.endTime > :startTime
+        """)
+    boolean existsOverlappingRace(
+            @Param("roundIds") List<Integer> roundIds,
+            @Param("startTime") LocalDateTime startTime,
+            @Param("endTime") LocalDateTime endTime,
+            @Param("cancelledStatus") String cancelledStatus
     );
-boolean existsByTournamentIdAndScheduledTimeAndStatusNot(
-            Integer tournamentId,
-            LocalDateTime scheduledTime,
-            String status
-    );
-    boolean existsByTournamentIdAndScheduledTimeAndRaceIdNotAndStatusNot(
-            Integer tournamentId,
-            LocalDateTime scheduledTime,
-            Integer raceId,
-            String status
+
+    @Query("""
+        SELECT COUNT(r) > 0
+        FROM Race r
+        WHERE r.roundId IN :roundIds
+        AND r.raceId <> :raceId
+        AND r.status <> :cancelledStatus
+        AND r.startTime < :endTime
+        AND r.endTime > :startTime
+        """)
+    boolean existsOverlappingRaceExcludingCurrent(
+            @Param("roundIds") List<Integer> roundIds,
+            @Param("raceId") Integer raceId,
+            @Param("startTime") LocalDateTime startTime,
+            @Param("endTime") LocalDateTime endTime,
+            @Param("cancelledStatus") String cancelledStatus
     );
 }
