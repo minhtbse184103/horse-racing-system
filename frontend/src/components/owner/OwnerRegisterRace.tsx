@@ -1,4 +1,8 @@
-export default function OwnerRegisterRace({ onBackToHorses }) {
+interface OwnerRegisterRaceProps {
+  onBackToHorses: () => void;
+}
+
+export default function OwnerRegisterRace({ onBackToHorses }: OwnerRegisterRaceProps) {
   return (
     <section className="owner-panel warning-owner-panel">
       <div className="warning-icon">⚠️</div>
