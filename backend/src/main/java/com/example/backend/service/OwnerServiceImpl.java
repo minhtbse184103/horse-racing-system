@@ -44,6 +44,8 @@ public class OwnerServiceImpl implements OwnerService {
     private static final String INVITATION_PENDING = "PENDING";
     private static final String INVITATION_CANCELLED = "CANCELLED";
 
+    private static final String TOURNAMENT_OPEN_FOR_REGISTRATION = "OpenForRegistration";
+
     private final HorseRepository horseRepository;
     private final RegistrationRepository registrationRepository;
     private final JockeyInvitationRepository jockeyInvitationRepository;
@@ -317,6 +319,11 @@ public class OwnerServiceImpl implements OwnerService {
     private void validateHorseCanRegister(Horse horse, TournamentSnapshot tournament) {
         if (!STATUS_ACTIVE.equals(horse.getStatus())) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Only active horses can be registered.");
+        }
+
+        if (!TOURNAMENT_OPEN_FOR_REGISTRATION.equals(tournament.status())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "Only tournaments open for registration can accept owner registrations.");
         }
 
         if (tournament.registrationDeadline() != null
