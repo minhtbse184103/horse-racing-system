@@ -53,6 +53,7 @@ export default function RegisterForm({ onGoLogin }) {
 
       setSuccessMessage('Đăng ký thành công. Bạn có thể quay lại trang đăng nhập.');
       setValues({ fullName: '', email: '', phone: '', password: '', roleName: 'OWNER' });
+      onGoLogin();
     } catch (error: any) {
       setApiError(error.message || 'Đăng ký thất bại. Vui lòng thử lại.');
     } finally {
