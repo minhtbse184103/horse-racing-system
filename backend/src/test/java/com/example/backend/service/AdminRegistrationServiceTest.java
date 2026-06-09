@@ -31,6 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -85,7 +86,7 @@ class AdminRegistrationServiceTest {
     void confirmRegistrationRejectsNonAcceptedStatus() {
         Registration registration = validRegistration();
         registration.setStatus("CONFIRMED");
-        when(registrationRepository.findById(1)).thenReturn(Optional.of(registration));
+        when(registrationRepository.findByIdForUpdate(1)).thenReturn(Optional.of(registration));
 
         ApiException exception = assertThrows(ApiException.class,
                 () -> service.confirmRegistration(1));
@@ -182,8 +183,6 @@ class AdminRegistrationServiceTest {
         Registration registration = validRegistration();
         mockEntityLookups(registration, validTournament(), validHorse(), validOwner(), validJockey(),
                 validJockeyProfile(), validCondition());
-        when(registrationRepository.countByTournamentIdAndStatusIn(1, List.of("CONFIRMED")))
-                .thenReturn(0L);
         when(registrationRepository.countByTournamentIdAndHorseIdAndStatusInExcludingRegistration(
                 1, 1, List.of("CONFIRMED"), 1)).thenReturn(0L);
         when(registrationRepository.countByTournamentIdAndJockeyIdAndStatusInExcludingRegistration(
@@ -191,12 +190,13 @@ class AdminRegistrationServiceTest {
 
         assertConflict(() -> service.confirmRegistration(1),
                 "Jockey already has a confirmed registration for this tournament.");
+        verify(registrationRepository, never()).countByTournamentIdAndStatusIn(any(), any());
     }
 
     @Test
     void rejectRegistrationDoesNotRunConfirmationValidations() {
         Registration registration = validRegistration();
-        when(registrationRepository.findById(1)).thenReturn(Optional.of(registration));
+        when(registrationRepository.findByIdForUpdate(1)).thenReturn(Optional.of(registration));
         when(registrationRepository.save(registration)).thenReturn(registration);
         when(horseRepository.findById(1)).thenReturn(Optional.of(validHorse()));
         when(userRepository.findById(2)).thenReturn(Optional.of(validOwner()));
@@ -229,13 +229,13 @@ class AdminRegistrationServiceTest {
             User jockey,
             JockeyProfile jockeyProfile,
             TournamentCondition condition) {
-        when(registrationRepository.findById(1)).thenReturn(Optional.of(registration));
-        when(tournamentRepository.findById(1)).thenReturn(Optional.of(tournament));
-        when(tournamentConditionRepository.findById(1)).thenReturn(Optional.of(condition));
-        when(horseRepository.findById(1)).thenReturn(Optional.of(horse));
-        when(userRepository.findById(2)).thenReturn(Optional.of(owner));
-        when(userRepository.findById(3)).thenReturn(Optional.of(jockey));
-        when(jockeyProfileRepository.findById(3)).thenReturn(Optional.of(jockeyProfile));
+        when(registrationRepository.findByIdForUpdate(1)).thenReturn(Optional.of(registration));
+        when(tournamentRepository.findByIdForUpdate(1)).thenReturn(Optional.of(tournament));
+        lenient().when(tournamentConditionRepository.findById(1)).thenReturn(Optional.of(condition));
+        lenient().when(userRepository.findById(2)).thenReturn(Optional.of(owner));
+        lenient().when(horseRepository.findById(1)).thenReturn(Optional.of(horse));
+        lenient().when(userRepository.findById(3)).thenReturn(Optional.of(jockey));
+        lenient().when(jockeyProfileRepository.findById(3)).thenReturn(Optional.of(jockeyProfile));
     }
 
     private void assertConflict(Runnable action, String message) {

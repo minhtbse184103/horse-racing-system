@@ -85,7 +85,7 @@ public class AdminRegistrationService {
     }
 
     private Registration getAcceptedRegistration(Integer registrationId) {
-        Registration registration = registrationRepository.findById(registrationId)
+        Registration registration = registrationRepository.findByIdForUpdate(registrationId)
                 .orElseThrow(() ->
                         new ApiException(HttpStatus.NOT_FOUND, "Registration does not exist."));
 
@@ -126,23 +126,27 @@ public class AdminRegistrationService {
                 .build();
     }
     private void validateRegistrationForConfirmation(Registration registration) {
-        Tournament tournament = getTournament(registration.getTournamentId());
+        Tournament tournament = getTournamentForUpdate(registration.getTournamentId());
+        validateTournament(tournament);
+
         TournamentCondition condition = getTournamentCondition(tournament.getConditionId());
-        Horse horse = getHorse(registration.getHorseId());
+
         User owner = getUser(registration.getOwnerId(), "Owner");
+        validateOwner(owner);
+
+        Horse horse = getHorse(registration.getHorseId());
+        validateHorse(registration, horse, tournament, condition);
+
         User jockey = getJockey(registration.getJockeyId());
         JockeyProfile jockeyProfile = getJockeyProfile(registration.getJockeyId());
-
-        validateTournament(tournament);
-        validateOwner(owner);
-        validateHorse(registration, horse, tournament, condition);
         validateJockey(registration, jockey, jockeyProfile, condition);
-        validateTournamentCapacity(tournament);
+
         validateNoDuplicateConfirmedRegistration(registration);
+        validateTournamentCapacity(tournament);
     }
 
-    private Tournament getTournament(Integer tournamentId) {
-        return tournamentRepository.findById(tournamentId)
+    private Tournament getTournamentForUpdate(Integer tournamentId) {
+        return tournamentRepository.findByIdForUpdate(tournamentId)
                 .orElseThrow(() ->
                         new ApiException(HttpStatus.NOT_FOUND, "Tournament does not exist."));
     }

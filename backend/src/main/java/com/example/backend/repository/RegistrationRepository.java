@@ -4,7 +4,10 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
+import jakarta.persistence.LockModeType;
+
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -15,6 +18,10 @@ import com.example.backend.entity.Registration;
 public interface RegistrationRepository extends JpaRepository<Registration, Integer> {
     List<Registration> findByHorseId(Integer horseId);
     List<Registration> findByStatusOrderByUpdatedAtAsc(String status);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select r from Registration r where r.registrationId = :registrationId")
+    Optional<Registration> findByIdForUpdate(@Param("registrationId") Integer registrationId);
 
     Optional<Registration> findByTournamentIdAndHorseId(Integer tournamentId, Integer horseId);
 
