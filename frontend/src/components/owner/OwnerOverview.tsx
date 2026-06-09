@@ -1,7 +1,14 @@
 import StatCard from '../common/StatCard';
 import { formatNumber } from '../../lib';
+import type { Horse, OwnerDashboardData } from '../../types';
 
-export default function OwnerOverview({ dashboard, horses, onGoHorses }) {
+interface OwnerOverviewProps {
+  dashboard: OwnerDashboardData | null;
+  horses: Horse[];
+  onGoHorses: () => void;
+}
+
+export default function OwnerOverview({ dashboard, horses, onGoHorses }: OwnerOverviewProps) {
   const activeHorses = horses.filter((horse) => String(horse.status || '').toUpperCase() === 'ACTIVE').length;
   const participatedHorses = horses.filter((horse) => horse.participated).length;
   const registeredHorses = horses.filter((horse) => Number(horse.registrationCount || 0) > 0).length;
