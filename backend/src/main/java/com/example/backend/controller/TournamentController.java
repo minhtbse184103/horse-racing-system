@@ -50,6 +50,10 @@ public Tournament updateTournament(
 ) {
     return tournamentService.updateTournament(id, request);
 }
+@PutMapping("/{id}/open-registration")
+public Tournament openRegistration(@PathVariable Integer id) {
+    return tournamentService.openRegistration(id);
+}
 @DeleteMapping("/{id}")
 public Tournament cancelTournament(@PathVariable Integer id) {
     return tournamentService.cancelTournament(id);
