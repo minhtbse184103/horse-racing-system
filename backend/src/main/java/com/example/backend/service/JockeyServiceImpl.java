@@ -141,6 +141,10 @@ public class JockeyServiceImpl implements JockeyService {
         Registration registration = getPendingRegistration(invitation);
 
         validateInvitationNotExpired(invitation, registration);
+        validateJockeyAvailableForTournament(
+                registration.getTournamentId(),
+                jockey.getUserID(),
+                registration.getRegistrationId());
 
         invitation.setStatus(INVITATION_ACCEPTED);
         invitation.setRespondedAt(LocalDateTime.now());
@@ -219,6 +223,21 @@ public class JockeyServiceImpl implements JockeyService {
             jockeyInvitationRepository.save(invitation);
             registrationRepository.save(registration);
             throw new ApiException(HttpStatus.BAD_REQUEST, "Invitation has expired.");
+        }
+    }
+
+    private void validateJockeyAvailableForTournament(
+            Integer tournamentId,
+            Integer jockeyId,
+            Integer excludedRegistrationId) {
+        long activeRegistrations = registrationRepository.countByTournamentIdAndJockeyIdAndStatusInExcludingRegistration(
+                tournamentId,
+                jockeyId,
+                List.of(REGISTRATION_CONFIRMED),
+                excludedRegistrationId);
+        if (activeRegistrations > 0) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "This jockey already has a confirmed registration for the tournament.");
         }
     }
 

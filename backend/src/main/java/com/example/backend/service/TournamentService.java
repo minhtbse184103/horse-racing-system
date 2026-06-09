@@ -9,7 +9,11 @@ import org.springframework.stereotype.Service;
 import com.example.backend.exception.ApiException;
 import com.example.backend.constant.EventStatus;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 public class TournamentService {
@@ -143,6 +147,72 @@ public class TournamentService {
         tournament.setConditionId(request.getConditionId());
     return tournamentRepository.save(tournament);
 }
+
+@Transactional
+public Tournament openRegistration(Integer id) {
+    Tournament tournament = tournamentRepository.findById(id)
+            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Tournament does not exist."));
+
+    if (!EventStatus.DRAFT.equals(tournament.getStatus())) {
+        throw new ApiException(HttpStatus.CONFLICT,
+                "Only draft tournaments can be opened for registration.");
+    }
+
+    LocalDate today = LocalDate.now();
+    if (tournament.getStartDate() == null || tournament.getStartDate().isBefore(today)) {
+        throw new ApiException(HttpStatus.BAD_REQUEST,
+                "Tournament start date must not have passed.");
+    }
+
+    LocalDateTime now = LocalDateTime.now();
+    if (tournament.getRegistrationDeadline() == null
+            || tournament.getRegistrationDeadline().isBefore(now)) {
+        throw new ApiException(HttpStatus.BAD_REQUEST,
+                "Tournament registration deadline must not have passed.");
+    }
+
+    if (tournament.getMinParticipants() == null
+            || tournament.getMaxParticipants() == null
+            || tournament.getMinParticipants() <= 0
+            || tournament.getMaxParticipants() <= 0
+            || tournament.getMinParticipants() > tournament.getMaxParticipants()) {
+        throw new ApiException(HttpStatus.CONFLICT,
+                "Tournament participant limits are invalid.");
+    }
+
+    if (tournament.getConditionId() == null
+            || !tournamentConditionRepository.existsById(tournament.getConditionId())) {
+        throw new ApiException(HttpStatus.CONFLICT,
+                "Tournament condition does not exist.");
+    }
+
+    List<TournamentRound> rounds = tournamentRoundRepository
+            .findByTournamentIdOrderByRoundOrderAsc(tournament.getTournamentId());
+    if (!hasRequiredDraftRounds(rounds)) {
+        throw new ApiException(HttpStatus.CONFLICT,
+                "Tournament must have the required draft rounds before registration can open.");
+    }
+
+    tournament.setStatus(EventStatus.OPEN_FOR_REGISTRATION);
+    return tournamentRepository.save(tournament);
+}
+
+private boolean hasRequiredDraftRounds(List<TournamentRound> rounds) {
+    if (rounds.size() != 3) {
+        return false;
+    }
+
+    return isExpectedDraftRound(rounds.get(0), 1, "Qualified")
+            && isExpectedDraftRound(rounds.get(1), 2, "Semi-Final")
+            && isExpectedDraftRound(rounds.get(2), 3, "Final");
+}
+
+private boolean isExpectedDraftRound(TournamentRound round, int order, String name) {
+    return Objects.equals(order, round.getRoundOrder())
+            && Objects.equals(name, round.getRoundName())
+            && EventStatus.DRAFT.equals(round.getStatus());
+}
+
 @Transactional
 public Tournament cancelTournament(Integer id) {
     Tournament tournament = tournamentRepository.findById(id)

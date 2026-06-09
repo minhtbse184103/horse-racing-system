@@ -1,17 +1,62 @@
-import { seedAdmin } from "../configs/seedAdmin";
-import { loginAdmin } from "../api/adminApi";
-import { adminState, setAdminToken } from "../states/adminState";
+import API_BASE_URL from '../configs/apiConfig';
+import { httpRequest } from '../api/httpClient';
 
-export async function connectAsSeedAdmin(): Promise<void> {
+export function login({ email, password }) {
+  return httpRequest('/api/auth/login', {
+    method: 'POST',
+    auth: false,
+    body: { email, password },
+    fallbackError: 'Đăng nhập thất bại. Vui lòng thử lại.'
+  }).then((data) => {
+    if (!data?.token || !data?.user) {
+      throw new Error('Đăng nhập thất bại. Hệ thống chưa trả đủ thông tin đăng nhập.');
+    }
+    return data;
+  });
+}
+
+export function signup({ email, fullName, phone, password, roleName }) {
+  return httpRequest('/api/auth/signup', {
+    method: 'POST',
+    auth: false,
+    body: { email, fullName, phone, password, roleName },
+    fallbackError: 'Đăng ký thất bại. Vui lòng thử lại.'
+  });
+}
+
+export function startGoogleLogin() {
+  window.location.href = `${API_BASE_URL}/oauth2/authorization/google`;
+}
+
+export function saveAuthSession(loginResponse, rememberMe) {
+  const storage = rememberMe ? localStorage : sessionStorage;
+  const otherStorage = rememberMe ? sessionStorage : localStorage;
+
+  otherStorage.removeItem('token');
+  otherStorage.removeItem('user');
+
+  storage.setItem('token', loginResponse.token);
+  storage.setItem('user', JSON.stringify(loginResponse.user));
+}
+
+export function getCurrentUser() {
+  const userJson = localStorage.getItem('user') || sessionStorage.getItem('user');
+  if (!userJson) return null;
+
   try {
-    const result = await loginAdmin(seedAdmin.email, seedAdmin.password);
-    const token = String(result.token || result.accessToken || result.jwt || "");
-    if (!token) throw new Error("Backend khong tra token admin.");
-
-    setAdminToken(token);
-    adminState.connectionStatus = `Da ket noi ADMIN: ${seedAdmin.email}`;
-  } catch (error) {
-    setAdminToken("");
-    adminState.connectionStatus = `Chua ket noi duoc admin: ${(error as Error).message}`;
+    return JSON.parse(userJson);
+  } catch {
+    return null;
   }
+}
+
+export function getToken() {
+  return localStorage.getItem('token') || sessionStorage.getItem('token');
+}
+
+export function logout() {
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+  sessionStorage.removeItem('token');
+  sessionStorage.removeItem('user');
 }

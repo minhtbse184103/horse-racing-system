@@ -176,6 +176,7 @@ public class OwnerServiceImpl implements OwnerService {
         User jockey = getJockey(request.getJockeyId());
 
         validateHorseCanRegister(horse, tournament);
+        validateJockeyAvailableForTournament(tournament.tournamentId(), jockey.getUserID(), null);
 
         Registration registration = registrationRepository.findByTournamentIdAndHorseId(
                         request.getTournamentId(), request.getHorseId())
@@ -209,6 +210,30 @@ public class OwnerServiceImpl implements OwnerService {
                 .build();
 
         return mapInvitationToResponse(jockeyInvitationRepository.save(invitation));
+    }
+
+    private void validateJockeyAvailableForTournament(
+            Integer tournamentId,
+            Integer jockeyId,
+            Integer excludedRegistrationId) {
+        long activeRegistrations = registrationRepository.countByTournamentIdAndJockeyIdAndStatusInExcludingRegistration(
+                tournamentId,
+                jockeyId,
+                List.of(REGISTRATION_CONFIRMED),
+                excludedRegistrationId);
+        if (activeRegistrations > 0) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "This jockey already has a confirmed registration for the tournament.");
+        }
+
+        if (jockeyInvitationRepository.existsActiveInvitationForTournamentAndJockey(
+                tournamentId,
+                jockeyId,
+                INVITATION_PENDING,
+                List.of(REGISTRATION_PENDING_JOCKEY))) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "This jockey already has a pending invitation for the tournament.");
+        }
     }
 
     @Transactional
