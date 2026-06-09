@@ -1,8 +1,13 @@
 import { useCallback, useEffect, useState } from 'react';
 import { getOwnerDashboard } from '../services/ownerService';
+import type { OwnerDashboardData } from '../types';
+
+function getErrorText(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message || fallback : fallback;
+}
 
 export function useOwnerDashboard() {
-  const [dashboard, setDashboard] = useState(null);
+  const [dashboard, setDashboard] = useState<OwnerDashboardData | null>(null);
   const [isDashboardLoading, setIsDashboardLoading] = useState(true);
   const [dashboardError, setDashboardError] = useState('');
 
@@ -15,7 +20,7 @@ export function useOwnerDashboard() {
       setDashboard(data || null);
       return data || null;
     } catch (error) {
-      setDashboardError(error.message || 'Không thể tải dashboard chủ ngựa.');
+      setDashboardError(getErrorText(error, 'Không thể tải dashboard chủ ngựa.'));
       throw error;
     } finally {
       setIsDashboardLoading(false);
