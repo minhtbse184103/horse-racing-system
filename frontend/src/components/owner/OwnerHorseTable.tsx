@@ -1,4 +1,4 @@
-import { formatDate, formatNumber, getHorseId } from '../../lib';
+import { formatDate, formatNumber, getHorseId, getHorseName } from '../../lib';
 
 export default function OwnerHorseTable({ horses, isLoading, onEditHorse, onDeleteHorse }) {
   return (
@@ -23,14 +23,15 @@ export default function OwnerHorseTable({ horses, isLoading, onEditHorse, onDele
         <div className="horse-card-list">
           {horses.map((horse) => {
             const horseId = getHorseId(horse);
+            const horseName = getHorseName(horse);
             const status = String(horse.status || 'N/A').toLowerCase();
 
             return (
-              <article className="horse-card" key={horseId || horse.name}>
+              <article className="horse-card" key={horseId || horseName}>
                 <div className="horse-avatar">🐎</div>
                 <div className="horse-info">
                   <div className="horse-title-row">
-                    <h3>{horse.name || 'N/A'}</h3>
+                    <h3>{horseName || 'N/A'}</h3>
                     <span className={`status-badge ${status}`}>{horse.status || 'N/A'}</span>
                   </div>
                   <div className="horse-meta-grid">
@@ -38,8 +39,10 @@ export default function OwnerHorseTable({ horses, isLoading, onEditHorse, onDele
                     <strong>{horse.breed || 'Chưa cập nhật'}</strong>
                     <span>Gender</span>
                     <strong>{horse.gender || 'Chưa cập nhật'}</strong>
-                    <span>Age</span>
-                    <strong>{horse.age ?? 'Chưa cập nhật'}</strong>
+                    <span>Color</span>
+                    <strong>{horse.color || 'Chưa cập nhật'}</strong>
+                    <span>Day of Birth</span>
+                    <strong>{formatDate(horse.dayOfBirth)}</strong>
                     <span>Weight</span>
                     <strong>{horse.weight ? `${horse.weight} kg` : 'Chưa cập nhật'}</strong>
                     <span>Health Cert</span>

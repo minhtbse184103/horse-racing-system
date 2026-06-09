@@ -6,7 +6,7 @@ import OwnerHorseTable from './OwnerHorseTable';
 import OwnerRegisterRace from './OwnerRegisterRace';
 import { useHorses } from '../../hooks/useHorses';
 import { useOwnerDashboard } from '../../hooks/useOwnerDashboard';
-import { emptyHorseForm, getHorseId, toHorsePayload } from '../../lib';
+import { emptyHorseForm, getHorseId, getHorseName, toHorsePayload } from '../../lib';
 import { validateHorseForm } from '../../utils/validators';
 
 const ownerNavItems = [
@@ -51,10 +51,11 @@ export default function OwnerDashboard({ currentUser, onLogout }) {
   function handleEditHorse(horse) {
     setEditingHorse(horse);
     setFormValues({
-      name: horse.name || '',
+      horseName: getHorseName(horse),
       breed: horse.breed || '',
       gender: horse.gender || 'MALE',
-      age: horse.age ?? '',
+      color: horse.color || '',
+      dayOfBirth: horse.dayOfBirth || '',
       weight: horse.weight ?? '',
       healthCertExpiry: horse.healthCertExpiry || '',
       status: horse.status || 'ACTIVE'
@@ -100,7 +101,7 @@ export default function OwnerDashboard({ currentUser, onLogout }) {
   async function handleDeleteHorse(horse) {
     const horseId = getHorseId(horse);
     const confirmDelete = window.confirm(
-      `Bạn có chắc muốn xóa hồ sơ ngựa "${horse.name || horseId}" không?\nHồ sơ đã có lịch sử tham gia race hoặc kết quả thi đấu sẽ không được xóa.`
+      `Bạn có chắc muốn xóa hồ sơ ngựa "${getHorseName(horse) || horseId}" không?\nHồ sơ đã có lịch sử tham gia race hoặc kết quả thi đấu sẽ không được xóa.`
     );
 
     if (!confirmDelete) return;

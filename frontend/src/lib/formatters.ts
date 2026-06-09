@@ -20,12 +20,17 @@ export function getHorseId(horse) {
   return horse?.horseId ?? horse?.horseID ?? horse?.id;
 }
 
+export function getHorseName(horse) {
+  return horse?.horseName ?? horse?.name ?? '';
+}
+
 export function emptyHorseForm() {
   return {
-    name: '',
+    horseName: '',
     breed: '',
     gender: 'MALE',
-    age: '',
+    color: '',
+    dayOfBirth: '',
     weight: '',
     healthCertExpiry: '',
     status: 'ACTIVE'
@@ -34,10 +39,11 @@ export function emptyHorseForm() {
 
 export function toHorsePayload(formValues) {
   return {
-    name: formValues.name.trim(),
+    horseName: formValues.horseName.trim(),
     breed: formValues.breed.trim() || null,
     gender: formValues.gender || null,
-    age: formValues.age === '' ? null : Number(formValues.age),
+    color: formValues.color.trim() || null,
+    dayOfBirth: formValues.dayOfBirth || null,
     weight: formValues.weight === '' ? null : Number(formValues.weight),
     healthCertExpiry: formValues.healthCertExpiry || null,
     status: formValues.status || 'ACTIVE'

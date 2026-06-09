@@ -60,32 +60,14 @@ export function validateSignupForm(values: FormValues): FormErrors {
 export function validateHorseForm(values: FormValues): FormErrors {
   const errors: FormErrors = {};
 
-  if (!values.name?.trim()) {
-    errors.name = 'Tên ngựa không được để trống.';
-  }
-
-  if (!values.breed?.trim()) {
-    errors.breed = 'Giống ngựa không được để trống.';
-  }
-
-  if (values.age === '') {
-    errors.age = 'Tuổi ngựa không được để trống.';
-  } else if (Number(values.age) < 0) {
-    errors.age = 'Tuổi ngựa phải lớn hơn hoặc bằng 0.';
+  if (!values.horseName?.trim()) {
+    errors.horseName = 'Tên ngựa không được để trống.';
   }
 
   if (values.weight === '') {
     errors.weight = 'Cân nặng không được để trống.';
   } else if (Number(values.weight) <= 0) {
     errors.weight = 'Cân nặng phải lớn hơn 0.';
-  }
-
-  if (!values.healthCertExpiry) {
-    errors.healthCertExpiry = 'Hạn giấy sức khỏe không được để trống.';
-  }
-
-  if (!values.status) {
-    errors.status = 'Trạng thái ngựa không được để trống.';
   }
 
   return errors;
