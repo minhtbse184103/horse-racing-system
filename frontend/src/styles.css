@@ -28,8 +28,7 @@ body {
 }
 
 button,
-input,
-select {
+input {
   font: inherit;
 }
 
@@ -655,6 +654,10 @@ select {
   margin-bottom: 22px;
 }
 
+.admin-stats-three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .admin-stats div,
 .admin-card {
   border: 1px solid rgba(108, 63, 36, 0.1);
@@ -703,6 +706,53 @@ select {
   grid-template-columns: 390px minmax(0, 1fr);
   gap: 22px;
   align-items: start;
+}
+
+.tournament-admin-grid {
+  grid-template-columns: minmax(460px, 0.95fr) minmax(520px, 1.25fr);
+}
+
+.race-admin-grid {
+  grid-template-columns: 1fr;
+}
+
+.dashboard-overview-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.tournament-card-actions {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.tournament-create-button {
+  width: auto;
+  min-width: 140px;
+  padding-inline: 20px;
+}
+
+.admin-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(43, 23, 16, 0.42);
+  backdrop-filter: blur(5px);
+}
+
+.admin-modal {
+  width: min(680px, 100%);
+  max-height: min(88vh, 860px);
+  overflow-y: auto;
+}
+
+.tournament-modal-actions {
+  grid-template-columns: 1fr 1fr;
 }
 
 .admin-card {
@@ -800,6 +850,22 @@ select {
   color: #2e7d32;
 }
 
+.status-badge.accepted {
+  background: rgba(37, 99, 235, 0.12);
+  color: #2563eb;
+}
+
+.status-badge.confirmed {
+  background: rgba(46, 125, 50, 0.14);
+  color: #2e7d32;
+}
+
+.status-badge.open_for_registration,
+.status-badge.openforregistration {
+  background: rgba(46, 125, 50, 0.14);
+  color: #2e7d32;
+}
+
 .status-badge.inactive {
   background: rgba(101, 112, 131, 0.12);
   color: var(--slate-500);
@@ -808,7 +874,8 @@ select {
 .status-badge.blocked,
 .status-badge.injured,
 .status-badge.suspended,
-.status-badge.retired {
+.status-badge.retired,
+.status-badge.rejected {
   background: rgba(194, 65, 53, 0.12);
   color: var(--danger);
 }
@@ -825,6 +892,11 @@ select {
   border-radius: 12px;
   padding: 9px 11px;
   font-weight: 800;
+}
+
+.table-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
 }
 
 .table-actions .danger-action {
@@ -1087,39 +1159,6 @@ select {
 .owner-stat-card small {
   color: var(--slate-500);
   line-height: 1.45;
-}
-
-
-.owner-stack {
-  display: grid;
-  gap: 18px;
-}
-
-.owner-section-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 18px;
-  border-radius: 28px;
-  background: rgba(255, 248, 238, 0.82);
-  border: 1px solid rgba(108, 63, 36, 0.12);
-  padding: 20px 22px;
-  box-shadow: 0 18px 48px rgba(43, 23, 16, 0.08);
-}
-
-.owner-section-toolbar h2 {
-  margin: 4px 0 0;
-  color: var(--brown-900);
-  font-size: clamp(1.35rem, 2vw, 1.8rem);
-  letter-spacing: -0.04em;
-}
-
-.compact-button {
-  width: auto;
-  min-width: 156px;
-  margin-top: 0;
-  padding: 12px 16px;
-  white-space: nowrap;
 }
 
 .owner-overview-grid,
@@ -1479,10 +1518,38 @@ select {
   }
 }
 
-.admin-alert.info {
-  background: rgba(166, 100, 49, 0.12);
-  border-color: rgba(166, 100, 49, 0.22);
-  color: var(--brown-700);
+/* MERGED FROM ZIP FRONTEND:
+   Styles required by the merged owner horse management flow. */
+.owner-stack {
+  display: grid;
+  gap: 18px;
+}
+
+.owner-section-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border-radius: 28px;
+  background: rgba(255, 248, 238, 0.82);
+  border: 1px solid rgba(108, 63, 36, 0.12);
+  padding: 20px 22px;
+  box-shadow: 0 18px 48px rgba(43, 23, 16, 0.08);
+}
+
+.owner-section-toolbar h2 {
+  margin: 4px 0 0;
+  color: var(--brown-900);
+  font-size: clamp(1.35rem, 2vw, 1.8rem);
+  letter-spacing: -0.04em;
+}
+
+.compact-button {
+  width: auto;
+  min-width: 156px;
+  margin-top: 0;
+  padding: 12px 16px;
+  white-space: nowrap;
 }
 
 .read-only-row {
@@ -1497,10 +1564,4 @@ select {
   background: rgba(101, 112, 131, 0.12);
   color: var(--slate-500);
   font-size: 0.78rem;
-  font-weight: 850;
-}
-
-.table-actions button:disabled {
-  cursor: not-allowed;
-  opacity: 0.55;
 }
