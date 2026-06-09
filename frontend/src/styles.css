@@ -1444,3 +1444,29 @@ select {
     display: grid;
   }
 }
+
+.admin-alert.info {
+  background: rgba(166, 100, 49, 0.12);
+  border-color: rgba(166, 100, 49, 0.22);
+  color: var(--brown-700);
+}
+
+.read-only-row {
+  background: rgba(101, 112, 131, 0.04);
+}
+
+.readonly-note {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 7px 10px;
+  background: rgba(101, 112, 131, 0.12);
+  color: var(--slate-500);
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.table-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}

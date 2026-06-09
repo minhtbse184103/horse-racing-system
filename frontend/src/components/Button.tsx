@@ -1,8 +1,9 @@
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 
-type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+  className?: string;
   children: ReactNode;
-};
+}
 
 export default function Button({ className = 'primary-button', type = 'button', children, ...props }: ButtonProps) {
   return (

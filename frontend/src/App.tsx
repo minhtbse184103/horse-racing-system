@@ -5,17 +5,21 @@ import AdminDashboard from './components/admin/AdminDashboard';
 import OwnerDashboard from './components/owner/OwnerDashboard';
 import UserPanel from './components/user/UserPanel';
 import { useAuth } from './hooks/useAuth';
+import { getUserRole } from './lib';
 
-function getInitialPage() {
+type AuthPage = 'login' | 'register';
+
+function getInitialPage(): AuthPage {
   return window.location.pathname === '/register' ? 'register' : 'login';
 }
 
 export default function App() {
   const { user, setUser, clearAuth } = useAuth();
-  const [page, setPage] = useState(getInitialPage);
+  const [page, setPage] = useState<AuthPage>(getInitialPage);
+  const userRole = getUserRole(user);
 
   useEffect(() => {
-    function handlePopState() {
+    function handlePopState(): void {
       setPage(getInitialPage());
     }
 
@@ -23,21 +27,21 @@ export default function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  function navigateTo(path) {
+  function navigateTo(path: '/login' | '/register'): void {
     window.history.pushState(null, '', path);
     setPage(path === '/register' ? 'register' : 'login');
   }
 
-  function handleLogout() {
+  function handleLogout(): void {
     clearAuth();
     navigateTo('/login');
   }
 
-  if (user?.role === 'ADMIN') {
+  if (userRole === 'ADMIN') {
     return <AdminDashboard currentUser={user} onLogout={handleLogout} />;
   }
 
-  if (user?.role === 'OWNER') {
+  if (userRole === 'OWNER') {
     return <OwnerDashboard currentUser={user} onLogout={handleLogout} />;
   }
 

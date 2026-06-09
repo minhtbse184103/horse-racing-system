@@ -1,12 +1,11 @@
+import type { FormErrors, HorseFormValues, LoginRequest, SignupRequest } from '../types';
+
 const EMAIL_REGEX = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
 const PHONE_REGEX = /^\+?[0-9]{9,15}$/;
-const PUBLIC_ROLES = ['OWNER', 'JOCKEY', 'SPECTATOR'];
+const PUBLIC_ROLES = ['OWNER', 'JOCKEY', 'SPECTATOR'] as const;
 
-type FormValues = Record<string, any>;
-type FormErrors = Record<string, string>;
-
-export function validateLoginForm(values: FormValues): FormErrors {
-  const errors: FormErrors = {};
+export function validateLoginForm(values: LoginRequest): FormErrors<LoginRequest> {
+  const errors: FormErrors<LoginRequest> = {};
 
   if (!values.email?.trim()) {
     errors.email = 'Email không được để trống.';
@@ -23,8 +22,8 @@ export function validateLoginForm(values: FormValues): FormErrors {
   return errors;
 }
 
-export function validateSignupForm(values: FormValues): FormErrors {
-  const errors: FormErrors = {};
+export function validateSignupForm(values: SignupRequest): FormErrors<SignupRequest> {
+  const errors: FormErrors<SignupRequest> = {};
 
   if (!values.fullName?.trim()) {
     errors.fullName = 'Họ tên không được để trống.';
@@ -57,17 +56,35 @@ export function validateSignupForm(values: FormValues): FormErrors {
   return errors;
 }
 
-export function validateHorseForm(values: FormValues): FormErrors {
-  const errors: FormErrors = {};
+export function validateHorseForm(values: HorseFormValues): FormErrors<HorseFormValues> {
+  const errors: FormErrors<HorseFormValues> = {};
 
-  if (!values.horseName?.trim()) {
-    errors.horseName = 'Tên ngựa không được để trống.';
+  if (!values.name?.trim()) {
+    errors.name = 'Tên ngựa không được để trống.';
+  }
+
+  if (!values.breed?.trim()) {
+    errors.breed = 'Giống ngựa không được để trống.';
+  }
+
+  if (values.age === '') {
+    errors.age = 'Tuổi ngựa không được để trống.';
+  } else if (Number(values.age) < 0) {
+    errors.age = 'Tuổi ngựa phải lớn hơn hoặc bằng 0.';
   }
 
   if (values.weight === '') {
     errors.weight = 'Cân nặng không được để trống.';
   } else if (Number(values.weight) <= 0) {
     errors.weight = 'Cân nặng phải lớn hơn 0.';
+  }
+
+  if (!values.healthCertExpiry) {
+    errors.healthCertExpiry = 'Hạn giấy sức khỏe không được để trống.';
+  }
+
+  if (!values.status) {
+    errors.status = 'Trạng thái ngựa không được để trống.';
   }
 
   return errors;

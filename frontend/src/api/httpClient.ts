@@ -1,19 +1,17 @@
 import API_BASE_URL from '../configs/apiConfig';
 
-type ResponseData = Record<string, any> | string | null;
-
-interface HttpRequestOptions extends Omit<RequestInit, 'body' | 'headers' | 'method'> {
+interface HttpRequestOptions<TBody = unknown> {
   method?: string;
-  body?: any;
+  body?: TBody;
   auth?: boolean;
   headers?: Record<string, string>;
   fallbackError?: string;
 }
 
-export function getStoredToken() {
-  return localStorage.getItem('token') || sessionStorage.getItem('token');
+interface ErrorItem {
+  defaultMessage?: string;
+  message?: string;
 }
-
 
 const MESSAGE_TRANSLATIONS: Record<string, string> = {
   'Horse name is required': 'Tên ngựa không được để trống.',
@@ -30,35 +28,59 @@ const MESSAGE_TRANSLATIONS: Record<string, string> = {
   'Account is not active': 'Tài khoản không ở trạng thái ACTIVE nên không thể đăng nhập.'
 };
 
-function translateMessage(message: unknown) {
-  if (!message || typeof message !== 'string') return message;
+export function getStoredToken(): string | null {
+  return localStorage.getItem('token') || sessionStorage.getItem('token');
+}
+
+function translateMessage(message: string): string {
   return MESSAGE_TRANSLATIONS[message] || message;
 }
 
-export function getErrorMessage(data: any, fallbackMessage = 'Có lỗi xảy ra. Vui lòng thử lại.') {
+function hasStringField(value: unknown, field: 'message' | 'error'): value is Record<typeof field, string> {
+  return typeof value === 'object' && value !== null && typeof (value as Record<string, unknown>)[field] === 'string';
+}
+
+function hasErrorsArray(value: unknown): value is { errors: ErrorItem[] } {
+  return (
+    typeof value === 'object' &&
+    value !== null &&
+    Array.isArray((value as { errors?: unknown }).errors)
+  );
+}
+
+export function getErrorMessage(data: unknown, fallbackMessage = 'Có lỗi xảy ra. Vui lòng thử lại.'): string {
   if (!data) return fallbackMessage;
   if (typeof data === 'string') return translateMessage(data);
-  if (typeof data.message === 'string') return translateMessage(data.message);
-  if (typeof data.error === 'string') return translateMessage(data.error);
-  if (Array.isArray(data.errors) && data.errors.length > 0) {
+  if (hasStringField(data, 'message')) return translateMessage(data.message);
+  if (hasStringField(data, 'error')) return translateMessage(data.error);
+
+  if (hasErrorsArray(data) && data.errors.length > 0) {
     return data.errors
-      .map((error: any) => translateMessage(error.defaultMessage || error.message || String(error)))
+      .map((error) => translateMessage(error.defaultMessage || error.message || String(error)))
       .join('\n');
   }
+
   return fallbackMessage;
 }
 
-function parseResponseBody(text: string): ResponseData {
+function parseResponseBody(text: string): unknown {
   if (!text) return null;
 
   try {
-    return JSON.parse(text);
+    return JSON.parse(text) as unknown;
   } catch {
     return text;
   }
 }
 
-export async function httpRequest<T = any>(path: string, options: HttpRequestOptions = {}): Promise<T> {
+function isFormData(value: unknown): value is FormData {
+  return typeof FormData !== 'undefined' && value instanceof FormData;
+}
+
+export async function httpRequest<TResponse = unknown, TBody = unknown>(
+  path: string,
+  options: HttpRequestOptions<TBody> = {}
+): Promise<TResponse> {
   const {
     method = 'GET',
     body,
@@ -67,9 +89,9 @@ export async function httpRequest<T = any>(path: string, options: HttpRequestOpt
     fallbackError = 'Có lỗi xảy ra. Vui lòng thử lại.'
   } = options;
 
-  const requestHeaders = { ...headers };
+  const requestHeaders: Record<string, string> = { ...headers };
 
-  if (!(body instanceof FormData)) {
+  if (!isFormData(body)) {
     requestHeaders['Content-Type'] = requestHeaders['Content-Type'] || 'application/json';
   }
 
@@ -87,14 +109,14 @@ export async function httpRequest<T = any>(path: string, options: HttpRequestOpt
   };
 
   if (body !== undefined) {
-    fetchOptions.body = body instanceof FormData || typeof body === 'string' ? body : JSON.stringify(body);
+    fetchOptions.body = isFormData(body) || typeof body === 'string' ? body : JSON.stringify(body);
   }
 
   const response = await fetch(`${API_BASE_URL}${path}`, fetchOptions);
 
   if (response.status === 204) {
     if (!response.ok) throw new Error(fallbackError);
-    return null as T;
+    return null as TResponse;
   }
 
   const text = await response.text();
@@ -104,5 +126,5 @@ export async function httpRequest<T = any>(path: string, options: HttpRequestOpt
     throw new Error(getErrorMessage(data, fallbackError));
   }
 
-  return data as T;
+  return data as TResponse;
 }

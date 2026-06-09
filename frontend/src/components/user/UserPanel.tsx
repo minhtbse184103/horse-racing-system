@@ -1,4 +1,7 @@
-const roleDashboards = {
+import { getUserRole } from '../../lib';
+import type { AuthUser } from '../../types';
+
+const roleDashboards: Record<string, string> = {
   ADMIN: '/admin',
   OWNER: '/owner',
   JOCKEY: '/jockey',
@@ -6,8 +9,14 @@ const roleDashboards = {
   SPECTATOR: '/spectator'
 };
 
-export default function UserPanel({ user, onLogout }) {
-  const dashboardPath = roleDashboards[user?.role] || '/dashboard';
+interface UserPanelProps {
+  user: AuthUser;
+  onLogout: () => void;
+}
+
+export default function UserPanel({ user, onLogout }: UserPanelProps) {
+  const role = getUserRole(user);
+  const dashboardPath = roleDashboards[role] || '/dashboard';
 
   return (
     <main className="page-shell">
@@ -16,16 +25,16 @@ export default function UserPanel({ user, onLogout }) {
         <p className="eyebrow">Horse Racing System</p>
         <h1>Đăng nhập thành công</h1>
         <p className="success-message">
-          Chào <strong>{user?.fullName || user?.email}</strong>, tài khoản của bạn có quyền{' '}
-          <strong>{user?.role}</strong>.
+          Chào <strong>{user.fullName || user.email}</strong>, tài khoản của bạn có quyền{' '}
+          <strong>{role}</strong>.
         </p>
 
         <div className="user-info-grid">
           <span>Email</span>
-          <strong>{user?.email}</strong>
+          <strong>{user.email}</strong>
 
           <span>Trạng thái</span>
-          <strong>{user?.status || 'N/A'}</strong>
+          <strong>{user.status || 'N/A'}</strong>
 
           <span>Trang sau login</span>
           <strong>{dashboardPath}</strong>

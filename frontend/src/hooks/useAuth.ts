@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { getCurrentUser, getToken, logout } from '../services/authService';
+import type { AuthUser } from '../types';
 
 export function useAuth() {
-  const [user, setUser] = useState(() => (getToken() ? getCurrentUser() : null));
+  const [user, setUser] = useState<AuthUser | null>(() => (getToken() ? getCurrentUser() : null));
 
-  function clearAuth() {
+  function clearAuth(): void {
     logout();
     setUser(null);
   }

@@ -1,8 +1,9 @@
 import API_BASE_URL from '../configs/apiConfig';
 import { httpRequest } from '../api/httpClient';
+import type { AuthUser, LoginRequest, LoginResponse, SignupRequest } from '../types';
 
-export function login({ email, password }) {
-  return httpRequest('/api/auth/login', {
+export function login({ email, password }: LoginRequest): Promise<LoginResponse> {
+  return httpRequest<LoginResponse, LoginRequest>('/api/auth/login', {
     method: 'POST',
     auth: false,
     body: { email, password },
@@ -15,8 +16,8 @@ export function login({ email, password }) {
   });
 }
 
-export function signup({ email, fullName, phone, password, roleName }) {
-  return httpRequest('/api/auth/signup', {
+export function signup({ email, fullName, phone, password, roleName }: SignupRequest): Promise<unknown> {
+  return httpRequest<unknown, SignupRequest>('/api/auth/signup', {
     method: 'POST',
     auth: false,
     body: { email, fullName, phone, password, roleName },
@@ -24,11 +25,11 @@ export function signup({ email, fullName, phone, password, roleName }) {
   });
 }
 
-export function startGoogleLogin() {
+export function startGoogleLogin(): void {
   window.location.href = `${API_BASE_URL}/oauth2/authorization/google`;
 }
 
-export function saveAuthSession(loginResponse, rememberMe) {
+export function saveAuthSession(loginResponse: LoginResponse, rememberMe: boolean): void {
   const storage = rememberMe ? localStorage : sessionStorage;
   const otherStorage = rememberMe ? sessionStorage : localStorage;
 
@@ -39,22 +40,22 @@ export function saveAuthSession(loginResponse, rememberMe) {
   storage.setItem('user', JSON.stringify(loginResponse.user));
 }
 
-export function getCurrentUser() {
+export function getCurrentUser(): AuthUser | null {
   const userJson = localStorage.getItem('user') || sessionStorage.getItem('user');
   if (!userJson) return null;
 
   try {
-    return JSON.parse(userJson);
+    return JSON.parse(userJson) as AuthUser;
   } catch {
     return null;
   }
 }
 
-export function getToken() {
+export function getToken(): string | null {
   return localStorage.getItem('token') || sessionStorage.getItem('token');
 }
 
-export function logout() {
+export function logout(): void {
   localStorage.removeItem('token');
   localStorage.removeItem('user');
   sessionStorage.removeItem('token');

@@ -1,16 +1,35 @@
+import type { ReactNode } from 'react';
+import type { NavItem } from '../../types';
+
+type AppShellVariant = 'owner' | 'admin';
+
+interface AppShellProps {
+  variant?: AppShellVariant;
+  title: string;
+  subtitle?: string;
+  profileName?: string;
+  profileRole?: string;
+  activeSection?: string;
+  navItems?: NavItem[];
+  onNavigate?: (section: string) => void;
+  onLogout: () => void;
+  headerAction?: ReactNode;
+  children: ReactNode;
+}
+
 export default function AppShell({
-  variant = 'owner',
+  variant = 'admin',
   title,
   subtitle,
-  profileName,
-  profileRole,
+  profileName = 'User',
+  profileRole = '',
   activeSection,
   navItems = [],
   onNavigate,
   onLogout,
-  children,
-  headerAction
-}) {
+  headerAction,
+  children
+}: AppShellProps) {
   const shellClass = `${variant}-shell`;
   const sidebarClass = `${variant}-sidebar`;
   const brandClass = `${variant}-brand`;
