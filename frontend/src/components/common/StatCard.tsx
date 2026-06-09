@@ -1,6 +1,13 @@
 import { formatNumber } from '../../lib';
 
-export default function StatCard({ label, value, description, highlight = false }) {
+interface StatCardProps {
+  label: string;
+  value: unknown;
+  description?: string;
+  highlight?: boolean;
+}
+
+export default function StatCard({ label, value, description, highlight = false }: StatCardProps) {
   return (
     <div className={highlight ? 'owner-stat-card highlight' : 'owner-stat-card'}>
       <span>{label}</span>
