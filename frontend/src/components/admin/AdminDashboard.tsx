@@ -1,18 +1,15 @@
 import { useEffect, useState } from 'react';
-import type { ChangeEvent, FormEvent } from 'react';
 import { createUser, deleteUser, getUsers, updateUser } from '../../services/userService';
 import { getUserId } from '../../lib';
-import type { AdminUserFormValues, AuthUser } from '../../types';
+import AdminTournamentTools from './AdminTournamentTools';
+import AdminRaceTools from './AdminRaceTools';
+import AdminRegistrationReview from './AdminRegistrationReview';
+import AdminOverviewDashboard from './AdminOverviewDashboard';
 
-const manageableRoles = ['OWNER', 'JOCKEY', 'REFEREE', 'SPECTATOR'] as const;
-const userStatuses = ['ACTIVE', 'INACTIVE', 'BLOCKED'] as const;
+const adminRoles = ['ADMIN', 'OWNER', 'JOCKEY', 'REFEREE', 'SPECTATOR'];
+const userStatuses = ['ACTIVE', 'INACTIVE', 'BLOCKED'];
 
-interface AdminDashboardProps {
-  currentUser: AuthUser | null;
-  onLogout: () => void;
-}
-
-function emptyUserForm(): AdminUserFormValues {
+function emptyUserForm() {
   return {
     email: '',
     fullName: '',
@@ -23,38 +20,25 @@ function emptyUserForm(): AdminUserFormValues {
   };
 }
 
-function getRole(user: AuthUser | null | undefined): string {
-  return String(user?.role || user?.roleName || '').trim().toUpperCase();
-}
-
-function isAdminUser(user: AuthUser | null | undefined): boolean {
-  return getRole(user) === 'ADMIN';
-}
-
-function getErrorText(error: unknown, fallback: string): string {
-  return error instanceof Error ? error.message || fallback : fallback;
-}
-
-export default function AdminDashboard({ currentUser, onLogout }: AdminDashboardProps) {
-  const [users, setUsers] = useState<AuthUser[]>([]);
-  const [formValues, setFormValues] = useState<AdminUserFormValues>(emptyUserForm());
-  const [editingUser, setEditingUser] = useState<AuthUser | null>(null);
+export default function AdminDashboard({ currentUser, onLogout }) {
+  const [activeSection, setActiveSection] = useState('dashboard');
+  const [users, setUsers] = useState([]);
+  const [formValues, setFormValues] = useState(emptyUserForm());
+  const [editingUser, setEditingUser] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
-  const manageableUsers = users.filter((user) => !isAdminUser(user));
-  const adminUsers = users.filter(isAdminUser).length;
-  const activeUsers = manageableUsers.filter((user) => user.status === 'ACTIVE').length;
-  const inactiveUsers = manageableUsers.filter((user) => user.status === 'INACTIVE').length;
-  const blockedUsers = manageableUsers.filter((user) => user.status === 'BLOCKED').length;
+  const activeUsers = users.filter((user) => user.status === 'ACTIVE').length;
+  const inactiveUsers = users.filter((user) => user.status === 'INACTIVE').length;
+  const blockedUsers = users.filter((user) => user.status === 'BLOCKED').length;
 
   useEffect(() => {
-    loadUsers().catch(() => {});
+    loadUsers();
   }, []);
 
-  async function loadUsers(): Promise<void> {
+  async function loadUsers() {
     setIsLoading(true);
     setError('');
 
@@ -62,60 +46,42 @@ export default function AdminDashboard({ currentUser, onLogout }: AdminDashboard
       const data = await getUsers();
       setUsers(Array.isArray(data) ? data : []);
     } catch (err) {
-      setError(getErrorText(err, 'Không thể tải danh sách user.'));
+      setError(err.message || 'Không thể tải danh sách user.');
     } finally {
       setIsLoading(false);
     }
   }
 
-  function handleChange(event: ChangeEvent<HTMLInputElement | HTMLSelectElement>): void {
+  function handleChange(event) {
     const { name, value } = event.target;
     setFormValues((current) => ({ ...current, [name]: value }));
     setError('');
     setMessage('');
   }
 
-  function handleEdit(user: AuthUser): void {
-    if (isAdminUser(user)) {
-      setError('Không được chỉnh sửa tài khoản ADMIN. Admin chỉ quản lý OWNER, JOCKEY, REFEREE và SPECTATOR.');
-      setMessage('');
-      return;
-    }
-
-    const role = getRole(user);
-
+  function handleEdit(user) {
     setEditingUser(user);
     setFormValues({
       email: user.email || '',
       fullName: user.fullName || '',
       phone: user.phone || '',
       password: '',
-      roleName: manageableRoles.includes(role as AdminUserFormValues['roleName']) ? (role as AdminUserFormValues['roleName']) : 'SPECTATOR',
-      status: user.status === 'INACTIVE' || user.status === 'BLOCKED' ? user.status : 'ACTIVE'
+      roleName: user.role || 'SPECTATOR',
+      status: user.status || 'ACTIVE'
     });
     setMessage('');
     setError('');
   }
 
-  function handleCancelEdit(): void {
+  function handleCancelEdit() {
     setEditingUser(null);
     setFormValues(emptyUserForm());
     setMessage('');
     setError('');
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
+  async function handleSubmit(event) {
     event.preventDefault();
-
-    if (editingUser && isAdminUser(editingUser)) {
-      setError('Không được chỉnh sửa tài khoản ADMIN.');
-      return;
-    }
-
-    if (!manageableRoles.includes(formValues.roleName)) {
-      setError('Admin chỉ được tạo hoặc cập nhật tài khoản OWNER, JOCKEY, REFEREE hoặc SPECTATOR.');
-      return;
-    }
 
     if (!formValues.email.trim()) {
       setError('Email không được để trống.');
@@ -144,8 +110,6 @@ export default function AdminDashboard({ currentUser, onLogout }: AdminDashboard
     try {
       if (editingUser) {
         const userId = getUserId(editingUser);
-        if (!userId) throw new Error('Không tìm thấy mã user.');
-
         await updateUser(userId, {
           email: formValues.email.trim(),
           fullName: formValues.fullName.trim(),
@@ -169,25 +133,14 @@ export default function AdminDashboard({ currentUser, onLogout }: AdminDashboard
       setFormValues(emptyUserForm());
       await loadUsers();
     } catch (err) {
-      setError(getErrorText(err, 'Lưu user thất bại.'));
+      setError(err.message || 'Lưu user thất bại.');
     } finally {
       setIsSaving(false);
     }
   }
 
-  async function handleDelete(user: AuthUser): Promise<void> {
-    if (isAdminUser(user)) {
-      setError('Không được khóa tài khoản ADMIN.');
-      setMessage('');
-      return;
-    }
-
+  async function handleDelete(user) {
     const userId = getUserId(user);
-    if (!userId) {
-      setError('Không tìm thấy mã user.');
-      return;
-    }
-
     const confirmDelete = window.confirm(
       `Bạn có chắc muốn khóa user "${user.fullName || user.email}" không?\nTài khoản sẽ được chuyển sang trạng thái INACTIVE.`
     );
@@ -202,7 +155,7 @@ export default function AdminDashboard({ currentUser, onLogout }: AdminDashboard
       setMessage('Khóa user thành công.');
       await loadUsers();
     } catch (err) {
-      setError(getErrorText(err, 'Không thể khóa user.'));
+      setError(err.message || 'Không thể khóa user.');
     }
   }
 
@@ -218,8 +171,40 @@ export default function AdminDashboard({ currentUser, onLogout }: AdminDashboard
         </div>
 
         <nav className="admin-nav">
-          <button className="admin-nav-item active" type="button">
+          <button
+            className={`admin-nav-item ${activeSection === 'dashboard' ? 'active' : ''}`}
+            type="button"
+            onClick={() => setActiveSection('dashboard')}
+          >
+            Dashboard
+          </button>
+          <button
+            className={`admin-nav-item ${activeSection === 'users' ? 'active' : ''}`}
+            type="button"
+            onClick={() => setActiveSection('users')}
+          >
             Quản lý user
+          </button>
+          <button
+            className={`admin-nav-item ${activeSection === 'tournaments' ? 'active' : ''}`}
+            type="button"
+            onClick={() => setActiveSection('tournaments')}
+          >
+            Quản lý giải đấu
+          </button>
+          <button
+            className={`admin-nav-item ${activeSection === 'races' ? 'active' : ''}`}
+            type="button"
+            onClick={() => setActiveSection('races')}
+          >
+            Race
+          </button>
+          <button
+            className={`admin-nav-item ${activeSection === 'registrationReview' ? 'active' : ''}`}
+            type="button"
+            onClick={() => setActiveSection('registrationReview')}
+          >
+            Registration
           </button>
         </nav>
 
@@ -238,27 +223,52 @@ export default function AdminDashboard({ currentUser, onLogout }: AdminDashboard
         <header className="admin-header">
           <div>
             <p className="eyebrow">Admin</p>
-            <h1>Quản lý người dùng</h1>
-            <p>Admin chỉ được tạo, cập nhật, khóa hoặc mở khóa tài khoản OWNER, JOCKEY, REFEREE và SPECTATOR.</p>
+            {activeSection === 'dashboard' ? (
+              <>
+                <h1>Dashboard</h1>
+                <p>Theo dõi nhanh số lượng giải đấu và race trong hệ thống.</p>
+              </>
+            ) : activeSection === 'users' ? (
+              <>
+                <h1>Quản lý người dùng</h1>
+                <p>Admin có thể tạo, cập nhật, khóa hoặc mở khóa tài khoản người dùng trong hệ thống.</p>
+              </>
+            ) : activeSection === 'tournaments' ? (
+              <>
+                <h1>Quản lý giải đấu</h1>
+                <p>Tạo giải đấu và theo dõi các giải đấu đang có trong database.</p>
+              </>
+            ) : activeSection === 'races' ? (
+              <>
+                <h1>Race</h1>
+                <p>Theo dõi đăng ký đã duyệt và tạo race mới cho các vòng thi.</p>
+              </>
+            ) : (
+              <>
+                <h1>Registration</h1>
+                <p>Duyệt các đơn đăng ký đang ở trạng thái ACCEPTED.</p>
+              </>
+            )}
           </div>
 
-          <button className="refresh-button" type="button" onClick={() => loadUsers()} disabled={isLoading}>
-            {isLoading ? 'Đang tải...' : 'Làm mới'}
-          </button>
+          {activeSection === 'users' && (
+            <button className="refresh-button" type="button" onClick={loadUsers} disabled={isLoading}>
+              {isLoading ? 'Đang tải...' : 'Làm mới'}
+            </button>
+          )}
         </header>
 
+        {activeSection === 'dashboard' ? (
+          <AdminOverviewDashboard />
+        ) : activeSection === 'users' ? (
+          <>
         <section className="admin-stats">
-          <div><span>User quản lý được</span><strong>{manageableUsers.length}</strong></div>
+          <div><span>Tổng user</span><strong>{users.length}</strong></div>
           <div><span>ACTIVE</span><strong>{activeUsers}</strong></div>
           <div><span>INACTIVE</span><strong>{inactiveUsers}</strong></div>
           <div><span>BLOCKED</span><strong>{blockedUsers}</strong></div>
         </section>
 
-        {adminUsers > 0 && (
-          <div className="admin-alert info" role="status">
-            Có {adminUsers} tài khoản ADMIN trong hệ thống. Các tài khoản này chỉ được xem, không được sửa hoặc khóa từ màn hình này.
-          </div>
-        )}
         {error && <div className="admin-alert error" role="alert">{error}</div>}
         {message && <div className="admin-alert success" role="status">{message}</div>}
 
@@ -269,8 +279,8 @@ export default function AdminDashboard({ currentUser, onLogout }: AdminDashboard
                 <h2>{editingUser ? 'Cập nhật user' : 'Tạo user mới'}</h2>
                 <p>
                   {editingUser
-                    ? 'Chỉnh thông tin user thuộc 4 role được phép. Password không được cập nhật ở form này.'
-                    : 'Tạo tài khoản mới cho Owner, Jockey, Referee hoặc Spectator.'}
+                    ? 'Chỉnh thông tin user. Password không được cập nhật ở form này.'
+                    : 'Tạo tài khoản mới cho Admin, Owner, Jockey, Referee hoặc Spectator.'}
                 </p>
               </div>
             </div>
@@ -293,7 +303,7 @@ export default function AdminDashboard({ currentUser, onLogout }: AdminDashboard
 
             <label className="field-label" htmlFor="adminRole">Vai trò</label>
             <select className="input" id="adminRole" name="roleName" value={formValues.roleName} onChange={handleChange} disabled={isSaving}>
-              {manageableRoles.map((role) => <option key={role} value={role}>{role}</option>)}
+              {adminRoles.map((role) => <option key={role} value={role}>{role}</option>)}
             </select>
 
             {editingUser && (
@@ -319,7 +329,7 @@ export default function AdminDashboard({ currentUser, onLogout }: AdminDashboard
             <div className="admin-card-header">
               <div>
                 <h2>Danh sách user</h2>
-                <p>Tài khoản ADMIN được hiển thị để theo dõi, nhưng không thể sửa hoặc khóa.</p>
+                <p>Theo dõi tài khoản, vai trò và trạng thái truy cập của người dùng.</p>
               </div>
             </div>
 
@@ -338,26 +348,19 @@ export default function AdminDashboard({ currentUser, onLogout }: AdminDashboard
                   <tbody>
                     {users.map((user) => {
                       const userId = getUserId(user);
-                      const userRole = getRole(user);
-                      const adminRow = userRole === 'ADMIN';
-
                       return (
-                        <tr key={userId || user.email} className={adminRow ? 'read-only-row' : undefined}>
+                        <tr key={userId || user.email}>
                           <td>{userId}</td>
                           <td>{user.fullName || 'N/A'}</td>
                           <td>{user.email}</td>
                           <td>{user.phone || 'N/A'}</td>
-                          <td><span className="role-badge">{userRole || 'N/A'}</span></td>
+                          <td><span className="role-badge">{user.role}</span></td>
                           <td><span className={`status-badge ${String(user.status || '').toLowerCase()}`}>{user.status || 'N/A'}</span></td>
                           <td>
-                            {adminRow ? (
-                              <span className="readonly-note">Chỉ xem</span>
-                            ) : (
-                              <div className="table-actions">
-                                <button type="button" onClick={() => handleEdit(user)}>Sửa</button>
-                                <button className="danger-action" type="button" onClick={() => handleDelete(user)}>Khóa</button>
-                              </div>
-                            )}
+                            <div className="table-actions">
+                              <button type="button" onClick={() => handleEdit(user)}>Sửa</button>
+                              <button className="danger-action" type="button" onClick={() => handleDelete(user)}>Khóa</button>
+                            </div>
                           </td>
                         </tr>
                       );
@@ -368,6 +371,14 @@ export default function AdminDashboard({ currentUser, onLogout }: AdminDashboard
             )}
           </section>
         </section>
+          </>
+        ) : activeSection === 'tournaments' ? (
+          <AdminTournamentTools />
+        ) : activeSection === 'races' ? (
+          <AdminRaceTools />
+        ) : (
+          <AdminRegistrationReview />
+        )}
       </section>
     </main>
   );
