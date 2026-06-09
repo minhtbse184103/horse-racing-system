@@ -5,6 +5,7 @@ import AdminDashboard from './components/admin/AdminDashboard';
 import OwnerDashboard from './components/owner/OwnerDashboard';
 import UserPanel from './components/user/UserPanel';
 import { useAuth } from './hooks/useAuth';
+import { getUserRole } from './lib';
 
 function getInitialPage() {
   return window.location.pathname === '/register' ? 'register' : 'login';
@@ -13,6 +14,9 @@ function getInitialPage() {
 export default function App() {
   const { user, setUser, clearAuth } = useAuth();
   const [page, setPage] = useState(getInitialPage);
+  // MERGED FROM ZIP FRONTEND:
+  // Accept role, roleName, userRole, ROLE_* authorities, or roles[] from either frontend/backend contract.
+  const userRole = getUserRole(user);
 
   useEffect(() => {
     function handlePopState() {
@@ -33,11 +37,11 @@ export default function App() {
     navigateTo('/login');
   }
 
-  if (user?.role === 'ADMIN') {
+  if (userRole === 'ADMIN') {
     return <AdminDashboard currentUser={user} onLogout={handleLogout} />;
   }
 
-  if (user?.role === 'OWNER') {
+  if (userRole === 'OWNER') {
     return <OwnerDashboard currentUser={user} onLogout={handleLogout} />;
   }
 

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { ChangeEvent, FormEvent } from 'react';
 import AppShell from '../common/AppShell';
 import OwnerOverview from './OwnerOverview';
 import OwnerHorseForm from './OwnerHorseForm';
@@ -6,20 +7,39 @@ import OwnerHorseTable from './OwnerHorseTable';
 import OwnerRegisterRace from './OwnerRegisterRace';
 import { useHorses } from '../../hooks/useHorses';
 import { useOwnerDashboard } from '../../hooks/useOwnerDashboard';
-import { emptyHorseForm, getHorseId, toHorsePayload } from '../../lib';
+import { emptyHorseForm, getHorseId, getHorseName, toHorsePayload } from '../../lib';
 import { validateHorseForm } from '../../utils/validators';
+import type { AuthUser, FormErrors, Horse, HorseFormValues, NavItem } from '../../types';
 
-const ownerNavItems = [
+// MERGED FROM ZIP FRONTEND:
+// Keeps the current owner area but maps horse forms to backend DTO fields.
+const ownerNavItems: NavItem[] = [
   { key: 'overview', label: 'Dashboard', icon: '📊' },
   { key: 'horses', label: 'My Horses', icon: '🐎' },
   { key: 'register', label: 'Register Race', icon: '📝' }
 ];
 
-export default function OwnerDashboard({ currentUser, onLogout }) {
-  const [activeSection, setActiveSection] = useState('overview');
-  const [formValues, setFormValues] = useState(emptyHorseForm());
-  const [formErrors, setFormErrors] = useState({});
-  const [editingHorse, setEditingHorse] = useState(null);
+type OwnerSection = 'overview' | 'horses' | 'register';
+
+interface OwnerDashboardProps {
+  currentUser: AuthUser | null;
+  onLogout: () => void;
+}
+
+function getErrorText(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message || fallback : fallback;
+}
+
+function isOwnerSection(section: string): section is OwnerSection {
+  return section === 'overview' || section === 'horses' || section === 'register';
+}
+
+export default function OwnerDashboard({ currentUser, onLogout }: OwnerDashboardProps) {
+  const [activeSection, setActiveSection] = useState<OwnerSection>('overview');
+  const [isHorseFormOpen, setIsHorseFormOpen] = useState(false);
+  const [formValues, setFormValues] = useState<HorseFormValues>(emptyHorseForm());
+  const [formErrors, setFormErrors] = useState<FormErrors<HorseFormValues>>({});
+  const [editingHorse, setEditingHorse] = useState<Horse | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [pageError, setPageError] = useState('');
@@ -28,19 +48,33 @@ export default function OwnerDashboard({ currentUser, onLogout }) {
   const { horses, horseError, isHorsesLoading, loadHorses, saveHorse, removeHorse } = useHorses();
 
   const isLoading = isDashboardLoading || isHorsesLoading;
-  const ownerName = dashboard?.ownerName || currentUser?.fullName || currentUser?.email;
+  const ownerName = dashboard?.ownerName || currentUser?.fullName || currentUser?.email || 'Owner';
   const error = pageError || dashboardError || horseError;
 
-  async function reloadOwnerData() {
+  async function reloadOwnerData(): Promise<void> {
     setPageError('');
     try {
       await Promise.all([loadDashboard(), loadHorses()]);
     } catch (err) {
-      setPageError(err.message || 'Không thể tải dashboard chủ ngựa.');
+      setPageError(getErrorText(err, 'Không thể tải dashboard chủ ngựa.'));
     }
   }
 
-  function handleHorseChange(event) {
+  function handleNavigate(section: string): void {
+    if (isOwnerSection(section)) setActiveSection(section);
+  }
+
+  function handleStartCreateHorse(): void {
+    setActiveSection('horses');
+    setEditingHorse(null);
+    setFormValues(emptyHorseForm());
+    setFormErrors({});
+    setPageError('');
+    setMessage('');
+    setIsHorseFormOpen(true);
+  }
+
+  function handleHorseChange(event: ChangeEvent<HTMLInputElement | HTMLSelectElement>): void {
     const { name, value } = event.target;
     setFormValues((current) => ({ ...current, [name]: value }));
     setFormErrors((current) => ({ ...current, [name]: '' }));
@@ -48,32 +82,35 @@ export default function OwnerDashboard({ currentUser, onLogout }) {
     setMessage('');
   }
 
-  function handleEditHorse(horse) {
+  function handleEditHorse(horse: Horse): void {
     setEditingHorse(horse);
     setFormValues({
-      name: horse.name || '',
+      horseName: getHorseName(horse),
       breed: horse.breed || '',
       gender: horse.gender || 'MALE',
-      age: horse.age ?? '',
+      color: horse.color || '',
+      dayOfBirth: horse.dayOfBirth || '',
       weight: horse.weight ?? '',
       healthCertExpiry: horse.healthCertExpiry || '',
       status: horse.status || 'ACTIVE'
     });
     setActiveSection('horses');
+    setIsHorseFormOpen(true);
     setFormErrors({});
     setMessage('');
     setPageError('');
   }
 
-  function handleCancelHorseEdit() {
+  function handleCancelHorseEdit(): void {
     setEditingHorse(null);
+    setIsHorseFormOpen(false);
     setFormValues(emptyHorseForm());
     setFormErrors({});
     setMessage('');
     setPageError('');
   }
 
-  async function handleHorseSubmit(event) {
+  async function handleHorseSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
 
     const errors = validateHorseForm(formValues);
@@ -86,21 +123,23 @@ export default function OwnerDashboard({ currentUser, onLogout }) {
     setIsSaving(true);
     try {
       await saveHorse(toHorsePayload(formValues), editingHorse);
-      setMessage(editingHorse ? 'Cập nhật hồ sơ ngựa thành công.' : 'Thêm hồ sơ ngựa thành công.');
+      setMessage(editingHorse ? 'Cập nhật hồ sơ ngựa thành công.' : 'Thêm ngựa mới thành công.');
       setEditingHorse(null);
       setFormValues(emptyHorseForm());
+      setIsHorseFormOpen(false);
       await reloadOwnerData();
     } catch (err) {
-      setPageError(err.message || 'Không thể lưu hồ sơ ngựa. Vui lòng kiểm tra lại thông tin.');
+      setPageError(getErrorText(err, 'Không thể lưu hồ sơ ngựa. Vui lòng kiểm tra lại thông tin.'));
     } finally {
       setIsSaving(false);
     }
   }
 
-  async function handleDeleteHorse(horse) {
+  async function handleDeleteHorse(horse: Horse): Promise<void> {
     const horseId = getHorseId(horse);
+    const horseName = getHorseName(horse) || String(horseId || 'này');
     const confirmDelete = window.confirm(
-      `Bạn có chắc muốn xóa hồ sơ ngựa "${horse.name || horseId}" không?\nHồ sơ đã có lịch sử tham gia race hoặc kết quả thi đấu sẽ không được xóa.`
+      `Bạn có chắc muốn xóa hồ sơ ngựa "${horseName}" không?\nHồ sơ đã có lịch sử tham gia race hoặc kết quả thi đấu sẽ không được xóa.`
     );
 
     if (!confirmDelete) return;
@@ -116,7 +155,7 @@ export default function OwnerDashboard({ currentUser, onLogout }) {
       }
       await reloadOwnerData();
     } catch (err) {
-      setPageError(err.message || 'Không thể xóa hồ sơ ngựa.');
+      setPageError(getErrorText(err, 'Không thể xóa hồ sơ ngựa.'));
     }
   }
 
@@ -126,10 +165,10 @@ export default function OwnerDashboard({ currentUser, onLogout }) {
       title={`Xin chào, ${ownerName}`}
       subtitle="Quản lý hồ sơ ngựa và theo dõi tình trạng đăng ký thi đấu."
       profileName={ownerName}
-      profileRole={currentUser?.role || 'OWNER'}
+      profileRole={String(currentUser?.role || currentUser?.roleName || 'OWNER')}
       activeSection={activeSection}
       navItems={ownerNavItems}
-      onNavigate={setActiveSection}
+      onNavigate={handleNavigate}
       onLogout={onLogout}
       headerAction={
         <button className="refresh-button" type="button" onClick={reloadOwnerData} disabled={isLoading}>
@@ -145,16 +184,28 @@ export default function OwnerDashboard({ currentUser, onLogout }) {
       )}
 
       {activeSection === 'horses' && (
-        <section className="owner-content-grid">
-          <OwnerHorseForm
-            formValues={formValues}
-            errors={formErrors}
-            editingHorse={editingHorse}
-            isSaving={isSaving}
-            onChange={handleHorseChange}
-            onSubmit={handleHorseSubmit}
-            onCancelEdit={handleCancelHorseEdit}
-          />
+        <section className="owner-stack">
+          <div className="owner-section-toolbar">
+            <div>
+              <p className="eyebrow">Horse profile</p>
+              <h2>Quản lý ngựa của tôi</h2>
+            </div>
+            <button className="primary-button compact-button" type="button" onClick={handleStartCreateHorse}>
+              + Thêm ngựa mới
+            </button>
+          </div>
+
+          {isHorseFormOpen && (
+            <OwnerHorseForm
+              formValues={formValues}
+              errors={formErrors}
+              editingHorse={editingHorse}
+              isSaving={isSaving}
+              onChange={handleHorseChange}
+              onSubmit={handleHorseSubmit}
+              onCancelEdit={handleCancelHorseEdit}
+            />
+          )}
 
           <OwnerHorseTable
             horses={horses}

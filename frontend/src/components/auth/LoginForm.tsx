@@ -1,27 +1,39 @@
-import type { ChangeEvent, FormEvent } from 'react';
 import { useMemo, useState } from 'react';
+import type { ChangeEvent, FormEvent } from 'react';
 import AuthLayout from './AuthLayout';
 import { login, saveAuthSession, startGoogleLogin } from '../../services/authService';
 import { validateLoginForm } from '../../utils/validators';
+import type { AuthUser, FormErrors, LoginRequest } from '../../types';
 
-export default function LoginForm({ onLoginSuccess, onGoRegister }) {
-  const [values, setValues] = useState({ email: '', password: '' });
+// MERGED FROM ZIP FRONTEND:
+// Login form is typed to match the merged auth service response.
+interface LoginFormProps {
+  onLoginSuccess: (user: AuthUser) => void;
+  onGoRegister: () => void;
+}
+
+function getErrorText(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message || fallback : fallback;
+}
+
+export default function LoginForm({ onLoginSuccess, onGoRegister }: LoginFormProps) {
+  const [values, setValues] = useState<LoginRequest>({ email: '', password: '' });
   const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<FormErrors<LoginRequest>>({});
   const [apiError, setApiError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const isFormReady = useMemo(() => values.email.trim() && values.password, [values]);
+  const isFormReady = useMemo(() => Boolean(values.email.trim() && values.password), [values]);
 
-  function handleChange(event: ChangeEvent<HTMLInputElement>) {
+  function handleChange(event: ChangeEvent<HTMLInputElement>): void {
     const { name, value } = event.target;
     setValues((current) => ({ ...current, [name]: value }));
     setErrors((current) => ({ ...current, [name]: '' }));
     setApiError('');
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
 
     const formErrors = validateLoginForm(values);
@@ -39,8 +51,8 @@ export default function LoginForm({ onLoginSuccess, onGoRegister }) {
 
       saveAuthSession(loginResponse, rememberMe);
       onLoginSuccess(loginResponse.user);
-    } catch (error: any) {
-      setApiError(error.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
+    } catch (error) {
+      setApiError(getErrorText(error, 'Đăng nhập thất bại. Vui lòng thử lại.'));
     } finally {
       setIsSubmitting(false);
     }

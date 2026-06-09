@@ -1,6 +1,14 @@
-import { formatDate, formatNumber, getHorseId } from '../../lib';
+import { formatDate, formatNumber, getHorseId, getHorseName } from '../../lib';
+import type { Horse } from '../../types';
 
-export default function OwnerHorseTable({ horses, isLoading, onEditHorse, onDeleteHorse }) {
+interface OwnerHorseTableProps {
+  horses: Horse[];
+  isLoading: boolean;
+  onEditHorse: (horse: Horse) => void;
+  onDeleteHorse: (horse: Horse) => void;
+}
+
+export default function OwnerHorseTable({ horses, isLoading, onEditHorse, onDeleteHorse }: OwnerHorseTableProps) {
   return (
     <section className="owner-panel">
       <div className="owner-panel-header">
@@ -17,20 +25,21 @@ export default function OwnerHorseTable({ horses, isLoading, onEditHorse, onDele
         <div className="owner-empty-state">
           <div>🐎</div>
           <h3>Chưa có ngựa nào</h3>
-          <p>Hãy thêm hồ sơ ngựa đầu tiên để bắt đầu quản lý và chuẩn bị đăng ký race.</p>
+          <p>Bấm nút “Thêm ngựa mới” để tạo hồ sơ ngựa đầu tiên.</p>
         </div>
       ) : (
         <div className="horse-card-list">
           {horses.map((horse) => {
             const horseId = getHorseId(horse);
+            const horseName = getHorseName(horse) || 'N/A';
             const status = String(horse.status || 'N/A').toLowerCase();
 
             return (
-              <article className="horse-card" key={horseId || horse.name}>
+              <article className="horse-card" key={horseId || horseName}>
                 <div className="horse-avatar">🐎</div>
                 <div className="horse-info">
                   <div className="horse-title-row">
-                    <h3>{horse.name || 'N/A'}</h3>
+                    <h3>{horseName}</h3>
                     <span className={`status-badge ${status}`}>{horse.status || 'N/A'}</span>
                   </div>
                   <div className="horse-meta-grid">
@@ -38,8 +47,10 @@ export default function OwnerHorseTable({ horses, isLoading, onEditHorse, onDele
                     <strong>{horse.breed || 'Chưa cập nhật'}</strong>
                     <span>Gender</span>
                     <strong>{horse.gender || 'Chưa cập nhật'}</strong>
-                    <span>Age</span>
-                    <strong>{horse.age ?? 'Chưa cập nhật'}</strong>
+                    <span>Color</span>
+                    <strong>{horse.color || 'Chưa cập nhật'}</strong>
+                    <span>Birth Date</span>
+                    <strong>{formatDate(horse.dayOfBirth)}</strong>
                     <span>Weight</span>
                     <strong>{horse.weight ? `${horse.weight} kg` : 'Chưa cập nhật'}</strong>
                     <span>Health Cert</span>

@@ -1,29 +1,44 @@
-import type { ChangeEvent, FormEvent } from 'react';
 import { useMemo, useState } from 'react';
+import type { ChangeEvent, FormEvent } from 'react';
 import AuthLayout from './AuthLayout';
 import { signup } from '../../services/authService';
 import { validateSignupForm } from '../../utils/validators';
+import type { FormErrors, SignupRequest } from '../../types';
 
-export default function RegisterForm({ onGoLogin }) {
-  const [values, setValues] = useState({
+// MERGED FROM ZIP FRONTEND:
+// Register form is typed to match the merged signup request contract.
+interface RegisterFormProps {
+  onGoLogin: () => void;
+}
+
+function emptySignupForm(): SignupRequest {
+  return {
     fullName: '',
     email: '',
     phone: '',
     password: '',
     roleName: 'OWNER'
-  });
+  };
+}
+
+function getErrorText(error: unknown, fallback: string): string {
+  return error instanceof Error ? error.message || fallback : fallback;
+}
+
+export default function RegisterForm({ onGoLogin }: RegisterFormProps) {
+  const [values, setValues] = useState<SignupRequest>(emptySignupForm());
   const [showPassword, setShowPassword] = useState(false);
-  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errors, setErrors] = useState<FormErrors<SignupRequest>>({});
   const [apiError, setApiError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isFormReady = useMemo(
-    () => values.fullName.trim() && values.email.trim() && values.phone.trim() && values.password && values.roleName,
+    () => Boolean(values.fullName.trim() && values.email.trim() && values.phone.trim() && values.password && values.roleName),
     [values]
   );
 
-  function handleChange(event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
+  function handleChange(event: ChangeEvent<HTMLInputElement | HTMLSelectElement>): void {
     const { name, value } = event.target;
     setValues((current) => ({ ...current, [name]: value }));
     setErrors((current) => ({ ...current, [name]: '' }));
@@ -31,7 +46,7 @@ export default function RegisterForm({ onGoLogin }) {
     setSuccessMessage('');
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
     event.preventDefault();
 
     const formErrors = validateSignupForm(values);
@@ -51,10 +66,10 @@ export default function RegisterForm({ onGoLogin }) {
         roleName: values.roleName
       });
 
-      setSuccessMessage('Đăng ký thành công. Bạn có thể quay lại trang đăng nhập.');
-      setValues({ fullName: '', email: '', phone: '', password: '', roleName: 'OWNER' });
-    } catch (error: any) {
-      setApiError(error.message || 'Đăng ký thất bại. Vui lòng thử lại.');
+      setValues(emptySignupForm());
+      onGoLogin();
+    } catch (error) {
+      setApiError(getErrorText(error, 'Đăng ký thất bại. Vui lòng thử lại.'));
     } finally {
       setIsSubmitting(false);
     }
@@ -154,15 +169,10 @@ export default function RegisterForm({ onGoLogin }) {
           />
           {errors.password && <p className="field-error">{errors.password}</p>}
 
-          <button className="primary-button register-submit" type="submit" disabled={!isFormReady || isSubmitting}>
+          <button className="primary-button" type="submit" disabled={!isFormReady || isSubmitting}>
             {isSubmitting ? 'Đang đăng ký...' : 'Đăng ký tài khoản'}
           </button>
         </form>
-
-        <p className="switch-auth-text">
-          Đã có tài khoản?{' '}
-          <button className="text-button" type="button" onClick={onGoLogin}>Đăng nhập</button>
-        </p>
       </section>
     </AuthLayout>
   );
