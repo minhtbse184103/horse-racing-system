@@ -1,5 +1,6 @@
 package com.example.backend.dto.request;
 
+import io.swagger.v3.oas.annotations.media.Schema;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -7,6 +8,7 @@ import lombok.Getter;
 
 @Getter
 public class AdminUpdateUserRequest {
+    @Schema(example = "user@example.com")
     @Email(message = "Email không đúng định dạng")
     @Pattern(regexp = "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$", message = "Email không đúng định dạng")
     private String email;
