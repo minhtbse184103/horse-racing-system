@@ -17,6 +17,7 @@ const MESSAGE_TRANSLATIONS: Record<string, string> = {
   'Horse name is required': 'Tên ngựa không được để trống.',
   'Age must be zero or positive': 'Tuổi ngựa phải lớn hơn hoặc bằng 0.',
   'Weight must be a positive number': 'Cân nặng phải lớn hơn 0.',
+  'Weight is required': 'Cân nặng không được để trống.',
   'Horse has participated in at least one race and cannot be deleted.': 'Không thể xóa hồ sơ ngựa đã có lịch sử tham gia race hoặc kết quả thi đấu.',
   'User is not authenticated.': 'Bạn cần đăng nhập để tiếp tục.',
   'Only owners can access this resource.': 'Chỉ Horse Owner mới được truy cập chức năng này.',

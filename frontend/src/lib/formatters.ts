@@ -34,30 +34,35 @@ export function getHorseId(horse: Horse | null | undefined): Id | undefined {
   return horse?.horseId ?? horse?.horseID ?? horse?.id;
 }
 
+export function getHorseName(horse: Horse | null | undefined): string {
+  return String(horse?.horseName ?? horse?.name ?? '').trim();
+}
+
 export function emptyHorseForm(): HorseFormValues {
   return {
-    name: '',
+    horseName: '',
     breed: '',
     gender: 'MALE',
-    age: '',
+    color: '',
+    dayOfBirth: '',
     weight: '',
     healthCertExpiry: '',
     status: 'ACTIVE'
   };
 }
 
-export function toHorsePayload(formValues: HorseFormValues & { horseName?: string }): HorsePayload {
-  const name = String(formValues.name ?? formValues.horseName ?? '').trim();
-  const breed = String(formValues.breed ?? '').trim();
+export function toHorsePayload(formValues: HorseFormValues): HorsePayload {
+  const horseName = String(formValues.horseName ?? '').trim();
+  const weight = Number(formValues.weight);
 
   return {
-    name,
-    horseName: name,
-    breed,
+    horseName,
+    breed: formValues.breed.trim() || null,
     gender: formValues.gender || null,
-    age: formValues.age === '' || formValues.age === null ? null : Number(formValues.age),
-    weight: formValues.weight === '' || formValues.weight === null ? null : Number(formValues.weight),
+    color: formValues.color.trim() || null,
+    dayOfBirth: formValues.dayOfBirth || null,
+    weight,
     healthCertExpiry: formValues.healthCertExpiry || null,
-    status: formValues.status || 'ACTIVE'
+    status: formValues.status || null
   };
 }

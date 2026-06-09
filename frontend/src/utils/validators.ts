@@ -58,33 +58,18 @@ export function validateSignupForm(values: SignupRequest): FormErrors<SignupRequ
 
 export function validateHorseForm(values: HorseFormValues): FormErrors<HorseFormValues> {
   const errors: FormErrors<HorseFormValues> = {};
+  const weight = Number(values.weight);
 
-  if (!values.name?.trim()) {
-    errors.name = 'Tên ngựa không được để trống.';
+  // Theo CreateHorseRequest / UpdateHorseRequest hiện tại của BE:
+  // @NotBlank horseName, @NotNull + @Positive weight.
+  if (!values.horseName?.trim()) {
+    errors.horseName = 'Tên ngựa không được để trống.';
   }
 
-  if (!values.breed?.trim()) {
-    errors.breed = 'Giống ngựa không được để trống.';
-  }
-
-  if (values.age === '') {
-    errors.age = 'Tuổi ngựa không được để trống.';
-  } else if (Number(values.age) < 0) {
-    errors.age = 'Tuổi ngựa phải lớn hơn hoặc bằng 0.';
-  }
-
-  if (values.weight === '') {
+  if (values.weight === '' || values.weight === null || values.weight === undefined) {
     errors.weight = 'Cân nặng không được để trống.';
-  } else if (Number(values.weight) <= 0) {
+  } else if (!Number.isFinite(weight) || weight <= 0) {
     errors.weight = 'Cân nặng phải lớn hơn 0.';
-  }
-
-  if (!values.healthCertExpiry) {
-    errors.healthCertExpiry = 'Hạn giấy sức khỏe không được để trống.';
-  }
-
-  if (!values.status) {
-    errors.status = 'Trạng thái ngựa không được để trống.';
   }
 
   return errors;

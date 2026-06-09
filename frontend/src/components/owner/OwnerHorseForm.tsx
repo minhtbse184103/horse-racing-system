@@ -24,8 +24,8 @@ export default function OwnerHorseForm({
     <form className="owner-panel owner-form" onSubmit={onSubmit}>
       <div className="owner-panel-header">
         <div>
-          <h2>{editingHorse ? 'Cập nhật hồ sơ ngựa' : 'Thêm hồ sơ ngựa'}</h2>
-          <p>Hồ sơ ngựa cần đầy đủ tên, giống, tuổi, cân nặng, hạn giấy sức khỏe và trạng thái.</p>
+          <h2>{editingHorse ? 'Cập nhật hồ sơ ngựa' : 'Thêm ngựa mới'}</h2>
+          <p>Nhập thông tin hồ sơ ngựa theo đúng dữ liệu backend đang nhận.</p>
         </div>
       </div>
 
@@ -33,29 +33,46 @@ export default function OwnerHorseForm({
         Tên ngựa <span className="required">*</span>
       </label>
       <input
-        className={errors.name ? 'input has-error' : 'input'}
+        className={errors.horseName ? 'input has-error' : 'input'}
         id="horseName"
-        name="name"
+        name="horseName"
         type="text"
-        placeholder="Thunder Bolt"
-        value={formValues.name}
+        placeholder="Ví dụ: Thunder Bolt"
+        value={formValues.horseName}
         onChange={onChange}
         disabled={isSaving}
       />
-      {errors.name && <p className="field-error">{errors.name}</p>}
+      {errors.horseName && <p className="field-error">{errors.horseName}</p>}
 
-      <label className="field-label" htmlFor="horseBreed">Giống ngựa <span className="required">*</span></label>
-      <input
-        className={errors.breed ? 'input has-error' : 'input'}
-        id="horseBreed"
-        name="breed"
-        type="text"
-        placeholder="Arabian, Thoroughbred..."
-        value={formValues.breed}
-        onChange={onChange}
-        disabled={isSaving}
-      />
-      {errors.breed && <p className="field-error">{errors.breed}</p>}
+      <div className="owner-form-row">
+        <div>
+          <label className="field-label" htmlFor="horseBreed">Giống ngựa</label>
+          <input
+            className="input"
+            id="horseBreed"
+            name="breed"
+            type="text"
+            placeholder="Arabian, Thoroughbred..."
+            value={formValues.breed}
+            onChange={onChange}
+            disabled={isSaving}
+          />
+        </div>
+
+        <div>
+          <label className="field-label" htmlFor="horseColor">Màu lông</label>
+          <input
+            className="input"
+            id="horseColor"
+            name="color"
+            type="text"
+            placeholder="Brown, Black, White..."
+            value={formValues.color}
+            onChange={onChange}
+            disabled={isSaving}
+          />
+        </div>
+      </div>
 
       <div className="owner-form-row">
         <div>
@@ -75,25 +92,42 @@ export default function OwnerHorseForm({
         </div>
 
         <div>
-          <label className="field-label" htmlFor="horseAge">Tuổi <span className="required">*</span></label>
-          <input
-            className={errors.age ? 'input has-error' : 'input'}
-            id="horseAge"
-            name="age"
-            type="number"
-            min="0"
-            placeholder="3"
-            value={formValues.age}
+          <label className="field-label" htmlFor="horseStatus">Trạng thái</label>
+          <select
+            className="input"
+            id="horseStatus"
+            name="status"
+            value={formValues.status}
             onChange={onChange}
             disabled={isSaving}
-          />
-          {errors.age && <p className="field-error">{errors.age}</p>}
+          >
+            <option value="ACTIVE">ACTIVE</option>
+            <option value="INJURED">INJURED</option>
+            <option value="RETIRED">RETIRED</option>
+            <option value="SUSPENDED">SUSPENDED</option>
+            <option value="INACTIVE">INACTIVE</option>
+          </select>
         </div>
       </div>
 
       <div className="owner-form-row">
         <div>
-          <label className="field-label" htmlFor="horseWeight">Cân nặng <span className="required">*</span></label>
+          <label className="field-label" htmlFor="horseBirthDate">Ngày sinh</label>
+          <input
+            className="input"
+            id="horseBirthDate"
+            name="dayOfBirth"
+            type="date"
+            value={formValues.dayOfBirth}
+            onChange={onChange}
+            disabled={isSaving}
+          />
+        </div>
+
+        <div>
+          <label className="field-label" htmlFor="horseWeight">
+            Cân nặng <span className="required">*</span>
+          </label>
           <input
             className={errors.weight ? 'input has-error' : 'input'}
             id="horseWeight"
@@ -108,48 +142,27 @@ export default function OwnerHorseForm({
           />
           {errors.weight && <p className="field-error">{errors.weight}</p>}
         </div>
-
-        <div>
-          <label className="field-label" htmlFor="horseHealthDate">Hết hạn giấy sức khỏe <span className="required">*</span></label>
-          <input
-            className={errors.healthCertExpiry ? 'input has-error' : 'input'}
-            id="horseHealthDate"
-            name="healthCertExpiry"
-            type="date"
-            value={formValues.healthCertExpiry}
-            onChange={onChange}
-            disabled={isSaving}
-          />
-          {errors.healthCertExpiry && <p className="field-error">{errors.healthCertExpiry}</p>}
-        </div>
       </div>
 
-      <label className="field-label" htmlFor="horseStatus">Trạng thái <span className="required">*</span></label>
-      <select
+      <label className="field-label" htmlFor="horseHealthDate">Hạn giấy chứng nhận sức khỏe</label>
+      <input
         className="input"
-        id="horseStatus"
-        name="status"
-        value={formValues.status}
+        id="horseHealthDate"
+        name="healthCertExpiry"
+        type="date"
+        value={formValues.healthCertExpiry}
         onChange={onChange}
         disabled={isSaving}
-      >
-        <option value="ACTIVE">ACTIVE</option>
-        <option value="INJURED">INJURED</option>
-        <option value="RETIRED">RETIRED</option>
-        <option value="SUSPENDED">SUSPENDED</option>
-        <option value="INACTIVE">INACTIVE</option>
-      </select>
+      />
 
       <div className="admin-form-actions">
         <button className="primary-button" type="submit" disabled={isSaving}>
-          {isSaving ? 'Đang lưu...' : editingHorse ? 'Cập nhật hồ sơ' : 'Thêm hồ sơ'}
+          {isSaving ? 'Đang lưu...' : editingHorse ? 'Cập nhật hồ sơ' : 'Thêm ngựa'}
         </button>
 
-        {editingHorse && (
-          <button className="outline-button" type="button" onClick={onCancelEdit} disabled={isSaving}>
-            Hủy sửa
-          </button>
-        )}
+        <button className="outline-button" type="button" onClick={onCancelEdit} disabled={isSaving}>
+          {editingHorse ? 'Hủy sửa' : 'Đóng form'}
+        </button>
       </div>
     </form>
   );

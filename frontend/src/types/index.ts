@@ -71,38 +71,42 @@ export interface Horse {
   horseId?: Id;
   horseID?: Id;
   id?: Id;
-  name?: string;
   horseName?: string;
-  breed?: string;
-  gender?: HorseGender;
-  age?: number | string | null;
+  name?: string; // giữ lại để đọc dữ liệu cũ nếu có
+  breed?: string | null;
+  gender?: HorseGender | null;
+  color?: string | null;
+  dayOfBirth?: string | null;
   weight?: number | string | null;
   healthCertExpiry?: string | null;
-  status?: HorseStatus;
+  status?: HorseStatus | null;
   registrationCount?: number | string | null;
   participated?: boolean;
   [key: string]: unknown;
 }
 
 export interface HorseFormValues {
-  name: string;
+  horseName: string;
   breed: string;
   gender: HorseGender;
-  age: number | string;
+  color: string;
+  dayOfBirth: string;
   weight: number | string;
   healthCertExpiry: string;
   status: HorseStatus;
 }
 
+// Map đúng CreateHorseRequest / UpdateHorseRequest trong BE hiện tại.
+// BE nhận horseName, breed, gender, color, dayOfBirth, weight, healthCertExpiry, status.
 export interface HorsePayload {
-  name: string;
   horseName: string;
-  breed: string;
+  breed: string | null;
   gender: HorseGender | null;
-  age: number | null;
-  weight: number | null;
+  color: string | null;
+  dayOfBirth: string | null;
+  weight: number;
   healthCertExpiry: string | null;
-  status: HorseStatus;
+  status: HorseStatus | null;
 }
 
 export interface OwnerDashboardData {

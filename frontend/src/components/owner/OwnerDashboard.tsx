@@ -7,7 +7,7 @@ import OwnerHorseTable from './OwnerHorseTable';
 import OwnerRegisterRace from './OwnerRegisterRace';
 import { useHorses } from '../../hooks/useHorses';
 import { useOwnerDashboard } from '../../hooks/useOwnerDashboard';
-import { emptyHorseForm, getHorseId, toHorsePayload } from '../../lib';
+import { emptyHorseForm, getHorseId, getHorseName, toHorsePayload } from '../../lib';
 import { validateHorseForm } from '../../utils/validators';
 import type { AuthUser, FormErrors, Horse, HorseFormValues, NavItem } from '../../types';
 
@@ -34,6 +34,7 @@ function isOwnerSection(section: string): section is OwnerSection {
 
 export default function OwnerDashboard({ currentUser, onLogout }: OwnerDashboardProps) {
   const [activeSection, setActiveSection] = useState<OwnerSection>('overview');
+  const [isHorseFormOpen, setIsHorseFormOpen] = useState(false);
   const [formValues, setFormValues] = useState<HorseFormValues>(emptyHorseForm());
   const [formErrors, setFormErrors] = useState<FormErrors<HorseFormValues>>({});
   const [editingHorse, setEditingHorse] = useState<Horse | null>(null);
@@ -61,6 +62,16 @@ export default function OwnerDashboard({ currentUser, onLogout }: OwnerDashboard
     if (isOwnerSection(section)) setActiveSection(section);
   }
 
+  function handleStartCreateHorse(): void {
+    setActiveSection('horses');
+    setEditingHorse(null);
+    setFormValues(emptyHorseForm());
+    setFormErrors({});
+    setPageError('');
+    setMessage('');
+    setIsHorseFormOpen(true);
+  }
+
   function handleHorseChange(event: ChangeEvent<HTMLInputElement | HTMLSelectElement>): void {
     const { name, value } = event.target;
     setFormValues((current) => ({ ...current, [name]: value }));
@@ -72,15 +83,17 @@ export default function OwnerDashboard({ currentUser, onLogout }: OwnerDashboard
   function handleEditHorse(horse: Horse): void {
     setEditingHorse(horse);
     setFormValues({
-      name: horse.name || horse.horseName || '',
+      horseName: getHorseName(horse),
       breed: horse.breed || '',
       gender: horse.gender || 'MALE',
-      age: horse.age ?? '',
+      color: horse.color || '',
+      dayOfBirth: horse.dayOfBirth || '',
       weight: horse.weight ?? '',
       healthCertExpiry: horse.healthCertExpiry || '',
       status: horse.status || 'ACTIVE'
     });
     setActiveSection('horses');
+    setIsHorseFormOpen(true);
     setFormErrors({});
     setMessage('');
     setPageError('');
@@ -88,6 +101,7 @@ export default function OwnerDashboard({ currentUser, onLogout }: OwnerDashboard
 
   function handleCancelHorseEdit(): void {
     setEditingHorse(null);
+    setIsHorseFormOpen(false);
     setFormValues(emptyHorseForm());
     setFormErrors({});
     setMessage('');
@@ -107,9 +121,10 @@ export default function OwnerDashboard({ currentUser, onLogout }: OwnerDashboard
     setIsSaving(true);
     try {
       await saveHorse(toHorsePayload(formValues), editingHorse);
-      setMessage(editingHorse ? 'Cập nhật hồ sơ ngựa thành công.' : 'Thêm hồ sơ ngựa thành công.');
+      setMessage(editingHorse ? 'Cập nhật hồ sơ ngựa thành công.' : 'Thêm ngựa mới thành công.');
       setEditingHorse(null);
       setFormValues(emptyHorseForm());
+      setIsHorseFormOpen(false);
       await reloadOwnerData();
     } catch (err) {
       setPageError(getErrorText(err, 'Không thể lưu hồ sơ ngựa. Vui lòng kiểm tra lại thông tin.'));
@@ -120,8 +135,9 @@ export default function OwnerDashboard({ currentUser, onLogout }: OwnerDashboard
 
   async function handleDeleteHorse(horse: Horse): Promise<void> {
     const horseId = getHorseId(horse);
+    const horseName = getHorseName(horse) || String(horseId || 'này');
     const confirmDelete = window.confirm(
-      `Bạn có chắc muốn xóa hồ sơ ngựa "${horse.name || horse.horseName || horseId}" không?\nHồ sơ đã có lịch sử tham gia race hoặc kết quả thi đấu sẽ không được xóa.`
+      `Bạn có chắc muốn xóa hồ sơ ngựa "${horseName}" không?\nHồ sơ đã có lịch sử tham gia race hoặc kết quả thi đấu sẽ không được xóa.`
     );
 
     if (!confirmDelete) return;
@@ -166,16 +182,28 @@ export default function OwnerDashboard({ currentUser, onLogout }: OwnerDashboard
       )}
 
       {activeSection === 'horses' && (
-        <section className="owner-content-grid">
-          <OwnerHorseForm
-            formValues={formValues}
-            errors={formErrors}
-            editingHorse={editingHorse}
-            isSaving={isSaving}
-            onChange={handleHorseChange}
-            onSubmit={handleHorseSubmit}
-            onCancelEdit={handleCancelHorseEdit}
-          />
+        <section className="owner-stack">
+          <div className="owner-section-toolbar">
+            <div>
+              <p className="eyebrow">Horse profile</p>
+              <h2>Quản lý ngựa của tôi</h2>
+            </div>
+            <button className="primary-button compact-button" type="button" onClick={handleStartCreateHorse}>
+              + Thêm ngựa mới
+            </button>
+          </div>
+
+          {isHorseFormOpen && (
+            <OwnerHorseForm
+              formValues={formValues}
+              errors={formErrors}
+              editingHorse={editingHorse}
+              isSaving={isSaving}
+              onChange={handleHorseChange}
+              onSubmit={handleHorseSubmit}
+              onCancelEdit={handleCancelHorseEdit}
+            />
+          )}
 
           <OwnerHorseTable
             horses={horses}
