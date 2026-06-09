@@ -1,4 +1,5 @@
-import type { AuthUser, Horse, HorseFormValues, HorsePayload, Id } from '../types';
+import type { AuthUser, Id } from '../services/authService';
+import type { Horse, HorseFormValues, HorsePayload } from '../services/ownerService';
 
 // MERGED FROM ZIP FRONTEND:
 // Normalizes user/horse fields so both frontend versions can read backend responses.

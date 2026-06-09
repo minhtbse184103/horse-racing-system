@@ -1,5 +1,6 @@
 import type { ChangeEvent, FormEvent } from 'react';
-import type { FormErrors, Horse, HorseFormValues } from '../../types';
+import type { Horse, HorseFormValues } from '../../services/ownerService';
+import type { FormErrors } from '../../utils/validators';
 
 interface OwnerHorseFormProps {
   formValues: HorseFormValues;

@@ -1,6 +1,44 @@
 import API_BASE_URL from '../configs/apiConfig';
 import { httpRequest } from '../api/httpClient';
-import type { AuthUser, LoginRequest, LoginResponse, SignupRequest } from '../types';
+
+export type Id = number | string;
+export type UserRole = 'ADMIN' | 'OWNER' | 'JOCKEY' | 'REFEREE' | 'SPECTATOR';
+export type UserStatus = 'ACTIVE' | 'INACTIVE' | 'BLOCKED' | 'SUSPENDED' | 'BANNED' | string;
+
+export interface AuthUser {
+  id?: Id;
+  Id?: Id;
+  userID?: Id;
+  userId?: Id;
+  email?: string;
+  fullName?: string;
+  phone?: string;
+  role?: UserRole | string;
+  roleName?: UserRole | string;
+  userRole?: UserRole | string;
+  status?: UserStatus;
+  authorities?: Array<{ authority?: string }>;
+  roles?: Array<{ name?: string } | string>;
+  [key: string]: unknown;
+}
+
+export interface LoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface LoginResponse {
+  token: string;
+  user: AuthUser;
+}
+
+export interface SignupRequest {
+  email: string;
+  fullName: string;
+  phone: string;
+  password: string;
+  roleName: 'OWNER' | 'JOCKEY' | 'SPECTATOR';
+}
 
 // MERGED FROM ZIP FRONTEND:
 // Auth service now uses shared request/response types with the typed HTTP helper.

@@ -1,6 +1,6 @@
 import StatCard from '../common/StatCard';
 import { formatNumber } from '../../lib';
-import type { Horse, OwnerDashboardData } from '../../types';
+import type { Horse, OwnerDashboardData } from '../../services/ownerService';
 
 interface OwnerOverviewProps {
   dashboard: OwnerDashboardData | null;

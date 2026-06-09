@@ -9,7 +9,10 @@ import { useHorses } from '../../hooks/useHorses';
 import { useOwnerDashboard } from '../../hooks/useOwnerDashboard';
 import { emptyHorseForm, getHorseId, getHorseName, toHorsePayload } from '../../lib';
 import { validateHorseForm } from '../../utils/validators';
-import type { AuthUser, FormErrors, Horse, HorseFormValues, NavItem } from '../../types';
+import type { AuthUser } from '../../services/authService';
+import type { Horse, HorseFormValues } from '../../services/ownerService';
+import type { FormErrors } from '../../utils/validators';
+import type { NavItem } from '../common/AppShell';
 
 // MERGED FROM ZIP FRONTEND:
 // Keeps the current owner area but maps horse forms to backend DTO fields.

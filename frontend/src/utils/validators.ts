@@ -1,4 +1,7 @@
-import type { FormErrors, HorseFormValues, LoginRequest, SignupRequest } from '../types';
+import type { LoginRequest, SignupRequest } from '../services/authService';
+import type { HorseFormValues } from '../services/ownerService';
+
+export type FormErrors<T> = Partial<Record<keyof T, string>>;
 
 // MERGED FROM ZIP FRONTEND:
 // Validation now follows the backend DTO fields used by the merged horse form.

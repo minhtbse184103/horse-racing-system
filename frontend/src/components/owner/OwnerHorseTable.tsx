@@ -1,5 +1,5 @@
 import { formatDate, formatNumber, getHorseId, getHorseName } from '../../lib';
-import type { Horse } from '../../types';
+import type { Horse } from '../../services/ownerService';
 
 interface OwnerHorseTableProps {
   horses: Horse[];

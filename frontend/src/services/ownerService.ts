@@ -1,5 +1,58 @@
 import { httpRequest } from '../api/httpClient';
-import type { Horse, HorsePayload, Id, OwnerDashboardData } from '../types';
+import type { Id } from './authService';
+
+export type HorseStatus = 'ACTIVE' | 'INJURED' | 'RETIRED' | 'SUSPENDED' | 'INACTIVE' | string;
+export type HorseGender = 'MALE' | 'FEMALE' | 'UNKNOWN' | string;
+
+export interface Horse {
+  horseId?: Id;
+  horseID?: Id;
+  id?: Id;
+  horseName?: string;
+  name?: string;
+  breed?: string | null;
+  gender?: HorseGender | null;
+  color?: string | null;
+  dayOfBirth?: string | null;
+  weight?: number | string | null;
+  healthCertExpiry?: string | null;
+  status?: HorseStatus | null;
+  registrationCount?: number | string | null;
+  participated?: boolean;
+  [key: string]: unknown;
+}
+
+export interface HorseFormValues {
+  horseName: string;
+  breed: string;
+  gender: HorseGender;
+  color: string;
+  dayOfBirth: string;
+  weight: number | string;
+  healthCertExpiry: string;
+  status: HorseStatus;
+}
+
+export interface HorsePayload {
+  horseName: string;
+  breed: string | null;
+  gender: HorseGender | null;
+  color: string | null;
+  dayOfBirth: string | null;
+  weight: number;
+  healthCertExpiry: string | null;
+  status: HorseStatus | null;
+}
+
+export interface OwnerDashboardData {
+  ownerId?: Id;
+  ownerName?: string;
+  totalHorses?: number;
+  totalRegistrations?: number;
+  registeredHorses?: number;
+  participatedHorses?: number;
+  [key: string]: unknown;
+}
 
 // MERGED FROM ZIP FRONTEND:
 // Owner horse APIs now send the backend DTO fields: horseName, color, dayOfBirth, weight.

@@ -1,3 +1,11 @@
+import type { ReactNode } from 'react';
+
+export interface NavItem {
+  key: string;
+  label: string;
+  icon?: ReactNode;
+}
+
 export default function AppShell({
   variant = 'owner',
   title,

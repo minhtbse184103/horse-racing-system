@@ -2,8 +2,9 @@ import { useMemo, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import AuthLayout from './AuthLayout';
 import { login, saveAuthSession, startGoogleLogin } from '../../services/authService';
+import type { AuthUser, LoginRequest } from '../../services/authService';
 import { validateLoginForm } from '../../utils/validators';
-import type { AuthUser, FormErrors, LoginRequest } from '../../types';
+import type { FormErrors } from '../../utils/validators';
 
 // MERGED FROM ZIP FRONTEND:
 // Login form is typed to match the merged auth service response.

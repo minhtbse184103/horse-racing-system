@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { createHorse, deleteHorse, getOwnerHorses, updateHorse } from '../services/ownerService';
+import type { Horse, HorsePayload } from '../services/ownerService';
 import { getHorseId } from '../lib';
-import type { Horse, HorsePayload } from '../types';
 
 // MERGED FROM ZIP FRONTEND:
 // Keeps horse CRUD state aligned with the merged owner horse DTO flow.

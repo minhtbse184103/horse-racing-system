@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { getOwnerDashboard } from '../services/ownerService';
-import type { OwnerDashboardData } from '../types';
+import type { OwnerDashboardData } from '../services/ownerService';
 
 function getErrorText(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message || fallback : fallback;

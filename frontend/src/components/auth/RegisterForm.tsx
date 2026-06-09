@@ -2,8 +2,9 @@ import { useMemo, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import AuthLayout from './AuthLayout';
 import { signup } from '../../services/authService';
+import type { SignupRequest } from '../../services/authService';
 import { validateSignupForm } from '../../utils/validators';
-import type { FormErrors, SignupRequest } from '../../types';
+import type { FormErrors } from '../../utils/validators';
 
 // MERGED FROM ZIP FRONTEND:
 // Register form is typed to match the merged signup request contract.
