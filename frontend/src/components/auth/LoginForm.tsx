@@ -1,3 +1,4 @@
+import type { ChangeEvent, FormEvent } from 'react';
 import { useMemo, useState } from 'react';
 import AuthLayout from './AuthLayout';
 import { login, saveAuthSession, startGoogleLogin } from '../../services/authService';
@@ -7,20 +8,20 @@ export default function LoginForm({ onLoginSuccess, onGoRegister }) {
   const [values, setValues] = useState({ email: '', password: '' });
   const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [apiError, setApiError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const isFormReady = useMemo(() => values.email.trim() && values.password, [values]);
 
-  function handleChange(event) {
+  function handleChange(event: ChangeEvent<HTMLInputElement>) {
     const { name, value } = event.target;
     setValues((current) => ({ ...current, [name]: value }));
     setErrors((current) => ({ ...current, [name]: '' }));
     setApiError('');
   }
 
-  async function handleSubmit(event) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const formErrors = validateLoginForm(values);
@@ -38,7 +39,7 @@ export default function LoginForm({ onLoginSuccess, onGoRegister }) {
 
       saveAuthSession(loginResponse, rememberMe);
       onLoginSuccess(loginResponse.user);
-    } catch (error) {
+    } catch (error: any) {
       setApiError(error.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
     } finally {
       setIsSubmitting(false);

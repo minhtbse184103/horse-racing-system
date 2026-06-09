@@ -2,8 +2,11 @@ const EMAIL_REGEX = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
 const PHONE_REGEX = /^\+?[0-9]{9,15}$/;
 const PUBLIC_ROLES = ['OWNER', 'JOCKEY', 'SPECTATOR'];
 
-export function validateLoginForm(values) {
-  const errors = {};
+type FormValues = Record<string, any>;
+type FormErrors = Record<string, string>;
+
+export function validateLoginForm(values: FormValues): FormErrors {
+  const errors: FormErrors = {};
 
   if (!values.email?.trim()) {
     errors.email = 'Email không được để trống.';
@@ -20,8 +23,8 @@ export function validateLoginForm(values) {
   return errors;
 }
 
-export function validateSignupForm(values) {
-  const errors = {};
+export function validateSignupForm(values: FormValues): FormErrors {
+  const errors: FormErrors = {};
 
   if (!values.fullName?.trim()) {
     errors.fullName = 'Họ tên không được để trống.';
@@ -54,8 +57,8 @@ export function validateSignupForm(values) {
   return errors;
 }
 
-export function validateHorseForm(values) {
-  const errors = {};
+export function validateHorseForm(values: FormValues): FormErrors {
+  const errors: FormErrors = {};
 
   if (!values.name?.trim()) {
     errors.name = 'Tên ngựa không được để trống.';

@@ -1,3 +1,4 @@
+import type { ChangeEvent, FormEvent } from 'react';
 import { useMemo, useState } from 'react';
 import AuthLayout from './AuthLayout';
 import { signup } from '../../services/authService';
@@ -12,7 +13,7 @@ export default function RegisterForm({ onGoLogin }) {
     roleName: 'OWNER'
   });
   const [showPassword, setShowPassword] = useState(false);
-  const [errors, setErrors] = useState({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [apiError, setApiError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -22,7 +23,7 @@ export default function RegisterForm({ onGoLogin }) {
     [values]
   );
 
-  function handleChange(event) {
+  function handleChange(event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) {
     const { name, value } = event.target;
     setValues((current) => ({ ...current, [name]: value }));
     setErrors((current) => ({ ...current, [name]: '' }));
@@ -30,7 +31,7 @@ export default function RegisterForm({ onGoLogin }) {
     setSuccessMessage('');
   }
 
-  async function handleSubmit(event) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     const formErrors = validateSignupForm(values);
@@ -52,7 +53,7 @@ export default function RegisterForm({ onGoLogin }) {
 
       setSuccessMessage('Đăng ký thành công. Bạn có thể quay lại trang đăng nhập.');
       setValues({ fullName: '', email: '', phone: '', password: '', roleName: 'OWNER' });
-    } catch (error) {
+    } catch (error: any) {
       setApiError(error.message || 'Đăng ký thất bại. Vui lòng thử lại.');
     } finally {
       setIsSubmitting(false);
