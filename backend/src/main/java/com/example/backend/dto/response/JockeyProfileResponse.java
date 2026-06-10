@@ -15,4 +15,5 @@ public class JockeyProfileResponse {
     private BigDecimal weight;
     private String ranking;
     private String status;
+    private String imgUrl;
 }

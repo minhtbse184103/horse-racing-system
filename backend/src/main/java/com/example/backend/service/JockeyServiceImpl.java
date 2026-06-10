@@ -2,6 +2,7 @@ package com.example.backend.service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 
 import org.springframework.dao.EmptyResultDataAccessException;
@@ -72,27 +73,29 @@ public class JockeyServiceImpl implements JockeyService {
         return mapProfileToResponse(profile, jockey);
     }
 
-    // Tạo hồ sơ jockey mới, mặc định status là ACTIVE nếu request không truyền status.
+    // Tạo hồ sơ jockey mới sau khi kiểm tra profile và license không trùng.
     @Transactional
     @Override
     public JockeyProfileResponse createProfile(JockeyProfileRequest request) {
         User jockey = getCurrentJockey();
         Integer jockeyId = jockey.getUserID();
+        String licenseNo = normalizeUppercase(request.getLicenseNo());
 
         if (jockeyProfileRepository.existsById(jockeyId)) {
             throw new ApiException(HttpStatus.CONFLICT, "Jockey profile already exists.");
         }
 
-        if (jockeyProfileRepository.existsByLicenseNo(request.getLicenseNo())) {
+        if (jockeyProfileRepository.existsByLicenseNo(licenseNo)) {
             throw new ApiException(HttpStatus.CONFLICT, "License number already exists.");
         }
 
         JockeyProfile profile = JockeyProfile.builder()
                 .jockeyId(jockeyId)
-                .licenseNo(request.getLicenseNo())
+                .licenseNo(licenseNo)
                 .weight(request.getWeight())
-                .ranking(request.getRanking())
-                .status(request.getStatus() != null ? request.getStatus() : STATUS_ACTIVE)
+                .ranking(normalizeUppercase(request.getRanking()))
+                .status(normalizeUppercase(request.getStatus()))
+                .imgUrl(normalizeText(request.getImgUrl()))
                 .build();
 
         return mapProfileToResponse(jockeyProfileRepository.save(profile), jockey);
@@ -106,15 +109,17 @@ public class JockeyServiceImpl implements JockeyService {
         Integer jockeyId = jockey.getUserID();
         JockeyProfile profile = jockeyProfileRepository.findById(jockeyId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Jockey profile does not exist."));
+        String licenseNo = normalizeUppercase(request.getLicenseNo());
 
-        if (jockeyProfileRepository.existsByLicenseNoAndJockeyIdNot(request.getLicenseNo(), jockeyId)) {
+        if (jockeyProfileRepository.existsByLicenseNoAndJockeyIdNot(licenseNo, jockeyId)) {
             throw new ApiException(HttpStatus.CONFLICT, "License number already exists.");
         }
 
-        profile.setLicenseNo(request.getLicenseNo());
+        profile.setLicenseNo(licenseNo);
         profile.setWeight(request.getWeight());
-        profile.setRanking(request.getRanking());
-        profile.setStatus(request.getStatus() != null ? request.getStatus() : profile.getStatus());
+        profile.setRanking(normalizeUppercase(request.getRanking()));
+        profile.setStatus(normalizeUppercase(request.getStatus()));
+        profile.setImgUrl(normalizeText(request.getImgUrl()));
 
         return mapProfileToResponse(jockeyProfileRepository.save(profile), jockey);
     }
@@ -287,6 +292,7 @@ public class JockeyServiceImpl implements JockeyService {
                 .weight(profile.getWeight())
                 .ranking(profile.getRanking())
                 .status(profile.getStatus())
+                .imgUrl(profile.getImgUrl())
                 .build();
     }
 
@@ -340,5 +346,14 @@ public class JockeyServiceImpl implements JockeyService {
     }
 
     private record TournamentSnapshot(Integer tournamentId, String tournamentName) {
+    }
+
+    private String normalizeText(String value) {
+        return value == null ? null : value.trim();
+    }
+
+    private String normalizeUppercase(String value) {
+        String normalizedValue = normalizeText(value);
+        return normalizedValue == null ? null : normalizedValue.toUpperCase(Locale.ROOT);
     }
 }

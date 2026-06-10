@@ -35,7 +35,7 @@ public class Horse {
     @Column(name = "ownerID", nullable = false)
     private Integer ownerId;
 
-    @Column(name = "horseName", nullable = false)
+    @Column(name = "horseName", nullable = false, unique = true)
     private String horseName;
 
     @Column(name = "breed")
@@ -58,6 +58,9 @@ public class Horse {
 
     @Column(name = "status")
     private String status;
+
+    @Column(name = "img_url")
+    private String imgUrl;
 
     @Column(name = "createdAt")
     private LocalDateTime createdAt;
