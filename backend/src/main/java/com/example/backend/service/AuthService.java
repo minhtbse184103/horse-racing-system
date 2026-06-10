@@ -23,6 +23,7 @@ public class AuthService {
     private static final String EMAIL_REGEX = "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
     private static final String PHONE_REGEX = "^\\+?[0-9]{9,15}$";
     private static final String DEFAULT_PUBLIC_ROLE = "SPECTATOR";
+    private static final String STATUS_PENDING = "PENDING";
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -71,7 +72,8 @@ public class AuthService {
                 request.getFullName(),
                 request.getPhone(),
                 request.getPassword(),
-                role);
+                role,
+                roleName.equals("JOCKEY") ? STATUS_PENDING : null);
         return toResponse(user);
     }
 
@@ -86,7 +88,8 @@ public class AuthService {
                 request.getFullName(),
                 request.getPhone(),
                 request.getPassword(),
-                role);
+                role,
+                null);
         return toResponse(user);
     }
 
@@ -171,13 +174,14 @@ public class AuthService {
                         "Role " + roleName + " chưa được seed"));
     }
 
-    private User createUser(String email, String fullName, String phone, String password, Role role) {
+    private User createUser(String email, String fullName, String phone, String password, Role role, String status) {
         User user = new User();
         user.setEmail(email);
         user.setFullName(fullName);
         user.setPhone(phone);
         user.setPassword(passwordEncoder.encode(password));
         user.setRole(role);
+        user.setStatus(status);
         return userRepository.save(user);
     }
 
