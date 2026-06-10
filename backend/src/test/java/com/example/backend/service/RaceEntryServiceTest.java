@@ -19,6 +19,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 
 import java.util.Optional;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -64,6 +65,37 @@ class RaceEntryServiceTest {
         assertEquals("ASSIGNED", result.getStatus());
         verify(raceRepository).findByIdForUpdate(10);
         verify(registrationRepository).findByIdForUpdate(20);
+    }
+
+    @Test
+    void getRaceEntriesByRaceIdReturnsEntriesInRepositoryOrder() {
+        RaceEntry first = new RaceEntry();
+        first.setRaceId(10);
+        first.setLaneNumber(1);
+        RaceEntry second = new RaceEntry();
+        second.setRaceId(10);
+        second.setLaneNumber(2);
+        when(raceRepository.existsById(10)).thenReturn(true);
+        when(raceEntryRepository.findByRaceIdOrderByLaneNumberAsc(10))
+                .thenReturn(List.of(first, second));
+
+        var entries = service.getRaceEntriesByRaceId(10);
+
+        assertEquals(2, entries.size());
+        assertEquals(1, entries.get(0).getLaneNumber());
+        assertEquals(2, entries.get(1).getLaneNumber());
+    }
+
+    @Test
+    void getRaceEntriesByRaceIdRejectsMissingRace() {
+        when(raceRepository.existsById(99)).thenReturn(false);
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.getRaceEntriesByRaceId(99));
+
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatus());
+        verify(raceEntryRepository, never()).findByRaceIdOrderByLaneNumberAsc(any());
     }
 
     @Test

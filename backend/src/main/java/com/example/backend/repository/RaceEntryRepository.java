@@ -1,11 +1,15 @@
 package com.example.backend.repository;
 
+import java.util.List;
+
 import com.example.backend.entity.RaceEntry;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 public interface RaceEntryRepository extends JpaRepository<RaceEntry, Integer> {
+
+    List<RaceEntry> findByRaceIdOrderByLaneNumberAsc(Integer raceId);
 
     boolean existsByRaceIdAndRegistrationId(
             Integer raceId,

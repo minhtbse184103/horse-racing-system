@@ -1,5 +1,7 @@
 package com.example.backend.service;
 
+import java.util.List;
+
 import com.example.backend.constant.EventStatus;
 import com.example.backend.dto.request.CreateRaceEntryRequest;
 import com.example.backend.entity.Race;
@@ -37,6 +39,17 @@ public class RaceEntryService {
         this.raceRepository = raceRepository;
         this.registrationRepository = registrationRepository;
         this.tournamentRoundRepository = tournamentRoundRepository;
+    }
+
+    @Transactional(readOnly = true)
+    public List<RaceEntry> getRaceEntriesByRaceId(Integer raceId) {
+        if (!raceRepository.existsById(raceId)) {
+            throw new ApiException(
+                    HttpStatus.NOT_FOUND,
+                    "Race does not exist.");
+        }
+
+        return raceEntryRepository.findByRaceIdOrderByLaneNumberAsc(raceId);
     }
 
     @Transactional
