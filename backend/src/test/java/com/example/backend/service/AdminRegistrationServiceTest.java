@@ -309,4 +309,34 @@ class AdminRegistrationServiceTest {
                 .status("ACTIVE")
                 .build();
     }
+
+    @Test
+    void getRegistrationHistoryReturnsConfirmedAndRejectedRegistrations() {
+        Registration confirmed = validRegistration();
+        confirmed.setRegistrationId(1);
+        confirmed.setStatus("CONFIRMED");
+
+        Registration rejected = validRegistration();
+        rejected.setRegistrationId(2);
+        rejected.setStatus("REJECTED");
+
+        when(registrationRepository.findByStatusInOrderByUpdatedAtDesc(
+                List.of("CONFIRMED", "REJECTED")))
+                .thenReturn(List.of(confirmed, rejected));
+
+        when(horseRepository.findById(1)).thenReturn(Optional.of(validHorse()));
+        when(userRepository.findById(2)).thenReturn(Optional.of(validOwner()));
+        when(userRepository.findById(3)).thenReturn(Optional.of(validJockey()));
+        when(jdbcTemplate.queryForObject(any(String.class), eq(String.class), eq(1)))
+                .thenReturn("Registration Test");
+
+        var history = service.getRegistrationHistory();
+
+        assertEquals(2, history.size());
+        assertEquals("CONFIRMED", history.get(0).getStatus());
+        assertEquals("REJECTED", history.get(1).getStatus());
+
+        verify(registrationRepository).findByStatusInOrderByUpdatedAtDesc(
+                List.of("CONFIRMED", "REJECTED"));
+    }
 }

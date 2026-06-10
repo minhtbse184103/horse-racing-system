@@ -38,4 +38,9 @@ public class AdminRegistrationController {
             @PathVariable Integer registrationId) {
         return adminRegistrationService.rejectRegistration(registrationId);
     }
+
+    @GetMapping("/history")
+    public List<AdminRegistrationResponse> getRegistrationHistory() {
+        return adminRegistrationService.getRegistrationHistory();
+    }
 }

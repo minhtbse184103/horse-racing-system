@@ -1,13 +1,17 @@
 package com.example.backend.repository;
 
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
 import com.example.backend.entity.Race;
+
+import jakarta.persistence.LockModeType;
+
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-
-import java.time.LocalDateTime;
-
-import java.util.List;
 
 public interface RaceRepository extends JpaRepository<Race, Integer> {
 
@@ -48,4 +52,8 @@ public interface RaceRepository extends JpaRepository<Race, Integer> {
             @Param("endTime") LocalDateTime endTime,
             @Param("cancelledStatus") String cancelledStatus
     );
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select r from Race r where r.raceId = :raceId")
+    Optional<Race> findByIdForUpdate(@Param("raceId") Integer raceId);
 }
