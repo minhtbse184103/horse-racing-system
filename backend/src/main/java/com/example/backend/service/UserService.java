@@ -8,9 +8,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.example.backend.dto.request.AdminUpdateUserRequest;
 import com.example.backend.dto.response.UserResponse;
+import com.example.backend.entity.JockeyProfile;
 import com.example.backend.entity.Role;
 import com.example.backend.entity.User;
 import com.example.backend.exception.ApiException;
+import com.example.backend.repository.JockeyProfileRepository;
 import com.example.backend.repository.RoleRepository;
 import com.example.backend.repository.UserRepository;
 
@@ -19,8 +21,15 @@ import lombok.AllArgsConstructor;
 @Service
 @AllArgsConstructor
 public class UserService {
+    private static final String ROLE_JOCKEY = "JOCKEY";
+    private static final String STATUS_ACTIVE = "ACTIVE";
+    private static final String STATUS_PENDING = "PENDING";
+    private static final String STATUS_UNDER_REVIEW = "UNDER_REVIEW";
+    private static final String STATUS_REJECTED = "REJECTED";
+
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final JockeyProfileRepository jockeyProfileRepository;
 
     @Transactional(readOnly = true)
     public UserResponse getCurrentUser(String email) {
@@ -67,7 +76,26 @@ public class UserService {
         }
 
         if (hasText(request.getStatus())) {
-            user.setStatus(request.getStatus().trim().toUpperCase());
+            String status = request.getStatus().trim().toUpperCase();
+            if (isJockeyReviewStatus(status) && !isJockey(user)) {
+                throw new ApiException(HttpStatus.BAD_REQUEST,
+                        "PENDING, UNDER_REVIEW and REJECTED statuses are only allowed for jockey users.");
+            }
+            if (STATUS_REJECTED.equals(status) && !hasText(request.getRejectionReason())) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "Rejection reason is required when rejecting a jockey.");
+            }
+            user.setStatus(status);
+            user.setRejectionReason(STATUS_REJECTED.equals(status)
+                    ? request.getRejectionReason().trim()
+                    : null);
+            syncJockeyProfileStatus(user, status);
+        } else if (hasText(request.getRejectionReason()) && STATUS_REJECTED.equals(user.getStatus())) {
+            user.setRejectionReason(request.getRejectionReason().trim());
+        }
+
+        if (isJockeyReviewStatus(user.getStatus()) && !isJockey(user)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "PENDING, UNDER_REVIEW and REJECTED statuses are only allowed for jockey users.");
         }
 
         return toResponse(userRepository.save(user));
@@ -95,6 +123,39 @@ public class UserService {
         return value != null && !value.isBlank();
     }
 
+    private boolean isJockey(User user) {
+        return user.getRole() != null && ROLE_JOCKEY.equals(user.getRole().getRoleName());
+    }
+
+    private boolean isJockeyReviewStatus(String status) {
+        return STATUS_PENDING.equals(status)
+                || STATUS_UNDER_REVIEW.equals(status)
+                || STATUS_REJECTED.equals(status);
+    }
+
+    private void syncJockeyProfileStatus(User user, String status) {
+        if (!isJockey(user)) {
+            return;
+        }
+
+        if (STATUS_ACTIVE.equals(status)) {
+            JockeyProfile profile = jockeyProfileRepository.findById(user.getUserID())
+                    .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST,
+                            "Jockey profile does not exist."));
+            profile.setStatus(STATUS_ACTIVE);
+            jockeyProfileRepository.save(profile);
+            return;
+        }
+
+        if (STATUS_UNDER_REVIEW.equals(status) || STATUS_REJECTED.equals(status)) {
+            jockeyProfileRepository.findById(user.getUserID())
+                    .ifPresent(profile -> {
+                        profile.setStatus(status);
+                        jockeyProfileRepository.save(profile);
+                    });
+        }
+    }
+
     private UserResponse toResponse(User user) {
         return new UserResponse(
                 user.getUserID(),
@@ -102,6 +163,7 @@ public class UserService {
                 user.getFullName(),
                 user.getPhone(),
                 user.getStatus(),
+                user.getRejectionReason(),
                 user.getRole().getRoleName());
     }
 }

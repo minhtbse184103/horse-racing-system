@@ -11,5 +11,6 @@ public class UserResponse {
     private String fullName;
     private String phone;
     private String status;
+    private String rejectionReason;
     private String role;
 }

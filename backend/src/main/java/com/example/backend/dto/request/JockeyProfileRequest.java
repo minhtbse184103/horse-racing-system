@@ -29,10 +29,6 @@ public class JockeyProfileRequest {
     @Pattern(regexp = "(?i)BEGINNER|INTERMEDIATE|PROFESSIONAL|ELITE", message = "Ranking must be BEGINNER, INTERMEDIATE, PROFESSIONAL or ELITE")
     private String ranking;
 
-    @NotBlank(message = "Status is required")
-    @Pattern(regexp = "(?i)ACTIVE|INACTIVE", message = "Status must be ACTIVE or INACTIVE")
-    private String status;
-
     @NotBlank(message = "Image URL is required")
     @Size(max = 255, message = "Image URL must not exceed 255 characters")
     @Pattern(regexp = "^https?://.+$", message = "Image URL must be a valid HTTP or HTTPS URL")

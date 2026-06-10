@@ -32,6 +32,9 @@ import com.example.backend.repository.UserRepository;
 public class JockeyServiceImpl implements JockeyService {
     private static final String ROLE_JOCKEY = "JOCKEY";
     private static final String STATUS_ACTIVE = "ACTIVE";
+    private static final String STATUS_PENDING = "PENDING";
+    private static final String STATUS_UNDER_REVIEW = "UNDER_REVIEW";
+    private static final String STATUS_REJECTED = "REJECTED";
     private static final String REGISTRATION_ACCEPTED = "ACCEPTED";
     private static final String REGISTRATION_CONFIRMED = "CONFIRMED";
     private static final String REGISTRATION_REJECTED = "REJECTED";
@@ -94,11 +97,13 @@ public class JockeyServiceImpl implements JockeyService {
                 .licenseNo(licenseNo)
                 .weight(request.getWeight())
                 .ranking(normalizeUppercase(request.getRanking()))
-                .status(normalizeUppercase(request.getStatus()))
+                .status(STATUS_UNDER_REVIEW)
                 .imgUrl(normalizeText(request.getImgUrl()))
                 .build();
 
-        return mapProfileToResponse(jockeyProfileRepository.save(profile), jockey);
+        JockeyProfile savedProfile = jockeyProfileRepository.save(profile);
+        markProfileUnderReviewIfNeeded(jockey);
+        return mapProfileToResponse(savedProfile, jockey);
     }
 
     // Cập nhật hồ sơ jockey và đảm bảo licenseNo không trùng với jockey khác.
@@ -118,10 +123,14 @@ public class JockeyServiceImpl implements JockeyService {
         profile.setLicenseNo(licenseNo);
         profile.setWeight(request.getWeight());
         profile.setRanking(normalizeUppercase(request.getRanking()));
-        profile.setStatus(normalizeUppercase(request.getStatus()));
+        if (!STATUS_ACTIVE.equals(jockey.getStatus())) {
+            profile.setStatus(STATUS_UNDER_REVIEW);
+        }
         profile.setImgUrl(normalizeText(request.getImgUrl()));
 
-        return mapProfileToResponse(jockeyProfileRepository.save(profile), jockey);
+        JockeyProfile savedProfile = jockeyProfileRepository.save(profile);
+        markProfileUnderReviewIfNeeded(jockey);
+        return mapProfileToResponse(savedProfile, jockey);
     }
 
     // Xóa hồ sơ jockey của tài khoản đang đăng nhập.
@@ -213,6 +222,10 @@ public class JockeyServiceImpl implements JockeyService {
 
         if (!STATUS_ACTIVE.equals(profile.getStatus())) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Only active jockey profiles can accept invitations.");
+        }
+
+        if (!STATUS_ACTIVE.equals(jockey.getStatus())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Only active jockey accounts can accept invitations.");
         }
 
         return jockey;
@@ -355,5 +368,17 @@ public class JockeyServiceImpl implements JockeyService {
     private String normalizeUppercase(String value) {
         String normalizedValue = normalizeText(value);
         return normalizedValue == null ? null : normalizedValue.toUpperCase(Locale.ROOT);
+    }
+
+    private void markProfileUnderReviewIfNeeded(User jockey) {
+        String status = jockey.getStatus();
+        if (status == null
+                || STATUS_PENDING.equals(status)
+                || STATUS_UNDER_REVIEW.equals(status)
+                || STATUS_REJECTED.equals(status)) {
+            jockey.setStatus(STATUS_UNDER_REVIEW);
+            jockey.setRejectionReason(null);
+            userRepository.save(jockey);
+        }
     }
 }

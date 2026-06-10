@@ -21,6 +21,7 @@ import com.example.backend.dto.response.JockeyInvitationResponse;
 import com.example.backend.dto.response.OwnerDashboardResponse;
 import com.example.backend.entity.Horse;
 import com.example.backend.entity.JockeyInvitation;
+import com.example.backend.entity.JockeyProfile;
 import com.example.backend.entity.Registration;
 import com.example.backend.entity.User;
 import com.example.backend.exception.ApiException;
@@ -323,8 +324,15 @@ public class OwnerServiceImpl implements OwnerService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Selected user is not a jockey.");
         }
 
-        if (!jockeyProfileRepository.existsById(jockeyId)) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Jockey profile does not exist.");
+        if (!STATUS_ACTIVE.equals(jockey.getStatus())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Selected jockey account is not active.");
+        }
+
+        JockeyProfile profile = jockeyProfileRepository.findById(jockeyId)
+                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Jockey profile does not exist."));
+
+        if (!STATUS_ACTIVE.equals(profile.getStatus())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Selected jockey profile is not active.");
         }
 
         return jockey;
