@@ -647,6 +647,20 @@ select {
   opacity: 0.6;
 }
 
+.admin-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.admin-header-actions .primary-button,
+.admin-header-actions .outline-button {
+  width: auto;
+  white-space: nowrap;
+}
+
 .admin-stats {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
