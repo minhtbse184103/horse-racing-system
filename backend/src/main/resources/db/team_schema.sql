@@ -105,7 +105,7 @@ CREATE TABLE `Horse` (
   `weight` decimal(10,2) NOT NULL,
   `healthCertExpiry` date,
   `status` varchar(255),
-  `img_url` varchar(255),
+  `img_url` text,
   `createdAt` datetime,
   `updatedAt` datetime
 );
@@ -116,7 +116,7 @@ CREATE TABLE `JockeyProfile` (
   `weight` decimal(10,2) NOT NULL,
   `ranking` varchar(255),
   `status` varchar(255),
-  `img_url` varchar(255),
+  `img_url` text,
   `createdAt` datetime,
   `updatedAt` datetime
 );

@@ -55,7 +55,6 @@ public class CreateHorseRequest {
     private String status;
 
     @NotBlank(message = "Image URL is required")
-    @Size(max = 255, message = "Image URL must not exceed 255 characters")
     @Pattern(regexp = "^https?://.+$", message = "Image URL must be a valid HTTP or HTTPS URL")
     private String imgUrl;
 }
