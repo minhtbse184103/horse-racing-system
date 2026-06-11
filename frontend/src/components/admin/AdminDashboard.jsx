@@ -4,6 +4,7 @@ import {
   Flag,
   LayoutDashboard,
   LogOut,
+  ShieldCheck,
   Trophy,
   UserCheck,
   Users
@@ -12,16 +13,18 @@ import AdminOverview from './AdminOverview';
 import EventManagement from './events/EventManagement';
 import RaceEntryManagement from './raceEntries/RaceEntryManagement';
 import RegistrationReview from './registrations/RegistrationReview';
-import JockeyReview from './reviews/JockeyReview';
+import HorseReview from './reviews/HorseReview';
 import UserManagement from './users/UserManagement';
+import JockeyReview from './reviews/JockeyReview';
 
 const adminNavItems = [
   { key: 'overview', label: 'Overview', icon: LayoutDashboard },
   { key: 'users', label: 'User Management', icon: Users },
   { key: 'events', label: 'Tournaments', icon: Trophy },
-  { key: 'jockeyReviews', label: 'Jockey Reviews', icon: ClipboardCheck },
   { key: 'registrations', label: 'Registrations', icon: UserCheck },
-  { key: 'raceEntries', label: 'Race Entries', icon: Flag }
+  { key: 'raceEntries', label: 'Race Entries', icon: Flag },
+  { key: 'jockeyReviews', label: 'Jockey Reviews', icon: ClipboardCheck },
+  { key: 'horseReviews', label: 'Horse Reviews', icon: ShieldCheck }
 ];
 
 export default function AdminDashboard({ currentUser, onLogout }) {
@@ -80,9 +83,10 @@ export default function AdminDashboard({ currentUser, onLogout }) {
         )}
         {activeSection === 'users' && <UserManagement />}
         {activeSection === 'events' && <EventManagement />}
-        {activeSection === 'jockeyReviews' && <JockeyReview />}
         {activeSection === 'registrations' && <RegistrationReview />}
         {activeSection === 'raceEntries' && <RaceEntryManagement />}
+        {activeSection === 'jockeyReviews' && <JockeyReview />}
+        {activeSection === 'horseReviews' && <HorseReview />}
       </section>
     </main>
   );

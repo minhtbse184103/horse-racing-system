@@ -3,6 +3,7 @@ package com.example.backend.controller;
 import java.util.List;
 
 import com.example.backend.dto.request.CreateRaceEntryRequest;
+import com.example.backend.dto.response.RaceEntryCandidateResponse;
 import com.example.backend.entity.RaceEntry;
 import com.example.backend.service.RaceEntryService;
 
@@ -38,4 +39,17 @@ public class AdminRaceEntryController {
     public List<RaceEntry> getRaceEntriesByRaceId(@PathVariable Integer raceId) {
         return raceEntryService.getRaceEntriesByRaceId(raceId);
     }
+
+    @GetMapping("/assignment-queue")
+    public List<RaceEntryCandidateResponse> getAssignmentQueue() {
+        return raceEntryService.getAssignmentQueue();
+    }
+
+    @GetMapping("/unassigned/by-round/{roundId}")
+    public List<RaceEntryCandidateResponse> getUnassignedByRound(
+            @PathVariable Integer roundId) {
+        return raceEntryService.getUnassignedByRound(roundId);
+    }
+
+
 }
