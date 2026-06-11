@@ -38,9 +38,6 @@ public class User {
     @Column(name = "status")
     private String status;
 
-    @Column(name = "rejectionReason", length = 500)
-    private String rejectionReason;
-
     @Column(name = "createdAt")
     private LocalDateTime createdAt;
 
