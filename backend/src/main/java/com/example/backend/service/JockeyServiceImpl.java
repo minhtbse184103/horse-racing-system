@@ -100,11 +100,12 @@ public class JockeyServiceImpl implements JockeyService {
                 .weight(request.getWeight())
                 .ranking(normalizeUppercase(request.getRanking()))
                 .status(STATUS_UNDER_REVIEW)
+                .rejectionReason(null)
                 .imgUrl(normalizeText(request.getImgUrl()))
                 .build();
 
         JockeyProfile savedProfile = jockeyProfileRepository.save(profile);
-        markProfileUnderReviewIfNeeded(jockey);
+        markProfileUnderReview(jockey);
         return mapProfileToResponse(savedProfile, jockey);
     }
 
@@ -125,13 +126,12 @@ public class JockeyServiceImpl implements JockeyService {
         profile.setLicenseNo(licenseNo);
         profile.setWeight(request.getWeight());
         profile.setRanking(normalizeUppercase(request.getRanking()));
-        if (!STATUS_ACTIVE.equals(jockey.getStatus())) {
-            profile.setStatus(STATUS_UNDER_REVIEW);
-        }
+        profile.setStatus(STATUS_UNDER_REVIEW);
+        profile.setRejectionReason(null);
         profile.setImgUrl(normalizeText(request.getImgUrl()));
 
         JockeyProfile savedProfile = jockeyProfileRepository.save(profile);
-        markProfileUnderReviewIfNeeded(jockey);
+        markProfileUnderReview(jockey);
         return mapProfileToResponse(savedProfile, jockey);
     }
 
@@ -311,7 +311,7 @@ public class JockeyServiceImpl implements JockeyService {
                 .weight(profile.getWeight())
                 .ranking(profile.getRanking())
                 .status(profile.getStatus())
-                .rejectionReason(jockey.getRejectionReason())
+                .rejectionReason(profile.getRejectionReason())
                 .imgUrl(profile.getImgUrl())
                 .build();
     }
@@ -385,15 +385,8 @@ public class JockeyServiceImpl implements JockeyService {
         return normalizedValue == null ? null : normalizedValue.toUpperCase(Locale.ROOT);
     }
 
-    private void markProfileUnderReviewIfNeeded(User jockey) {
-        String status = jockey.getStatus();
-        if (status == null
-                || STATUS_PENDING.equals(status)
-                || STATUS_UNDER_REVIEW.equals(status)
-                || STATUS_REJECTED.equals(status)) {
-            jockey.setStatus(STATUS_UNDER_REVIEW);
-            jockey.setRejectionReason(null);
-            userRepository.save(jockey);
-        }
+    private void markProfileUnderReview(User jockey) {
+        jockey.setStatus(STATUS_UNDER_REVIEW);
+        userRepository.save(jockey);
     }
 }

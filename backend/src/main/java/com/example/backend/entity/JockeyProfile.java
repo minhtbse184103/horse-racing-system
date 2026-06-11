@@ -40,6 +40,9 @@ public class JockeyProfile {
     @Column(name = "status")
     private String status;
 
+    @Column(name = "rejectionReason", length = 500)
+    private String rejectionReason;
+
     @Column(name = "img_url", columnDefinition = "TEXT")
     private String imgUrl;
 
