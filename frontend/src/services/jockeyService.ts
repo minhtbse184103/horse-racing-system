@@ -61,10 +61,9 @@ export function updateJockeyProfile(payload: JockeyProfilePayload): Promise<Jock
   });
 }
 
-// BE hiện tại có DELETE /api/jockey/profile. FE hiển thị như thao tác deactivate/xóa profile để không cần sửa BE.
-export function deactivateJockeyProfile(): Promise<unknown> {
-  return httpRequest<unknown>('/api/jockey/profile', {
-    method: 'DELETE',
+export function deactivateJockeyProfile(): Promise<JockeyProfile> {
+  return httpRequest<JockeyProfile>('/api/jockey/profile/inactive', {
+    method: 'PUT',
     fallbackError: 'Không thể deactivate hồ sơ jockey.'
   });
 }

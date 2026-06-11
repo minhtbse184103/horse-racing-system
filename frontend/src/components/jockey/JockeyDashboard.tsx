@@ -238,7 +238,7 @@ export default function JockeyDashboard({ currentUser, onLogout }: JockeyDashboa
   }
 
   async function handleDeactivateProfile(): Promise<void> {
-    const confirmed = window.confirm('Bạn có chắc muốn deactivate/xóa hồ sơ jockey hiện tại không? Sau đó bạn sẽ không accept được invitation.');
+    const confirmed = window.confirm('Bạn có chắc muốn deactivate hồ sơ jockey hiện tại không? Sau đó bạn sẽ không accept được invitation.');
     if (!confirmed) return;
 
     setProfileSubmitError('');
@@ -249,7 +249,7 @@ export default function JockeyDashboard({ currentUser, onLogout }: JockeyDashboa
       await deactivateJockeyProfile();
       setProfile(null);
       setProfileForm(emptyProfileForm());
-      setMessage('Đã deactivate/xóa hồ sơ jockey theo endpoint backend hiện có.');
+      setMessage('Đã chuyển hồ sơ jockey sang INACTIVE.');
     } catch (error) {
       setProfileSubmitError(getErrorText(error, 'Không thể deactivate hồ sơ jockey.'));
     } finally {
@@ -385,7 +385,7 @@ export default function JockeyDashboard({ currentUser, onLogout }: JockeyDashboa
           </button>
           {profile && (
             <button className="outline-button danger-action" type="button" onClick={handleDeactivateProfile} disabled={isSavingProfile}>
-              Deactivate / Xóa profile
+              Deactivate profile
             </button>
           )}
         </div>

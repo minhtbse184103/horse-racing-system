@@ -3,6 +3,7 @@ import LoginForm from './components/auth/LoginForm';
 import RegisterForm from './components/auth/RegisterForm';
 import AdminDashboard from './components/admin/AdminDashboard';
 import OwnerDashboard from './components/owner/OwnerDashboard';
+import JockeyDashboard from './components/jockey/JockeyDashboard.tsx';
 import UserPanel from './components/user/UserPanel';
 import LandingPage from './pages/LandingPage';
 import { useAuth } from './hooks/useAuth';
@@ -16,6 +17,7 @@ function getInitialPage() {
 export default function App() {
   const { user, setUser, clearAuth } = useAuth();
   const [page, setPage] = useState(getInitialPage);
+  const userRole = user?.role ?? user?.roleName;
 
   useEffect(() => {
     function handlePopState() {
@@ -37,12 +39,16 @@ export default function App() {
     navigateTo('/login');
   }
 
-  if (user?.role === 'ADMIN') {
+  if (userRole === 'ADMIN') {
     return <AdminDashboard currentUser={user} onLogout={handleLogout} />;
   }
 
-  if (user?.role === 'OWNER') {
+  if (userRole === 'OWNER') {
     return <OwnerDashboard currentUser={user} onLogout={handleLogout} />;
+  }
+
+  if (userRole === 'JOCKEY') {
+    return <JockeyDashboard currentUser={user} onLogout={handleLogout} />;
   }
 
   if (user) {
