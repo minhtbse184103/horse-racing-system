@@ -200,9 +200,11 @@ public class OwnerServiceImpl implements OwnerService {
         User owner = getCurrentOwner();
         Horse horse = getOwnedHorse(request.getHorseId());
         TournamentSnapshot tournament = getTournamentSnapshot(request.getTournamentId());
-        User jockey = getJockey(request.getJockeyId());
 
         validateHorseCanRegister(horse, tournament);
+        validateInvitationExpiry(request.getExpiredAt(), tournament);
+
+        User jockey = getJockey(request.getJockeyId());
         validateJockeyAvailableForTournament(tournament.tournamentId(), jockey.getUserID(), null);
 
         Registration registration = registrationRepository.findByTournamentIdAndHorseId(
@@ -354,6 +356,18 @@ public class OwnerServiceImpl implements OwnerService {
             if (activeRegistrations >= tournament.maxParticipants()) {
                 throw new ApiException(HttpStatus.CONFLICT, "Tournament has reached maximum participants.");
             }
+        }
+    }
+
+    // Đảm bảo hạn phản hồi lời mời jockey không vượt quá hạn đăng ký tournament.
+    private void validateInvitationExpiry(LocalDateTime expiredAt, TournamentSnapshot tournament) {
+        if (expiredAt == null || tournament.registrationDeadline() == null) {
+            return;
+        }
+
+        if (!expiredAt.isBefore(tournament.registrationDeadline())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "Invitation expiry must be before tournament registration deadline.");
         }
     }
 
