@@ -68,7 +68,26 @@ const MESSAGE_TRANSLATIONS: Record<string, string> = {
   'Tournament start date must not have passed.': 'Ngày bắt đầu giải đấu không được là ngày đã qua.',
   'Tournament registration deadline must not have passed.': 'Hạn đăng ký giải đấu không được là thời gian đã qua.',
   'Tournament participant limits are invalid.': 'Giới hạn số người tham gia không hợp lệ.',
-  'Tournament must have the required draft rounds before registration can open.': 'Giải đấu phải có đủ các round DRAFT bắt buộc trước khi mở đăng ký.'
+  'Tournament must have the required draft rounds before registration can open.': 'Giải đấu phải có đủ các round DRAFT bắt buộc trước khi mở đăng ký.',
+  'Tournament id is required': 'Bạn phải chọn giải đấu.',
+  'Horse id is required': 'Bạn phải chọn ngựa.',
+  'Jockey id is required': 'Bạn phải chọn jockey.',
+  'Expired time must be in the future': 'Hạn phản hồi lời mời phải là thời gian trong tương lai.',
+  'Only active horses can be invited.': 'Chỉ ngựa ACTIVE mới được gửi lời mời tham gia giải đấu.',
+  'Tournament does not exist.': 'Không tìm thấy giải đấu.',
+  'Jockey does not exist.': 'Không tìm thấy jockey.',
+  'Jockey is not active.': 'Jockey chưa ở trạng thái ACTIVE.',
+  'Invitation does not exist.': 'Không tìm thấy lời mời.',
+  'Invitation is not pending.': 'Lời mời không còn ở trạng thái PENDING.',
+  'License number is required': 'License number không được để trống.',
+  'License number must be between 5 and 50 characters': 'License number phải từ 5 đến 50 ký tự.',
+  'License number may contain only letters, numbers and hyphens': 'License number chỉ được chứa chữ, số và dấu gạch ngang.',
+  'Jockey weight must be at least 35 kg': 'Cân nặng jockey phải từ 35 kg trở lên.',
+  'Jockey weight must not exceed 90 kg': 'Cân nặng jockey không được vượt quá 90 kg.',
+  'Ranking is required': 'Ranking không được để trống.',
+  'Ranking must be BEGINNER, INTERMEDIATE, PROFESSIONAL or ELITE': 'Ranking phải là BEGINNER, INTERMEDIATE, PROFESSIONAL hoặc ELITE.',
+  'Jockey profile does not exist.': 'Jockey chưa có hồ sơ profile.',
+  'Profile does not exist.': 'Jockey chưa có hồ sơ profile.',
 };
 
 export function getStoredToken(): string | null {
@@ -166,6 +185,14 @@ export async function httpRequest<TResponse = unknown, TBody = unknown>(
   const data = parseResponseBody(text);
 
   if (!response.ok) {
+    if (response.status === 401) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('user');
+      window.dispatchEvent(new CustomEvent('auth:expired'));
+    }
+
     throw new Error(getErrorMessage(data, fallbackError));
   }
 

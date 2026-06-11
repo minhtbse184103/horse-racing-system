@@ -1,13 +1,14 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import AppShell from '../common/AppShell';
+import StatCard from '../common/StatCard';
 import type { NavItem } from '../common/AppShell';
-import type { AuthUser } from '../../services/authService';
+import type { AuthUser, Id } from '../../services/authService';
 import type { JockeyInvitation, JockeyProfile, JockeyProfilePayload } from '../../services/jockeyService';
 import {
   acceptJockeyInvitation,
   createJockeyProfile,
-  deleteJockeyProfile,
+  deactivateJockeyProfile,
   getJockeyInvitations,
   getJockeyProfile,
   rejectJockeyInvitation,
@@ -15,7 +16,7 @@ import {
 } from '../../services/jockeyService';
 import { formatDate } from '../../lib';
 
-type JockeySection = 'profile' | 'invitations';
+type JockeySection = 'overview' | 'profile' | 'invitations';
 
 type JockeyProfileForm = {
   licenseNo: string;
@@ -27,11 +28,13 @@ type JockeyProfileForm = {
 type JockeyProfileErrors = Partial<Record<keyof JockeyProfileForm, string>>;
 
 const jockeyNavItems: NavItem[] = [
+  { key: 'overview', label: 'Dashboard', icon: '📊' },
   { key: 'profile', label: 'Profile', icon: '🧑‍✈️' },
   { key: 'invitations', label: 'Invitations', icon: '✉️' }
 ];
 
 const rankingOptions = ['BEGINNER', 'INTERMEDIATE', 'PROFESSIONAL', 'ELITE'];
+const INVITATION_STATUS_OPTIONS = ['ALL', 'PENDING', 'ACCEPTED', 'REJECTED', 'EXPIRED'];
 
 interface JockeyDashboardProps {
   currentUser: AuthUser | null;
@@ -52,11 +55,11 @@ function getErrorText(error: unknown, fallback: string): string {
 }
 
 function isJockeySection(section: string): section is JockeySection {
-  return section === 'profile' || section === 'invitations';
+  return section === 'overview' || section === 'profile' || section === 'invitations';
 }
 
 function isMissingProfileError(error: unknown): boolean {
-  return error instanceof Error && /profile does not exist|không.*hồ sơ/i.test(error.message);
+  return error instanceof Error && /profile does not exist|jockey chưa có|không.*hồ sơ|not found/i.test(error.message);
 }
 
 function toProfileForm(profile: JockeyProfile): JockeyProfileForm {
@@ -94,7 +97,7 @@ function validateProfileForm(form: JockeyProfileForm): JockeyProfileErrors {
 
   if (!imgUrl) {
     errors.imgUrl = 'Image URL không được để trống.';
-  } else if (!/^https?:\/\/.+/.test(imgUrl)) {
+  } else if (!/^https?:\/\/.+/i.test(imgUrl)) {
     errors.imgUrl = 'Image URL phải bắt đầu bằng http:// hoặc https://.';
   }
 
@@ -119,21 +122,38 @@ function displayValue(value: unknown, fallback = 'Chưa cập nhật'): string {
   return String(value);
 }
 
+function getInvitationId(invitation: JockeyInvitation): Id | undefined {
+  return invitation.invitationId;
+}
+
+function countByStatus(invitations: JockeyInvitation[], status: string): number {
+  return invitations.filter((invitation) => String(invitation.status || '').toUpperCase() === status).length;
+}
+
 export default function JockeyDashboard({ currentUser, onLogout }: JockeyDashboardProps) {
-  const [activeSection, setActiveSection] = useState<JockeySection>('profile');
+  const [activeSection, setActiveSection] = useState<JockeySection>('overview');
   const [profile, setProfile] = useState<JockeyProfile | null>(null);
   const [profileForm, setProfileForm] = useState<JockeyProfileForm>(emptyProfileForm());
   const [profileErrors, setProfileErrors] = useState<JockeyProfileErrors>({});
   const [invitations, setInvitations] = useState<JockeyInvitation[]>([]);
+  const [statusFilter, setStatusFilter] = useState('ALL');
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
-  const [isLoadingInvitations, setIsLoadingInvitations] = useState(false);
+  const [isLoadingInvitations, setIsLoadingInvitations] = useState(true);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
-  const [actionId, setActionId] = useState<string | number | null>(null);
+  const [actionId, setActionId] = useState<Id | null>(null);
   const [pageError, setPageError] = useState('');
+  const [profileSubmitError, setProfileSubmitError] = useState('');
   const [message, setMessage] = useState('');
 
   const jockeyName = currentUser?.fullName || currentUser?.email || 'Jockey';
   const isLoading = isLoadingProfile || isLoadingInvitations;
+  const profileStatus = String(profile?.status || '').toUpperCase();
+  const isProfileActive = Boolean(profile) && profileStatus === 'ACTIVE';
+  const filteredInvitations = useMemo(() => {
+    if (statusFilter === 'ALL') return invitations;
+    return invitations.filter((invitation) => String(invitation.status || '').toUpperCase() === statusFilter);
+  }, [invitations, statusFilter]);
+  const latestInvitations = useMemo(() => invitations.slice(0, 5), [invitations]);
 
   async function loadProfile(): Promise<void> {
     setIsLoadingProfile(true);
@@ -169,27 +189,19 @@ export default function JockeyDashboard({ currentUser, onLogout }: JockeyDashboa
 
   async function reloadData(): Promise<void> {
     setMessage('');
-    if (activeSection === 'profile') {
-      await loadProfile();
-      return;
-    }
-    await loadInvitations();
+    setProfileSubmitError('');
+    await Promise.all([loadProfile(), loadInvitations()]);
   }
 
   useEffect(() => {
-    loadProfile();
+    reloadData();
   }, []);
-
-  useEffect(() => {
-    if (activeSection === 'invitations') {
-      loadInvitations();
-    }
-  }, [activeSection]);
 
   function handleNavigate(section: string): void {
     if (isJockeySection(section)) {
       setActiveSection(section);
       setPageError('');
+      setProfileSubmitError('');
       setMessage('');
     }
   }
@@ -198,6 +210,7 @@ export default function JockeyDashboard({ currentUser, onLogout }: JockeyDashboa
     const { name, value } = event.target;
     setProfileForm((current) => ({ ...current, [name]: value }));
     setProfileErrors((current) => ({ ...current, [name]: '' }));
+    setProfileSubmitError('');
     setPageError('');
     setMessage('');
   }
@@ -206,6 +219,7 @@ export default function JockeyDashboard({ currentUser, onLogout }: JockeyDashboa
     event.preventDefault();
     const errors = validateProfileForm(profileForm);
     setProfileErrors(errors);
+    setProfileSubmitError('');
     setPageError('');
     setMessage('');
     if (Object.keys(errors).length > 0) return;
@@ -215,48 +229,53 @@ export default function JockeyDashboard({ currentUser, onLogout }: JockeyDashboa
       const savedProfile = profile ? await updateJockeyProfile(toPayload(profileForm)) : await createJockeyProfile(toPayload(profileForm));
       setProfile(savedProfile);
       setProfileForm(toProfileForm(savedProfile));
-      setMessage(profile ? 'Cập nhật hồ sơ jockey thành công. Hồ sơ có thể cần admin duyệt lại.' : 'Tạo hồ sơ jockey thành công. Vui lòng chờ admin duyệt ACTIVE.');
+      setMessage(profile ? 'Cập nhật hồ sơ jockey thành công.' : 'Tạo hồ sơ jockey thành công. Nếu hệ thống cần duyệt, hãy chờ admin chuyển profile sang ACTIVE.');
     } catch (error) {
-      setPageError(getErrorText(error, 'Không thể lưu hồ sơ jockey.'));
+      setProfileSubmitError(getErrorText(error, 'Không thể lưu hồ sơ jockey.'));
     } finally {
       setIsSavingProfile(false);
     }
   }
 
-  async function handleDeleteProfile(): Promise<void> {
-    const confirmed = window.confirm('Bạn có chắc muốn xóa hồ sơ jockey hiện tại không?');
+  async function handleDeactivateProfile(): Promise<void> {
+    const confirmed = window.confirm('Bạn có chắc muốn deactivate/xóa hồ sơ jockey hiện tại không? Sau đó bạn sẽ không accept được invitation.');
     if (!confirmed) return;
 
+    setProfileSubmitError('');
     setPageError('');
     setMessage('');
     setIsSavingProfile(true);
     try {
-      await deleteJockeyProfile();
+      await deactivateJockeyProfile();
       setProfile(null);
       setProfileForm(emptyProfileForm());
-      setMessage('Đã xóa hồ sơ jockey.');
+      setMessage('Đã deactivate/xóa hồ sơ jockey theo endpoint backend hiện có.');
     } catch (error) {
-      setPageError(getErrorText(error, 'Không thể xóa hồ sơ jockey.'));
+      setProfileSubmitError(getErrorText(error, 'Không thể deactivate hồ sơ jockey.'));
     } finally {
       setIsSavingProfile(false);
     }
   }
 
   async function handleInvitationAction(invitation: JockeyInvitation, action: 'accept' | 'reject'): Promise<void> {
-    if (!invitation.invitationId) {
+    const invitationId = getInvitationId(invitation);
+    if (!invitationId) {
       setPageError('Không tìm thấy mã lời mời.');
       return;
     }
 
-    setActionId(invitation.invitationId);
+    const confirmed = window.confirm(action === 'accept' ? 'Bạn có chắc muốn chấp nhận lời mời này không?' : 'Bạn có chắc muốn từ chối lời mời này không?');
+    if (!confirmed) return;
+
+    setActionId(invitationId);
     setPageError('');
     setMessage('');
     try {
       if (action === 'accept') {
-        await acceptJockeyInvitation(invitation.invitationId);
-        setMessage('Đã chấp nhận lời mời. Registration đã chuyển sang ACCEPTED để admin duyệt.');
+        await acceptJockeyInvitation(invitationId);
+        setMessage('Đã chấp nhận lời mời. Registration đã chuyển sang ACCEPTED và chờ admin duyệt CONFIRMED.');
       } else {
-        await rejectJockeyInvitation(invitation.invitationId);
+        await rejectJockeyInvitation(invitationId);
         setMessage('Đã từ chối lời mời.');
       }
       await loadInvitations();
@@ -265,6 +284,177 @@ export default function JockeyDashboard({ currentUser, onLogout }: JockeyDashboa
     } finally {
       setActionId(null);
     }
+  }
+
+  function renderProfileForm() {
+    return (
+      <form className="owner-panel owner-form" onSubmit={handleProfileSubmit} noValidate>
+        <div className="owner-panel-header">
+          <div>
+            <p className="eyebrow">Jockey profile</p>
+            <h2>{profile ? 'Cập nhật hồ sơ jockey' : 'Tạo hồ sơ jockey'}</h2>
+            <p>Thông tin này dùng để owner biết hồ sơ jockey và để hệ thống kiểm tra khi accept invitation.</p>
+          </div>
+          {profile && <span className={`status-badge ${statusClass(profile.status)}`}>{displayValue(profile.status)}</span>}
+        </div>
+
+        {profileSubmitError && <div className="admin-alert error modal-alert" role="alert">{profileSubmitError}</div>}
+
+        {!profile && !isLoadingProfile && (
+          <div className="admin-alert error soft-alert" role="alert">Bạn chưa có profile jockey. Hãy tạo profile trước khi nhận lời mời.</div>
+        )}
+
+        {profile && !isProfileActive && (
+          <div className="admin-alert error soft-alert" role="alert">Profile hiện không ACTIVE nên nút accept invitation sẽ bị khóa.</div>
+        )}
+
+        <div className="jockey-profile-preview">
+          <div className="jockey-avatar">
+            {profileForm.imgUrl ? <img src={profileForm.imgUrl} alt="Jockey profile" /> : '🧑‍✈️'}
+          </div>
+          <div>
+            <h3>{profile?.fullName || jockeyName}</h3>
+            <p>{profile?.email || currentUser?.email || 'Chưa có email'}</p>
+          </div>
+        </div>
+
+        <label className="field-label" htmlFor="jockeyLicenseNo">License number <span className="required">*</span></label>
+        <input
+          className={profileErrors.licenseNo ? 'input has-error' : 'input'}
+          id="jockeyLicenseNo"
+          name="licenseNo"
+          type="text"
+          placeholder="Ví dụ: JOC-001"
+          value={profileForm.licenseNo}
+          onChange={handleProfileChange}
+          disabled={isSavingProfile}
+        />
+        {profileErrors.licenseNo && <p className="field-error">{profileErrors.licenseNo}</p>}
+
+        <div className="owner-form-row">
+          <div>
+            <label className="field-label" htmlFor="jockeyWeight">Cân nặng <span className="required">*</span></label>
+            <input
+              className={profileErrors.weight ? 'input has-error' : 'input'}
+              id="jockeyWeight"
+              name="weight"
+              type="number"
+              min="35"
+              max="90"
+              step="0.1"
+              placeholder="55.5"
+              value={profileForm.weight}
+              onChange={handleProfileChange}
+              disabled={isSavingProfile}
+            />
+            {profileErrors.weight && <p className="field-error">{profileErrors.weight}</p>}
+          </div>
+
+          <div>
+            <label className="field-label" htmlFor="jockeyRanking">Ranking <span className="required">*</span></label>
+            <select
+              className={profileErrors.ranking ? 'input has-error' : 'input'}
+              id="jockeyRanking"
+              name="ranking"
+              value={profileForm.ranking}
+              onChange={handleProfileChange}
+              disabled={isSavingProfile}
+            >
+              {rankingOptions.map((ranking) => <option key={ranking} value={ranking}>{ranking}</option>)}
+            </select>
+            {profileErrors.ranking && <p className="field-error">{profileErrors.ranking}</p>}
+          </div>
+        </div>
+
+        <label className="field-label" htmlFor="jockeyImgUrl">Image URL <span className="required">*</span></label>
+        <input
+          className={profileErrors.imgUrl ? 'input has-error' : 'input'}
+          id="jockeyImgUrl"
+          name="imgUrl"
+          type="url"
+          placeholder="https://example.com/jockey.jpg"
+          value={profileForm.imgUrl}
+          onChange={handleProfileChange}
+          disabled={isSavingProfile}
+        />
+        {profileErrors.imgUrl && <p className="field-error">{profileErrors.imgUrl}</p>}
+
+        <div className="admin-form-actions">
+          <button className="primary-button" type="submit" disabled={isSavingProfile}>
+            {isSavingProfile ? 'Đang lưu...' : profile ? 'Cập nhật profile' : 'Tạo profile'}
+          </button>
+          {profile && (
+            <button className="outline-button danger-action" type="button" onClick={handleDeactivateProfile} disabled={isSavingProfile}>
+              Deactivate / Xóa profile
+            </button>
+          )}
+        </div>
+      </form>
+    );
+  }
+
+  function renderInvitationList(limit?: number) {
+    const items = typeof limit === 'number' ? latestInvitations.slice(0, limit) : filteredInvitations;
+
+    if (isLoadingInvitations) {
+      return <p className="table-empty">Đang tải lời mời...</p>;
+    }
+
+    if (items.length === 0) {
+      return <p className="table-empty">Chưa có lời mời phù hợp.</p>;
+    }
+
+    return (
+      <div className="table-wrapper">
+        <table className="user-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Giải đấu</th>
+              <th>Ngựa</th>
+              <th>Owner</th>
+              <th>Tạo lúc</th>
+              <th>Hết hạn</th>
+              <th>Status</th>
+              <th>Registration</th>
+              <th>Thao tác</th>
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((invitation) => {
+              const invitationId = getInvitationId(invitation);
+              const isPending = String(invitation.status || '').toUpperCase() === 'PENDING';
+              const acceptDisabled = !isPending || !isProfileActive || actionId === invitationId;
+              return (
+                <tr key={invitationId || `${invitation.tournamentId}-${invitation.horseId}`}>
+                  <td>{invitationId || 'N/A'}</td>
+                  <td>
+                    <strong>{invitation.tournamentName || invitation.tournamentId || 'N/A'}</strong>
+                    {invitation.message && <p className="table-subtext">{invitation.message}</p>}
+                  </td>
+                  <td>{invitation.horseName || invitation.horseId || 'N/A'}</td>
+                  <td>{invitation.ownerName || invitation.ownerId || 'N/A'}</td>
+                  <td>{formatDate(invitation.createdAt)}</td>
+                  <td>{formatDate(invitation.expiredAt)}</td>
+                  <td><span className={`status-badge ${statusClass(invitation.status)}`}>{invitation.status || 'N/A'}</span></td>
+                  <td><span className={`status-badge ${statusClass(invitation.registrationStatus)}`}>{invitation.registrationStatus || 'N/A'}</span></td>
+                  <td>
+                    {isPending ? (
+                      <div className="table-actions">
+                        <button type="button" onClick={() => handleInvitationAction(invitation, 'accept')} disabled={acceptDisabled} title={!isProfileActive ? 'Profile chưa ACTIVE nên không thể accept.' : 'Accept invitation'}>Accept</button>
+                        <button type="button" className="danger-action" onClick={() => handleInvitationAction(invitation, 'reject')} disabled={actionId === invitationId}>Reject</button>
+                      </div>
+                    ) : (
+                      <span className="readonly-note">Đã xử lý</span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    );
   }
 
   return (
@@ -287,209 +477,86 @@ export default function JockeyDashboard({ currentUser, onLogout }: JockeyDashboa
       {pageError && <div className="admin-alert error" role="alert">{pageError}</div>}
       {message && <div className="admin-alert success" role="status">{message}</div>}
 
+      {activeSection === 'overview' && (
+        <section className="owner-stack">
+          <section className="owner-stats-grid">
+            <StatCard label="Profile status" value={profile?.status || 'NO PROFILE'} description={profile ? `License: ${profile.licenseNo || 'Chưa cập nhật'}` : 'Bạn cần tạo profile jockey'} highlight />
+            <StatCard label="Ranking" value={profile?.ranking || 'N/A'} description="Ranking hiện tại trong profile" />
+            <StatCard label="Pending invitations" value={countByStatus(invitations, 'PENDING')} description="Lời mời đang chờ phản hồi" />
+            <StatCard label="Accepted invitations" value={countByStatus(invitations, 'ACCEPTED')} description="Lời mời đã chấp nhận" />
+          </section>
+
+          <section className="owner-overview-grid">
+            <div className="owner-panel hero-owner-panel">
+              <div>
+                <p className="eyebrow">Jockey dashboard</p>
+                <h2>Quản lý profile và lời mời thi đấu</h2>
+                <p>Trang này tổng hợp dữ liệu từ profile và invitation vì backend chưa có endpoint dashboard riêng cho jockey.</p>
+              </div>
+              <div className="owner-shortcut-actions">
+                <button className="primary-button owner-hero-action" type="button" onClick={() => setActiveSection('profile')}>Mở profile</button>
+                <button className="outline-button owner-hero-action" type="button" onClick={() => setActiveSection('invitations')}>Xem invitations</button>
+              </div>
+            </div>
+
+            <div className="owner-panel compact-panel">
+              <div className="owner-panel-header">
+                <div>
+                  <h2>Lời mời mới nhất</h2>
+                  <p>Hiển thị tối đa 5 lời mời gần nhất từ backend.</p>
+                </div>
+              </div>
+              <div className="owner-mini-list">
+                {latestInvitations.length === 0 ? (
+                  <p className="table-empty">Chưa có lời mời nào.</p>
+                ) : latestInvitations.map((invitation) => (
+                  <div key={invitation.invitationId || `${invitation.tournamentId}-${invitation.horseId}`}>
+                    <span>{invitation.tournamentName || `Tournament ${invitation.tournamentId || ''}`}</span>
+                    <strong>{invitation.status || 'N/A'}</strong>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+        </section>
+      )}
+
       {activeSection === 'profile' && (
         <section className="owner-stack">
           <div className="owner-section-toolbar">
             <div>
-              <p className="eyebrow">Jockey profile</p>
+              <p className="eyebrow">Profile</p>
               <h2>Hồ sơ jockey</h2>
             </div>
-            {profile && <span className={`status-badge ${statusClass(profile.status)}`}>{displayValue(profile.status)}</span>}
+            <button className="outline-button compact-button" type="button" onClick={loadProfile} disabled={isLoadingProfile}>Tải lại profile</button>
           </div>
-
-          <div className="owner-content-grid">
-            <section className="owner-panel">
-              <div className="owner-panel-header">
-                <div>
-                  <p className="eyebrow">Profile form</p>
-                  <h2>{profile ? 'Cập nhật hồ sơ' : 'Tạo hồ sơ mới'}</h2>
-                  <p>Backend yêu cầu license, cân nặng 35-90kg, ranking hợp lệ và Image URL dạng HTTP/HTTPS.</p>
-                </div>
-              </div>
-
-              <form className="owner-form" onSubmit={handleProfileSubmit} noValidate>
-                <label className="field-label" htmlFor="licenseNo">License number <span className="required">*</span></label>
-                <input
-                  id="licenseNo"
-                  name="licenseNo"
-                  className={profileErrors.licenseNo ? 'input has-error' : 'input'}
-                  value={profileForm.licenseNo}
-                  onChange={handleProfileChange}
-                  placeholder="VD: JCK-2026-001"
-                  disabled={isSavingProfile}
-                />
-                {profileErrors.licenseNo && <p className="field-error">{profileErrors.licenseNo}</p>}
-
-                <div className="owner-form-row">
-                  <div>
-                    <label className="field-label" htmlFor="weight">Cân nặng (kg) <span className="required">*</span></label>
-                    <input
-                      id="weight"
-                      name="weight"
-                      type="number"
-                      min="35"
-                      max="90"
-                      step="0.1"
-                      className={profileErrors.weight ? 'input has-error' : 'input'}
-                      value={profileForm.weight}
-                      onChange={handleProfileChange}
-                      disabled={isSavingProfile}
-                    />
-                    {profileErrors.weight && <p className="field-error">{profileErrors.weight}</p>}
-                  </div>
-                  <div>
-                    <label className="field-label" htmlFor="ranking">Ranking <span className="required">*</span></label>
-                    <select
-                      id="ranking"
-                      name="ranking"
-                      className={profileErrors.ranking ? 'input has-error' : 'input'}
-                      value={profileForm.ranking}
-                      onChange={handleProfileChange}
-                      disabled={isSavingProfile}
-                    >
-                      {rankingOptions.map((ranking) => (
-                        <option key={ranking} value={ranking}>{ranking}</option>
-                      ))}
-                    </select>
-                    {profileErrors.ranking && <p className="field-error">{profileErrors.ranking}</p>}
-                  </div>
-                </div>
-
-                <label className="field-label" htmlFor="imgUrl">Image URL <span className="required">*</span></label>
-                <input
-                  id="imgUrl"
-                  name="imgUrl"
-                  type="url"
-                  className={profileErrors.imgUrl ? 'input has-error' : 'input'}
-                  value={profileForm.imgUrl}
-                  onChange={handleProfileChange}
-                  placeholder="https://example.com/jockey.jpg"
-                  disabled={isSavingProfile}
-                />
-                {profileErrors.imgUrl && <p className="field-error">{profileErrors.imgUrl}</p>}
-
-                <div className="admin-form-actions">
-                  <button className="primary-button" type="submit" disabled={isSavingProfile}>
-                    {isSavingProfile ? 'Đang lưu...' : profile ? 'Cập nhật hồ sơ' : 'Tạo hồ sơ'}
-                  </button>
-                  {profile && (
-                    <button className="outline-button" type="button" onClick={handleDeleteProfile} disabled={isSavingProfile}>
-                      Xóa hồ sơ
-                    </button>
-                  )}
-                </div>
-              </form>
-            </section>
-
-            <section className="owner-panel">
-              <div className="owner-panel-header">
-                <div>
-                  <p className="eyebrow">Current profile</p>
-                  <h2>Thông tin hiện tại</h2>
-                </div>
-              </div>
-              {isLoadingProfile ? (
-                <p className="table-empty">Đang tải hồ sơ...</p>
-              ) : profile ? (
-                <div className="horse-card read-only-row">
-                  <div className="horse-avatar">
-                    {profile.imgUrl ? <img src={profile.imgUrl} alt={displayValue(profile.fullName, 'Jockey')} /> : '🏇'}
-                  </div>
-                  <div className="horse-info">
-                    <div className="horse-title-row password-row">
-                      <h3>{displayValue(profile.fullName, jockeyName)}</h3>
-                      <span className={`status-badge ${statusClass(profile.status)}`}>{displayValue(profile.status)}</span>
-                    </div>
-                    <div className="horse-meta-grid">
-                      <span>Email</span><strong>{displayValue(profile.email)}</strong>
-                      <span>License</span><strong>{displayValue(profile.licenseNo)}</strong>
-                      <span>Weight</span><strong>{displayValue(profile.weight)} kg</strong>
-                      <span>Ranking</span><strong>{displayValue(profile.ranking)}</strong>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <div className="owner-empty-state">
-                  <div>🧑‍✈️</div>
-                  <h3>Chưa có hồ sơ jockey</h3>
-                  <p>Tạo hồ sơ trước, sau đó admin chuyển trạng thái ACTIVE thì bạn mới chấp nhận được lời mời.</p>
-                </div>
-              )}
-            </section>
-          </div>
+          {renderProfileForm()}
         </section>
       )}
 
       {activeSection === 'invitations' && (
         <section className="owner-stack">
-          <div className="owner-section-toolbar">
-            <div>
-              <p className="eyebrow">Race invitations</p>
-              <h2>Lời mời từ owner</h2>
-            </div>
-            <span className="owner-count-pill">{invitations.length} lời mời</span>
-          </div>
-
+          {!profile && !isLoadingProfile && (
+            <div className="admin-alert error" role="alert">Bạn chưa có profile jockey nên không thể accept invitation. Hãy tạo profile trước.</div>
+          )}
+          {profile && !isProfileActive && (
+            <div className="admin-alert error" role="alert">Profile của bạn đang là {profile.status || 'N/A'}, không phải ACTIVE nên không thể accept invitation.</div>
+          )}
           <section className="owner-panel">
             <div className="owner-panel-header">
               <div>
-                <p className="eyebrow">Invitation list</p>
-                <h2>Danh sách lời mời</h2>
-                <p>Chỉ lời mời PENDING còn hạn mới có thể accept/reject.</p>
+                <p className="eyebrow">Invitations</p>
+                <h2>Lời mời được nhận</h2>
+                <p>Jockey có thể accept hoặc reject lời mời đang ở trạng thái PENDING.</p>
+              </div>
+              <div className="inline-filter-row">
+                <select className="input compact-select" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+                  {INVITATION_STATUS_OPTIONS.map((status) => <option key={status} value={status}>{status === 'ALL' ? 'Tất cả status' : status}</option>)}
+                </select>
+                <span className="owner-count-pill">{filteredInvitations.length} lời mời</span>
               </div>
             </div>
-
-            {isLoadingInvitations ? (
-              <p className="table-empty">Đang tải lời mời...</p>
-            ) : invitations.length === 0 ? (
-              <div className="owner-empty-state">
-                <div>✉️</div>
-                <h3>Chưa có lời mời</h3>
-                <p>Khi owner gửi lời mời tham gia tournament, lời mời sẽ xuất hiện ở đây.</p>
-              </div>
-            ) : (
-              <div className="table-wrapper">
-                <table className="user-table">
-                  <thead>
-                    <tr>
-                      <th>Tournament</th>
-                      <th>Horse</th>
-                      <th>Owner</th>
-                      <th>Deadline</th>
-                      <th>Invitation</th>
-                      <th>Registration</th>
-                      <th>Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {invitations.map((invitation) => {
-                      const pending = String(invitation.status || '').toUpperCase() === 'PENDING';
-                      const disabled = Boolean(actionId) || !pending;
-                      return (
-                        <tr key={String(invitation.invitationId || `${invitation.registrationId}-${invitation.createdAt}`)}>
-                          <td>{displayValue(invitation.tournamentName, `#${displayValue(invitation.tournamentId)}`)}</td>
-                          <td>{displayValue(invitation.horseName, `#${displayValue(invitation.horseId)}`)}</td>
-                          <td>{displayValue(invitation.ownerName, `#${displayValue(invitation.ownerId)}`)}</td>
-                          <td>{formatDate(invitation.expiredAt)}</td>
-                          <td><span className={`status-badge ${statusClass(invitation.status)}`}>{displayValue(invitation.status)}</span></td>
-                          <td><span className={`status-badge ${statusClass(invitation.registrationStatus)}`}>{displayValue(invitation.registrationStatus)}</span></td>
-                          <td>
-                            <div className="table-actions">
-                              <button type="button" onClick={() => handleInvitationAction(invitation, 'accept')} disabled={disabled}>
-                                Accept
-                              </button>
-                              <button className="danger-action" type="button" onClick={() => handleInvitationAction(invitation, 'reject')} disabled={disabled}>
-                                Reject
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
+            {renderInvitationList()}
           </section>
         </section>
       )}

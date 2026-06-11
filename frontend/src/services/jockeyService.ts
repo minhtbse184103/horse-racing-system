@@ -9,6 +9,7 @@ export interface JockeyProfile {
   weight?: number | string;
   ranking?: string;
   status?: string;
+  rejectionReason?: string | null;
   imgUrl?: string;
 }
 
@@ -60,10 +61,11 @@ export function updateJockeyProfile(payload: JockeyProfilePayload): Promise<Jock
   });
 }
 
-export function deleteJockeyProfile(): Promise<unknown> {
+// BE hiện tại có DELETE /api/jockey/profile. FE hiển thị như thao tác deactivate/xóa profile để không cần sửa BE.
+export function deactivateJockeyProfile(): Promise<unknown> {
   return httpRequest<unknown>('/api/jockey/profile', {
     method: 'DELETE',
-    fallbackError: 'Xóa hồ sơ jockey thất bại.'
+    fallbackError: 'Không thể deactivate hồ sơ jockey.'
   });
 }
 

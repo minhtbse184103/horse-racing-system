@@ -99,3 +99,15 @@ export function logout(): void {
   sessionStorage.removeItem('token');
   sessionStorage.removeItem('user');
 }
+
+
+export function getMe(): Promise<AuthUser> {
+  return httpRequest<AuthUser>('/api/user/me', {
+    fallbackError: 'Không thể lấy thông tin user hiện tại.'
+  });
+}
+
+export function updateStoredUser(user: AuthUser): void {
+  const storage = localStorage.getItem('token') ? localStorage : sessionStorage;
+  storage.setItem('user', JSON.stringify(user));
+}

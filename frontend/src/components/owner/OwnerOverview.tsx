@@ -6,9 +6,10 @@ interface OwnerOverviewProps {
   dashboard: OwnerDashboardData | null;
   horses: Horse[];
   onGoHorses: () => void;
+  onGoInvitations: () => void;
 }
 
-export default function OwnerOverview({ dashboard, horses, onGoHorses }: OwnerOverviewProps) {
+export default function OwnerOverview({ dashboard, horses, onGoHorses, onGoInvitations }: OwnerOverviewProps) {
   const activeHorses = horses.filter((horse) => String(horse.status || '').toUpperCase() === 'ACTIVE').length;
   const participatedHorses = horses.filter((horse) => horse.participated).length;
   const registeredHorses = horses.filter((horse) => Number(horse.registrationCount || 0) > 0).length;
@@ -48,9 +49,14 @@ export default function OwnerOverview({ dashboard, horses, onGoHorses }: OwnerOv
               Theo dõi tổng số ngựa, tình trạng đăng ký và lịch sử tham gia thi đấu. Các thông tin này giúp owner chuẩn bị hồ sơ ngựa trước khi đăng ký race.
             </p>
           </div>
-          <button className="primary-button owner-hero-action" type="button" onClick={onGoHorses}>
-            Quản lý ngựa
-          </button>
+          <div className="owner-shortcut-actions">
+            <button className="primary-button owner-hero-action" type="button" onClick={onGoHorses}>
+              Quản lý ngựa
+            </button>
+            <button className="outline-button owner-hero-action" type="button" onClick={onGoInvitations}>
+              Lời mời / Đăng ký
+            </button>
+          </div>
         </div>
 
         <div className="owner-panel compact-panel">

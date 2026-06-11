@@ -1,0 +1,45 @@
+BẢN FE OWNER/JOCKEY HOÀN CHỈNH - KHÔNG SỬA BACKEND
+
+Cách dùng:
+1. Giải nén file zip.
+2. Copy thư mục frontend này đè lên thư mục frontend cũ trong project.
+3. Chạy:
+   cd frontend
+   npm install
+   npm run dev
+
+Những phần đã nối theo yêu cầu FE OWNER and JOCKEY.md:
+
+OWNER:
+- Dashboard: GET /api/owner/dashboard
+- My Horses: GET /api/owner/horses
+- View horse detail: GET /api/owner/horses/{horseId}
+- Add horse: POST /api/owner/horses
+- Edit horse: PUT /api/owner/horses/{horseId}
+- Delete horse: DELETE /api/owner/horses/{horseId}
+- Invite jockey:
+  + GET /api/tournaments
+  + GET /api/owner/horses
+  + GET /api/user/all rồi filter JOCKEY + ACTIVE
+  + POST /api/owner/invitations
+- Sent invitations:
+  + GET /api/owner/invitations
+  + PUT /api/owner/invitations/{invitationId}/cancel
+
+JOCKEY:
+- Dashboard tổng hợp từ:
+  + GET /api/jockey/profile
+  + GET /api/jockey/invitations
+- Profile:
+  + GET /api/jockey/profile
+  + POST /api/jockey/profile
+  + PUT /api/jockey/profile
+- Invitations:
+  + GET /api/jockey/invitations
+  + PUT /api/jockey/invitations/{invitationId}/accept
+  + PUT /api/jockey/invitations/{invitationId}/reject
+
+Lưu ý:
+- Trong file md có yêu cầu PUT /api/jockey/profile/inactive, nhưng backend hiện tại trong zip đang có DELETE /api/jockey/profile, chưa có /inactive.
+- Vì không sửa backend, nút Deactivate/Xóa profile của Jockey đang gọi endpoint backend hiện có: DELETE /api/jockey/profile.
+- TypeScript đã được check bằng: node node_modules/typescript/bin/tsc -p tsconfig.json --noEmit

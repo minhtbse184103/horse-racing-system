@@ -1,8 +1,8 @@
 import { httpRequest } from '../api/httpClient';
 import type { Id } from './authService';
 
-export type HorseStatus = 'ACTIVE' | 'INJURED' | 'RETIRED' | 'SUSPENDED' | 'INACTIVE' | string;
-export type HorseGender = 'MALE' | 'FEMALE' | 'UNKNOWN' | string;
+export type HorseStatus = 'ACTIVE' | 'INACTIVE' | 'PENDING' | 'REJECTED' | string;
+export type HorseGender = 'MALE' | 'FEMALE' | string;
 
 export interface Horse {
   horseId?: Id;
@@ -17,6 +17,7 @@ export interface Horse {
   weight?: number | string | null;
   healthCertExpiry?: string | null;
   status?: HorseStatus | null;
+  rejectionReason?: string | null;
   imgUrl?: string | null;
   registrationCount?: number | string | null;
   participated?: boolean;
@@ -57,45 +58,24 @@ export interface OwnerDashboardData {
   [key: string]: unknown;
 }
 
-export function getOwnerDashboard(): Promise<OwnerDashboardData> {
-  return httpRequest<OwnerDashboardData>('/api/owner/dashboard', {
-    fallbackError: 'Không thể tải dashboard chủ ngựa.'
-  });
-}
-
-export function getOwnerHorses(): Promise<Horse[]> {
-  return httpRequest<Horse[]>('/api/owner/horses', {
-    fallbackError: 'Không thể tải danh sách ngựa.'
-  });
-}
-
-export function getOwnerHorseById(horseId: Id): Promise<Horse> {
-  return httpRequest<Horse>(`/api/owner/horses/${horseId}`, {
-    fallbackError: 'Không thể tải thông tin ngựa.'
-  });
-}
-
-export function createHorse(payload: HorsePayload): Promise<Horse> {
-  return httpRequest<Horse, HorsePayload>('/api/owner/horses', {
-    method: 'POST',
-    body: payload,
-    fallbackError: 'Thêm ngựa thất bại.'
-  });
-}
-
-export function updateHorse(horseId: Id, payload: HorsePayload): Promise<Horse> {
-  return httpRequest<Horse, HorsePayload>(`/api/owner/horses/${horseId}`, {
-    method: 'PUT',
-    body: payload,
-    fallbackError: 'Cập nhật ngựa thất bại.'
-  });
-}
-
-export function deleteHorse(horseId: Id): Promise<unknown> {
-  return httpRequest<unknown>(`/api/owner/horses/${horseId}`, {
-    method: 'DELETE',
-    fallbackError: 'Xóa ngựa thất bại.'
-  });
+export interface Tournament {
+  tournamentId?: Id;
+  tournamentID?: Id;
+  id?: Id;
+  tournamentName?: string;
+  name?: string;
+  location?: string;
+  startDate?: string;
+  endDate?: string;
+  registrationDeadline?: string;
+  minParticipants?: number | string;
+  maxParticipants?: number | string;
+  conditionId?: Id;
+  status?: string;
+  createdBy?: Id;
+  createdAt?: string;
+  updatedAt?: string;
+  [key: string]: unknown;
 }
 
 export interface OwnerInvitation {
@@ -123,6 +103,53 @@ export interface InviteJockeyPayload {
   jockeyId: number;
   expiredAt?: string | null;
   message?: string | null;
+}
+
+export function getOwnerDashboard(): Promise<OwnerDashboardData> {
+  return httpRequest<OwnerDashboardData>('/api/owner/dashboard', {
+    fallbackError: 'Không thể tải dashboard chủ ngựa.'
+  });
+}
+
+export function getOwnerHorses(): Promise<Horse[]> {
+  return httpRequest<Horse[]>('/api/owner/horses', {
+    fallbackError: 'Không thể tải danh sách ngựa.'
+  });
+}
+
+export function getOwnerHorseById(horseId: Id): Promise<Horse> {
+  return httpRequest<Horse>(`/api/owner/horses/${horseId}`, {
+    fallbackError: 'Không thể tải chi tiết ngựa.'
+  });
+}
+
+export function createHorse(payload: HorsePayload): Promise<Horse> {
+  return httpRequest<Horse, HorsePayload>('/api/owner/horses', {
+    method: 'POST',
+    body: payload,
+    fallbackError: 'Thêm ngựa thất bại.'
+  });
+}
+
+export function updateHorse(horseId: Id, payload: HorsePayload): Promise<Horse> {
+  return httpRequest<Horse, HorsePayload>(`/api/owner/horses/${horseId}`, {
+    method: 'PUT',
+    body: payload,
+    fallbackError: 'Cập nhật ngựa thất bại.'
+  });
+}
+
+export function deleteHorse(horseId: Id): Promise<unknown> {
+  return httpRequest<unknown>(`/api/owner/horses/${horseId}`, {
+    method: 'DELETE',
+    fallbackError: 'Xóa ngựa thất bại.'
+  });
+}
+
+export function getTournaments(): Promise<Tournament[]> {
+  return httpRequest<Tournament[]>('/api/tournaments', {
+    fallbackError: 'Không thể tải danh sách giải đấu.'
+  });
 }
 
 export function getOwnerInvitations(): Promise<OwnerInvitation[]> {
