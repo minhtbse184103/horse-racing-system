@@ -19,6 +19,7 @@ CREATE TABLE `Users` (
   `password` varchar(255) NOT NULL,
   `phone` varchar(255) UNIQUE,
   `status` varchar(255),
+  `rejectionReason` varchar(500),
   `createdAt` datetime,
   `updatedAt` datetime
 );

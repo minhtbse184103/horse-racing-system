@@ -302,6 +302,7 @@ public class UserService {
                 user.getFullName(),
                 user.getPhone(),
                 user.getStatus(),
+                user.getRejectionReason(),
                 user.getRole().getRoleName());
     }
 }
