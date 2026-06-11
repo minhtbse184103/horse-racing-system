@@ -100,6 +100,7 @@ public class JockeyServiceImpl implements JockeyService {
                 .weight(request.getWeight())
                 .ranking(normalizeUppercase(request.getRanking()))
                 .status(STATUS_UNDER_REVIEW)
+                .rejectionReason(null)
                 .imgUrl(normalizeText(request.getImgUrl()))
                 .build();
 
@@ -128,6 +129,7 @@ public class JockeyServiceImpl implements JockeyService {
         if (!STATUS_ACTIVE.equals(jockey.getStatus())) {
             profile.setStatus(STATUS_UNDER_REVIEW);
         }
+        profile.setRejectionReason(null);
         profile.setImgUrl(normalizeText(request.getImgUrl()));
 
         JockeyProfile savedProfile = jockeyProfileRepository.save(profile);
@@ -311,7 +313,7 @@ public class JockeyServiceImpl implements JockeyService {
                 .weight(profile.getWeight())
                 .ranking(profile.getRanking())
                 .status(profile.getStatus())
-                .rejectionReason(jockey.getRejectionReason())
+                .rejectionReason(profile.getRejectionReason())
                 .imgUrl(profile.getImgUrl())
                 .build();
     }
@@ -392,7 +394,6 @@ public class JockeyServiceImpl implements JockeyService {
                 || STATUS_UNDER_REVIEW.equals(status)
                 || STATUS_REJECTED.equals(status)) {
             jockey.setStatus(STATUS_UNDER_REVIEW);
-            jockey.setRejectionReason(null);
             userRepository.save(jockey);
         }
     }

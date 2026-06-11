@@ -85,9 +85,9 @@ public class UserService {
                         "Jockey profile does not exist."));
         validateJockeyProfileReadyForApproval(profile);
 
-        jockey.setStatus(STATUS_ACTIVE);
-        jockey.setRejectionReason(null);
         profile.setStatus(STATUS_ACTIVE);
+        profile.setRejectionReason(null);
+        jockey.setStatus(STATUS_ACTIVE);
 
         jockeyProfileRepository.save(profile);
         userRepository.save(jockey);
@@ -105,9 +105,9 @@ public class UserService {
                 .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST,
                         "Jockey profile does not exist."));
 
-        jockey.setStatus(STATUS_REJECTED);
-        jockey.setRejectionReason(feedback.trim());
         profile.setStatus(STATUS_REJECTED);
+        profile.setRejectionReason(feedback.trim());
+        jockey.setStatus(STATUS_REJECTED);
 
         jockeyProfileRepository.save(profile);
         userRepository.save(jockey);
@@ -152,13 +152,13 @@ public class UserService {
             if (STATUS_REJECTED.equals(status) && !hasText(request.getRejectionReason())) {
                 throw new ApiException(HttpStatus.BAD_REQUEST, "Rejection reason is required when rejecting a jockey.");
             }
-            user.setStatus(status);
-            user.setRejectionReason(STATUS_REJECTED.equals(status)
-                    ? request.getRejectionReason().trim()
-                    : null);
             syncJockeyProfileStatus(user, status);
-        } else if (hasText(request.getRejectionReason()) && STATUS_REJECTED.equals(user.getStatus())) {
-            user.setRejectionReason(request.getRejectionReason().trim());
+            if (STATUS_REJECTED.equals(status)) {
+                updateJockeyProfileRejectionReason(user, request.getRejectionReason());
+            }
+            user.setStatus(status);
+        } else if (hasText(request.getRejectionReason()) && STATUS_REJECTED.equals(user.getStatus()) && isJockey(user)) {
+            updateJockeyProfileRejectionReason(user, request.getRejectionReason());
         }
 
         if (isJockeyReviewStatus(user.getStatus()) && !isJockey(user)) {
@@ -211,17 +211,37 @@ public class UserService {
                     .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST,
                             "Jockey profile does not exist."));
             profile.setStatus(STATUS_ACTIVE);
+            profile.setRejectionReason(null);
             jockeyProfileRepository.save(profile);
             return;
         }
 
-        if (STATUS_UNDER_REVIEW.equals(status) || STATUS_REJECTED.equals(status)) {
+        if (STATUS_UNDER_REVIEW.equals(status)) {
             jockeyProfileRepository.findById(user.getUserID())
                     .ifPresent(profile -> {
                         profile.setStatus(status);
+                        profile.setRejectionReason(null);
                         jockeyProfileRepository.save(profile);
                     });
+            return;
         }
+
+        if (STATUS_REJECTED.equals(status)) {
+            JockeyProfile profile = jockeyProfileRepository.findById(user.getUserID())
+                    .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST,
+                            "Jockey profile does not exist."));
+            profile.setStatus(status);
+            profile.setRejectionReason(null);
+            jockeyProfileRepository.save(profile);
+        }
+    }
+
+    private void updateJockeyProfileRejectionReason(User user, String rejectionReason) {
+        JockeyProfile profile = jockeyProfileRepository.findById(user.getUserID())
+                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST,
+                        "Jockey profile does not exist."));
+        profile.setRejectionReason(rejectionReason.trim());
+        jockeyProfileRepository.save(profile);
     }
 
     private JockeyProfileResponse mapJockeyProfileToResponse(User jockey, JockeyProfile profile) {
@@ -237,7 +257,7 @@ public class UserService {
                 .weight(profile.getWeight())
                 .ranking(profile.getRanking())
                 .status(profile.getStatus())
-                .rejectionReason(jockey.getRejectionReason())
+                .rejectionReason(profile.getRejectionReason())
                 .imgUrl(profile.getImgUrl())
                 .build();
     }
@@ -268,7 +288,6 @@ public class UserService {
                 user.getFullName(),
                 user.getPhone(),
                 user.getStatus(),
-                user.getRejectionReason(),
                 user.getRole().getRoleName());
     }
 }

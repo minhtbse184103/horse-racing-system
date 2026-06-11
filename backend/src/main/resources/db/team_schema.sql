@@ -19,7 +19,6 @@ CREATE TABLE `Users` (
   `password` varchar(255) NOT NULL,
   `phone` varchar(255) UNIQUE,
   `status` varchar(255),
-  `rejectionReason` varchar(500),
   `createdAt` datetime,
   `updatedAt` datetime
 );
@@ -117,6 +116,7 @@ CREATE TABLE `JockeyProfile` (
   `weight` decimal(10,2) NOT NULL,
   `ranking` varchar(255),
   `status` varchar(255),
+  `rejectionReason` varchar(500),
   `img_url` text,
   `createdAt` datetime,
   `updatedAt` datetime

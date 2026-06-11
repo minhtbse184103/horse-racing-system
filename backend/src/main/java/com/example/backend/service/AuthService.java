@@ -56,7 +56,6 @@ public class AuthService {
                 user.getFullName(),
                 user.getPhone(),
                 user.getStatus(),
-                user.getRejectionReason(),
                 roleName);
 
         return new LoginResponse(token, userInfo);
@@ -205,7 +204,6 @@ public class AuthService {
                 user.getFullName(),
                 user.getPhone(),
                 user.getStatus(),
-                user.getRejectionReason(),
                 user.getRole().getRoleName());
     }
 
