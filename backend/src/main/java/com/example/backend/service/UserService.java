@@ -131,6 +131,11 @@ public class UserService {
         }
 
         if (hasText(request.getPhone())) {
+            userRepository.findByPhone(request.getPhone())
+                    .filter(existingUser -> !existingUser.getUserID().equals(user.getUserID()))
+                    .ifPresent(existingUser -> {
+                        throw new ApiException(HttpStatus.BAD_REQUEST, "Phone already exists");
+                    });
             user.setPhone(request.getPhone());
         }
 

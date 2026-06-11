@@ -17,7 +17,7 @@ CREATE TABLE `Users` (
   `fullName` varchar(255) NOT NULL,
   `email` varchar(255) UNIQUE NOT NULL,
   `password` varchar(255) NOT NULL,
-  `phone` varchar(255),
+  `phone` varchar(255) UNIQUE,
   `status` varchar(255),
   `rejectionReason` varchar(500),
   `createdAt` datetime,

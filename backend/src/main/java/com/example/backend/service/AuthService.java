@@ -69,6 +69,10 @@ public class AuthService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Email đã tồn tại");
         }
 
+        if (userRepository.existsByPhone(request.getPhone())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Phone already exists");
+        }
+
         String roleName = normalizePublicRole(request.getRoleName());
         Role role = getRoleByName(roleName);
 
@@ -85,6 +89,10 @@ public class AuthService {
     public UserResponse createUserByAdmin(AdminCreateUserRequest request) {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Email đã tồn tại");
+        }
+
+        if (userRepository.existsByPhone(request.getPhone())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Phone already exists");
         }
 
         Role role = getRoleByName(normalizeAdminRole(request.getRoleName()));
