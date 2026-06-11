@@ -29,8 +29,14 @@ public class JockeyInvitation {
     @Column(name = "invitationID")
     private Integer invitationId;
 
-    @Column(name = "registrationID", nullable = false)
+    @Column(name = "registrationID")
     private Integer registrationId;
+
+    @Column(name = "tournamentID", nullable = false)
+    private Integer tournamentId;
+
+    @Column(name = "horseID", nullable = false)
+    private Integer horseId;
 
     @Column(name = "ownerID", nullable = false)
     private Integer ownerId;

@@ -23,20 +23,25 @@ public interface JockeyInvitationRepository extends JpaRepository<JockeyInvitati
 
     boolean existsByRegistrationIdAndJockeyIdAndStatus(Integer registrationId, Integer jockeyId, String status);
 
+    boolean existsByHorseId(Integer horseId);
+
+    boolean existsByTournamentIdAndHorseIdAndJockeyIdAndStatus(
+            Integer tournamentId,
+            Integer horseId,
+            Integer jockeyId,
+            String status);
+
     @Query("""
             select count(i) > 0
             from JockeyInvitation i
-            join Registration r on r.registrationId = i.registrationId
-            where r.tournamentId = :tournamentId
+            where i.tournamentId = :tournamentId
               and i.jockeyId = :jockeyId
               and i.status = :invitationStatus
-              and r.status in :registrationStatuses
             """)
     boolean existsActiveInvitationForTournamentAndJockey(
             @Param("tournamentId") Integer tournamentId,
             @Param("jockeyId") Integer jockeyId,
-            @Param("invitationStatus") String invitationStatus,
-            @Param("registrationStatuses") Collection<String> registrationStatuses);
+            @Param("invitationStatus") String invitationStatus);
 
     void deleteByRegistrationIdIn(Collection<Integer> registrationIds);
 }

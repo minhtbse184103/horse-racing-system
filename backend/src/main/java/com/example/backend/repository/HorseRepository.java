@@ -12,6 +12,8 @@ import com.example.backend.entity.Horse;
 public interface HorseRepository extends JpaRepository<Horse, Integer> {
     List<Horse> findByOwnerId(Integer ownerId);
 
+    List<Horse> findByStatus(String status);
+
     Optional<Horse> findByHorseIdAndOwnerId(Integer horseId, Integer ownerId);
 
     long countByOwnerId(Integer ownerId);

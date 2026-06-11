@@ -1,5 +1,8 @@
 package com.example.backend.repository;
 
+import java.util.Collection;
+import java.util.List;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -10,4 +13,6 @@ public interface JockeyProfileRepository extends JpaRepository<JockeyProfile, In
     boolean existsByLicenseNo(String licenseNo);
 
     boolean existsByLicenseNoAndJockeyIdNot(String licenseNo, Integer jockeyId);
+
+    List<JockeyProfile> findByJockeyIdIn(Collection<Integer> jockeyIds);
 }

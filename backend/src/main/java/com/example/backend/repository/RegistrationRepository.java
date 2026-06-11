@@ -18,6 +18,8 @@ import com.example.backend.entity.Registration;
 public interface RegistrationRepository extends JpaRepository<Registration, Integer> {
     List<Registration> findByHorseId(Integer horseId);
 
+    boolean existsByHorseId(Integer horseId);
+
     List<Registration> findByStatusOrderByUpdatedAtAsc(String status);
 
     List<Registration> findByStatusInOrderByUpdatedAtDesc(

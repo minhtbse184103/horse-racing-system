@@ -50,10 +50,6 @@ public class CreateHorseRequest {
     @FutureOrPresent(message = "Health certificate expiry must be today or in the future")
     private LocalDate healthCertExpiry;
 
-    @NotBlank(message = "Status is required")
-    @Pattern(regexp = "(?i)ACTIVE|INACTIVE", message = "Status must be ACTIVE or INACTIVE")
-    private String status;
-
     @NotBlank(message = "Image URL is required")
     @Pattern(regexp = "^https?://.+$", message = "Image URL must be a valid HTTP or HTTPS URL")
     private String imgUrl;

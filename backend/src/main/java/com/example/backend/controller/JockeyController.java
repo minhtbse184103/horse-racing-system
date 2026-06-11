@@ -5,7 +5,6 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -50,11 +49,10 @@ public class JockeyController {
         return jockeyService.updateProfile(request);
     }
 
-    // Xóa hồ sơ jockey của tài khoản đang đăng nhập.
-    @DeleteMapping("/profile")
-    public ResponseEntity<Void> deleteProfile() {
-        jockeyService.deleteProfile();
-        return ResponseEntity.noContent().build();
+    // Chuyển hồ sơ jockey sang INACTIVE khi jockey muốn rời hệ thống.
+    @PutMapping("/profile/inactive")
+    public JockeyProfileResponse deactivateProfile() {
+        return jockeyService.deactivateProfile();
     }
 
     // Lấy danh sách lời mời tham gia tournament được gửi cho jockey.
