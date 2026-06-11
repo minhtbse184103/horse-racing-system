@@ -1,15 +1,11 @@
 import { ArrowRight } from "lucide-react";
-
-// Replace HERO_IMAGE_URL with your own asset import, e.g.:
-//   import heroImage from "../../assets/hero-race.jpg";
-const HERO_IMAGE_URL =
-  "https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?auto=format&fit=crop&w=1920&q=80";
+import heroImage from "../../assets/hero-race.svg";
 
 export default function Hero({ stats, isLoading }) {
   return (
     <section id="home" className="relative isolate overflow-hidden bg-brown-900 text-cream-100">
       <img
-        src={HERO_IMAGE_URL}
+        src={heroImage}
         alt="Thoroughbred racehorses thundering out of the starting gate"
         width={1920}
         height={1080}

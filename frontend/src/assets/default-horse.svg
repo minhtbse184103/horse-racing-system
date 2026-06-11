@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Default horse image</title>
+  <desc id="desc">A local imported horse profile placeholder.</desc>
+  <rect width="256" height="256" rx="44" fill="#f6efe3"/>
+  <circle cx="202" cy="55" r="25" fill="#d9a441" opacity=".45"/>
+  <path d="M57 157c14-39 49-61 92-55 22 3 40-1 58-14 7-5 16 1 15 10-4 38-27 66-63 76-29 8-56 4-83-7l-18 30c-8 13-29 4-24-11l23-29Z" fill="#6c3f24"/>
+  <path d="M139 102c18-33 41-53 72-60 11-2 19 10 12 19-18 25-31 51-37 80" fill="#2b1710"/>
+  <path d="M96 162c-11 20-19 41-23 64M153 170c8 20 12 39 12 58" stroke="#2b1710" stroke-width="17" stroke-linecap="round"/>
+  <circle cx="198" cy="69" r="5" fill="#fff4d0"/>
+</svg>

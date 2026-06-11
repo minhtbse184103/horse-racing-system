@@ -1,18 +1,18 @@
-# Horse Racing Frontend - Login Page
+# Horse Racing System Frontend
 
-Front-end này được tạo cho trang đăng nhập của project Horse Racing System.
+This frontend was created for the Horse Racing System web application.
 
-## Chức năng đã làm
+## Completed Features
 
-- Giao diện login responsive.
-- Validate email/password ở front-end.
-- Gọi API backend: `POST /api/auth/login`.
-- Hiển thị message lỗi backend trả về, ví dụ `Email không tồn tại`, `Sai password`, `Tài khoản không còn hoạt động`.
-- Lưu `token` và `user` vào `localStorage` nếu chọn "Ghi nhớ đăng nhập".
-- Nếu bỏ chọn "Ghi nhớ đăng nhập", lưu vào `sessionStorage`.
-- Có màn hình đăng nhập thành công và nút đăng xuất.
+- Responsive login interface.
+- Frontend validation for email and password.
+- Backend login request: `POST /api/auth/login`.
+- Displays backend error messages such as `Email not found`, `Invalid password`, or `Account is no longer active`.
+- Stores `token` and `user` in `localStorage` when "Remember me" is selected.
+- Stores session data in `sessionStorage` when "Remember me" is not selected.
+- Includes a successful login screen and a sign-out button.
 
-## Cách chạy
+## How to Run
 
 ```bash
 cd frontend
@@ -20,54 +20,53 @@ npm install
 npm run dev
 ```
 
-Mở trình duyệt tại:
+Open the browser at:
 
 ```text
 http://localhost:5173
 ```
 
-Backend cần chạy ở:
+The backend should run at:
 
 ```text
 http://localhost:8080
 ```
 
-Nếu backend chạy port khác, tạo file `.env` trong thư mục `frontend`:
+If the backend uses a different port, create a `.env` file inside the `frontend` folder:
 
 ```env
-VITE_API_BASE_URL=http://localhost:8080
+VITE_API_URL=http://localhost:8080
 ```
 
-## API đang dùng
+## API Used
 
 ```http
 POST /api/auth/login
 Content-Type: application/json
 ```
 
-Body:
+Request body:
 
 ```json
 {
-  "email": "example@gmail.com",
+  "email": "owner1@example.com",
   "password": "123456"
 }
 ```
 
-Response thành công backend hiện tại:
+Successful response example:
 
 ```json
 {
-  "token": "jwt-token",
+  "message": "Login successful",
+  "token": "...",
   "user": {
     "id": 1,
-    "email": "example@gmail.com",
-    "fullName": "Nguyen Van A",
-    "phone": "0901234567",
-    "status": "ACTIVE",
-    "role": "OWNER"
+    "email": "owner1@example.com",
+    "role": "OWNER",
+    "status": "ACTIVE"
   }
 }
 ```
 
-Lưu ý: Trong Java DTO của backend field đang là `private Integer Id;`. Khi serialize sang JSON, Jackson thường trả về key `id` hoặc `Id` tùy getter. Trang login hiện không phụ thuộc vào field này nên vẫn chạy được.
+Note: The backend Java DTO may use `private Integer Id;`. Depending on the getter, Jackson may serialize it as `id` or `Id`. The login page does not depend on this field, so it still works.

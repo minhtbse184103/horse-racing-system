@@ -41,7 +41,7 @@ export interface JockeyInvitation {
 
 export function getJockeyProfile(): Promise<JockeyProfile> {
   return httpRequest<JockeyProfile>('/api/jockey/profile', {
-    fallbackError: 'Không thể tải hồ sơ jockey.'
+    fallbackError: 'Unable to load the jockey profile.'
   });
 }
 
@@ -49,7 +49,7 @@ export function createJockeyProfile(payload: JockeyProfilePayload): Promise<Jock
   return httpRequest<JockeyProfile, JockeyProfilePayload>('/api/jockey/profile', {
     method: 'POST',
     body: payload,
-    fallbackError: 'Tạo hồ sơ jockey thất bại.'
+    fallbackError: 'Unable to create the jockey profile.'
   });
 }
 
@@ -57,33 +57,33 @@ export function updateJockeyProfile(payload: JockeyProfilePayload): Promise<Jock
   return httpRequest<JockeyProfile, JockeyProfilePayload>('/api/jockey/profile', {
     method: 'PUT',
     body: payload,
-    fallbackError: 'Cập nhật hồ sơ jockey thất bại.'
+    fallbackError: 'Unable to update the jockey profile.'
   });
 }
 
 export function deactivateJockeyProfile(): Promise<JockeyProfile> {
   return httpRequest<JockeyProfile>('/api/jockey/profile/inactive', {
     method: 'PUT',
-    fallbackError: 'Không thể deactivate hồ sơ jockey.'
+    fallbackError: 'Unable to deactivate the jockey profile.'
   });
 }
 
 export function getJockeyInvitations(): Promise<JockeyInvitation[]> {
   return httpRequest<JockeyInvitation[]>('/api/jockey/invitations', {
-    fallbackError: 'Không thể tải lời mời jockey.'
+    fallbackError: 'Unable to load jockey invitations.'
   });
 }
 
 export function acceptJockeyInvitation(invitationId: Id): Promise<JockeyInvitation> {
   return httpRequest<JockeyInvitation>(`/api/jockey/invitations/${invitationId}/accept`, {
     method: 'PUT',
-    fallbackError: 'Chấp nhận lời mời thất bại.'
+    fallbackError: 'Unable to accept the invitation.'
   });
 }
 
 export function rejectJockeyInvitation(invitationId: Id): Promise<JockeyInvitation> {
   return httpRequest<JockeyInvitation>(`/api/jockey/invitations/${invitationId}/reject`, {
     method: 'PUT',
-    fallbackError: 'Từ chối lời mời thất bại.'
+    fallbackError: 'Unable to reject the invitation.'
   });
 }

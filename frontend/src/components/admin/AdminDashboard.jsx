@@ -2,6 +2,7 @@ import { useState } from 'react';
 import {
   ClipboardCheck,
   Flag,
+  ShieldCheck,
   LayoutDashboard,
   LogOut,
   ShieldCheck,
@@ -13,7 +14,8 @@ import AdminOverview from './AdminOverview';
 import EventManagement from './events/EventManagement';
 import RaceEntryManagement from './raceEntries/RaceEntryManagement';
 import RegistrationReview from './registrations/RegistrationReview';
-import HorseReview from './reviews/HorseReview';
+import JockeyReview from './reviews/JockeyReview';
+import HorseReview from './horses/HorseReview';
 import UserManagement from './users/UserManagement';
 import JockeyReview from './reviews/JockeyReview';
 
