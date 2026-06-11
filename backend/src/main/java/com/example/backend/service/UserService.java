@@ -83,6 +83,7 @@ public class UserService {
         JockeyProfile profile = jockeyProfileRepository.findById(jockeyId)
                 .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST,
                         "Jockey profile does not exist."));
+        validateJockeyProfileUnderReview(jockey, profile);
         validateJockeyProfileReadyForApproval(profile);
 
         profile.setStatus(STATUS_ACTIVE);
@@ -104,6 +105,10 @@ public class UserService {
         JockeyProfile profile = jockeyProfileRepository.findById(jockeyId)
                 .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST,
                         "Jockey profile does not exist."));
+        validateJockeyProfileUnderReview(jockey, profile);
+        if (!hasText(feedback)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Rejection feedback is required.");
+        }
 
         profile.setStatus(STATUS_REJECTED);
         profile.setRejectionReason(feedback.trim());
@@ -260,6 +265,15 @@ public class UserService {
                 .rejectionReason(profile.getRejectionReason())
                 .imgUrl(profile.getImgUrl())
                 .build();
+    }
+
+    private void validateJockeyProfileUnderReview(User jockey, JockeyProfile profile) {
+        if (!STATUS_UNDER_REVIEW.equals(jockey.getStatus())
+                || !STATUS_UNDER_REVIEW.equals(profile.getStatus())) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "Only jockey profiles under review can be approved or rejected.");
+        }
     }
 
     private void validateJockeyProfileReadyForApproval(JockeyProfile profile) {

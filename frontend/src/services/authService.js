@@ -1,4 +1,3 @@
-import API_BASE_URL from '../configs/apiConfig';
 import { httpRequest } from '../api/httpClient';
 
 export function login({ email, password }) {
@@ -6,10 +5,10 @@ export function login({ email, password }) {
     method: 'POST',
     auth: false,
     body: { email, password },
-    fallbackError: 'Đăng nhập thất bại. Vui lòng thử lại.'
+    fallbackError: 'Sign in failed. Please try again.'
   }).then((data) => {
     if (!data?.token || !data?.user) {
-      throw new Error('Đăng nhập thất bại. Hệ thống chưa trả đủ thông tin đăng nhập.');
+      throw new Error('Sign in failed because the server response was incomplete.');
     }
     return data;
   });
@@ -20,12 +19,8 @@ export function signup({ email, fullName, phone, password, roleName }) {
     method: 'POST',
     auth: false,
     body: { email, fullName, phone, password, roleName },
-    fallbackError: 'Đăng ký thất bại. Vui lòng thử lại.'
+    fallbackError: 'Registration failed. Please try again.'
   });
-}
-
-export function startGoogleLogin() {
-  window.location.href = `${API_BASE_URL}/oauth2/authorization/google`;
 }
 
 export function saveAuthSession(loginResponse, rememberMe) {

@@ -6,18 +6,10 @@ export function getStoredToken() {
 
 
 const MESSAGE_TRANSLATIONS = {
-  'Horse name is required': 'Tên ngựa không được để trống.',
-  'Age must be zero or positive': 'Tuổi ngựa phải lớn hơn hoặc bằng 0.',
-  'Weight must be a positive number': 'Cân nặng phải lớn hơn 0.',
-  'Horse has participated in at least one race and cannot be deleted.': 'Không thể xóa hồ sơ ngựa đã có lịch sử tham gia race hoặc kết quả thi đấu.',
-  'User is not authenticated.': 'Bạn cần đăng nhập để tiếp tục.',
-  'Only owners can access this resource.': 'Chỉ Horse Owner mới được truy cập chức năng này.',
-  'Owner does not exist.': 'Không tìm thấy tài khoản chủ ngựa.',
-  'Horse does not exist.': 'Không tìm thấy hồ sơ ngựa hoặc hồ sơ không thuộc quyền quản lý của bạn.',
-  'Invalid email or password': 'Email hoặc mật khẩu không đúng.',
-  'Email already exists': 'Email đã tồn tại trong hệ thống.',
-  'Role not found': 'Vai trò không hợp lệ.',
-  'Account is not active': 'Tài khoản không ở trạng thái ACTIVE nên không thể đăng nhập.'
+  'Invalid email or password': 'Invalid email or password.',
+  'Email already exists': 'An account with this email already exists.',
+  'Role not found': 'The selected role is invalid.',
+  'Account is not active': 'This account is not active.'
 };
 
 function translateMessage(message) {
@@ -25,7 +17,7 @@ function translateMessage(message) {
   return MESSAGE_TRANSLATIONS[message] || message;
 }
 
-export function getErrorMessage(data, fallbackMessage = 'Có lỗi xảy ra. Vui lòng thử lại.') {
+export function getErrorMessage(data, fallbackMessage = 'Something went wrong. Please try again.') {
   if (!data) return fallbackMessage;
   if (typeof data === 'string') return translateMessage(data);
   if (typeof data.message === 'string') return translateMessage(data.message);
@@ -54,7 +46,7 @@ export async function httpRequest(path, options = {}) {
     body,
     auth = true,
     headers = {},
-    fallbackError = 'Có lỗi xảy ra. Vui lòng thử lại.'
+    fallbackError = 'Something went wrong. Please try again.'
   } = options;
 
   const requestHeaders = { ...headers };
@@ -66,7 +58,7 @@ export async function httpRequest(path, options = {}) {
   if (auth) {
     const token = getStoredToken();
     if (!token) {
-      throw new Error('Bạn chưa đăng nhập hoặc token đã hết hạn.');
+      throw new Error('You are not signed in or your session has expired.');
     }
     requestHeaders.Authorization = `Bearer ${token}`;
   }

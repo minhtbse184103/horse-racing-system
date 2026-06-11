@@ -6,15 +6,15 @@ export function validateLoginForm(values) {
   const errors = {};
 
   if (!values.email?.trim()) {
-    errors.email = 'Email không được để trống.';
+    errors.email = 'Email is required.';
   } else if (!EMAIL_REGEX.test(values.email.trim())) {
-    errors.email = 'Email không đúng định dạng.';
+    errors.email = 'Enter a valid email address.';
   }
 
   if (!values.password) {
-    errors.password = 'Password không được để trống.';
+    errors.password = 'Password is required.';
   } else if (values.password.length < 6 || values.password.length > 72) {
-    errors.password = 'Password phải từ 6 đến 72 ký tự.';
+    errors.password = 'Password must be between 6 and 72 characters.';
   }
 
   return errors;
@@ -24,31 +24,31 @@ export function validateSignupForm(values) {
   const errors = {};
 
   if (!values.fullName?.trim()) {
-    errors.fullName = 'Họ tên không được để trống.';
+    errors.fullName = 'Full name is required.';
   } else if (values.fullName.trim().length > 255) {
-    errors.fullName = 'Họ tên không được vượt quá 255 ký tự.';
+    errors.fullName = 'Full name cannot exceed 255 characters.';
   }
 
   if (!values.email?.trim()) {
-    errors.email = 'Email không được để trống.';
+    errors.email = 'Email is required.';
   } else if (!EMAIL_REGEX.test(values.email.trim())) {
-    errors.email = 'Email không đúng định dạng.';
+    errors.email = 'Enter a valid email address.';
   }
 
   if (!values.phone?.trim()) {
-    errors.phone = 'Số điện thoại không được để trống.';
+    errors.phone = 'Phone number is required.';
   } else if (!PHONE_REGEX.test(values.phone.trim())) {
-    errors.phone = 'Số điện thoại phải gồm 9-15 chữ số và có thể bắt đầu bằng +.';
+    errors.phone = 'Phone number must contain 9-15 digits and may begin with +.';
   }
 
   if (!values.password) {
-    errors.password = 'Password không được để trống.';
+    errors.password = 'Password is required.';
   } else if (values.password.length < 6 || values.password.length > 72) {
-    errors.password = 'Password phải từ 6 đến 72 ký tự.';
+    errors.password = 'Password must be between 6 and 72 characters.';
   }
 
   if (!values.roleName || !PUBLIC_ROLES.includes(values.roleName)) {
-    errors.roleName = 'Role chỉ được là OWNER, JOCKEY hoặc SPECTATOR.';
+    errors.roleName = 'Role must be Owner, Jockey, or Spectator.';
   }
 
   return errors;
