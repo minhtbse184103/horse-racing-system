@@ -8,7 +8,9 @@ import {
 } from '../../../services/eventService';
 import {
   createRaceEntry,
-  getRaceEntriesByRace
+  getRaceEntriesByRace,
+  getRaceEntryAssignmentQueue,
+  getUnassignedRaceEntriesByRound
 } from '../../../services/raceEntryService';
 
 function formatStatus(status) {
@@ -178,39 +180,29 @@ export default function RaceEntryManagement() {
   const [races, setRaces] = useState([]);
   const [registrations, setRegistrations] = useState([]);
   const [entries, setEntries] = useState([]);
+  const [assignmentQueue, setAssignmentQueue] = useState([]);
+  const [unassignedEntries, setUnassignedEntries] = useState([]);
 
   const [selectedTournamentId, setSelectedTournamentId] = useState('');
   const [selectedRoundId, setSelectedRoundId] = useState('');
   const [selectedRaceId, setSelectedRaceId] = useState('');
-  const [selectedRegistrationId, setSelectedRegistrationId] = useState('');
 
-  const [confirmation, setConfirmation] = useState(null);
+  const [assignmentTarget, setAssignmentTarget] = useState(null);
+  const [assignmentRaceId, setAssignmentRaceId] = useState('');
+  const [assignmentRaces, setAssignmentRaces] = useState([]);
+  const [isLoadingAssignmentRaces, setIsLoadingAssignmentRaces] =
+    useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isAssigning, setIsAssigning] = useState(false);
   const [entrySearch, setEntrySearch] = useState('');
+  const [unassignedSearch, setUnassignedSearch] = useState('');
+  const [queueSearch, setQueueSearch] = useState('');
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
-
-  const selectedTournament = tournaments.find(
-    (item) => String(item.tournamentId) === String(selectedTournamentId)
-  );
 
   const selectedRace = races.find(
     (item) => String(item.raceId) === String(selectedRaceId)
   );
-
-  const confirmedRegistrations = useMemo(() => {
-    const assignedRegistrationIds = new Set(
-      entries.map((entry) => String(entry.registrationId))
-    );
-
-    return registrations.filter(
-      (registration) =>
-        registration.status === 'CONFIRMED' &&
-        String(registration.tournamentId) === String(selectedTournamentId) &&
-        !assignedRegistrationIds.has(String(registration.registrationId))
-    );
-  }, [registrations, selectedTournamentId, entries]);
 
   const registrationById = useMemo(
     () =>
@@ -244,6 +236,44 @@ export default function RaceEntryManagement() {
     });
   }, [entries, entrySearch, registrationById]);
 
+  const filteredUnassignedRegistrations = useMemo(() => {
+    const query = unassignedSearch.trim().toLowerCase();
+
+    if (!query) return unassignedEntries;
+
+    return unassignedEntries.filter((registration) =>
+      [
+        registration.registrationId,
+        registration.tournamentName,
+        registration.horseName,
+        registration.ownerName,
+        registration.jockeyName,
+        registration.registrationStatus
+      ]
+        .filter((value) => value !== null && value !== undefined)
+        .some((value) => String(value).toLowerCase().includes(query))
+    );
+  }, [unassignedEntries, unassignedSearch]);
+
+  const filteredAssignmentQueue = useMemo(() => {
+    const query = queueSearch.trim().toLowerCase();
+
+    if (!query) return assignmentQueue;
+
+    return assignmentQueue.filter((candidate) =>
+      [
+        candidate.registrationId,
+        candidate.tournamentName,
+        candidate.roundName,
+        candidate.horseName,
+        candidate.ownerName,
+        candidate.jockeyName
+      ]
+        .filter((value) => value !== null && value !== undefined)
+        .some((value) => String(value).toLowerCase().includes(query))
+    );
+  }, [assignmentQueue, queueSearch]);
+
   useEffect(() => {
     loadInitialData();
   }, []);
@@ -253,13 +283,15 @@ export default function RaceEntryManagement() {
     setError('');
 
     try {
-      const [tournamentData, historyData] = await Promise.all([
+      const [tournamentData, historyData, queueData] = await Promise.all([
         getTournaments(),
-        getRegistrationHistory()
+        getRegistrationHistory(),
+        getRaceEntryAssignmentQueue()
       ]);
 
       setTournaments(Array.isArray(tournamentData) ? tournamentData : []);
       setRegistrations(Array.isArray(historyData) ? historyData : []);
+      setAssignmentQueue(Array.isArray(queueData) ? queueData : []);
     } catch (err) {
       setError(err.message || 'Unable to load RaceEntry data.');
     } finally {
@@ -271,11 +303,12 @@ export default function RaceEntryManagement() {
     setSelectedTournamentId(tournamentId);
     setSelectedRoundId('');
     setSelectedRaceId('');
-    setSelectedRegistrationId('');
     setRounds([]);
     setRaces([]);
     setEntries([]);
+    setUnassignedEntries([]);
     setEntrySearch('');
+    setUnassignedSearch('');
     setError('');
     setMessage('');
 
@@ -292,10 +325,11 @@ export default function RaceEntryManagement() {
   async function handleRoundChange(roundId) {
     setSelectedRoundId(roundId);
     setSelectedRaceId('');
-    setSelectedRegistrationId('');
     setRaces([]);
     setEntries([]);
+    setUnassignedEntries([]);
     setEntrySearch('');
+    setUnassignedSearch('');
     setError('');
     setMessage('');
 
@@ -303,7 +337,9 @@ export default function RaceEntryManagement() {
 
     try {
       const data = await getRacesByRound(roundId);
-      setRaces(Array.isArray(data) ? data : []);
+      const nextRaces = Array.isArray(data) ? data : [];
+      setRaces(nextRaces);
+      await loadUnassignedEntries(roundId);
     } catch (err) {
       setError(err.message || 'Unable to load races.');
     }
@@ -311,15 +347,37 @@ export default function RaceEntryManagement() {
 
   async function handleRaceChange(raceId) {
     setSelectedRaceId(raceId);
-    setSelectedRegistrationId('');
     setEntries([]);
     setEntrySearch('');
+    setUnassignedSearch('');
     setError('');
     setMessage('');
 
     if (!raceId) return;
 
     await loadEntries(raceId);
+  }
+
+  async function openAssignment(candidate) {
+    setError('');
+    setMessage('');
+    setAssignmentTarget(candidate);
+    setAssignmentRaceId('');
+    setAssignmentRaces([]);
+    setIsLoadingAssignmentRaces(true);
+
+    try {
+      const data = await getRacesByRound(candidate.roundId || selectedRoundId);
+      const eligibleRaces = (Array.isArray(data) ? data : []).filter(
+        (race) => String(race.status).toLowerCase() === 'draft'
+      );
+      setAssignmentRaces(eligibleRaces);
+    } catch (err) {
+      setAssignmentTarget(null);
+      setError(err.message || 'Unable to load eligible draft races.');
+    } finally {
+      setIsLoadingAssignmentRaces(false);
+    }
   }
 
   async function loadEntries(raceId) {
@@ -332,37 +390,45 @@ export default function RaceEntryManagement() {
     }
   }
 
-  function requestAssignment() {
-    if (!selectedRaceId || !selectedRegistrationId) {
-      setError('Select a race and confirmed registration.');
+  async function loadUnassignedEntries(roundId = selectedRoundId) {
+    if (!roundId) {
+      setUnassignedEntries([]);
       return;
     }
-
-    const registration = registrationById.get(
-      String(selectedRegistrationId)
-    );
-
-    setConfirmation({
-      race: selectedRace,
-      registration
-    });
+    try {
+      const data = await getUnassignedRaceEntriesByRound(roundId);
+      setUnassignedEntries(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setUnassignedEntries([]);
+      setError(err.message || 'Unable to load unassigned registrations for this round.');
+    }
   }
 
   async function assignRegistration() {
+    if (!assignmentTarget || !assignmentRaceId) return;
+
     setIsAssigning(true);
-    setConfirmation(null);
     setError('');
     setMessage('');
 
     try {
       await createRaceEntry({
-        raceId: Number(selectedRaceId),
-        registrationId: Number(selectedRegistrationId)
+        raceId: Number(assignmentRaceId),
+        registrationId: Number(assignmentTarget.registrationId)
       });
 
-      setSelectedRegistrationId('');
-      setMessage('Registration assigned successfully.');
-      await loadEntries(selectedRaceId);
+      setMessage(
+        `${assignmentTarget.horseName || `Registration #${assignmentTarget.registrationId}`} assigned successfully.`
+      );
+      setAssignmentTarget(null);
+      setAssignmentRaceId('');
+      setAssignmentRaces([]);
+      const [queueData] = await Promise.all([
+        getRaceEntryAssignmentQueue(),
+        selectedRaceId ? loadEntries(selectedRaceId) : Promise.resolve(),
+        selectedRoundId ? loadUnassignedEntries(selectedRoundId) : Promise.resolve()
+      ]);
+      setAssignmentQueue(Array.isArray(queueData) ? queueData : []);
     } catch (err) {
       setError(err.message || 'Unable to assign registration.');
     } finally {
@@ -409,8 +475,113 @@ export default function RaceEntryManagement() {
   </div>
 )}
 
+      <section className="overflow-hidden rounded-xl border border-brown-700/10 bg-cream-100/90 shadow-[0_18px_45px_rgba(78,44,25,0.12)]">
+        <div className="flex items-center justify-between gap-4 border-b border-brown-700/10 bg-cream-200/50 px-6 py-5 max-sm:grid">
+          <div>
+            <h2 className="text-2xl font-extrabold text-brown-900">
+              Qualified Assignment Queue
+            </h2>
+            <p className="mt-2 text-slate-500">
+              {filteredAssignmentQueue.length} of {assignmentQueue.length} confirmed registrations waiting for their first race
+            </p>
+          </div>
+
+          {assignmentQueue.length > 0 && (
+            <label className="relative block w-full max-w-sm">
+              <Search
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
+                size={17}
+              />
+              <input
+                className="w-full rounded-xl border border-brown-700/15 bg-white/90 py-3 pl-10 pr-4 text-sm font-bold text-brown-900 outline-none transition focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
+                placeholder="Search tournament, horse, owner, or jockey"
+                value={queueSearch}
+                onChange={(event) => setQueueSearch(event.target.value)}
+              />
+            </label>
+          )}
+        </div>
+
+        {isLoading ? (
+          <p className="px-6 py-10 text-slate-500">Loading assignment queue...</p>
+        ) : assignmentQueue.length === 0 ? (
+          <p className="px-6 py-10 text-slate-500">
+            No confirmed registrations are waiting for Qualified assignment.
+          </p>
+        ) : filteredAssignmentQueue.length === 0 ? (
+          <p className="px-6 py-10 text-slate-500">
+            No assignment queue entries match your search.
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-[860px] w-full table-fixed border-collapse">
+              <thead className="bg-cream-200/60">
+                <tr>
+                  {['Registration', 'Tournament', 'Round', 'Horse', 'Owner', 'Jockey', 'Action'].map(
+                    (heading) => (
+                      <th
+                        className="border-b border-brown-700/10 px-3 py-4 text-left text-xs font-extrabold uppercase tracking-wide text-brown-700"
+                        key={heading}
+                      >
+                        {heading}
+                      </th>
+                    )
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                {filteredAssignmentQueue.map((candidate) => (
+                  <tr
+                    className="transition hover:bg-cream-200/40"
+                    key={candidate.registrationId}
+                  >
+                    <td className="border-b border-brown-700/10 px-3 py-4 text-sm font-extrabold">
+                      #{candidate.registrationId}
+                    </td>
+                    <td className="break-words border-b border-brown-700/10 px-3 py-4 text-sm font-extrabold">
+                      {candidate.tournamentName || `Tournament #${candidate.tournamentId}`}
+                    </td>
+                    <td className="border-b border-brown-700/10 px-3 py-4 text-sm font-extrabold">
+                      {candidate.roundName || 'Qualified'}
+                    </td>
+                    <td className="break-words border-b border-brown-700/10 px-3 py-4 text-sm font-extrabold">
+                      {candidate.horseName || 'N/A'}
+                    </td>
+                    <td className="break-words border-b border-brown-700/10 px-3 py-4 text-sm font-extrabold">
+                      {candidate.ownerName || 'N/A'}
+                    </td>
+                    <td className="break-words border-b border-brown-700/10 px-3 py-4 text-sm font-extrabold">
+                      {candidate.jockeyName || 'N/A'}
+                    </td>
+                    <td className="border-b border-brown-700/10 px-3 py-4">
+                      <button
+                        className="rounded-lg border border-brown-700 bg-brown-700 px-3 py-2 text-sm font-extrabold text-white transition hover:bg-brown-900"
+                        type="button"
+                        onClick={() => openAssignment(candidate)}
+                      >
+                        Assign
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+
       <section className="relative z-20 overflow-visible rounded-xl border border-brown-700/10 bg-cream-100/90 p-6 shadow-[0_18px_45px_rgba(78,44,25,0.12)]">
-  <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="mb-5">
+          <h2 className="text-2xl font-extrabold text-brown-900">
+            Search Assignments
+          </h2>
+          <p className="mt-2 text-slate-500">
+            Select a tournament, round, and race to view its assigned and
+            available entries.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           <PrettySelect
             label="Tournament"
             placeholder="Select tournament"
@@ -452,48 +623,10 @@ export default function RaceEntryManagement() {
             }))}
           />
         </div>
-
-        {selectedRaceId && (
-     <div className="mt-6 grid grid-cols-1 items-end gap-4 border-t border-brown-700/10 pt-6 lg:grid-cols-[minmax(180px,0.7fr)_minmax(260px,1fr)_auto]">
-  <div className="grid gap-1">
-    <span className="text-xs font-extrabold uppercase text-slate-500">
-      Selected Race
-    </span>
-
-    <strong className="text-lg text-brown-900">
-      {selectedRace?.raceName}
-    </strong>
-
-    <small className="text-sm text-slate-500">
-      {selectedTournament?.tournamentName} · {selectedRace?.distance}m
-    </small>
-  </div>
-
-            <PrettySelect
-              placeholder="Select confirmed registration"
-              value={selectedRegistrationId}
-              onChange={setSelectedRegistrationId}
-              options={confirmedRegistrations.map((registration) => ({
-                value: registration.registrationId,
-                label: registration.horseName,
-                meta: `#${registration.registrationId} · ${registration.jockeyName}`,
-                status: registration.status
-              }))}
-            />
-
-            <button
-              className="rounded-xl border border-brown-700 bg-brown-700 px-5 py-4 font-extrabold text-white shadow-[0_8px_20px_rgba(108,63,36,0.2)] transition hover:-translate-y-0.5 hover:bg-brown-900 hover:shadow-lg disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0"
-              type="button"
-              disabled={!selectedRegistrationId || isAssigning}
-              onClick={requestAssignment}
-            >
-              Assign to Race
-            </button>
-          </div>
-        )}
       </section>
 
-      <section className="relative z-10 overflow-hidden rounded-xl border border-brown-700/10 bg-cream-100/90 shadow-[0_18px_45px_rgba(78,44,25,0.12)]">
+      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-2">
+      <section className="relative z-10 min-w-0 overflow-hidden rounded-xl border border-brown-700/10 bg-cream-100/90 shadow-[0_18px_45px_rgba(78,44,25,0.12)]">
         <div className="flex items-center justify-between gap-4 border-b border-brown-700/10 bg-cream-200/50 px-6 py-5 max-sm:grid">
           <div>
             <h2 className="text-2xl font-extrabold text-brown-900">
@@ -537,7 +670,7 @@ export default function RaceEntryManagement() {
           </p>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full table-fixed border-collapse">
+            <table className="min-w-[680px] w-full table-fixed border-collapse">
               <thead className="bg-cream-200/60">
                 <tr>
                   {[
@@ -609,73 +742,228 @@ export default function RaceEntryManagement() {
         )}
       </section>
 
-      {confirmation && (
+      <section className="relative z-10 min-w-0 overflow-hidden rounded-xl border border-brown-700/10 bg-cream-100/90 shadow-[0_18px_45px_rgba(78,44,25,0.12)]">
+        <div className="flex items-center justify-between gap-4 border-b border-brown-700/10 bg-cream-200/50 px-6 py-5 max-sm:grid">
+          <div>
+            <h2 className="text-2xl font-extrabold text-brown-900">
+              Unassigned Entries
+            </h2>
+
+            <p className="mt-2 text-slate-500">
+              {selectedRoundId
+                ? `${filteredUnassignedRegistrations.length} of ${unassignedEntries.length} confirmed registrations available in this round`
+                : 'Select a tournament and round to view unassigned entries'}
+            </p>
+          </div>
+
+          {selectedRoundId && unassignedEntries.length > 0 && (
+            <label className="relative block w-full max-w-sm">
+              <Search
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
+                size={17}
+              />
+              <input
+                className="w-full rounded-xl border border-brown-700/15 bg-white/90 py-3 pl-10 pr-4 text-sm font-bold text-brown-900 outline-none transition focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
+                placeholder="Search horse, owner, or jockey"
+                value={unassignedSearch}
+                onChange={(event) => setUnassignedSearch(event.target.value)}
+              />
+            </label>
+          )}
+        </div>
+
+        {!selectedRoundId ? (
+          <p className="px-6 py-10 text-slate-500">
+            Select a tournament and round.
+          </p>
+        ) : unassignedEntries.length === 0 ? (
+          <p className="px-6 py-10 text-slate-500">
+            No confirmed registrations are available for this round.
+          </p>
+        ) : filteredUnassignedRegistrations.length === 0 ? (
+          <p className="px-6 py-10 text-slate-500">
+            No unassigned entries match your search.
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-[600px] w-full table-fixed border-collapse">
+              <thead className="bg-cream-200/60">
+                <tr>
+                  {['Registration', 'Horse', 'Owner', 'Jockey', 'Status', 'Action'].map(
+                    (heading) => (
+                      <th
+                        className="border-b border-brown-700/10 px-3 py-4 text-left text-xs font-extrabold uppercase tracking-wide text-brown-700"
+                        key={heading}
+                      >
+                        {heading}
+                      </th>
+                    )
+                  )}
+                </tr>
+              </thead>
+
+              <tbody>
+                {filteredUnassignedRegistrations.map((registration) => (
+                  <tr
+                    className="transition hover:bg-cream-200/40"
+                    key={registration.registrationId}
+                  >
+                    <td className="border-b border-brown-700/10 px-3 py-4 text-[0.82rem] font-extrabold text-brown-900">
+                      #{registration.registrationId}
+                    </td>
+
+                    <td className="break-words border-b border-brown-700/10 px-3 py-4 text-[0.82rem] font-extrabold leading-snug text-brown-900">
+                      {registration.horseName || 'N/A'}
+                    </td>
+
+                    <td className="break-words border-b border-brown-700/10 px-3 py-4 text-[0.82rem] font-extrabold leading-snug text-brown-900">
+                      {registration.ownerName || 'N/A'}
+                    </td>
+
+                    <td className="break-words border-b border-brown-700/10 px-3 py-4 text-[0.82rem] font-extrabold leading-snug text-brown-900">
+                      {registration.jockeyName || 'N/A'}
+                    </td>
+
+                    <td className="border-b border-brown-700/10 px-3 py-4">
+                      <span
+                        className={`inline-flex rounded-full px-3 py-1 text-xs font-extrabold ${getStatusClasses(
+                          registration.registrationStatus
+                        )}`}
+                      >
+                        {formatStatus(registration.registrationStatus)}
+                      </span>
+                    </td>
+
+                    <td className="border-b border-brown-700/10 px-3 py-4">
+                      <button
+                        className="rounded-lg border border-brown-700 bg-brown-700 px-3 py-2 text-sm font-extrabold text-white transition hover:bg-brown-900"
+                        type="button"
+                        onClick={() => openAssignment(registration)}
+                      >
+                        Assign
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </section>
+      </div>
+
+      {assignmentTarget && (
         <div
           className="fixed inset-0 z-[1000] grid place-items-center bg-brown-900/60 p-6 backdrop-blur-sm max-sm:items-end max-sm:p-3"
-          onClick={() => setConfirmation(null)}
+          onClick={() => !isAssigning && setAssignmentTarget(null)}
         >
           <div
-            className="relative w-full max-w-lg overflow-hidden rounded-lg border border-brown-700/20 bg-cream-100 p-7 shadow-2xl before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-green-700 max-sm:p-5"
+            className="relative w-full max-w-2xl overflow-visible rounded-xl border border-brown-700/20 bg-cream-100 p-7 shadow-2xl before:absolute before:inset-x-0 before:top-0 before:h-1 before:bg-brown-700 max-sm:p-5"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-center gap-4">
-              <span className="grid size-12 shrink-0 place-items-center rounded-full bg-green-100 text-xl font-black text-green-700">
-                ✓
+              <span className="grid size-12 shrink-0 place-items-center rounded-full bg-cream-200 text-xl font-black text-brown-700">
+                {assignmentTarget.horseName?.charAt(0) || '#'}
               </span>
 
               <div>
                 <span className="mb-1 block text-xs font-extrabold uppercase text-slate-500">
-                  Race Assignment
+                  Quick Assignment
                 </span>
                 <h2 className="text-xl font-extrabold text-brown-900">
-                  Assign Registration
+                  Choose a Draft Race
                 </h2>
               </div>
             </div>
 
             <p className="my-5 leading-relaxed text-slate-500">
-              The backend will automatically assign the next lane number.
+              Tournament and round are already matched. Choose the destination
+              race and the next lane number will be generated automatically.
             </p>
 
-            <dl className="grid overflow-hidden rounded-lg border border-brown-700/10 bg-brown-700/10">
-              <div className="grid grid-cols-[7rem_minmax(0,1fr)] gap-4 bg-white/70 px-4 py-3 max-sm:grid-cols-1 max-sm:gap-1">
-                <dt className="text-sm font-bold text-slate-500">Race</dt>
+            <dl className="mb-5 grid overflow-hidden rounded-lg border border-brown-700/10 bg-brown-700/10 sm:grid-cols-2">
+              <div className="grid gap-1 bg-white/70 px-4 py-3">
+                <dt className="text-xs font-extrabold uppercase text-slate-500">
+                  Tournament
+                </dt>
                 <dd className="m-0 break-words text-sm font-extrabold text-brown-900">
-                  {confirmation.race?.raceName}
+                  {assignmentTarget.tournamentName ||
+                    `Tournament #${assignmentTarget.tournamentId}`}
                 </dd>
               </div>
 
-              <div className="mt-px grid grid-cols-[7rem_minmax(0,1fr)] gap-4 bg-white/70 px-4 py-3 max-sm:grid-cols-1 max-sm:gap-1">
-                <dt className="text-sm font-bold text-slate-500">Horse</dt>
+              <div className="grid gap-1 bg-white/70 px-4 py-3 sm:ml-px">
+                <dt className="text-xs font-extrabold uppercase text-slate-500">
+                  Round
+                </dt>
                 <dd className="m-0 break-words text-sm font-extrabold text-brown-900">
-                  {confirmation.registration?.horseName}
+                  {assignmentTarget.roundName || 'Selected round'}
                 </dd>
               </div>
 
-              <div className="mt-px grid grid-cols-[7rem_minmax(0,1fr)] gap-4 bg-white/70 px-4 py-3 max-sm:grid-cols-1 max-sm:gap-1">
-                <dt className="text-sm font-bold text-slate-500">Jockey</dt>
+              <div className="mt-px grid gap-1 bg-white/70 px-4 py-3">
+                <dt className="text-xs font-extrabold uppercase text-slate-500">
+                  Horse
+                </dt>
                 <dd className="m-0 break-words text-sm font-extrabold text-brown-900">
-                  {confirmation.registration?.jockeyName}
+                  {assignmentTarget.horseName || 'N/A'}
+                </dd>
+              </div>
+
+              <div className="mt-px grid gap-1 bg-white/70 px-4 py-3 sm:ml-px">
+                <dt className="text-xs font-extrabold uppercase text-slate-500">
+                  Jockey
+                </dt>
+                <dd className="m-0 break-words text-sm font-extrabold text-brown-900">
+                  {assignmentTarget.jockeyName || 'N/A'}
                 </dd>
               </div>
             </dl>
+
+            {isLoadingAssignmentRaces ? (
+              <p className="rounded-xl border border-brown-700/10 bg-white/70 px-4 py-6 text-center font-bold text-slate-500">
+                Loading eligible races...
+              </p>
+            ) : assignmentRaces.length === 0 ? (
+              <p className="rounded-xl border border-amber-700/20 bg-amber-50 px-4 py-4 font-bold text-amber-800">
+                No draft races are available in this round.
+              </p>
+            ) : (
+              <PrettySelect
+                label="Destination Race"
+                placeholder="Choose a draft race"
+                value={assignmentRaceId}
+                onChange={setAssignmentRaceId}
+                options={assignmentRaces.map((race) => ({
+                  value: race.raceId,
+                  label: race.raceName,
+                  meta: `${race.distance}m`,
+                  status: race.status
+                }))}
+              />
+            )}
 
             <div className="mt-6 flex justify-end gap-3 max-sm:grid max-sm:grid-cols-1">
               <button
                 className="min-h-11 rounded-lg border border-brown-700/20 bg-white/70 px-4 py-2 font-extrabold text-brown-700 transition hover:bg-cream-200"
                 type="button"
-                onClick={() => setConfirmation(null)}
+                disabled={isAssigning}
+                onClick={() => setAssignmentTarget(null)}
               >
-                Go Back
+                Cancel
               </button>
 
               <button
                 className="min-h-11 rounded-lg border border-green-700 bg-green-700 px-4 py-2 font-extrabold text-white transition hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-60"
                 type="button"
-                disabled={isAssigning}
+                disabled={
+                  isAssigning ||
+                  isLoadingAssignmentRaces ||
+                  !assignmentRaceId
+                }
                 onClick={assignRegistration}
               >
-                Assign Registration
+                {isAssigning ? 'Assigning...' : 'Confirm Assignment'}
               </button>
             </div>
           </div>

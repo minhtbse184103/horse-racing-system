@@ -11,6 +11,9 @@ import com.example.backend.repository.RaceEntryRepository;
 import com.example.backend.repository.RaceRepository;
 import com.example.backend.repository.RegistrationRepository;
 import com.example.backend.repository.TournamentRoundRepository;
+import com.example.backend.repository.HorseRepository;
+import com.example.backend.repository.TournamentRepository;
+import com.example.backend.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -39,6 +42,12 @@ class RaceEntryServiceTest {
     private RegistrationRepository registrationRepository;
     @Mock
     private TournamentRoundRepository tournamentRoundRepository;
+    @Mock
+    private HorseRepository horseRepository;
+    @Mock
+    private UserRepository userRepository;
+    @Mock
+    private TournamentRepository tournamentRepository;
 
     private RaceEntryService service;
 
@@ -48,7 +57,10 @@ class RaceEntryServiceTest {
                 raceEntryRepository,
                 raceRepository,
                 registrationRepository,
-                tournamentRoundRepository);
+                tournamentRoundRepository,
+                horseRepository,
+                userRepository,
+                tournamentRepository);
     }
 
     @Test

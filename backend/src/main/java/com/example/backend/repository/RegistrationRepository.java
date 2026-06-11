@@ -76,4 +76,51 @@ public interface RegistrationRepository extends JpaRepository<Registration, Inte
             @Param("horseId") Integer horseId,
             @Param("statuses") Collection<String> statuses,
             @Param("excludedRegistrationId") Integer excludedRegistrationId);
+
+    @Query("""
+        select registration
+        from Registration registration
+        where registration.status = :confirmedStatus
+          and exists (
+              select qualifiedRound
+              from TournamentRound qualifiedRound
+              where qualifiedRound.tournamentId = registration.tournamentId
+                and qualifiedRound.roundOrder = 1
+          )
+          and not exists (
+              select entry
+              from RaceEntry entry
+              join Race race on race.raceId = entry.raceId
+              join TournamentRound round on round.roundId = race.roundId
+              where entry.registrationId = registration.registrationId
+                and round.tournamentId = registration.tournamentId
+                and round.roundOrder = 1
+                and entry.status <> :withdrawnStatus
+          )
+        order by registration.updatedAt asc
+        """)
+    List<Registration> findQualifiedAssignmentQueue(
+            @Param("confirmedStatus") String confirmedStatus,
+            @Param("withdrawnStatus") String withdrawnStatus);
+
+    @Query("""
+        select registration
+        from Registration registration
+        where registration.status = :confirmedStatus
+          and registration.tournamentId = :tournamentId
+          and not exists (
+              select entry
+              from RaceEntry entry
+              join Race race on race.raceId = entry.raceId
+              where entry.registrationId = registration.registrationId
+                and race.roundId = :roundId
+                and entry.status <> :withdrawnStatus
+          )
+        order by registration.updatedAt asc
+        """)
+    List<Registration> findUnassignedByRound(
+            @Param("tournamentId") Integer tournamentId,
+            @Param("roundId") Integer roundId,
+            @Param("confirmedStatus") String confirmedStatus,
+            @Param("withdrawnStatus") String withdrawnStatus);
 }
