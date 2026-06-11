@@ -3,10 +3,11 @@ import LoginForm from './components/auth/LoginForm';
 import RegisterForm from './components/auth/RegisterForm';
 import AdminDashboard from './components/admin/AdminDashboard';
 import OwnerDashboard from './components/owner/OwnerDashboard';
-import JockeyDashboard from './components/jockey/JockeyDashboard.tsx';
+import JockeyDashboard from './components/jockey/JockeyDashboard';
 import UserPanel from './components/user/UserPanel';
 import LandingPage from './pages/LandingPage';
 import { useAuth } from './hooks/useAuth';
+import { getUserRole } from './lib';
 
 function getInitialPage() {
   if (window.location.pathname === '/register') return 'register';
@@ -17,7 +18,7 @@ function getInitialPage() {
 export default function App() {
   const { user, setUser, clearAuth } = useAuth();
   const [page, setPage] = useState(getInitialPage);
-  const userRole = user?.role ?? user?.roleName;
+  const userRole = getUserRole(user);
 
   useEffect(() => {
     function handlePopState() {

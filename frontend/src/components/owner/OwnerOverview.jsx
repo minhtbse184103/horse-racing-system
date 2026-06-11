@@ -1,35 +1,15 @@
 import StatCard from '../common/StatCard';
 import { formatNumber } from '../../lib';
-
-export default function OwnerOverview({ dashboard, horses, onGoHorses }) {
-  const activeHorses = horses.filter((horse) => String(horse.status || '').toUpperCase() === 'ACTIVE').length;
-  const participatedHorses = horses.filter((horse) => horse.participated).length;
-  const registeredHorses = horses.filter((horse) => Number(horse.registrationCount || 0) > 0).length;
-
-  return (
-    <>
+export default function OwnerOverview({ dashboard, horses, onGoHorses, onGoInvitations }) {
+    const activeHorses = horses.filter((horse) => String(horse.status || '').toUpperCase() === 'ACTIVE').length;
+    const participatedHorses = horses.filter((horse) => horse.participated).length;
+    const registeredHorses = horses.filter((horse) => Number(horse.registrationCount || 0) > 0).length;
+    return (<>
       <section className="owner-stats-grid">
-        <StatCard
-          label="Total Horses"
-          value={dashboard?.totalHorses ?? horses.length}
-          description="Số hồ sơ ngựa đang thuộc quyền quản lý"
-          highlight
-        />
-        <StatCard
-          label="Registrations"
-          value={dashboard?.totalRegistrations ?? 0}
-          description="Tổng lượt đăng ký thi đấu đã ghi nhận"
-        />
-        <StatCard
-          label="Registered Horses"
-          value={dashboard?.registeredHorses ?? registeredHorses}
-          description="Số ngựa đã có đăng ký race"
-        />
-        <StatCard
-          label="Participated"
-          value={dashboard?.participatedHorses ?? participatedHorses}
-          description="Số ngựa đã tham gia thi đấu"
-        />
+        <StatCard label="Total Horses" value={dashboard?.totalHorses ?? horses.length} description="Số hồ sơ ngựa đang thuộc quyền quản lý" highlight/>
+        <StatCard label="Registrations" value={dashboard?.totalRegistrations ?? 0} description="Tổng lượt đăng ký thi đấu đã ghi nhận"/>
+        <StatCard label="Registered Horses" value={dashboard?.registeredHorses ?? registeredHorses} description="Số ngựa đã có đăng ký race"/>
+        <StatCard label="Participated" value={dashboard?.participatedHorses ?? participatedHorses} description="Số ngựa đã tham gia thi đấu"/>
       </section>
 
       <section className="owner-overview-grid">
@@ -41,9 +21,14 @@ export default function OwnerOverview({ dashboard, horses, onGoHorses }) {
               Theo dõi tổng số ngựa, tình trạng đăng ký và lịch sử tham gia thi đấu. Các thông tin này giúp owner chuẩn bị hồ sơ ngựa trước khi đăng ký race.
             </p>
           </div>
-          <button className="primary-button owner-hero-action" type="button" onClick={onGoHorses}>
-            Quản lý ngựa
-          </button>
+          <div className="owner-shortcut-actions">
+            <button className="primary-button owner-hero-action" type="button" onClick={onGoHorses}>
+              Quản lý ngựa
+            </button>
+            <button className="outline-button owner-hero-action" type="button" onClick={onGoInvitations}>
+              Lời mời / Đăng ký
+            </button>
+          </div>
         </div>
 
         <div className="owner-panel compact-panel">
@@ -69,6 +54,5 @@ export default function OwnerOverview({ dashboard, horses, onGoHorses }) {
           </div>
         </div>
       </section>
-    </>
-  );
+    </>);
 }
