@@ -54,8 +54,6 @@ export interface OwnerDashboardData {
   [key: string]: unknown;
 }
 
-// MERGED FROM ZIP FRONTEND:
-// Owner horse APIs now send the backend DTO fields: horseName, color, dayOfBirth, weight.
 export function getOwnerDashboard(): Promise<OwnerDashboardData> {
   return httpRequest<OwnerDashboardData>('/api/owner/dashboard', {
     fallbackError: 'Không thể tải dashboard chủ ngựa.'

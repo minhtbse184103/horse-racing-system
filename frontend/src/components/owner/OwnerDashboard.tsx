@@ -14,8 +14,6 @@ import type { Horse, HorseFormValues } from '../../services/ownerService';
 import type { FormErrors } from '../../utils/validators';
 import type { NavItem } from '../common/AppShell';
 
-// MERGED FROM ZIP FRONTEND:
-// Keeps the current owner area but maps horse forms to backend DTO fields.
 const ownerNavItems: NavItem[] = [
   { key: 'overview', label: 'Dashboard', icon: '📊' },
   { key: 'horses', label: 'My Horses', icon: '🐎' },

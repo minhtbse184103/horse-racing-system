@@ -1,8 +1,6 @@
 import type { AuthUser, Id } from '../services/authService';
 import type { Horse, HorseFormValues, HorsePayload } from '../services/ownerService';
 
-// MERGED FROM ZIP FRONTEND:
-// Normalizes user/horse fields so both frontend versions can read backend responses.
 export function formatNumber(value: unknown): string {
   const number = Number(value || 0);
   return Number.isFinite(number) ? number.toLocaleString('vi-VN') : '0';

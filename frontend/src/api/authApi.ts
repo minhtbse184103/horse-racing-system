@@ -29,7 +29,7 @@ export async function loginApi({ email, password }) {
   try {
     data = await response.json();
   } catch {
-    // Backend trả về body rỗng ở một số lỗi
+    
   }
 
   if (!response.ok) {
@@ -40,7 +40,7 @@ export async function loginApi({ email, password }) {
     throw new Error('Response không hợp lệ: thiếu token hoặc user.');
   }
 
-  return data; // { token, user }
+  return data; 
 }
 
 /**
@@ -59,7 +59,7 @@ export async function signupApi({ email, fullName, phone, password, roleName }) 
   try {
     data = await response.json();
   } catch {
-    // ignore
+    
   }
 
   if (!response.ok) {

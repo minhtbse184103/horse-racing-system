@@ -769,6 +769,10 @@ select {
   grid-template-columns: 1fr 1fr;
 }
 
+.modal-alert {
+  margin: 0 0 14px;
+}
+
 .admin-card {
   border-radius: 28px;
   padding: 24px;

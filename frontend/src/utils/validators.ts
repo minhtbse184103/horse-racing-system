@@ -3,8 +3,6 @@ import type { HorseFormValues } from '../services/ownerService';
 
 export type FormErrors<T> = Partial<Record<keyof T, string>>;
 
-// MERGED FROM ZIP FRONTEND:
-// Validation now follows the backend DTO fields used by the merged horse form.
 const EMAIL_REGEX = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
 const PHONE_REGEX = /^\+?[0-9]{9,15}$/;
 const PUBLIC_ROLES = ['OWNER', 'JOCKEY', 'SPECTATOR'] as const;
@@ -65,8 +63,6 @@ export function validateHorseForm(values: HorseFormValues): FormErrors<HorseForm
   const errors: FormErrors<HorseFormValues> = {};
   const weight = Number(values.weight);
 
-  // Theo CreateHorseRequest / UpdateHorseRequest hiện tại của BE:
-  // @NotBlank horseName, @NotNull + @Positive weight.
   if (!values.horseName?.trim()) {
     errors.horseName = 'Tên ngựa không được để trống.';
   }

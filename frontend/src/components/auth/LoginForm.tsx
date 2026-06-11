@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import type { ChangeEvent, FormEvent } from 'react';
 import AuthLayout from './AuthLayout';
-import { login, saveAuthSession, startGoogleLogin } from '../../services/authService';
+import { login, saveAuthSession } from '../../services/authService';
 import type { AuthUser, LoginRequest } from '../../services/authService';
 import { validateLoginForm } from '../../utils/validators';
 import type { FormErrors } from '../../utils/validators';
@@ -128,16 +128,7 @@ export default function LoginForm({ onLoginSuccess, onGoRegister }: LoginFormPro
           </button>
         </form>
 
-        <div className="auth-divider">
-          <span>hoặc</span>
-        </div>
-
-        <div className="auth-actions">
-          <button className="google-button" type="button" onClick={startGoogleLogin}>
-            <span className="google-icon">G</span>
-            Đăng nhập bằng Gmail
-          </button>
-
+        <div className="auth-actions auth-actions-single">
           <button className="secondary-button" type="button" onClick={onGoRegister}>
             Đăng ký
           </button>

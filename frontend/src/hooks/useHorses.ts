@@ -3,8 +3,6 @@ import { createHorse, deleteHorse, getOwnerHorses, updateHorse } from '../servic
 import type { Horse, HorsePayload } from '../services/ownerService';
 import { getHorseId } from '../lib';
 
-// MERGED FROM ZIP FRONTEND:
-// Keeps horse CRUD state aligned with the merged owner horse DTO flow.
 function getErrorText(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message || fallback : fallback;
 }

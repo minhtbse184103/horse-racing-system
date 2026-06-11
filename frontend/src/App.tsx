@@ -14,8 +14,6 @@ function getInitialPage() {
 export default function App() {
   const { user, setUser, clearAuth } = useAuth();
   const [page, setPage] = useState(getInitialPage);
-  // MERGED FROM ZIP FRONTEND:
-  // Accept role, roleName, userRole, ROLE_* authorities, or roles[] from either frontend/backend contract.
   const userRole = getUserRole(user);
 
   useEffect(() => {

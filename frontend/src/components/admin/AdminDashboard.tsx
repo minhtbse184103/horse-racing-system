@@ -54,6 +54,7 @@ export default function AdminDashboard({ currentUser, onLogout }) {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [modalError, setModalError] = useState('');
 
   const activeUsers = users.filter((user) => user.status === 'ACTIVE').length;
   const inactiveUsers = users.filter((user) => user.status === 'INACTIVE').length;
@@ -81,6 +82,7 @@ export default function AdminDashboard({ currentUser, onLogout }) {
     const { name, value } = event.target;
     setFormValues((current) => ({ ...current, [name]: value }));
     setError('');
+    setModalError('');
     setMessage('');
   }
 
@@ -90,7 +92,8 @@ export default function AdminDashboard({ currentUser, onLogout }) {
     setIsUserModalOpen(true);
     setMessage('');
     setError('');
-  }
+    setModalError('');
+}
 
   function handleEdit(user) {
     if (isOtherAdminUser(user, currentUser)) {
@@ -111,6 +114,7 @@ export default function AdminDashboard({ currentUser, onLogout }) {
     setIsUserModalOpen(true);
     setMessage('');
     setError('');
+    setModalError('');
   }
 
   function closeUserModal() {
@@ -119,38 +123,40 @@ export default function AdminDashboard({ currentUser, onLogout }) {
     setIsUserModalOpen(false);
     setEditingUser(null);
     setFormValues(emptyUserForm());
+    setModalError('');
   }
 
   async function handleSubmit(event) {
     event.preventDefault();
 
     if (editingUser && isOtherAdminUser(editingUser, currentUser)) {
-      setError('Không thể sửa tài khoản Admin khác.');
+      setModalError('Không thể sửa tài khoản Admin khác.');
       return;
     }
 
     if (!formValues.email.trim()) {
-      setError('Email không được để trống.');
+      setModalError('Email không được để trống.');
       return;
     }
 
     if (!formValues.fullName.trim()) {
-      setError('Họ tên không được để trống.');
+      setModalError('Họ tên không được để trống.');
       return;
     }
 
     if (!formValues.phone.trim()) {
-      setError('Số điện thoại không được để trống.');
+      setModalError('Số điện thoại không được để trống.');
       return;
     }
 
     if (!editingUser && !formValues.password) {
-      setError('Password không được để trống khi tạo user.');
+      setModalError('Password không được để trống khi tạo user.');
       return;
     }
 
     setIsSaving(true);
     setError('');
+    setModalError('');
     setMessage('');
 
     try {
@@ -181,9 +187,10 @@ export default function AdminDashboard({ currentUser, onLogout }) {
       setEditingUser(null);
       setFormValues(emptyUserForm());
       setIsUserModalOpen(false);
+      setModalError('');
       await loadUsers();
     } catch (err) {
-      setError(err.message || 'Lưu user thất bại.');
+      setModalError(err.message || 'Lưu user thất bại.');
     } finally {
       setIsSaving(false);
     }
@@ -191,7 +198,7 @@ export default function AdminDashboard({ currentUser, onLogout }) {
 
   async function handleDelete(user) {
     if (isOtherAdminUser(user, currentUser)) {
-      setError('Không thể khóa tài khoản Admin khác.');
+      setModalError('Không thể khóa tài khoản Admin khác.');
       setMessage('');
       return;
     }
@@ -211,7 +218,7 @@ export default function AdminDashboard({ currentUser, onLogout }) {
       setMessage('Khóa user thành công.');
       await loadUsers();
     } catch (err) {
-      setError(err.message || 'Không thể khóa user.');
+      setModalError(err.message || 'Không thể khóa user.');
     }
   }
 
@@ -351,7 +358,7 @@ export default function AdminDashboard({ currentUser, onLogout }) {
               </div>
             </section>
 
-            {error && (
+            {error && !isUserModalOpen && (
               <div className="admin-alert error" role="alert">
                 {error}
               </div>
@@ -450,135 +457,142 @@ export default function AdminDashboard({ currentUser, onLogout }) {
             </section>
 
             {isUserModalOpen && (
-              <div className="admin-modal-overlay" role="presentation" onMouseDown={closeUserModal}>
-                <form
-                  className="admin-card admin-form admin-modal"
-                  onSubmit={handleSubmit}
-                  onMouseDown={stopModalClick}
-                >
-                  <div className="admin-card-header">
-                    <div>
-                      <h2>{editingUser ? 'Cập nhật user' : 'Tạo user mới'}</h2>
-                      <p>
-                        {editingUser
-                          ? 'Chỉnh thông tin user. Password không được cập nhật ở form này.'
-                          : 'Tạo tài khoản mới cho Admin, Owner, Jockey, Referee hoặc Spectator.'}
-                      </p>
+                <div className="admin-modal-overlay" role="presentation" onMouseDown={closeUserModal}>
+                  <form
+                    className="admin-card admin-form admin-modal"
+                    onSubmit={handleSubmit}
+                    onMouseDown={stopModalClick}
+                    noValidate
+                  >
+                    <div className="admin-card-header">
+                      <div>
+                        <h2>{editingUser ? 'Cập nhật user' : 'Tạo user mới'}</h2>
+                        <p>
+                          {editingUser
+                            ? 'Chỉnh thông tin user. Password không được cập nhật ở form này.'
+                            : 'Tạo tài khoản mới cho Admin, Owner, Jockey, Referee hoặc Spectator.'}
+                        </p>
+                      </div>
+
+                      <button className="outline-button" type="button" onClick={closeUserModal} disabled={isSaving}>
+                        Đóng
+                      </button>
                     </div>
 
-                    <button className="outline-button" type="button" onClick={closeUserModal} disabled={isSaving}>
-                      Đóng
-                    </button>
-                  </div>
+                    {modalError && (
+                      <div className="admin-alert error modal-alert" role="alert">
+                        {modalError}
+                      </div>
+                    )}
 
-                  <label className="field-label" htmlFor="adminFullName">
-                    Họ tên
-                  </label>
-                  <input
-                    className="input"
-                    id="adminFullName"
-                    name="fullName"
-                    type="text"
-                    value={formValues.fullName}
-                    onChange={handleChange}
-                    disabled={isSaving}
-                  />
+                    <label className="field-label" htmlFor="adminFullName">
+                      Họ tên
+                    </label>
+                    <input
+                      className="input"
+                      id="adminFullName"
+                      name="fullName"
+                      type="text"
+                      value={formValues.fullName}
+                      onChange={handleChange}
+                      disabled={isSaving}
+                    />
 
-                  <label className="field-label" htmlFor="adminEmail">
-                    Email
-                  </label>
-                  <input
-                    className="input"
-                    id="adminEmail"
-                    name="email"
-                    type="email"
-                    value={formValues.email}
-                    onChange={handleChange}
-                    disabled={isSaving}
-                  />
+                    <label className="field-label" htmlFor="adminEmail">
+                      Email
+                    </label>
+                    <input
+                      className="input"
+                      id="adminEmail"
+                      name="email"
+                      type="email"
+                      value={formValues.email}
+                      onChange={handleChange}
+                      disabled={isSaving}
+                    />
 
-                  <label className="field-label" htmlFor="adminPhone">
-                    Số điện thoại
-                  </label>
-                  <input
-                    className="input"
-                    id="adminPhone"
-                    name="phone"
-                    type="tel"
-                    value={formValues.phone}
-                    onChange={handleChange}
-                    disabled={isSaving}
-                  />
+                    <label className="field-label" htmlFor="adminPhone">
+                      Số điện thoại
+                    </label>
+                    <input
+                      className="input"
+                      id="adminPhone"
+                      name="phone"
+                      type="tel"
+                      value={formValues.phone}
+                      onChange={handleChange}
+                      disabled={isSaving}
+                    />
 
-                  {!editingUser && (
-                    <>
-                      <label className="field-label" htmlFor="adminPassword">
-                        Password
-                      </label>
-                      <input
-                        className="input"
-                        id="adminPassword"
-                        name="password"
-                        type="password"
-                        value={formValues.password}
-                        onChange={handleChange}
-                        disabled={isSaving}
-                      />
-                    </>
-                  )}
+                    {!editingUser && (
+                      <>
+                        <label className="field-label" htmlFor="adminPassword">
+                          Password
+                        </label>
+                        <input
+                          className="input"
+                          id="adminPassword"
+                          name="password"
+                          type="password"
+                          value={formValues.password}
+                          onChange={handleChange}
+                          disabled={isSaving}
+                        />
+                      </>
+                    )}
 
-                  <label className="field-label" htmlFor="adminRole">
-                    Vai trò
-                  </label>
-                  <select
-                    className="input"
-                    id="adminRole"
-                    name="roleName"
-                    value={formValues.roleName}
-                    onChange={handleChange}
-                    disabled={isSaving}
-                  >
-                    {adminRoles.map((role) => (
-                      <option key={role} value={role}>
-                        {role}
-                      </option>
-                    ))}
-                  </select>
+                    <label className="field-label" htmlFor="adminRole">
+                      Vai trò
+                    </label>
+                    <select
+                      className="input"
+                      id="adminRole"
+                      name="roleName"
+                      value={formValues.roleName}
+                      onChange={handleChange}
+                      disabled={isSaving}
+                    >
+                      {adminRoles.map((role) => (
+                        <option key={role} value={role}>
+                          {role}
+                        </option>
+                      ))}
+                    </select>
 
-                  {editingUser && (
-                    <>
-                      <label className="field-label" htmlFor="adminStatus">
-                        Trạng thái
-                      </label>
-                      <select
-                        className="input"
-                        id="adminStatus"
-                        name="status"
-                        value={formValues.status}
-                        onChange={handleChange}
-                        disabled={isSaving}
-                      >
-                        {userStatuses.map((status) => (
-                          <option key={status} value={status}>
-                            {status}
-                          </option>
-                        ))}
-                      </select>
-                    </>
-                  )}
+                    {editingUser && (
+                      <>
+                        <label className="field-label" htmlFor="adminStatus">
+                          Trạng thái
+                        </label>
+                        <select
+                          className="input"
+                          id="adminStatus"
+                          name="status"
+                          value={formValues.status}
+                          onChange={handleChange}
+                          disabled={isSaving}
+                        >
+                          {userStatuses.map((status) => (
+                            <option key={status} value={status}>
+                              {status}
+                            </option>
+                          ))}
+                        </select>
+                      </>
+                    )}
 
-                  <div className="admin-form-actions tournament-modal-actions">
-                    <button className="outline-button" type="button" onClick={closeUserModal} disabled={isSaving}>
-                      Hủy
-                    </button>
+                    <div className="admin-form-actions tournament-modal-actions">
+                      <button className="outline-button" type="button" onClick={closeUserModal} disabled={isSaving}>
+                        Hủy
+                      </button>
 
-                    <button className="primary-button" type="submit" disabled={isSaving}>
-                      {isSaving ? 'Đang lưu...' : editingUser ? 'Cập nhật user' : 'Tạo user'}
-                    </button>
-                  </div>
-                </form>
-              </div>
-            )}
+                      <button className="primary-button" type="submit" disabled={isSaving}>
+                        {isSaving ? 'Đang lưu...' : editingUser ? 'Cập nhật user' : 'Tạo user'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
           </>
         ) : activeSection === 'tournaments' ? (
           <AdminTournamentTools />

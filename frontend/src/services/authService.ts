@@ -40,8 +40,6 @@ export interface SignupRequest {
   roleName: 'OWNER' | 'JOCKEY' | 'SPECTATOR';
 }
 
-// MERGED FROM ZIP FRONTEND:
-// Auth service now uses shared request/response types with the typed HTTP helper.
 export function login({ email, password }: LoginRequest): Promise<LoginResponse> {
   return httpRequest<LoginResponse, LoginRequest>('/api/auth/login', {
     method: 'POST',
