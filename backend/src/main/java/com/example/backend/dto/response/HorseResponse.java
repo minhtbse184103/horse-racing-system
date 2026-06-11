@@ -19,6 +19,7 @@ public class HorseResponse {
     private BigDecimal weight;
     private LocalDate healthCertExpiry;
     private String status;
+    private String rejectionReason;
     private String imgUrl;
     private long registrationCount;
     private boolean participated;

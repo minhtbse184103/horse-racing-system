@@ -36,8 +36,8 @@ public class OwnerServiceImpl implements OwnerService {
     private static final String ROLE_OWNER = "OWNER";
     private static final String ROLE_JOCKEY = "JOCKEY";
     private static final String STATUS_ACTIVE = "ACTIVE";
+    private static final String STATUS_PENDING = "PENDING";
 
-    private static final String REGISTRATION_PENDING_JOCKEY = "PENDING_JOCKEY";
     private static final String REGISTRATION_ACCEPTED = "ACCEPTED";
     private static final String REGISTRATION_CONFIRMED = "CONFIRMED";
     private static final String REGISTRATION_CANCELLED = "CANCELLED";
@@ -130,7 +130,8 @@ public class OwnerServiceImpl implements OwnerService {
                 .dayOfBirth(request.getDayOfBirth())
                 .weight(request.getWeight())
                 .healthCertExpiry(request.getHealthCertExpiry())
-                .status(normalizeUppercase(request.getStatus()))
+                .status(STATUS_PENDING)
+                .rejectionReason(null)
                 .imgUrl(normalizeText(request.getImgUrl()))
                 .build();
 
@@ -155,30 +156,27 @@ public class OwnerServiceImpl implements OwnerService {
         horse.setDayOfBirth(request.getDayOfBirth());
         horse.setWeight(request.getWeight());
         horse.setHealthCertExpiry(request.getHealthCertExpiry());
-        horse.setStatus(normalizeUppercase(request.getStatus()));
+        horse.setStatus(STATUS_PENDING);
+        horse.setRejectionReason(null);
         horse.setImgUrl(normalizeText(request.getImgUrl()));
 
         return mapHorseToResponse(horseRepository.save(horse));
     }
 
-    // Xóa ngựa nếu ngựa không có registration active; đồng thời dọn invitation/registration không active liên quan.
+    // Xóa ngựa nếu ngựa chưa có invitation và registration liên quan.
     @Transactional
     @Override
     public void deleteHorse(Integer horseId) {
         Horse horse = getOwnedHorse(horseId);
-        List<Integer> registrationIds = registrationRepository.findRegistrationIdsByHorseId(horse.getHorseId());
 
-        if (!registrationIds.isEmpty()
-                && registrationRepository.countByRegistrationIdInAndStatusIn(
-                registrationIds,
-                List.of(REGISTRATION_PENDING_JOCKEY, REGISTRATION_ACCEPTED, REGISTRATION_CONFIRMED)) > 0) {
+        if (jockeyInvitationRepository.existsByHorseId(horse.getHorseId())) {
             throw new ApiException(HttpStatus.CONFLICT,
-                    "Horse has active tournament registrations and cannot be deleted.");
+                    "Horse already has jockey invitations and cannot be deleted.");
         }
 
-        if (!registrationIds.isEmpty()) {
-            jockeyInvitationRepository.deleteByRegistrationIdIn(registrationIds);
-            registrationRepository.deleteByHorseId(horse.getHorseId());
+        if (registrationRepository.existsByHorseId(horse.getHorseId())) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Horse already has tournament registrations and cannot be deleted.");
         }
 
         horseRepository.delete(horse);
@@ -195,7 +193,7 @@ public class OwnerServiceImpl implements OwnerService {
                 .toList();
     }
 
-    // Owner mời jockey tham gia tournament cùng một ngựa, tạo registration PENDING_JOCKEY và invitation PENDING.
+    // Owner mời jockey tham gia tournament cùng một ngựa, chỉ tạo invitation PENDING.
     @Transactional
     @Override
     public JockeyInvitationResponse inviteJockey(InviteJockeyRequest request) {
@@ -208,29 +206,21 @@ public class OwnerServiceImpl implements OwnerService {
         validateJockeyAvailableForTournament(tournament.tournamentId(), jockey.getUserID(), null);
 
         Registration registration = registrationRepository.findByTournamentIdAndHorseId(
-                        request.getTournamentId(), request.getHorseId())
-                .orElseGet(Registration::new);
-
-        if (registration.getRegistrationId() != null
+                        request.getTournamentId(), request.getHorseId()).orElse(null);
+        if (registration != null
                 && !List.of(REGISTRATION_CANCELLED, REGISTRATION_REJECTED).contains(registration.getStatus())) {
             throw new ApiException(HttpStatus.CONFLICT,
                     "This horse already has an active registration for the tournament.");
         }
 
-        registration.setTournamentId(tournament.tournamentId());
-        registration.setHorseId(horse.getHorseId());
-        registration.setOwnerId(owner.getUserID());
-        registration.setJockeyId(null);
-        registration.setStatus(REGISTRATION_PENDING_JOCKEY);
-        registration = registrationRepository.save(registration);
-
-        if (jockeyInvitationRepository.existsByRegistrationIdAndJockeyIdAndStatus(
-                registration.getRegistrationId(), jockey.getUserID(), INVITATION_PENDING)) {
+        if (jockeyInvitationRepository.existsByTournamentIdAndHorseIdAndJockeyIdAndStatus(
+                tournament.tournamentId(), horse.getHorseId(), jockey.getUserID(), INVITATION_PENDING)) {
             throw new ApiException(HttpStatus.CONFLICT, "A pending invitation already exists for this jockey.");
         }
 
         JockeyInvitation invitation = JockeyInvitation.builder()
-                .registrationId(registration.getRegistrationId())
+                .tournamentId(tournament.tournamentId())
+                .horseId(horse.getHorseId())
                 .ownerId(owner.getUserID())
                 .jockeyId(jockey.getUserID())
                 .expiredAt(request.getExpiredAt())
@@ -259,8 +249,7 @@ public class OwnerServiceImpl implements OwnerService {
         if (jockeyInvitationRepository.existsActiveInvitationForTournamentAndJockey(
                 tournamentId,
                 jockeyId,
-                INVITATION_PENDING,
-                List.of(REGISTRATION_PENDING_JOCKEY))) {
+                INVITATION_PENDING)) {
             throw new ApiException(HttpStatus.CONFLICT,
                     "This jockey already has a pending invitation for the tournament.");
         }
@@ -279,15 +268,19 @@ public class OwnerServiceImpl implements OwnerService {
             throw new ApiException(HttpStatus.CONFLICT, "Only pending invitations can be cancelled.");
         }
 
-        Registration registration = registrationRepository.findById(invitation.getRegistrationId())
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Registration does not exist."));
+        Registration registration = invitation.getRegistrationId() != null
+                ? registrationRepository.findById(invitation.getRegistrationId()).orElse(null)
+                : null;
 
         invitation.setStatus(INVITATION_CANCELLED);
         invitation.setRespondedAt(LocalDateTime.now());
-        registration.setStatus(REGISTRATION_CANCELLED);
-        registration.setJockeyId(null);
 
-        registrationRepository.save(registration);
+        if (registration != null) {
+            registration.setStatus(REGISTRATION_CANCELLED);
+            registration.setJockeyId(null);
+            registrationRepository.save(registration);
+        }
+
         return mapInvitationToResponse(jockeyInvitationRepository.save(invitation));
     }
 
@@ -357,7 +350,7 @@ public class OwnerServiceImpl implements OwnerService {
         if (tournament.maxParticipants() != null) {
             long activeRegistrations = registrationRepository.countByTournamentIdAndStatusIn(
                     tournament.tournamentId(),
-                    List.of(REGISTRATION_PENDING_JOCKEY, REGISTRATION_ACCEPTED, REGISTRATION_CONFIRMED));
+                    List.of(REGISTRATION_ACCEPTED, REGISTRATION_CONFIRMED));
             if (activeRegistrations >= tournament.maxParticipants()) {
                 throw new ApiException(HttpStatus.CONFLICT, "Tournament has reached maximum participants.");
             }
@@ -378,6 +371,7 @@ public class OwnerServiceImpl implements OwnerService {
                 .weight(horse.getWeight())
                 .healthCertExpiry(horse.getHealthCertExpiry())
                 .status(horse.getStatus())
+                .rejectionReason(horse.getRejectionReason())
                 .imgUrl(horse.getImgUrl())
                 .registrationCount(registrationIds.size())
                 .participated(hasActiveRegistration(registrationIds))
@@ -389,22 +383,30 @@ public class OwnerServiceImpl implements OwnerService {
         return hasActiveRegistration(registrationRepository.findRegistrationIdsByHorseId(horseId));
     }
 
-    // Kiểm tra danh sách registration có trạng thái active như PENDING_JOCKEY, ACCEPTED hoặc CONFIRMED.
+    // Kiểm tra danh sách registration có trạng thái active như ACCEPTED hoặc CONFIRMED.
     private boolean hasActiveRegistration(Collection<Integer> registrationIds) {
         return !registrationIds.isEmpty()
                 && registrationRepository.countByRegistrationIdInAndStatusIn(
                 registrationIds,
-                List.of(REGISTRATION_PENDING_JOCKEY, REGISTRATION_ACCEPTED, REGISTRATION_CONFIRMED)) > 0;
+                List.of(REGISTRATION_ACCEPTED, REGISTRATION_CONFIRMED)) > 0;
     }
 
     // Chuyển entity invitation sang DTO, kèm thông tin tournament, horse, owner và jockey.
     private JockeyInvitationResponse mapInvitationToResponse(JockeyInvitation invitation) {
-        Registration registration = registrationRepository.findById(invitation.getRegistrationId()).orElse(null);
-        TournamentSnapshot tournament = registration != null
-                ? getTournamentSnapshotOrNull(registration.getTournamentId())
+        Registration registration = invitation.getRegistrationId() != null
+                ? registrationRepository.findById(invitation.getRegistrationId()).orElse(null)
                 : null;
-        Horse horse = registration != null
-                ? horseRepository.findById(registration.getHorseId()).orElse(null)
+        Integer tournamentId = invitation.getTournamentId() != null
+                ? invitation.getTournamentId()
+                : registration != null ? registration.getTournamentId() : null;
+        Integer horseId = invitation.getHorseId() != null
+                ? invitation.getHorseId()
+                : registration != null ? registration.getHorseId() : null;
+        TournamentSnapshot tournament = tournamentId != null
+                ? getTournamentSnapshotOrNull(tournamentId)
+                : null;
+        Horse horse = horseId != null
+                ? horseRepository.findById(horseId).orElse(null)
                 : null;
         User owner = userRepository.findById(invitation.getOwnerId()).orElse(null);
         User jockey = userRepository.findById(invitation.getJockeyId()).orElse(null);
@@ -412,9 +414,9 @@ public class OwnerServiceImpl implements OwnerService {
         return JockeyInvitationResponse.builder()
                 .invitationId(invitation.getInvitationId())
                 .registrationId(invitation.getRegistrationId())
-                .tournamentId(registration != null ? registration.getTournamentId() : null)
+                .tournamentId(tournamentId)
                 .tournamentName(tournament != null ? tournament.tournamentName() : null)
-                .horseId(registration != null ? registration.getHorseId() : null)
+                .horseId(horseId)
                 .horseName(horse != null ? horse.getHorseName() : null)
                 .ownerId(invitation.getOwnerId())
                 .ownerName(owner != null ? owner.getFullName() : null)

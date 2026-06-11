@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.backend.dto.request.AdminCreateUserRequest;
+import com.example.backend.dto.request.AdminReviewFeedbackRequest;
 import com.example.backend.dto.request.AdminUpdateUserRequest;
 import com.example.backend.dto.response.JockeyProfileResponse;
 import com.example.backend.dto.response.UserResponse;
@@ -41,6 +42,18 @@ public class AdminController {
     @GetMapping("/jockey-profiles/under-review")
     public ResponseEntity<List<JockeyProfileResponse>> getJockeyProfilesUnderReview() {
         return ResponseEntity.ok(userService.getJockeyProfilesUnderReview());
+    }
+
+    @PutMapping("/jockey-profiles/{jockeyId}/approve")
+    public ResponseEntity<JockeyProfileResponse> approveJockeyProfile(@PathVariable Integer jockeyId) {
+        return ResponseEntity.ok(userService.approveJockeyProfile(jockeyId));
+    }
+
+    @PutMapping("/jockey-profiles/{jockeyId}/reject")
+    public ResponseEntity<JockeyProfileResponse> rejectJockeyProfile(
+            @PathVariable Integer jockeyId,
+            @Valid @RequestBody AdminReviewFeedbackRequest request) {
+        return ResponseEntity.ok(userService.rejectJockeyProfile(jockeyId, request.getFeedback()));
     }
 
     @GetMapping("/users/{userID}")

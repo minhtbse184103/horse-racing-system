@@ -59,6 +59,9 @@ public class Horse {
     @Column(name = "status")
     private String status;
 
+    @Column(name = "rejectionReason", length = 500)
+    private String rejectionReason;
+
     @Column(name = "img_url", columnDefinition = "TEXT")
     private String imgUrl;
 
@@ -74,7 +77,7 @@ public class Horse {
         createdAt = now;
         updatedAt = now;
         if (status == null) {
-            status = "ACTIVE";
+            status = "PENDING";
         }
     }
 

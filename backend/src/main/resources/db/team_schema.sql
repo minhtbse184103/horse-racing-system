@@ -105,6 +105,7 @@ CREATE TABLE `Horse` (
   `weight` decimal(10,2) NOT NULL,
   `healthCertExpiry` date,
   `status` varchar(255),
+  `rejectionReason` varchar(500),
   `img_url` text,
   `createdAt` datetime,
   `updatedAt` datetime
@@ -123,7 +124,9 @@ CREATE TABLE `JockeyProfile` (
 
 CREATE TABLE `JockeyInvitation` (
   `invitationID` int PRIMARY KEY AUTO_INCREMENT,
-  `registrationID` int NOT NULL,
+  `registrationID` int,
+  `tournamentID` int NOT NULL,
+  `horseID` int NOT NULL,
   `ownerID` int NOT NULL,
   `jockeyID` int NOT NULL,
   `status` varchar(255),
@@ -164,6 +167,10 @@ ALTER TABLE `Horse` ADD FOREIGN KEY (`ownerID`) REFERENCES `Users` (`userID`);
 ALTER TABLE `JockeyProfile` ADD FOREIGN KEY (`jockeyID`) REFERENCES `Users` (`userID`);
 
 ALTER TABLE `JockeyInvitation` ADD FOREIGN KEY (`registrationID`) REFERENCES `Registration` (`registrationID`);
+
+ALTER TABLE `JockeyInvitation` ADD FOREIGN KEY (`tournamentID`) REFERENCES `Tournament` (`tournamentID`);
+
+ALTER TABLE `JockeyInvitation` ADD FOREIGN KEY (`horseID`) REFERENCES `Horse` (`horseID`);
 
 ALTER TABLE `JockeyInvitation` ADD FOREIGN KEY (`ownerID`) REFERENCES `Users` (`userID`);
 

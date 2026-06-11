@@ -32,11 +32,13 @@ import com.example.backend.repository.UserRepository;
 public class JockeyServiceImpl implements JockeyService {
     private static final String ROLE_JOCKEY = "JOCKEY";
     private static final String STATUS_ACTIVE = "ACTIVE";
+    private static final String STATUS_INACTIVE = "INACTIVE";
     private static final String STATUS_PENDING = "PENDING";
     private static final String STATUS_UNDER_REVIEW = "UNDER_REVIEW";
     private static final String STATUS_REJECTED = "REJECTED";
     private static final String REGISTRATION_ACCEPTED = "ACCEPTED";
     private static final String REGISTRATION_CONFIRMED = "CONFIRMED";
+    private static final String REGISTRATION_CANCELLED = "CANCELLED";
     private static final String REGISTRATION_REJECTED = "REJECTED";
     private static final String REGISTRATION_EXPIRED = "EXPIRED";
     private static final String INVITATION_PENDING = "PENDING";
@@ -133,14 +135,16 @@ public class JockeyServiceImpl implements JockeyService {
         return mapProfileToResponse(savedProfile, jockey);
     }
 
-    // Xóa hồ sơ jockey của tài khoản đang đăng nhập.
+    // Chuyển hồ sơ jockey sang INACTIVE thay vì xóa dữ liệu khỏi hệ thống.
     @Transactional
     @Override
-    public void deleteProfile() {
+    public JockeyProfileResponse deactivateProfile() {
         User jockey = getCurrentJockey();
         JockeyProfile profile = jockeyProfileRepository.findById(jockey.getUserID())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Jockey profile does not exist."));
-        jockeyProfileRepository.delete(profile);
+        profile.setStatus(STATUS_INACTIVE);
+        JockeyProfile savedProfile = jockeyProfileRepository.save(profile);
+        return mapProfileToResponse(savedProfile, jockey);
     }
 
     // Lấy danh sách lời mời được gửi cho jockey hiện tại, mới nhất lên trước.
@@ -160,21 +164,34 @@ public class JockeyServiceImpl implements JockeyService {
     public JockeyInvitationResponse acceptInvitation(Integer invitationId) {
         User jockey = getCurrentJockeyWithActiveProfile();
         JockeyInvitation invitation = getOwnedInvitation(invitationId, jockey.getUserID());
-        Registration registration = getPendingRegistration(invitation);
 
-        validateInvitationNotExpired(invitation, registration);
-        validateOwnerHorseForInvitation(invitation, registration);
+        validateInvitationNotExpired(invitation);
+        Horse horse = validateOwnerHorseForInvitation(invitation);
         validateJockeyAvailableForTournament(
-                registration.getTournamentId(),
+                invitation.getTournamentId(),
                 jockey.getUserID(),
-                registration.getRegistrationId());
+                null);
+
+        Registration registration = registrationRepository.findByTournamentIdAndHorseId(
+                        invitation.getTournamentId(), invitation.getHorseId())
+                .orElseGet(Registration::new);
+
+        if (registration.getRegistrationId() != null
+                && !List.of(REGISTRATION_CANCELLED, REGISTRATION_REJECTED).contains(registration.getStatus())) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "This horse already has an active registration for the tournament.");
+        }
 
         invitation.setStatus(INVITATION_ACCEPTED);
         invitation.setRespondedAt(LocalDateTime.now());
+        registration.setTournamentId(invitation.getTournamentId());
+        registration.setHorseId(horse.getHorseId());
+        registration.setOwnerId(invitation.getOwnerId());
         registration.setJockeyId(jockey.getUserID());
         registration.setStatus(REGISTRATION_ACCEPTED);
 
-        registrationRepository.save(registration);
+        registration = registrationRepository.save(registration);
+        invitation.setRegistrationId(registration.getRegistrationId());
         return mapInvitationToResponse(jockeyInvitationRepository.save(invitation));
     }
 
@@ -184,16 +201,12 @@ public class JockeyServiceImpl implements JockeyService {
     public JockeyInvitationResponse rejectInvitation(Integer invitationId) {
         User jockey = getCurrentJockey();
         JockeyInvitation invitation = getOwnedInvitation(invitationId, jockey.getUserID());
-        Registration registration = getPendingRegistration(invitation);
 
-        validateInvitationNotExpired(invitation, registration);
+        validateInvitationNotExpired(invitation);
 
         invitation.setStatus(INVITATION_REJECTED);
         invitation.setRespondedAt(LocalDateTime.now());
-        registration.setJockeyId(null);
-        registration.setStatus(REGISTRATION_REJECTED);
 
-        registrationRepository.save(registration);
         return mapInvitationToResponse(jockeyInvitationRepository.save(invitation));
     }
 
@@ -237,24 +250,20 @@ public class JockeyServiceImpl implements JockeyService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Invitation does not exist."));
     }
 
-    // Kiểm tra invitation còn PENDING và lấy registration tương ứng.
-    private Registration getPendingRegistration(JockeyInvitation invitation) {
+    // Kiểm tra invitation còn PENDING trước khi jockey phản hồi.
+    private void validatePendingInvitation(JockeyInvitation invitation) {
         if (!INVITATION_PENDING.equals(invitation.getStatus())) {
             throw new ApiException(HttpStatus.CONFLICT, "Only pending invitations can be responded to.");
         }
-
-        return registrationRepository.findById(invitation.getRegistrationId())
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Registration does not exist."));
     }
 
-    // Nếu lời mời hết hạn thì chuyển invitation và registration sang EXPIRED rồi báo lỗi.
-    private void validateInvitationNotExpired(JockeyInvitation invitation, Registration registration) {
+    // Nếu lời mời hết hạn thì chuyển invitation sang EXPIRED rồi báo lỗi.
+    private void validateInvitationNotExpired(JockeyInvitation invitation) {
+        validatePendingInvitation(invitation);
         if (invitation.getExpiredAt() != null && invitation.getExpiredAt().isBefore(LocalDateTime.now())) {
             invitation.setStatus(INVITATION_EXPIRED);
             invitation.setRespondedAt(LocalDateTime.now());
-            registration.setStatus(REGISTRATION_EXPIRED);
             jockeyInvitationRepository.save(invitation);
-            registrationRepository.save(registration);
             throw new ApiException(HttpStatus.BAD_REQUEST, "Invitation has expired.");
         }
     }
@@ -275,14 +284,9 @@ public class JockeyServiceImpl implements JockeyService {
         }
     }
 
-    // Kiểm tra ngựa của registration thật sự thuộc owner đã gửi invitation và ngựa đang ACTIVE.
-    private void validateOwnerHorseForInvitation(JockeyInvitation invitation, Registration registration) {
-        if (!Objects.equals(invitation.getOwnerId(), registration.getOwnerId())) {
-            throw new ApiException(HttpStatus.CONFLICT,
-                    "Invitation owner does not match the registration owner.");
-        }
-
-        Horse horse = horseRepository.findById(registration.getHorseId())
+    // Kiểm tra ngựa của invitation thật sự thuộc owner đã gửi invitation và ngựa đang ACTIVE.
+    private Horse validateOwnerHorseForInvitation(JockeyInvitation invitation) {
+        Horse horse = horseRepository.findById(invitation.getHorseId())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Horse does not exist."));
 
         if (!Objects.equals(horse.getOwnerId(), invitation.getOwnerId())) {
@@ -293,6 +297,8 @@ public class JockeyServiceImpl implements JockeyService {
         if (!STATUS_ACTIVE.equals(horse.getStatus())) {
             throw new ApiException(HttpStatus.CONFLICT, "Horse is not active.");
         }
+
+        return horse;
     }
 
     // Chuyển entity JockeyProfile sang DTO trả về cho client.
@@ -305,18 +311,27 @@ public class JockeyServiceImpl implements JockeyService {
                 .weight(profile.getWeight())
                 .ranking(profile.getRanking())
                 .status(profile.getStatus())
+                .rejectionReason(jockey.getRejectionReason())
                 .imgUrl(profile.getImgUrl())
                 .build();
     }
 
     // Chuyển entity invitation sang DTO, kèm thông tin tournament, horse, owner và jockey.
     private JockeyInvitationResponse mapInvitationToResponse(JockeyInvitation invitation) {
-        Registration registration = registrationRepository.findById(invitation.getRegistrationId()).orElse(null);
-        TournamentSnapshot tournament = registration != null
-                ? getTournamentSnapshotOrNull(registration.getTournamentId())
+        Registration registration = invitation.getRegistrationId() != null
+                ? registrationRepository.findById(invitation.getRegistrationId()).orElse(null)
                 : null;
-        Horse horse = registration != null
-                ? horseRepository.findById(registration.getHorseId()).orElse(null)
+        Integer tournamentId = invitation.getTournamentId() != null
+                ? invitation.getTournamentId()
+                : registration != null ? registration.getTournamentId() : null;
+        Integer horseId = invitation.getHorseId() != null
+                ? invitation.getHorseId()
+                : registration != null ? registration.getHorseId() : null;
+        TournamentSnapshot tournament = tournamentId != null
+                ? getTournamentSnapshotOrNull(tournamentId)
+                : null;
+        Horse horse = horseId != null
+                ? horseRepository.findById(horseId).orElse(null)
                 : null;
         User owner = userRepository.findById(invitation.getOwnerId()).orElse(null);
         User jockey = userRepository.findById(invitation.getJockeyId()).orElse(null);
@@ -324,9 +339,9 @@ public class JockeyServiceImpl implements JockeyService {
         return JockeyInvitationResponse.builder()
                 .invitationId(invitation.getInvitationId())
                 .registrationId(invitation.getRegistrationId())
-                .tournamentId(registration != null ? registration.getTournamentId() : null)
+                .tournamentId(tournamentId)
                 .tournamentName(tournament != null ? tournament.tournamentName() : null)
-                .horseId(registration != null ? registration.getHorseId() : null)
+                .horseId(horseId)
                 .horseName(horse != null ? horse.getHorseName() : null)
                 .ownerId(invitation.getOwnerId())
                 .ownerName(owner != null ? owner.getFullName() : null)

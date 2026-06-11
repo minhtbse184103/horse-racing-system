@@ -16,8 +16,8 @@ public interface JockeyService {
     // Cập nhật hồ sơ jockey của tài khoản đang đăng nhập.
     JockeyProfileResponse updateProfile(JockeyProfileRequest request);
 
-    // Xóa hồ sơ jockey của tài khoản đang đăng nhập.
-    void deleteProfile();
+    // Chuyển hồ sơ jockey của tài khoản đang đăng nhập sang INACTIVE.
+    JockeyProfileResponse deactivateProfile();
 
     // Lấy danh sách lời mời được gửi cho jockey.
     List<JockeyInvitationResponse> getMyInvitations();

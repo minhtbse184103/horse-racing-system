@@ -74,6 +74,47 @@ public class UserService {
     }
 
     @Transactional
+    public JockeyProfileResponse approveJockeyProfile(Integer jockeyId) {
+        User jockey = findUserById(jockeyId);
+        if (!isJockey(jockey)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Selected user is not a jockey.");
+        }
+
+        JockeyProfile profile = jockeyProfileRepository.findById(jockeyId)
+                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST,
+                        "Jockey profile does not exist."));
+        validateJockeyProfileReadyForApproval(profile);
+
+        jockey.setStatus(STATUS_ACTIVE);
+        jockey.setRejectionReason(null);
+        profile.setStatus(STATUS_ACTIVE);
+
+        jockeyProfileRepository.save(profile);
+        userRepository.save(jockey);
+        return mapJockeyProfileToResponse(jockey, profile);
+    }
+
+    @Transactional
+    public JockeyProfileResponse rejectJockeyProfile(Integer jockeyId, String feedback) {
+        User jockey = findUserById(jockeyId);
+        if (!isJockey(jockey)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Selected user is not a jockey.");
+        }
+
+        JockeyProfile profile = jockeyProfileRepository.findById(jockeyId)
+                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST,
+                        "Jockey profile does not exist."));
+
+        jockey.setStatus(STATUS_REJECTED);
+        jockey.setRejectionReason(feedback.trim());
+        profile.setStatus(STATUS_REJECTED);
+
+        jockeyProfileRepository.save(profile);
+        userRepository.save(jockey);
+        return mapJockeyProfileToResponse(jockey, profile);
+    }
+
+    @Transactional
     public UserResponse updateUserByAdmin(Integer userID, AdminUpdateUserRequest request) {
         User user = findUserById(userID);
 
@@ -191,8 +232,28 @@ public class UserService {
                 .weight(profile.getWeight())
                 .ranking(profile.getRanking())
                 .status(profile.getStatus())
+                .rejectionReason(jockey.getRejectionReason())
                 .imgUrl(profile.getImgUrl())
                 .build();
+    }
+
+    private void validateJockeyProfileReadyForApproval(JockeyProfile profile) {
+        if (!hasText(profile.getLicenseNo())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "Jockey license number is required before approval.");
+        }
+        if (profile.getWeight() == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "Jockey weight is required before approval.");
+        }
+        if (!hasText(profile.getRanking())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "Jockey ranking is required before approval.");
+        }
+        if (!hasText(profile.getImgUrl())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "Jockey proof image is required before approval.");
+        }
     }
 
     private UserResponse toResponse(User user) {
