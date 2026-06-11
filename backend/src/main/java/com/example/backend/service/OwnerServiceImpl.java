@@ -3,6 +3,7 @@ package com.example.backend.service;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
@@ -20,6 +21,7 @@ import com.example.backend.dto.response.JockeyInvitationResponse;
 import com.example.backend.dto.response.OwnerDashboardResponse;
 import com.example.backend.entity.Horse;
 import com.example.backend.entity.JockeyInvitation;
+import com.example.backend.entity.JockeyProfile;
 import com.example.backend.entity.Registration;
 import com.example.backend.entity.User;
 import com.example.backend.exception.ApiException;
@@ -43,6 +45,8 @@ public class OwnerServiceImpl implements OwnerService {
 
     private static final String INVITATION_PENDING = "PENDING";
     private static final String INVITATION_CANCELLED = "CANCELLED";
+
+    private static final String TOURNAMENT_OPEN_FOR_REGISTRATION = "OpenForRegistration";
 
     private final HorseRepository horseRepository;
     private final RegistrationRepository registrationRepository;
@@ -106,21 +110,28 @@ public class OwnerServiceImpl implements OwnerService {
         return mapHorseToResponse(getOwnedHorse(horseId));
     }
 
-    // Tạo hồ sơ ngựa mới, mặc định status là ACTIVE nếu request không truyền status.
+    // Tạo hồ sơ ngựa mới sau khi kiểm tra tên ngựa không trùng.
     @Transactional
     @Override
     public HorseResponse createHorse(CreateHorseRequest request) {
         Integer ownerId = getCurrentOwner().getUserID();
+        String horseName = normalizeText(request.getHorseName());
+
+        if (horseRepository.existsByHorseNameIgnoreCase(horseName)) {
+            throw new ApiException(HttpStatus.CONFLICT, "Horse name already exists.");
+        }
+
         Horse horse = Horse.builder()
                 .ownerId(ownerId)
-                .horseName(request.getHorseName())
-                .breed(request.getBreed())
-                .gender(request.getGender())
-                .color(request.getColor())
+                .horseName(horseName)
+                .breed(normalizeText(request.getBreed()))
+                .gender(normalizeUppercase(request.getGender()))
+                .color(normalizeText(request.getColor()))
                 .dayOfBirth(request.getDayOfBirth())
                 .weight(request.getWeight())
                 .healthCertExpiry(request.getHealthCertExpiry())
-                .status(request.getStatus() != null ? request.getStatus() : STATUS_ACTIVE)
+                .status(normalizeUppercase(request.getStatus()))
+                .imgUrl(normalizeText(request.getImgUrl()))
                 .build();
 
         return mapHorseToResponse(horseRepository.save(horse));
@@ -131,14 +142,21 @@ public class OwnerServiceImpl implements OwnerService {
     @Override
     public HorseResponse updateHorse(Integer horseId, UpdateHorseRequest request) {
         Horse horse = getOwnedHorse(horseId);
-        horse.setHorseName(request.getHorseName());
-        horse.setBreed(request.getBreed());
-        horse.setGender(request.getGender());
-        horse.setColor(request.getColor());
+        String horseName = normalizeText(request.getHorseName());
+
+        if (horseRepository.existsByHorseNameIgnoreCaseAndHorseIdNot(horseName, horse.getHorseId())) {
+            throw new ApiException(HttpStatus.CONFLICT, "Horse name already exists.");
+        }
+
+        horse.setHorseName(horseName);
+        horse.setBreed(normalizeText(request.getBreed()));
+        horse.setGender(normalizeUppercase(request.getGender()));
+        horse.setColor(normalizeText(request.getColor()));
         horse.setDayOfBirth(request.getDayOfBirth());
         horse.setWeight(request.getWeight());
         horse.setHealthCertExpiry(request.getHealthCertExpiry());
-        horse.setStatus(request.getStatus());
+        horse.setStatus(normalizeUppercase(request.getStatus()));
+        horse.setImgUrl(normalizeText(request.getImgUrl()));
 
         return mapHorseToResponse(horseRepository.save(horse));
     }
@@ -306,8 +324,15 @@ public class OwnerServiceImpl implements OwnerService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Selected user is not a jockey.");
         }
 
-        if (!jockeyProfileRepository.existsById(jockeyId)) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Jockey profile does not exist.");
+        if (!STATUS_ACTIVE.equals(jockey.getStatus())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Selected jockey account is not active.");
+        }
+
+        JockeyProfile profile = jockeyProfileRepository.findById(jockeyId)
+                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Jockey profile does not exist."));
+
+        if (!STATUS_ACTIVE.equals(profile.getStatus())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Selected jockey profile is not active.");
         }
 
         return jockey;
@@ -317,6 +342,11 @@ public class OwnerServiceImpl implements OwnerService {
     private void validateHorseCanRegister(Horse horse, TournamentSnapshot tournament) {
         if (!STATUS_ACTIVE.equals(horse.getStatus())) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Only active horses can be registered.");
+        }
+
+        if (!TOURNAMENT_OPEN_FOR_REGISTRATION.equals(tournament.status())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "Only tournaments open for registration can accept owner registrations.");
         }
 
         if (tournament.registrationDeadline() != null
@@ -348,6 +378,7 @@ public class OwnerServiceImpl implements OwnerService {
                 .weight(horse.getWeight())
                 .healthCertExpiry(horse.getHealthCertExpiry())
                 .status(horse.getStatus())
+                .imgUrl(horse.getImgUrl())
                 .registrationCount(registrationIds.size())
                 .participated(hasActiveRegistration(registrationIds))
                 .build();
@@ -435,5 +466,14 @@ public class OwnerServiceImpl implements OwnerService {
             LocalDateTime registrationDeadline,
             Integer maxParticipants,
             String status) {
+    }
+
+    private String normalizeText(String value) {
+        return value == null ? null : value.trim();
+    }
+
+    private String normalizeUppercase(String value) {
+        String normalizedValue = normalizeText(value);
+        return normalizedValue == null ? null : normalizedValue.toUpperCase(Locale.ROOT);
     }
 }

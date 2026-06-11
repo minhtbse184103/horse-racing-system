@@ -17,7 +17,11 @@ import com.example.backend.entity.Registration;
 @Repository
 public interface RegistrationRepository extends JpaRepository<Registration, Integer> {
     List<Registration> findByHorseId(Integer horseId);
+
     List<Registration> findByStatusOrderByUpdatedAtAsc(String status);
+
+    List<Registration> findByStatusInOrderByUpdatedAtDesc(
+            Collection<String> statuses);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select r from Registration r where r.registrationId = :registrationId")
@@ -58,13 +62,13 @@ public interface RegistrationRepository extends JpaRepository<Registration, Inte
             @Param("excludedRegistrationId") Integer excludedRegistrationId);
 
     @Query("""
-        select count(r)
-        from Registration r
-        where r.tournamentId = :tournamentId
-          and r.horseId = :horseId
-          and r.status in :statuses
-          and r.registrationId <> :excludedRegistrationId
-        """)
+            select count(r)
+            from Registration r
+            where r.tournamentId = :tournamentId
+              and r.horseId = :horseId
+              and r.status in :statuses
+              and r.registrationId <> :excludedRegistrationId
+            """)
     long countByTournamentIdAndHorseIdAndStatusInExcludingRegistration(
             @Param("tournamentId") Integer tournamentId,
             @Param("horseId") Integer horseId,

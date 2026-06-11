@@ -40,6 +40,9 @@ public class JockeyProfile {
     @Column(name = "status")
     private String status;
 
+    @Column(name = "img_url", columnDefinition = "TEXT")
+    private String imgUrl;
+
     @Column(name = "createdAt")
     private LocalDateTime createdAt;
 

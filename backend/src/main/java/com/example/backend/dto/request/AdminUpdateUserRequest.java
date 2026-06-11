@@ -22,6 +22,9 @@ public class AdminUpdateUserRequest {
     @Pattern(regexp = "(?i)ADMIN|OWNER|JOCKEY|REFEREE|SPECTATOR", message = "Role phải là ADMIN, OWNER, JOCKEY, REFEREE hoặc SPECTATOR")
     private String roleName;
 
-    @Pattern(regexp = "(?i)ACTIVE|INACTIVE|BLOCKED", message = "Status phải là ACTIVE, INACTIVE hoặc BLOCKED")
+    @Pattern(regexp = "(?i)PENDING|UNDER_REVIEW|ACTIVE|REJECTED|INACTIVE|BLOCKED", message = "Status phải là PENDING, UNDER_REVIEW, ACTIVE, REJECTED, INACTIVE hoặc BLOCKED")
     private String status;
+
+    @Size(max = 500, message = "Rejection reason không được vượt quá 500 ký tự")
+    private String rejectionReason;
 }

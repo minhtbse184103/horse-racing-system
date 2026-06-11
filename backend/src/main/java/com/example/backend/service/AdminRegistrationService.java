@@ -67,6 +67,16 @@ public class AdminRegistrationService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<AdminRegistrationResponse> getRegistrationHistory() {
+        return registrationRepository
+                .findByStatusInOrderByUpdatedAtDesc(
+                        List.of(CONFIRMED, REJECTED))
+                .stream()
+                .map(this::mapResponse)
+                .toList();
+    }
+
     @Transactional
     public AdminRegistrationResponse confirmRegistration(Integer registrationId) {
         Registration registration = getAcceptedRegistration(registrationId);
@@ -307,4 +317,5 @@ public class AdminRegistrationService {
                     "Jockey already has a confirmed registration for this tournament.");
         }
     }
+
 }

@@ -10,8 +10,10 @@ import com.example.backend.exception.ApiException;
 import com.example.backend.repository.RaceRepository;
 import com.example.backend.repository.TournamentRepository;
 import com.example.backend.repository.TournamentRoundRepository;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Set;
@@ -82,9 +84,10 @@ public class RaceService {
         return raceRepository.findByRoundIdIn(roundIds);
     }
 
+    @Transactional
     public Race createRace(CreateRaceRequest request) {
         TournamentRound round = getRound(request.getRoundId());
-        Tournament tournament = getTournament(round.getTournamentId());
+        Tournament tournament = getTournamentForUpdate(round.getTournamentId());
 
         validateTournamentAllowsRaceSetup(tournament);
         validateRaceTime(request.getStartTime(), request.getEndTime(), tournament);
@@ -122,13 +125,14 @@ public class RaceService {
         race.setDistance(request.getDistance());
         race.setStatus(EventStatus.DRAFT);
 
-        return raceRepository.save(race);
+        return saveRace(race);
     }
 
+    @Transactional
     public Race updateRace(Integer id, UpdateRaceRequest request) {
         Race race = getRaceById(id);
         TournamentRound round = getRound(race.getRoundId());
-        Tournament tournament = getTournament(round.getTournamentId());
+        Tournament tournament = getTournamentForUpdate(round.getTournamentId());
 
         validateTournamentAllowsRaceSetup(tournament);
 
@@ -159,13 +163,14 @@ public class RaceService {
         race.setEndTime(request.getEndTime());
         race.setDistance(request.getDistance());
 
-        return raceRepository.save(race);
+        return saveRace(race);
     }
 
+    @Transactional
     public Race cancelRace(Integer id) {
         Race race = getRaceById(id);
         TournamentRound round = getRound(race.getRoundId());
-        Tournament tournament = getTournament(round.getTournamentId());
+        Tournament tournament = getTournamentForUpdate(round.getTournamentId());
 
         validateTournamentAllowsRaceSetup(tournament);
 
@@ -177,7 +182,7 @@ public class RaceService {
         }
 
         race.setStatus(EventStatus.CANCELLED);
-        return raceRepository.save(race);
+        return saveRace(race);
     }
 
     private TournamentRound getRound(Integer roundId) {
@@ -185,14 +190,6 @@ public class RaceService {
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
                         "Tournament round does not exist."
-                ));
-    }
-
-    private Tournament getTournament(Integer tournamentId) {
-        return tournamentRepository.findById(tournamentId)
-                .orElseThrow(() -> new ApiException(
-                        HttpStatus.NOT_FOUND,
-                        "Tournament does not exist."
                 ));
     }
 
@@ -233,11 +230,31 @@ public class RaceService {
 
         return round.getRoundName() + " " + raceOrder;
     }
+
     private List<Integer> getTournamentRoundIds(Integer tournamentId) {
         return tournamentRoundRepository
                 .findByTournamentIdOrderByRoundOrderAsc(tournamentId)
                 .stream()
                 .map(TournamentRound::getRoundId)
                 .toList();
+    }
+
+    private Tournament getTournamentForUpdate(Integer tournamentId) {
+        return tournamentRepository.findByIdForUpdate(tournamentId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "Tournament does not exist."
+                ));
+    }
+
+    private Race saveRace(Race race) {
+        try {
+            return raceRepository.saveAndFlush(race);
+        } catch (DataIntegrityViolationException ex) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "Race order or name already exists."
+            );
+        }
     }
 }

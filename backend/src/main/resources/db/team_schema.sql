@@ -19,6 +19,7 @@ CREATE TABLE `Users` (
   `password` varchar(255) NOT NULL,
   `phone` varchar(255),
   `status` varchar(255),
+  `rejectionReason` varchar(500),
   `createdAt` datetime,
   `updatedAt` datetime
 );
@@ -96,7 +97,7 @@ CREATE TABLE `RefereeAssignment` (
 CREATE TABLE `Horse` (
   `horseID` int PRIMARY KEY AUTO_INCREMENT,
   `ownerID` int NOT NULL,
-  `horseName` varchar(255) NOT NULL,
+  `horseName` varchar(255) UNIQUE NOT NULL,
   `breed` varchar(255),
   `gender` varchar(255),
   `color` varchar(255),
@@ -104,10 +105,10 @@ CREATE TABLE `Horse` (
   `weight` decimal(10,2) NOT NULL,
   `healthCertExpiry` date,
   `status` varchar(255),
+  `img_url` text,
   `createdAt` datetime,
   `updatedAt` datetime
 );
-
 
 CREATE TABLE `JockeyProfile` (
   `jockeyID` int PRIMARY KEY,
@@ -115,6 +116,7 @@ CREATE TABLE `JockeyProfile` (
   `weight` decimal(10,2) NOT NULL,
   `ranking` varchar(255),
   `status` varchar(255),
+  `img_url` text,
   `createdAt` datetime,
   `updatedAt` datetime
 );
@@ -166,6 +168,7 @@ ALTER TABLE `JockeyInvitation` ADD FOREIGN KEY (`registrationID`) REFERENCES `Re
 ALTER TABLE `JockeyInvitation` ADD FOREIGN KEY (`ownerID`) REFERENCES `Users` (`userID`);
 
 ALTER TABLE `JockeyInvitation` ADD FOREIGN KEY (`jockeyID`) REFERENCES `Users` (`userID`);
+
 ALTER TABLE TournamentRound
 ADD CONSTRAINT uq_tournament_round_order
 UNIQUE (tournamentID, roundOrder);
@@ -189,6 +192,7 @@ UNIQUE (raceID, registrationID);
 ALTER TABLE RaceEntry
 ADD CONSTRAINT uq_race_lane
 UNIQUE (raceID, laneNumber);
+
 INSERT INTO Roles(roleID, roleName) VALUES
 (1,'ADMIN'),
 (2,'OWNER'),

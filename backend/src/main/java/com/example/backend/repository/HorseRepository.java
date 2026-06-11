@@ -15,4 +15,8 @@ public interface HorseRepository extends JpaRepository<Horse, Integer> {
     Optional<Horse> findByHorseIdAndOwnerId(Integer horseId, Integer ownerId);
 
     long countByOwnerId(Integer ownerId);
+
+    boolean existsByHorseNameIgnoreCase(String horseName);
+
+    boolean existsByHorseNameIgnoreCaseAndHorseIdNot(String horseName, Integer horseId);
 }
