@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Default jockey avatar</title>
+  <desc id="desc">A white Facebook-style default profile avatar.</desc>
+  <rect width="256" height="256" rx="128" fill="#e9edf3"/>
+  <circle cx="128" cy="92" r="48" fill="#ffffff"/>
+  <path d="M44 226c10-52 44-82 84-82s74 30 84 82" fill="#ffffff"/>
+  <path d="M128 8a120 120 0 1 0 0 240 120 120 0 0 0 0-240Zm0 15a105 105 0 1 1 0 210 105 105 0 0 1 0-210Z" fill="#d3d9e4"/>
+</svg>

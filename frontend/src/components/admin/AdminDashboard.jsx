@@ -2,6 +2,7 @@ import { useState } from 'react';
 import {
   ClipboardCheck,
   Flag,
+  ShieldCheck,
   LayoutDashboard,
   LogOut,
   Trophy,
@@ -13,6 +14,7 @@ import EventManagement from './events/EventManagement';
 import RaceEntryManagement from './raceEntries/RaceEntryManagement';
 import RegistrationReview from './registrations/RegistrationReview';
 import JockeyReview from './reviews/JockeyReview';
+import HorseReview from './horses/HorseReview';
 import UserManagement from './users/UserManagement';
 
 const adminNavItems = [
@@ -20,6 +22,7 @@ const adminNavItems = [
   { key: 'users', label: 'User Management', icon: Users },
   { key: 'events', label: 'Tournaments', icon: Trophy },
   { key: 'jockeyReviews', label: 'Jockey Reviews', icon: ClipboardCheck },
+  { key: 'horseReviews', label: 'Horse Reviews', icon: ShieldCheck },
   { key: 'registrations', label: 'Registrations', icon: UserCheck },
   { key: 'raceEntries', label: 'Race Entries', icon: Flag }
 ];
@@ -81,6 +84,7 @@ export default function AdminDashboard({ currentUser, onLogout }) {
         {activeSection === 'users' && <UserManagement />}
         {activeSection === 'events' && <EventManagement />}
         {activeSection === 'jockeyReviews' && <JockeyReview />}
+        {activeSection === 'horseReviews' && <HorseReview />}
         {activeSection === 'registrations' && <RegistrationReview />}
         {activeSection === 'raceEntries' && <RaceEntryManagement />}
       </section>

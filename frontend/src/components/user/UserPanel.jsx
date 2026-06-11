@@ -1,38 +1,26 @@
-const roleDashboards = {
-  ADMIN: '/admin',
-  OWNER: '/owner',
-  JOCKEY: '/jockey',
-  REFEREE: '/referee',
-  SPECTATOR: '/spectator'
-};
+import { getUserRole } from '../../lib';
 
 export default function UserPanel({ user, onLogout }) {
-  const dashboardPath = roleDashboards[user?.role] || '/dashboard';
-
   return (
-    <main className="page-shell">
-      <section className="success-card" aria-label="Thông tin đăng nhập thành công">
-        <div className="brand-mark">🏇</div>
-        <p className="eyebrow">Horse Racing System</p>
-        <h1>Đăng nhập thành công</h1>
-        <p className="success-message">
-          Chào <strong>{user?.fullName || user?.email}</strong>, tài khoản của bạn có quyền{' '}
-          <strong>{user?.role}</strong>.
+    <main className="auth-page">
+      <section className="success-card" aria-label="Successful login information">
+        <div className="success-icon">✓</div>
+        <p className="auth-eyebrow">Trackside Triumph</p>
+        <h1>Signed In Successfully</h1>
+        <p>
+          Hello <strong>{user?.fullName || user?.email}</strong>, your account has the{' '}
+          <strong>{getUserRole(user) || 'USER'}</strong> role.
         </p>
-
         <div className="user-info-grid">
           <span>Email</span>
           <strong>{user?.email}</strong>
-
-          <span>Trạng thái</span>
+          <span>Phone</span>
+          <strong>{user?.phone || 'Not updated'}</strong>
+          <span>Status</span>
           <strong>{user?.status || 'N/A'}</strong>
-
-          <span>Trang sau login</span>
-          <strong>{dashboardPath}</strong>
         </div>
-
-        <button className="primary-button" onClick={onLogout} type="button">
-          Đăng xuất
+        <button className="primary-button full-width" type="button" onClick={onLogout}>
+          Sign Out
         </button>
       </section>
     </main>

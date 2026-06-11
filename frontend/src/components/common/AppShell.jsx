@@ -11,16 +11,17 @@ export default function AppShell({
   children,
   headerAction
 }) {
-  const shellClass = `${variant}-shell`;
-  const sidebarClass = `${variant}-sidebar`;
-  const brandClass = `${variant}-brand`;
-  const logoClass = `${variant}-logo`;
-  const navClass = `${variant}-nav`;
-  const navItemClass = `${variant}-nav-item`;
-  const profileClass = variant === 'owner' ? 'owner-profile-card' : 'admin-profile';
-  const logoutClass = `${variant}-logout`;
-  const mainClass = `${variant}-main`;
-  const topbarClass = variant === 'owner' ? 'owner-topbar' : 'admin-header';
+  const layoutVariant = variant === 'jockey' ? 'owner' : variant;
+  const shellClass = `${layoutVariant}-shell`;
+  const sidebarClass = `${layoutVariant}-sidebar`;
+  const brandClass = `${layoutVariant}-brand`;
+  const logoClass = `${layoutVariant}-logo`;
+  const navClass = `${layoutVariant}-nav`;
+  const navItemClass = `${layoutVariant}-nav-item`;
+  const profileClass = layoutVariant === 'owner' ? 'owner-profile-card' : 'admin-profile';
+  const logoutClass = `${layoutVariant}-logout`;
+  const mainClass = `${layoutVariant}-main`;
+  const topbarClass = layoutVariant === 'owner' ? 'owner-topbar' : 'admin-header';
 
   return (
     <main className={shellClass}>
@@ -29,7 +30,7 @@ export default function AppShell({
           <div className={logoClass}>🏇</div>
           <div>
             <strong>Trackside Triumph</strong>
-            <span>{variant === 'owner' ? 'Owner Portal' : 'Admin Dashboard'}</span>
+            <span>{variant === 'owner' ? 'Owner Portal' : variant === 'jockey' ? 'Jockey Portal' : 'Admin Dashboard'}</span>
           </div>
         </div>
 
@@ -48,20 +49,20 @@ export default function AppShell({
         </nav>
 
         <div className={profileClass}>
-          <span>Đang đăng nhập</span>
+          <span>Signed in as</span>
           <strong>{profileName}</strong>
           <small>{profileRole}</small>
         </div>
 
         <button className={logoutClass} type="button" onClick={onLogout}>
-          Đăng xuất
+          Sign Out
         </button>
       </aside>
 
       <section className={mainClass}>
         <header className={topbarClass}>
           <div>
-            <p className="eyebrow">{variant === 'owner' ? 'Owner Dashboard' : 'Admin'}</p>
+            <p className="eyebrow">{variant === 'owner' ? 'Owner Dashboard' : variant === 'jockey' ? 'Jockey Dashboard' : 'Admin'}</p>
             <h1>{title}</h1>
             {subtitle && <p>{subtitle}</p>}
           </div>

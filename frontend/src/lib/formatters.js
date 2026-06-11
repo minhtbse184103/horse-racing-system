@@ -1,14 +1,15 @@
+import defaultHorseImage from '../assets/default-horse.svg';
 export function formatNumber(value) {
     const number = Number(value || 0);
-    return Number.isFinite(number) ? number.toLocaleString('vi-VN') : '0';
+    return Number.isFinite(number) ? number.toLocaleString('en-US') : '0';
 }
 export function formatDate(value) {
     if (!value)
-        return 'Chưa cập nhật';
+        return 'Not updated';
     const date = new Date(String(value));
     if (Number.isNaN(date.getTime()))
         return String(value);
-    return date.toLocaleDateString('vi-VN');
+    return date.toLocaleDateString('en-US');
 }
 export function getUserId(user) {
     return user?.id ?? user?.Id ?? user?.userID ?? user?.userId;
@@ -38,22 +39,21 @@ export function emptyHorseForm() {
         dayOfBirth: '',
         weight: '',
         healthCertExpiry: '',
-        status: 'ACTIVE',
-        imgUrl: ''
+        imgUrl: defaultHorseImage
     };
 }
 export function toHorsePayload(formValues) {
-    const horseName = String(formValues.horseName ?? '').trim();
-    const weight = Number(formValues.weight);
-    return {
-        horseName,
-        breed: formValues.breed.trim() || null,
-        gender: formValues.gender || null,
-        color: formValues.color.trim() || null,
-        dayOfBirth: formValues.dayOfBirth || null,
-        weight,
-        healthCertExpiry: formValues.healthCertExpiry || null,
-        status: formValues.status || null,
-        imgUrl: formValues.imgUrl.trim()
-    };
+  const horseName = String(formValues.horseName ?? '').trim();
+  const weight = Number(formValues.weight);
+
+  return {
+    horseName,
+    breed: formValues.breed.trim() || null,
+    gender: formValues.gender || null,
+    color: formValues.color.trim() || null,
+    dayOfBirth: formValues.dayOfBirth || null,
+    weight,
+    healthCertExpiry: formValues.healthCertExpiry || null,
+    imgUrl: formValues.imgUrl || defaultHorseImage
+  };
 }

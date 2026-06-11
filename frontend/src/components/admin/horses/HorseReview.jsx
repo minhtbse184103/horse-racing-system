@@ -1,0 +1,243 @@
+import { useEffect, useMemo, useState } from 'react';
+import { BadgeCheck, RefreshCw, Search, XCircle } from 'lucide-react';
+import defaultHorseImage from '../../../assets/default-horse.svg';
+import { approveHorse, getPendingHorses, rejectHorse } from '../../../services/adminHorseReviewService';
+import { formatDate, getHorseId, getHorseName } from '../../../lib';
+
+function getDisplayImage(src) {
+  return src && !/^https?:\/\//i.test(String(src)) ? src : defaultHorseImage;
+}
+
+function ReviewDialog({ review, onClose, onConfirm, isProcessing }) {
+  const [feedback, setFeedback] = useState('');
+
+  useEffect(() => {
+    setFeedback('');
+  }, [review]);
+
+  if (!review) return null;
+
+  const isRejecting = review.action === 'reject';
+  const horseName = getHorseName(review.horse) || `Horse ${getHorseId(review.horse)}`;
+
+  return (
+    <div className="fixed inset-0 z-[1000] grid place-items-center bg-brown-900/60 p-4 backdrop-blur-sm">
+      <section className="w-full max-w-lg rounded-lg bg-cream-100 p-6 shadow-2xl">
+        <h2 className="text-2xl font-black text-brown-900">
+          {isRejecting ? 'Reject Horse Profile' : 'Approve Horse Profile'}
+        </h2>
+        <p className="mt-2 text-sm font-semibold text-slate-500">
+          {horseName} will be {isRejecting ? 'returned to the owner with your feedback' : 'approved and marked ACTIVE'}.
+        </p>
+
+        {isRejecting && (
+          <label className="mt-5 block">
+            <span className="field-label">Rejection Reason</span>
+            <textarea
+              className="input textarea-input"
+              rows={4}
+              value={feedback}
+              onChange={(event) => setFeedback(event.target.value)}
+              placeholder="Explain what the owner must fix before resubmitting."
+            />
+          </label>
+        )}
+
+        <div className="mt-6 flex justify-end gap-3">
+          <button className="outline-button" type="button" onClick={onClose} disabled={isProcessing}>Cancel</button>
+          <button
+            className={isRejecting ? 'primary-button danger-action' : 'primary-button'}
+            type="button"
+            disabled={isProcessing || (isRejecting && !feedback.trim())}
+            onClick={() => onConfirm(feedback.trim())}
+          >
+            {isProcessing ? 'Processing...' : isRejecting ? 'Reject Horse' : 'Approve Horse'}
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
+export default function HorseReview() {
+  const [horses, setHorses] = useState([]);
+  const [search, setSearch] = useState('');
+  const [review, setReview] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    loadHorses();
+  }, []);
+
+  async function loadHorses() {
+    setIsLoading(true);
+    setError('');
+
+    try {
+      const data = await getPendingHorses();
+      setHorses(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setError(err.message || 'Unable to load pending horse profiles.');
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
+  const filteredHorses = useMemo(() => {
+    const keyword = search.trim().toLowerCase();
+    if (!keyword) return horses;
+
+    return horses.filter((horse) => [
+      getHorseId(horse),
+      getHorseName(horse),
+      horse.breed,
+      horse.color,
+      horse.gender,
+      horse.ownerId
+    ]
+      .filter((value) => value !== null && value !== undefined)
+      .some((value) => String(value).toLowerCase().includes(keyword))
+    );
+  }, [horses, search]);
+
+  async function confirmReview(feedback) {
+    const { action, horse } = review;
+    const horseId = getHorseId(horse);
+
+    if (!horseId) {
+      setError('Horse ID was not found.');
+      return;
+    }
+
+    setIsProcessing(true);
+    setError('');
+    setMessage('');
+
+    try {
+      if (action === 'approve') {
+        await approveHorse(horseId);
+        setMessage(`${getHorseName(horse) || `Horse ${horseId}`} was approved and marked ACTIVE.`);
+      } else {
+        await rejectHorse(horseId, feedback);
+        setMessage(`${getHorseName(horse) || `Horse ${horseId}`} was rejected and returned to the owner.`);
+      }
+
+      setReview(null);
+      await loadHorses();
+    } catch (err) {
+      setError(err.message || 'Unable to review the horse profile.');
+    } finally {
+      setIsProcessing(false);
+    }
+  }
+
+  return (
+    <section className="space-y-6 text-brown-900">
+      <header className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div>
+          <p className="text-sm font-extrabold uppercase tracking-widest text-brown-500">Horse Reviews</p>
+          <h1 className="mt-2 text-4xl font-black md:text-5xl">Pending Horse Approval</h1>
+          <p className="mt-3 font-medium text-slate-500">
+            Horses added by owners arrive here as PENDING and require an admin decision before they can be used for race registration.
+          </p>
+        </div>
+
+        <button
+          className="inline-flex items-center justify-center gap-2 rounded-lg border border-brown-700/15 bg-white px-4 py-3 font-extrabold text-brown-700 shadow-sm"
+          type="button"
+          disabled={isLoading}
+          onClick={loadHorses}
+        >
+          <RefreshCw size={17} className={isLoading ? 'animate-spin' : ''} />
+          Refresh
+        </button>
+      </header>
+
+      {error && <div className="rounded-lg border border-danger/20 bg-danger-bg px-4 py-3 font-bold text-danger">{error}</div>}
+      {message && <div className="rounded-lg border border-green-700/20 bg-green-50 px-4 py-3 font-bold text-green-700">{message}</div>}
+
+      <section className="overflow-hidden rounded-lg border border-brown-700/10 bg-cream-100 shadow-lg">
+        <div className="flex items-center justify-between gap-4 border-b border-brown-700/10 bg-cream-200/50 p-5 max-sm:grid">
+          <div>
+            <h2 className="text-xl font-extrabold">Awaiting Approval</h2>
+            <p className="mt-1 text-sm text-slate-500">{filteredHorses.length} of {horses.length} horse profiles</p>
+          </div>
+
+          <label className="relative block w-full max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={17} />
+            <input
+              className="w-full rounded-lg border border-brown-700/15 bg-white py-3 pl-10 pr-4 text-sm font-bold outline-none focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
+              placeholder="Search horse, breed, color, or owner ID"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+          </label>
+        </div>
+
+        {isLoading ? (
+          <p className="px-5 py-10 text-slate-500">Loading horse profiles...</p>
+        ) : filteredHorses.length === 0 ? (
+          <p className="px-5 py-10 text-slate-500">No horse profiles are waiting for approval.</p>
+        ) : (
+          <div className="grid gap-4 p-5 lg:grid-cols-2">
+            {filteredHorses.map((horse) => {
+              const horseId = getHorseId(horse);
+              const horseName = getHorseName(horse) || `Horse ${horseId}`;
+
+              return (
+                <article className="rounded-lg border border-brown-700/10 bg-white p-5 shadow-sm" key={horseId}>
+                  <div className="flex items-start gap-4">
+                    <img className="size-20 rounded-lg border border-brown-700/10 object-cover" src={getDisplayImage(horse.imgUrl)} alt={horseName} />
+                    <div className="min-w-0 flex-1">
+                      <h3 className="break-words text-lg font-extrabold">{horseName}</h3>
+                      <p className="mt-1 break-words text-sm font-semibold text-slate-500">Owner ID: {horse.ownerId || 'N/A'}</p>
+                      <span className="mt-3 inline-flex rounded-full bg-gold-400/20 px-3 py-1 text-xs font-extrabold text-brown-700">{horse.status || 'PENDING'}</span>
+                    </div>
+                  </div>
+
+                  <dl className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-3">
+                    <div><dt className="text-xs font-extrabold uppercase text-slate-500">Breed</dt><dd className="mt-1 break-words text-sm font-extrabold">{horse.breed || 'N/A'}</dd></div>
+                    <div><dt className="text-xs font-extrabold uppercase text-slate-500">Gender</dt><dd className="mt-1 break-words text-sm font-extrabold">{horse.gender || 'N/A'}</dd></div>
+                    <div><dt className="text-xs font-extrabold uppercase text-slate-500">Color</dt><dd className="mt-1 break-words text-sm font-extrabold">{horse.color || 'N/A'}</dd></div>
+                    <div><dt className="text-xs font-extrabold uppercase text-slate-500">Birth Date</dt><dd className="mt-1 text-sm font-extrabold">{formatDate(horse.dayOfBirth)}</dd></div>
+                    <div><dt className="text-xs font-extrabold uppercase text-slate-500">Weight</dt><dd className="mt-1 text-sm font-extrabold">{horse.weight || 'N/A'} kg</dd></div>
+                    <div><dt className="text-xs font-extrabold uppercase text-slate-500">Health Expiry</dt><dd className="mt-1 text-sm font-extrabold">{formatDate(horse.healthCertExpiry)}</dd></div>
+                  </dl>
+
+                  <div className="mt-5 grid grid-cols-2 gap-2">
+                    <button
+                      className="inline-flex items-center justify-center gap-2 rounded-lg border border-green-700/20 bg-green-50 px-3 py-2.5 text-sm font-extrabold text-green-700"
+                      type="button"
+                      onClick={() => setReview({ action: 'approve', horse })}
+                    >
+                      <BadgeCheck size={16} />
+                      Approve
+                    </button>
+                    <button
+                      className="inline-flex items-center justify-center gap-2 rounded-lg border border-danger/20 bg-danger-bg px-3 py-2.5 text-sm font-extrabold text-danger"
+                      type="button"
+                      onClick={() => setReview({ action: 'reject', horse })}
+                    >
+                      <XCircle size={16} />
+                      Reject
+                    </button>
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      <ReviewDialog
+        review={review}
+        onClose={() => !isProcessing && setReview(null)}
+        onConfirm={confirmReview}
+        isProcessing={isProcessing}
+      />
+    </section>
+  );
+}

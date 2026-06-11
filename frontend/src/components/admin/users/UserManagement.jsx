@@ -110,7 +110,7 @@ export default function UserManagement() {
       const data = await getUsers();
       setUsers(Array.isArray(data) ? data : []);
     } catch (err) {
-      setError(err.message || 'Không thể tải danh sách user.');
+      setError(err.message || 'Unable to load users.');
     } finally {
       setIsLoading(false);
     }
@@ -193,16 +193,16 @@ const availableStatuses = STANDARD_STATUSES;
   }
 
   function validateForm() {
-    if (!form.fullName.trim()) return 'Full name không được để trống.';
-    if (!form.email.trim()) return 'Email không được để trống.';
+    if (!form.fullName.trim()) return 'Full name is required.';
+    if (!form.email.trim()) return 'Email is required.';
     if (!/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(form.email)) {
-      return 'Email không đúng định dạng.';
+      return 'Email format is invalid.';
     }
     if (!/^\+?[0-9]{9,15}$/.test(form.phone)) {
-      return 'Phone phải gồm 9-15 chữ số và có thể bắt đầu bằng +.';
+      return 'Phone must contain 9-15 digits and may start with +.';
     }
     if (!editingUser && (form.password.length < 6 || form.password.length > 72)) {
-      return 'Password phải từ 6 đến 72 ký tự.';
+      return 'Password must be between 6 and 72 characters.';
     }
     if (
       editingUser &&

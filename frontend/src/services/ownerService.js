@@ -1,59 +1,59 @@
 import { httpRequest } from '../api/httpClient';
 export function getOwnerDashboard() {
     return httpRequest('/api/owner/dashboard', {
-        fallbackError: 'Không thể tải dashboard chủ ngựa.'
+        fallbackError: 'Unable to load the owner dashboard.'
     });
 }
 export function getOwnerHorses() {
     return httpRequest('/api/owner/horses', {
-        fallbackError: 'Không thể tải danh sách ngựa.'
+        fallbackError: 'Unable to load the horse list.'
     });
 }
 export function getOwnerHorseById(horseId) {
     return httpRequest(`/api/owner/horses/${horseId}`, {
-        fallbackError: 'Không thể tải chi tiết ngựa.'
+        fallbackError: 'Unable to load horse details.'
     });
 }
 export function createHorse(payload) {
     return httpRequest('/api/owner/horses', {
         method: 'POST',
         body: payload,
-        fallbackError: 'Thêm ngựa thất bại.'
+        fallbackError: 'Unable to add the horse.'
     });
 }
 export function updateHorse(horseId, payload) {
     return httpRequest(`/api/owner/horses/${horseId}`, {
         method: 'PUT',
         body: payload,
-        fallbackError: 'Cập nhật ngựa thất bại.'
+        fallbackError: 'Unable to update the horse.'
     });
 }
 export function deleteHorse(horseId) {
     return httpRequest(`/api/owner/horses/${horseId}`, {
         method: 'DELETE',
-        fallbackError: 'Xóa ngựa thất bại.'
+        fallbackError: 'Unable to delete the horse.'
     });
 }
 export function getTournaments() {
     return httpRequest('/api/tournaments', {
-        fallbackError: 'Không thể tải danh sách giải đấu.'
+        fallbackError: 'Unable to load tournaments.'
     });
 }
 export function getOwnerInvitations() {
     return httpRequest('/api/owner/invitations', {
-        fallbackError: 'Không thể tải danh sách lời mời jockey.'
+        fallbackError: 'Unable to load jockey invitations.'
     });
 }
 export function inviteJockey(payload) {
     return httpRequest('/api/owner/invitations', {
         method: 'POST',
         body: payload,
-        fallbackError: 'Gửi lời mời jockey thất bại.'
+        fallbackError: 'Unable to send the jockey invitation.'
     });
 }
 export function cancelOwnerInvitation(invitationId) {
     return httpRequest(`/api/owner/invitations/${invitationId}/cancel`, {
         method: 'PUT',
-        fallbackError: 'Hủy lời mời jockey thất bại.'
+        fallbackError: 'Unable to cancel the jockey invitation.'
     });
 }
