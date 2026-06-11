@@ -48,7 +48,8 @@ export function emptyHorseForm(): HorseFormValues {
     dayOfBirth: '',
     weight: '',
     healthCertExpiry: '',
-    status: 'ACTIVE'
+    status: 'ACTIVE',
+    imgUrl: ''
   };
 }
 
@@ -64,6 +65,7 @@ export function toHorsePayload(formValues: HorseFormValues): HorsePayload {
     dayOfBirth: formValues.dayOfBirth || null,
     weight,
     healthCertExpiry: formValues.healthCertExpiry || null,
-    status: formValues.status || null
+    status: formValues.status || null,
+    imgUrl: formValues.imgUrl.trim()
   };
 }

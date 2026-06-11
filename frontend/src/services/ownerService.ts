@@ -17,6 +17,7 @@ export interface Horse {
   weight?: number | string | null;
   healthCertExpiry?: string | null;
   status?: HorseStatus | null;
+  imgUrl?: string | null;
   registrationCount?: number | string | null;
   participated?: boolean;
   [key: string]: unknown;
@@ -31,6 +32,7 @@ export interface HorseFormValues {
   weight: number | string;
   healthCertExpiry: string;
   status: HorseStatus;
+  imgUrl: string;
 }
 
 export interface HorsePayload {
@@ -42,6 +44,7 @@ export interface HorsePayload {
   weight: number;
   healthCertExpiry: string | null;
   status: HorseStatus | null;
+  imgUrl: string;
 }
 
 export interface OwnerDashboardData {
@@ -92,5 +95,53 @@ export function deleteHorse(horseId: Id): Promise<unknown> {
   return httpRequest<unknown>(`/api/owner/horses/${horseId}`, {
     method: 'DELETE',
     fallbackError: 'Xóa ngựa thất bại.'
+  });
+}
+
+export interface OwnerInvitation {
+  invitationId?: Id;
+  registrationId?: Id;
+  tournamentId?: Id;
+  tournamentName?: string;
+  horseId?: Id;
+  horseName?: string;
+  ownerId?: Id;
+  ownerName?: string;
+  jockeyId?: Id;
+  jockeyName?: string;
+  message?: string;
+  createdAt?: string;
+  respondedAt?: string;
+  expiredAt?: string;
+  status?: string;
+  registrationStatus?: string;
+}
+
+export interface InviteJockeyPayload {
+  tournamentId: number;
+  horseId: number;
+  jockeyId: number;
+  expiredAt?: string | null;
+  message?: string | null;
+}
+
+export function getOwnerInvitations(): Promise<OwnerInvitation[]> {
+  return httpRequest<OwnerInvitation[]>('/api/owner/invitations', {
+    fallbackError: 'Không thể tải danh sách lời mời jockey.'
+  });
+}
+
+export function inviteJockey(payload: InviteJockeyPayload): Promise<OwnerInvitation> {
+  return httpRequest<OwnerInvitation, InviteJockeyPayload>('/api/owner/invitations', {
+    method: 'POST',
+    body: payload,
+    fallbackError: 'Gửi lời mời jockey thất bại.'
+  });
+}
+
+export function cancelOwnerInvitation(invitationId: Id): Promise<OwnerInvitation> {
+  return httpRequest<OwnerInvitation>(`/api/owner/invitations/${invitationId}/cancel`, {
+    method: 'PUT',
+    fallbackError: 'Hủy lời mời jockey thất bại.'
   });
 }

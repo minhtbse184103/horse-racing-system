@@ -36,7 +36,9 @@ export default function OwnerHorseTable({ horses, isLoading, onEditHorse, onDele
 
             return (
               <article className="horse-card" key={horseId || horseName}>
-                <div className="horse-avatar">🐎</div>
+                <div className="horse-avatar">
+                  {horse.imgUrl ? <img src={horse.imgUrl} alt={horseName} /> : '🐎'}
+                </div>
                 <div className="horse-info">
                   <div className="horse-title-row">
                     <h3>{horseName}</h3>

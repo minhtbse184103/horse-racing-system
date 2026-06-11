@@ -5,6 +5,7 @@ import type { FormErrors } from '../../utils/validators';
 interface OwnerHorseFormProps {
   formValues: HorseFormValues;
   errors: FormErrors<HorseFormValues>;
+  submitError?: string;
   editingHorse: Horse | null;
   isSaving: boolean;
   onChange: (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => void;
@@ -15,6 +16,7 @@ interface OwnerHorseFormProps {
 export default function OwnerHorseForm({
   formValues,
   errors,
+  submitError,
   editingHorse,
   isSaving,
   onChange,
@@ -29,6 +31,12 @@ export default function OwnerHorseForm({
           <p>Nhập thông tin hồ sơ ngựa theo đúng dữ liệu backend đang nhận.</p>
         </div>
       </div>
+
+      {submitError && (
+        <div className="admin-alert error modal-alert" role="alert">
+          {submitError}
+        </div>
+      )}
 
       <label className="field-label" htmlFor="horseName">
         Tên ngựa <span className="required">*</span>
@@ -47,9 +55,9 @@ export default function OwnerHorseForm({
 
       <div className="owner-form-row">
         <div>
-          <label className="field-label" htmlFor="horseBreed">Giống ngựa</label>
+          <label className="field-label" htmlFor="horseBreed">Giống ngựa <span className="required">*</span></label>
           <input
-            className="input"
+            className={errors.breed ? 'input has-error' : 'input'}
             id="horseBreed"
             name="breed"
             type="text"
@@ -58,12 +66,13 @@ export default function OwnerHorseForm({
             onChange={onChange}
             disabled={isSaving}
           />
+          {errors.breed && <p className="field-error">{errors.breed}</p>}
         </div>
 
         <div>
-          <label className="field-label" htmlFor="horseColor">Màu lông</label>
+          <label className="field-label" htmlFor="horseColor">Màu lông <span className="required">*</span></label>
           <input
-            className="input"
+            className={errors.color ? 'input has-error' : 'input'}
             id="horseColor"
             name="color"
             type="text"
@@ -72,6 +81,7 @@ export default function OwnerHorseForm({
             onChange={onChange}
             disabled={isSaving}
           />
+          {errors.color && <p className="field-error">{errors.color}</p>}
         </div>
       </div>
 
@@ -88,7 +98,6 @@ export default function OwnerHorseForm({
           >
             <option value="MALE">MALE</option>
             <option value="FEMALE">FEMALE</option>
-            <option value="UNKNOWN">UNKNOWN</option>
           </select>
         </div>
 
@@ -103,9 +112,6 @@ export default function OwnerHorseForm({
             disabled={isSaving}
           >
             <option value="ACTIVE">ACTIVE</option>
-            <option value="INJURED">INJURED</option>
-            <option value="RETIRED">RETIRED</option>
-            <option value="SUSPENDED">SUSPENDED</option>
             <option value="INACTIVE">INACTIVE</option>
           </select>
         </div>
@@ -113,9 +119,9 @@ export default function OwnerHorseForm({
 
       <div className="owner-form-row">
         <div>
-          <label className="field-label" htmlFor="horseBirthDate">Ngày sinh</label>
+          <label className="field-label" htmlFor="horseBirthDate">Ngày sinh <span className="required">*</span></label>
           <input
-            className="input"
+            className={errors.dayOfBirth ? 'input has-error' : 'input'}
             id="horseBirthDate"
             name="dayOfBirth"
             type="date"
@@ -123,6 +129,7 @@ export default function OwnerHorseForm({
             onChange={onChange}
             disabled={isSaving}
           />
+          {errors.dayOfBirth && <p className="field-error">{errors.dayOfBirth}</p>}
         </div>
 
         <div>
@@ -145,9 +152,11 @@ export default function OwnerHorseForm({
         </div>
       </div>
 
-      <label className="field-label" htmlFor="horseHealthDate">Hạn giấy chứng nhận sức khỏe</label>
+      <label className="field-label" htmlFor="horseHealthDate">
+        Hạn giấy chứng nhận sức khỏe <span className="required">*</span>
+      </label>
       <input
-        className="input"
+        className={errors.healthCertExpiry ? 'input has-error' : 'input'}
         id="horseHealthDate"
         name="healthCertExpiry"
         type="date"
@@ -155,6 +164,22 @@ export default function OwnerHorseForm({
         onChange={onChange}
         disabled={isSaving}
       />
+      {errors.healthCertExpiry && <p className="field-error">{errors.healthCertExpiry}</p>}
+
+      <label className="field-label" htmlFor="horseImageUrl">
+        Image URL <span className="required">*</span>
+      </label>
+      <input
+        className={errors.imgUrl ? 'input has-error' : 'input'}
+        id="horseImageUrl"
+        name="imgUrl"
+        type="url"
+        placeholder="https://example.com/horse.jpg"
+        value={formValues.imgUrl}
+        onChange={onChange}
+        disabled={isSaving}
+      />
+      {errors.imgUrl && <p className="field-error">{errors.imgUrl}</p>}
 
       <div className="admin-form-actions">
         <button className="primary-button" type="submit" disabled={isSaving}>

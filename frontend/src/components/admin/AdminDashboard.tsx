@@ -7,7 +7,7 @@ import AdminRegistrationReview from './AdminRegistrationReview';
 import AdminOverviewDashboard from './AdminOverviewDashboard';
 
 const adminRoles = ['ADMIN', 'OWNER', 'JOCKEY', 'REFEREE', 'SPECTATOR'];
-const userStatuses = ['ACTIVE', 'INACTIVE', 'BLOCKED'];
+const userStatuses = ['PENDING', 'UNDER_REVIEW', 'ACTIVE', 'REJECTED', 'INACTIVE', 'BLOCKED'];
 
 function emptyUserForm() {
   return {
@@ -16,7 +16,8 @@ function emptyUserForm() {
     phone: '',
     password: '',
     roleName: 'SPECTATOR',
-    status: 'ACTIVE'
+    status: 'ACTIVE',
+    rejectionReason: ''
   };
 }
 
@@ -50,7 +51,7 @@ export default function AdminDashboard({ currentUser, onLogout }) {
   const [formValues, setFormValues] = useState(emptyUserForm());
   const [editingUser, setEditingUser] = useState(null);
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -61,8 +62,10 @@ export default function AdminDashboard({ currentUser, onLogout }) {
   const blockedUsers = users.filter((user) => user.status === 'BLOCKED').length;
 
   useEffect(() => {
-    loadUsers();
-  }, []);
+    if (activeSection === 'users') {
+      loadUsers();
+    }
+  }, [activeSection]);
 
   async function loadUsers() {
     setIsLoading(true);
@@ -109,7 +112,8 @@ export default function AdminDashboard({ currentUser, onLogout }) {
       phone: user.phone || '',
       password: '',
       roleName: getUserRole(user) || user.role || 'SPECTATOR',
-      status: user.status || 'ACTIVE'
+      status: user.status || 'ACTIVE',
+      rejectionReason: user.rejectionReason || ''
     });
     setIsUserModalOpen(true);
     setMessage('');
@@ -168,7 +172,8 @@ export default function AdminDashboard({ currentUser, onLogout }) {
           fullName: formValues.fullName.trim(),
           phone: formValues.phone.trim(),
           roleName: formValues.roleName,
-          status: formValues.status
+          status: formValues.status,
+          rejectionReason: formValues.status === 'REJECTED' ? formValues.rejectionReason.trim() : ''
         });
 
         setMessage('Cập nhật user thành công.');
@@ -578,6 +583,24 @@ export default function AdminDashboard({ currentUser, onLogout }) {
                             </option>
                           ))}
                         </select>
+
+                        {formValues.status === 'REJECTED' && (
+                          <>
+                            <label className="field-label" htmlFor="adminRejectionReason">
+                              Lý do từ chối
+                            </label>
+                            <input
+                              className="input"
+                              id="adminRejectionReason"
+                              name="rejectionReason"
+                              type="text"
+                              value={formValues.rejectionReason}
+                              onChange={handleChange}
+                              disabled={isSaving}
+                              placeholder="Tối đa 500 ký tự"
+                            />
+                          </>
+                        )}
                       </>
                     )}
 

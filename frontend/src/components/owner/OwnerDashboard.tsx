@@ -44,6 +44,7 @@ export default function OwnerDashboard({ currentUser, onLogout }: OwnerDashboard
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [pageError, setPageError] = useState('');
+  const [horseFormError, setHorseFormError] = useState('');
 
   const { dashboard, dashboardError, isDashboardLoading, loadDashboard } = useOwnerDashboard();
   const { horses, horseError, isHorsesLoading, loadHorses, saveHorse, removeHorse } = useHorses();
@@ -71,6 +72,7 @@ export default function OwnerDashboard({ currentUser, onLogout }: OwnerDashboard
     setFormValues(emptyHorseForm());
     setFormErrors({});
     setPageError('');
+    setHorseFormError('');
     setMessage('');
     setIsHorseFormOpen(true);
   }
@@ -79,6 +81,7 @@ export default function OwnerDashboard({ currentUser, onLogout }: OwnerDashboard
     const { name, value } = event.target;
     setFormValues((current) => ({ ...current, [name]: value }));
     setFormErrors((current) => ({ ...current, [name]: '' }));
+    setHorseFormError('');
     setPageError('');
     setMessage('');
   }
@@ -93,12 +96,14 @@ export default function OwnerDashboard({ currentUser, onLogout }: OwnerDashboard
       dayOfBirth: horse.dayOfBirth || '',
       weight: horse.weight ?? '',
       healthCertExpiry: horse.healthCertExpiry || '',
-      status: horse.status || 'ACTIVE'
+      status: horse.status || 'ACTIVE',
+      imgUrl: horse.imgUrl || ''
     });
     setActiveSection('horses');
     setIsHorseFormOpen(true);
     setFormErrors({});
     setMessage('');
+    setHorseFormError('');
     setPageError('');
   }
 
@@ -108,6 +113,7 @@ export default function OwnerDashboard({ currentUser, onLogout }: OwnerDashboard
     setFormValues(emptyHorseForm());
     setFormErrors({});
     setMessage('');
+    setHorseFormError('');
     setPageError('');
   }
 
@@ -117,6 +123,7 @@ export default function OwnerDashboard({ currentUser, onLogout }: OwnerDashboard
     const errors = validateHorseForm(formValues);
     setFormErrors(errors);
     setPageError('');
+    setHorseFormError('');
     setMessage('');
 
     if (Object.keys(errors).length > 0) return;
@@ -130,7 +137,7 @@ export default function OwnerDashboard({ currentUser, onLogout }: OwnerDashboard
       setIsHorseFormOpen(false);
       await reloadOwnerData();
     } catch (err) {
-      setPageError(getErrorText(err, 'Không thể lưu hồ sơ ngựa. Vui lòng kiểm tra lại thông tin.'));
+      setHorseFormError(getErrorText(err, 'Không thể lưu hồ sơ ngựa. Vui lòng kiểm tra lại thông tin.'));
     } finally {
       setIsSaving(false);
     }
@@ -146,6 +153,7 @@ export default function OwnerDashboard({ currentUser, onLogout }: OwnerDashboard
     if (!confirmDelete) return;
 
     setPageError('');
+    setHorseFormError('');
     setMessage('');
 
     try {
@@ -200,6 +208,7 @@ export default function OwnerDashboard({ currentUser, onLogout }: OwnerDashboard
             <OwnerHorseForm
               formValues={formValues}
               errors={formErrors}
+              submitError={horseFormError}
               editingHorse={editingHorse}
               isSaving={isSaving}
               onChange={handleHorseChange}
@@ -217,7 +226,7 @@ export default function OwnerDashboard({ currentUser, onLogout }: OwnerDashboard
         </section>
       )}
 
-      {activeSection === 'register' && <OwnerRegisterRace onBackToHorses={() => setActiveSection('horses')} />}
+      {activeSection === 'register' && <OwnerRegisterRace horses={horses} onBackToHorses={() => setActiveSection('horses')} />}
     </AppShell>
   );
 }

@@ -3,6 +3,7 @@ import LoginForm from './components/auth/LoginForm';
 import RegisterForm from './components/auth/RegisterForm';
 import AdminDashboard from './components/admin/AdminDashboard';
 import OwnerDashboard from './components/owner/OwnerDashboard';
+import JockeyDashboard from './components/jockey/JockeyDashboard';
 import UserPanel from './components/user/UserPanel';
 import { useAuth } from './hooks/useAuth';
 import { getUserRole } from './lib';
@@ -41,6 +42,10 @@ export default function App() {
 
   if (userRole === 'OWNER') {
     return <OwnerDashboard currentUser={user} onLogout={handleLogout} />;
+  }
+
+  if (userRole === 'JOCKEY') {
+    return <JockeyDashboard currentUser={user} onLogout={handleLogout} />;
   }
 
   if (user) {

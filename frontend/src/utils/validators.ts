@@ -59,18 +59,74 @@ export function validateSignupForm(values: SignupRequest): FormErrors<SignupRequ
   return errors;
 }
 
+function toDateOnly(value: string): Date | null {
+  if (!value) return null;
+  const date = new Date(`${value}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function todayDateOnly(): Date {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
 export function validateHorseForm(values: HorseFormValues): FormErrors<HorseFormValues> {
   const errors: FormErrors<HorseFormValues> = {};
   const weight = Number(values.weight);
+  const today = todayDateOnly();
+  const dayOfBirth = toDateOnly(values.dayOfBirth);
+  const healthCertExpiry = toDateOnly(values.healthCertExpiry);
 
   if (!values.horseName?.trim()) {
     errors.horseName = 'Tên ngựa không được để trống.';
+  } else if (values.horseName.trim().length < 2 || values.horseName.trim().length > 100) {
+    errors.horseName = 'Tên ngựa phải từ 2 đến 100 ký tự.';
+  } else if (!/^[\p{L}0-9][\p{L}0-9 .'-]*$/u.test(values.horseName.trim())) {
+    errors.horseName = 'Tên ngựa chứa ký tự không hợp lệ.';
+  }
+
+  if (!values.breed?.trim()) {
+    errors.breed = 'Giống ngựa không được để trống.';
+  } else if (values.breed.trim().length < 2 || values.breed.trim().length > 100) {
+    errors.breed = 'Giống ngựa phải từ 2 đến 100 ký tự.';
+  } else if (!/^[\p{L}0-9][\p{L}0-9 .'-]*$/u.test(values.breed.trim())) {
+    errors.breed = 'Giống ngựa chứa ký tự không hợp lệ.';
+  }
+
+  if (!values.color?.trim()) {
+    errors.color = 'Màu lông không được để trống.';
+  } else if (values.color.trim().length < 2 || values.color.trim().length > 50) {
+    errors.color = 'Màu lông phải từ 2 đến 50 ký tự.';
+  } else if (!/^[\p{L}][\p{L} .'-]*$/u.test(values.color.trim())) {
+    errors.color = 'Màu lông chứa ký tự không hợp lệ.';
+  }
+
+  if (!values.dayOfBirth) {
+    errors.dayOfBirth = 'Ngày sinh không được để trống.';
+  } else if (!dayOfBirth) {
+    errors.dayOfBirth = 'Ngày sinh không hợp lệ.';
+  } else if (dayOfBirth > today) {
+    errors.dayOfBirth = 'Ngày sinh phải là hôm nay hoặc trong quá khứ.';
   }
 
   if (values.weight === '' || values.weight === null || values.weight === undefined) {
     errors.weight = 'Cân nặng không được để trống.';
-  } else if (!Number.isFinite(weight) || weight <= 0) {
-    errors.weight = 'Cân nặng phải lớn hơn 0.';
+  } else if (!Number.isFinite(weight) || weight < 200 || weight > 1000) {
+    errors.weight = 'Cân nặng ngựa phải từ 200 đến 1000 kg.';
+  }
+
+  if (!values.healthCertExpiry) {
+    errors.healthCertExpiry = 'Hạn giấy chứng nhận sức khỏe không được để trống.';
+  } else if (!healthCertExpiry) {
+    errors.healthCertExpiry = 'Hạn giấy chứng nhận sức khỏe không hợp lệ.';
+  } else if (healthCertExpiry < today) {
+    errors.healthCertExpiry = 'Hạn giấy chứng nhận sức khỏe phải là hôm nay hoặc trong tương lai.';
+  }
+
+  if (!values.imgUrl?.trim()) {
+    errors.imgUrl = 'Image URL không được để trống.';
+  } else if (!/^https?:\/\/.+/i.test(values.imgUrl.trim())) {
+    errors.imgUrl = 'Image URL phải bắt đầu bằng http:// hoặc https://.';
   }
 
   return errors;
