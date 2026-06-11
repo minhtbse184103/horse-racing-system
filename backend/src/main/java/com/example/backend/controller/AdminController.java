@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.backend.dto.request.AdminCreateUserRequest;
 import com.example.backend.dto.request.AdminUpdateUserRequest;
+import com.example.backend.dto.response.JockeyProfileResponse;
 import com.example.backend.dto.response.UserResponse;
 import com.example.backend.service.AuthService;
 import com.example.backend.service.UserService;
@@ -35,6 +36,11 @@ public class AdminController {
     @GetMapping("/users")
     public ResponseEntity<List<UserResponse>> getUsers() {
         return ResponseEntity.ok(userService.getAllUser());
+    }
+
+    @GetMapping("/jockey-profiles/under-review")
+    public ResponseEntity<List<JockeyProfileResponse>> getJockeyProfilesUnderReview() {
+        return ResponseEntity.ok(userService.getJockeyProfilesUnderReview());
     }
 
     @GetMapping("/users/{userID}")

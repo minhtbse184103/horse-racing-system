@@ -1,12 +1,16 @@
 package com.example.backend.service;
 
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.backend.dto.request.AdminUpdateUserRequest;
+import com.example.backend.dto.response.JockeyProfileResponse;
 import com.example.backend.dto.response.UserResponse;
 import com.example.backend.entity.JockeyProfile;
 import com.example.backend.entity.Role;
@@ -49,6 +53,24 @@ public class UserService {
     @Transactional(readOnly = true)
     public UserResponse getUserById(Integer userID) {
         return toResponse(findUserById(userID));
+    }
+
+    @Transactional(readOnly = true)
+    public List<JockeyProfileResponse> getJockeyProfilesUnderReview() {
+        List<User> jockeys = userRepository.findByStatusAndRoleRoleNameOrderByUpdatedAtDesc(
+                STATUS_UNDER_REVIEW,
+                ROLE_JOCKEY);
+        List<Integer> jockeyIds = jockeys.stream()
+                .map(User::getUserID)
+                .toList();
+        Map<Integer, JockeyProfile> profilesByJockeyId = jockeyProfileRepository.findByJockeyIdIn(jockeyIds)
+                .stream()
+                .collect(Collectors.toMap(JockeyProfile::getJockeyId, Function.identity()));
+
+        return jockeys.stream()
+                .map(jockey -> mapJockeyProfileToResponse(jockey, profilesByJockeyId.get(jockey.getUserID())))
+                .filter(profile -> profile != null)
+                .toList();
     }
 
     @Transactional
@@ -154,6 +176,23 @@ public class UserService {
                         jockeyProfileRepository.save(profile);
                     });
         }
+    }
+
+    private JockeyProfileResponse mapJockeyProfileToResponse(User jockey, JockeyProfile profile) {
+        if (profile == null) {
+            return null;
+        }
+
+        return JockeyProfileResponse.builder()
+                .jockeyId(jockey.getUserID())
+                .fullName(jockey.getFullName())
+                .email(jockey.getEmail())
+                .licenseNo(profile.getLicenseNo())
+                .weight(profile.getWeight())
+                .ranking(profile.getRanking())
+                .status(profile.getStatus())
+                .imgUrl(profile.getImgUrl())
+                .build();
     }
 
     private UserResponse toResponse(User user) {
