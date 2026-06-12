@@ -223,18 +223,18 @@ VALUES
 (2, 2, 'Owner Test', 'owner@test.com', 'owner123', '0900000002', 'ACTIVE', NOW(), NOW()),
 (3, 3, 'Active Jockey', 'jockey@test.com', 'jockey123', '0900000003', 'ACTIVE', NOW(), NOW()),
 (4, 3, 'Jockey Under Review', 'jockey.review@test.com', 'jockey123', '0900000004',
- 'UNDER_REVIEW', DATE_SUB(NOW(), INTERVAL 2 DAY), DATE_SUB(NOW(), INTERVAL 1 HOUR)),
+ 'ACTIVE', DATE_SUB(NOW(), INTERVAL 2 DAY), DATE_SUB(NOW(), INTERVAL 1 HOUR)),
 (5, 3, 'Rejected Jockey', 'jockey.rejected@test.com', 'jockey123', '0900000005',
- 'REJECTED', DATE_SUB(NOW(), INTERVAL 5 DAY), DATE_SUB(NOW(), INTERVAL 2 DAY)),
+ 'ACTIVE', DATE_SUB(NOW(), INTERVAL 5 DAY), DATE_SUB(NOW(), INTERVAL 2 DAY)),
 (6, 3, 'Pending Jockey', 'jockey.pending@test.com', 'jockey123', '0900000006',
- 'PENDING', NOW(), NOW()),
+ 'ACTIVE', NOW(), NOW()),
 (7, 4, 'Referee Test', 'referee@test.com', 'referee123', '0900000007', 'ACTIVE', NOW(), NOW()),
 (8, 5, 'Spectator Test', 'spectator@test.com', 'spectator123', '0900000008', 'ACTIVE', NOW(), NOW());
 
 INSERT INTO JockeyProfile
 (jockeyID, licenseNo, weight, ranking, status, rejectionReason, img_url, createdAt, updatedAt)
 VALUES
-(3, 'JOCKEY-ACTIVE-001', 52.00, 'PROFESSIONAL', 'ACTIVE', NULL,
+(3, 'JOCKEY-READY-001', 52.00, 'PROFESSIONAL', 'READY', NULL,
  'https://images.unsplash.com/photo-1553284965-83fd3e82fa5a',
  DATE_SUB(NOW(), INTERVAL 20 DAY), DATE_SUB(NOW(), INTERVAL 5 DAY)),
 (4, 'JOCKEY-REVIEW-001', 51.00, 'INTERMEDIATE', 'UNDER_REVIEW', NULL,

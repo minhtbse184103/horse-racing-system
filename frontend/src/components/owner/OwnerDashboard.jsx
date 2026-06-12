@@ -9,6 +9,7 @@ import { useOwnerDashboard } from '../../hooks/useOwnerDashboard';
 import { emptyHorseForm, getHorseId, getHorseName, toHorsePayload } from '../../lib';
 import { validateHorseForm } from '../../utils/validators';
 import { getOwnerHorseById } from '../../services/ownerService';
+import { uploadImage } from '../../services/uploadService';
 const ownerNavItems = [
     { key: 'overview', label: 'Dashboard', icon: '📊' },
     { key: 'horses', label: 'My Horses', icon: '🐎' },
@@ -30,6 +31,7 @@ export default function OwnerDashboard({ currentUser, onLogout }) {
     const [message, setMessage] = useState('');
     const [pageError, setPageError] = useState('');
     const [horseFormError, setHorseFormError] = useState('');
+    const [horseImageFile, setHorseImageFile] = useState(null);
     const [selectedHorse, setSelectedHorse] = useState(null);
     const [isLoadingHorseDetail, setIsLoadingHorseDetail] = useState(false);
     const [horseDetailError, setHorseDetailError] = useState('');
@@ -55,6 +57,7 @@ export default function OwnerDashboard({ currentUser, onLogout }) {
         setActiveSection('horses');
         setEditingHorse(null);
         setFormValues(emptyHorseForm());
+        setHorseImageFile(null);
         setFormErrors({});
         setPageError('');
         setHorseFormError('');
@@ -105,6 +108,7 @@ export default function OwnerDashboard({ currentUser, onLogout }) {
   const reader = new FileReader();
 
   reader.onload = () => {
+    setHorseImageFile(file);
     setFormValues((current) => ({
       ...current,
       imgUrl: String(reader.result || '')
@@ -162,10 +166,11 @@ export default function OwnerDashboard({ currentUser, onLogout }) {
             weight: horse.weight ?? '',
             healthCertExpiry: horse.healthCertExpiry || '',
             imgUrl:
-            horse.imgUrl && !/^https?:\/\//i.test(String(horse.imgUrl))
+            horse.imgUrl && /^https?:\/\//i.test(String(horse.imgUrl))
                 ? horse.imgUrl
                 : emptyHorseForm().imgUrl
         });
+        setHorseImageFile(null);
         setActiveSection('horses');
         setIsHorseFormOpen(true);
         setFormErrors({});
@@ -177,6 +182,7 @@ export default function OwnerDashboard({ currentUser, onLogout }) {
         setEditingHorse(null);
         setIsHorseFormOpen(false);
         setFormValues(emptyHorseForm());
+        setHorseImageFile(null);
         setFormErrors({});
         setMessage('');
         setHorseFormError('');
@@ -193,12 +199,26 @@ export default function OwnerDashboard({ currentUser, onLogout }) {
         setMessage('');
         if (Object.keys(errors).length > 0)
             return;
+        if (!horseImageFile && !/^https?:\/\//i.test(String(formValues.imgUrl || ''))) {
+            setFormErrors((current) => ({
+                ...current,
+                imgUrl: 'Please choose a horse image from your computer.'
+            }));
+            return;
+        }
         setIsSaving(true);
         try {
-            await saveHorse(toHorsePayload(formValues), editingHorse);
+            let imgUrl = formValues.imgUrl;
+            if (horseImageFile) {
+                const uploadResult = await uploadImage(horseImageFile);
+                imgUrl = uploadResult?.imageUrl || '';
+            }
+
+            await saveHorse(toHorsePayload({ ...formValues, imgUrl }), editingHorse);
             setMessage(editingHorse ? 'Horse profile was updated and submitted as PENDING for admin approval.' : 'Horse profile was submitted as PENDING for admin approval.');
             setEditingHorse(null);
             setFormValues(emptyHorseForm());
+            setHorseImageFile(null);
             setIsHorseFormOpen(false);
             setSelectedHorse(null);
             await reloadOwnerData();

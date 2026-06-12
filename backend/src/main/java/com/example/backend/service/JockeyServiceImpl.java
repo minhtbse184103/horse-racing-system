@@ -33,9 +33,8 @@ public class JockeyServiceImpl implements JockeyService {
     private static final String ROLE_JOCKEY = "JOCKEY";
     private static final String STATUS_ACTIVE = "ACTIVE";
     private static final String STATUS_INACTIVE = "INACTIVE";
-    private static final String STATUS_PENDING = "PENDING";
     private static final String STATUS_UNDER_REVIEW = "UNDER_REVIEW";
-    private static final String STATUS_REJECTED = "REJECTED";
+    private static final String STATUS_READY = "READY";
     private static final String REGISTRATION_ACCEPTED = "ACCEPTED";
     private static final String REGISTRATION_CONFIRMED = "CONFIRMED";
     private static final String REGISTRATION_CANCELLED = "CANCELLED";
@@ -105,7 +104,6 @@ public class JockeyServiceImpl implements JockeyService {
                 .build();
 
         JockeyProfile savedProfile = jockeyProfileRepository.save(profile);
-        markProfileUnderReview(jockey);
         return mapProfileToResponse(savedProfile, jockey);
     }
 
@@ -131,7 +129,6 @@ public class JockeyServiceImpl implements JockeyService {
         profile.setImgUrl(normalizeText(request.getImgUrl()));
 
         JockeyProfile savedProfile = jockeyProfileRepository.save(profile);
-        markProfileUnderReview(jockey);
         return mapProfileToResponse(savedProfile, jockey);
     }
 
@@ -227,14 +224,14 @@ public class JockeyServiceImpl implements JockeyService {
         return user;
     }
 
-    // Lấy jockey hiện tại và bắt buộc profile của jockey phải tồn tại, đang ACTIVE.
+    // Lấy jockey hiện tại và bắt buộc profile của jockey phải tồn tại, đang READY.
     private User getCurrentJockeyWithActiveProfile() {
         User jockey = getCurrentJockey();
         JockeyProfile profile = jockeyProfileRepository.findById(jockey.getUserID())
                 .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Jockey profile does not exist."));
 
-        if (!STATUS_ACTIVE.equals(profile.getStatus())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Only active jockey profiles can accept invitations.");
+        if (!STATUS_READY.equals(profile.getStatus())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Only ready jockey profiles can accept invitations.");
         }
 
         if (!STATUS_ACTIVE.equals(jockey.getStatus())) {
@@ -383,10 +380,5 @@ public class JockeyServiceImpl implements JockeyService {
     private String normalizeUppercase(String value) {
         String normalizedValue = normalizeText(value);
         return normalizedValue == null ? null : normalizedValue.toUpperCase(Locale.ROOT);
-    }
-
-    private void markProfileUnderReview(User jockey) {
-        jockey.setStatus(STATUS_UNDER_REVIEW);
-        userRepository.save(jockey);
     }
 }

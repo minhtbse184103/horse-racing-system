@@ -143,7 +143,7 @@ class AdminRegistrationServiceTest {
     }
 
     @Test
-    void confirmRegistrationRejectsInactiveJockeyProfile() {
+    void confirmRegistrationRejectsNotReadyJockeyProfile() {
         Registration registration = validRegistration();
         JockeyProfile profile = validJockeyProfile();
         profile.setStatus("INACTIVE");
@@ -151,7 +151,7 @@ class AdminRegistrationServiceTest {
                 profile, validCondition());
 
         assertConflict(() -> service.confirmRegistration(1),
-                "Jockey profile is not active.");
+                "Jockey profile is not ready.");
     }
 
     @Test
@@ -306,7 +306,7 @@ class AdminRegistrationServiceTest {
         return JockeyProfile.builder()
                 .jockeyId(3)
                 .weight(new BigDecimal("52.00"))
-                .status("ACTIVE")
+                .status("READY")
                 .build();
     }
 

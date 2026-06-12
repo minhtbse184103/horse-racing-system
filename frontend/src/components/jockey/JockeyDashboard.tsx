@@ -130,7 +130,7 @@ function getProfileNotice(profile, isLoadingProfile) {
     };
   }
 
-  if (status !== 'ACTIVE') {
+  if (status !== 'READY') {
     return {
       type: 'error',
       text: `Your profile status is ${profile.status || 'N/A'}, so invitations cannot be accepted yet.`
@@ -158,7 +158,7 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
   const jockeyName = currentUser?.fullName || currentUser?.email || 'Jockey';
   const isLoading = isLoadingProfile || isLoadingInvitations;
   const profileStatus = String(profile?.status || '').toUpperCase();
-  const isProfileActive = Boolean(profile) && profileStatus === 'ACTIVE';
+  const isProfileReady = Boolean(profile) && profileStatus === 'READY';
   const profileNotice = getProfileNotice(profile, isLoadingProfile);
 
   const filteredInvitations = useMemo(() => {
@@ -431,7 +431,7 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
             {items.map((invitation) => {
               const invitationId = getInvitationId(invitation);
               const isPending = String(invitation.status || '').toUpperCase() === 'PENDING';
-              const acceptDisabled = !isPending || !isProfileActive || actionId === invitationId;
+              const acceptDisabled = !isPending || !isProfileReady || actionId === invitationId;
 
               return (
                 <tr key={invitationId || `${invitation.tournamentId}-${invitation.horseId}`}>
@@ -453,7 +453,7 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
                           type="button"
                           onClick={() => handleInvitationAction(invitation, 'accept')}
                           disabled={acceptDisabled}
-                          title={!isProfileActive ? 'Profile is not ACTIVE yet, so this invitation cannot be accepted.' : 'Accept invitation'}
+                          title={!isProfileReady ? 'Profile is not READY yet, so this invitation cannot be accepted.' : 'Accept invitation'}
                         >
                           Accept
                         </button>

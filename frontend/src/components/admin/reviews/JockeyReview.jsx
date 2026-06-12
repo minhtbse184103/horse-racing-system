@@ -14,7 +14,7 @@ import {
 } from '../../../services/adminProfileReviewService';
 
 function getProfileImage(src) {
-  return src && !/^https?:\/\//i.test(String(src)) ? src : defaultJockeyAvatar;
+  return src ? String(src) : defaultJockeyAvatar;
 }
 
 function ReviewModal({ review, onClose, onConfirm, isProcessing }) {
@@ -242,6 +242,9 @@ export default function JockeyReview() {
                     className="size-20 rounded-lg border border-brown-700/10 object-cover"
                     src={getProfileImage(profile.imgUrl)}
                     alt={`${profile.fullName} proof`}
+                    onError={(event) => {
+                      event.currentTarget.src = defaultJockeyAvatar;
+                    }}
                   />
                   <div className="min-w-0 flex-1">
                     <h3 className="break-words text-lg font-extrabold">
@@ -328,6 +331,9 @@ export default function JockeyReview() {
               className="max-h-[60vh] w-full rounded-lg object-contain"
               src={getProfileImage(selectedProfile.imgUrl)}
               alt={`${selectedProfile.fullName} proof`}
+              onError={(event) => {
+                event.currentTarget.src = defaultJockeyAvatar;
+              }}
             />
             <button
               className="mt-4 w-full rounded-lg border border-brown-700/15 bg-white px-4 py-3 font-extrabold text-brown-700"

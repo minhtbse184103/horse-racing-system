@@ -58,7 +58,7 @@ public class JockeyProfile {
         createdAt = now;
         updatedAt = now;
         if (status == null) {
-            status = "ACTIVE";
+            status = "UNDER_REVIEW";
         }
     }
 

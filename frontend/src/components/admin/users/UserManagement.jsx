@@ -7,7 +7,6 @@ import {
   Plus,
   RefreshCw,
   Search,
-  ShieldCheck,
   UserRoundX,
   Users
 } from 'lucide-react';
@@ -21,11 +20,6 @@ import {
 
 const ROLES = ['ADMIN', 'OWNER', 'JOCKEY', 'REFEREE', 'SPECTATOR'];
 const STANDARD_STATUSES = ['ACTIVE', 'INACTIVE', 'BLOCKED'];
-const JOCKEY_STATUSES = [,
-  'ACTIVE',,
-  'INACTIVE',
-  'BLOCKED',
-];
 
 function emptyForm() {
   return {
@@ -34,8 +28,7 @@ function emptyForm() {
     phone: '',
     password: '',
     roleName: 'SPECTATOR',
-    status: 'ACTIVE',
-    rejectionReason: ''
+    status: 'ACTIVE'
   };
 }
 
@@ -43,11 +36,6 @@ function getStatusClasses(status) {
   switch (String(status || '').toUpperCase()) {
     case 'ACTIVE':
       return 'bg-green-100 text-green-800';
-    case 'PENDING':
-      return 'bg-amber-100 text-amber-800';
-    case 'UNDER_REVIEW':
-      return 'bg-blue-100 text-blue-800';
-    case 'REJECTED':
     case 'BLOCKED':
       return 'bg-red-100 text-red-700';
     case 'INACTIVE':
@@ -133,7 +121,7 @@ export default function UserManagement() {
     });
   }, [users, search, roleFilter, statusFilter]);
 
-const availableStatuses = STANDARD_STATUSES;
+  const availableStatuses = STANDARD_STATUSES;
 
   function openCreateForm() {
     setEditingUser(null);
@@ -151,8 +139,7 @@ const availableStatuses = STANDARD_STATUSES;
       phone: user.phone || '',
       password: '',
       roleName: user.role || 'SPECTATOR',
-      status: user.status || 'ACTIVE',
-      rejectionReason: user.rejectionReason || ''
+      status: user.status || 'ACTIVE'
     });
     setError('');
     setMessage('');
@@ -173,17 +160,8 @@ const availableStatuses = STANDARD_STATUSES;
     setForm((current) => {
       const next = { ...current, [name]: value };
 
-      if (
-        name === 'roleName' &&
-        value !== 'JOCKEY' &&
-        !STANDARD_STATUSES.includes(current.status)
-      ) {
+      if (name === 'roleName' && !STANDARD_STATUSES.includes(current.status)) {
         next.status = 'ACTIVE';
-        next.rejectionReason = '';
-      }
-
-      if (name === 'status' && value !== 'REJECTED') {
-        next.rejectionReason = '';
       }
 
       return next;
@@ -203,13 +181,6 @@ const availableStatuses = STANDARD_STATUSES;
     }
     if (!editingUser && (form.password.length < 6 || form.password.length > 72)) {
       return 'Password must be between 6 and 72 characters.';
-    }
-    if (
-      editingUser &&
-      form.status === 'REJECTED' &&
-      !form.rejectionReason.trim()
-    ) {
-      return 'Rejection reason is required when rejecting a jockey.';
     }
     return '';
   }
@@ -238,13 +209,6 @@ const availableStatuses = STANDARD_STATUSES;
 
         if (form.status !== editingUser.status) {
           payload.status = form.status;
-          payload.rejectionReason =
-            form.status === 'REJECTED' ? form.rejectionReason.trim() : null;
-        } else if (
-          form.status === 'REJECTED' &&
-          form.rejectionReason.trim() !== (editingUser.rejectionReason || '')
-        ) {
-          payload.rejectionReason = form.rejectionReason.trim();
         }
 
         await updateUser(getUserId(editingUser), payload);
@@ -301,7 +265,7 @@ const availableStatuses = STANDARD_STATUSES;
             User Management
           </h1>
           <p className="mt-3 text-slate-500">
-            Manage account access, roles, and jockey review statuses.
+            Manage account access and roles. Jockey profile reviews are handled in Jockey Reviews.
           </p>
         </div>
 
@@ -327,23 +291,13 @@ const availableStatuses = STANDARD_STATUSES;
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 xl:grid-cols-3">
         <SummaryCard icon={Users} label="Total Users" value={users.length} tone="brown" />
         <SummaryCard
           icon={CheckCircle2}
           label="Active"
           value={users.filter((user) => user.status === 'ACTIVE').length}
           tone="green"
-        />
-        <SummaryCard
-          icon={ShieldCheck}
-          label="Jockey Review"
-          value={
-            users.filter((user) =>
-              ['PENDING', 'UNDER_REVIEW', 'REJECTED'].includes(user.status)
-            ).length
-          }
-          tone="gold"
         />
         <SummaryCard
           icon={UserRoundX}
@@ -403,7 +357,7 @@ const availableStatuses = STANDARD_STATUSES;
             onChange={(event) => setStatusFilter(event.target.value)}
           >
             <option value="ALL">All statuses</option>
-            {JOCKEY_STATUSES.map((status) => (
+            {STANDARD_STATUSES.map((status) => (
               <option key={status}>{status}</option>
             ))}
           </select>
@@ -606,18 +560,6 @@ const availableStatuses = STANDARD_STATUSES;
                 </label>
               )}
 
-              {editingUser && form.status === 'REJECTED' && (
-                <label className="grid gap-2 text-sm font-extrabold sm:col-span-2">
-                  <span>Rejection Reason</span>
-                  <textarea
-                    className="min-h-28 rounded-xl border border-brown-700/15 bg-white/90 px-4 py-3 outline-none transition focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
-                    maxLength="500"
-                    name="rejectionReason"
-                    value={form.rejectionReason}
-                    onChange={handleChange}
-                  />
-                </label>
-              )}
             </div>
 
             <div className="mt-6 flex justify-end gap-3 max-sm:grid max-sm:grid-cols-1">

@@ -23,11 +23,7 @@ public class AuthService {
     private static final String EMAIL_REGEX = "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$";
     private static final String PHONE_REGEX = "^\\+?[0-9]{9,15}$";
     private static final String DEFAULT_PUBLIC_ROLE = "SPECTATOR";
-    private static final String ROLE_JOCKEY = "JOCKEY";
     private static final String STATUS_ACTIVE = "ACTIVE";
-    private static final String STATUS_PENDING = "PENDING";
-    private static final String STATUS_UNDER_REVIEW = "UNDER_REVIEW";
-    private static final String STATUS_REJECTED = "REJECTED";
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -81,7 +77,7 @@ public class AuthService {
                 request.getPhone(),
                 request.getPassword(),
                 role,
-                roleName.equals(ROLE_JOCKEY) ? STATUS_PENDING : null);
+                null);
         return toResponse(user);
     }
 
@@ -209,15 +205,7 @@ public class AuthService {
 
     private boolean canLogin(User user) {
         String status = user.getStatus();
-        if (status == null || status.equalsIgnoreCase(STATUS_ACTIVE)) {
-            return true;
-        }
-
-        String roleName = user.getRole() != null ? user.getRole().getRoleName() : null;
-        return ROLE_JOCKEY.equals(roleName)
-                && (status.equalsIgnoreCase(STATUS_PENDING)
-                || status.equalsIgnoreCase(STATUS_UNDER_REVIEW)
-                || status.equalsIgnoreCase(STATUS_REJECTED));
+        return status == null || status.equalsIgnoreCase(STATUS_ACTIVE);
     }
 
     private boolean isPasswordValid(String rawPassword, User user) {

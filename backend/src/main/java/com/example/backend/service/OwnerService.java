@@ -7,6 +7,7 @@ import com.example.backend.dto.request.InviteJockeyRequest;
 import com.example.backend.dto.request.UpdateHorseRequest;
 import com.example.backend.dto.response.HorseResponse;
 import com.example.backend.dto.response.JockeyInvitationResponse;
+import com.example.backend.dto.response.JockeyProfileResponse;
 import com.example.backend.dto.response.OwnerDashboardResponse;
 
 public interface OwnerService {
@@ -30,6 +31,9 @@ public interface OwnerService {
 
     // Lấy danh sách lời mời jockey do owner gửi.
     List<JockeyInvitationResponse> getMyInvitations();
+
+    // Lấy danh sách jockey đủ điều kiện để owner gửi lời mời.
+    List<JockeyProfileResponse> getAvailableJockeys(Integer tournamentId);
 
     // Tạo lời mời jockey tham gia tournament cùng ngựa của owner.
     JockeyInvitationResponse inviteJockey(InviteJockeyRequest request);

@@ -2,7 +2,6 @@ package com.example.backend.service;
 
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
@@ -27,9 +26,9 @@ import lombok.AllArgsConstructor;
 public class UserService {
     private static final String ROLE_JOCKEY = "JOCKEY";
     private static final String STATUS_ACTIVE = "ACTIVE";
-    private static final String STATUS_PENDING = "PENDING";
     private static final String STATUS_UNDER_REVIEW = "UNDER_REVIEW";
     private static final String STATUS_REJECTED = "REJECTED";
+    private static final String STATUS_READY = "READY";
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -57,18 +56,17 @@ public class UserService {
 
     @Transactional(readOnly = true)
     public List<JockeyProfileResponse> getJockeyProfilesUnderReview() {
-        List<User> jockeys = userRepository.findByStatusAndRoleRoleNameOrderByUpdatedAtDesc(
-                STATUS_UNDER_REVIEW,
-                ROLE_JOCKEY);
-        List<Integer> jockeyIds = jockeys.stream()
-                .map(User::getUserID)
-                .toList();
-        Map<Integer, JockeyProfile> profilesByJockeyId = jockeyProfileRepository.findByJockeyIdIn(jockeyIds)
+        List<JockeyProfile> profiles = jockeyProfileRepository.findByStatusOrderByUpdatedAtDesc(STATUS_UNDER_REVIEW);
+        Map<Integer, User> jockeysById = userRepository.findAllById(
+                        profiles.stream()
+                                .map(JockeyProfile::getJockeyId)
+                                .toList())
                 .stream()
-                .collect(Collectors.toMap(JockeyProfile::getJockeyId, Function.identity()));
+                .filter(this::isJockey)
+                .collect(Collectors.toMap(User::getUserID, user -> user));
 
-        return jockeys.stream()
-                .map(jockey -> mapJockeyProfileToResponse(jockey, profilesByJockeyId.get(jockey.getUserID())))
+        return profiles.stream()
+                .map(profile -> mapJockeyProfileToResponse(jockeysById.get(profile.getJockeyId()), profile))
                 .filter(profile -> profile != null)
                 .toList();
     }
@@ -86,7 +84,7 @@ public class UserService {
         validateJockeyProfileUnderReview(jockey, profile);
         validateJockeyProfileReadyForApproval(profile);
 
-        profile.setStatus(STATUS_ACTIVE);
+        profile.setStatus(STATUS_READY);
         profile.setRejectionReason(null);
         jockey.setStatus(STATUS_ACTIVE);
 
@@ -112,7 +110,7 @@ public class UserService {
 
         profile.setStatus(STATUS_REJECTED);
         profile.setRejectionReason(feedback.trim());
-        jockey.setStatus(STATUS_REJECTED);
+        jockey.setStatus(STATUS_ACTIVE);
 
         jockeyProfileRepository.save(profile);
         userRepository.save(jockey);
@@ -150,25 +148,11 @@ public class UserService {
 
         if (hasText(request.getStatus())) {
             String status = request.getStatus().trim().toUpperCase();
-            if (isJockeyReviewStatus(status) && !isJockey(user)) {
+            if (isJockeyReviewStatus(status)) {
                 throw new ApiException(HttpStatus.BAD_REQUEST,
-                        "PENDING, UNDER_REVIEW and REJECTED statuses are only allowed for jockey users.");
-            }
-            if (STATUS_REJECTED.equals(status) && !hasText(request.getRejectionReason())) {
-                throw new ApiException(HttpStatus.BAD_REQUEST, "Rejection reason is required when rejecting a jockey.");
-            }
-            syncJockeyProfileStatus(user, status);
-            if (STATUS_REJECTED.equals(status)) {
-                updateJockeyProfileRejectionReason(user, request.getRejectionReason());
+                        "Jockey review statuses must be changed through jockey profile review APIs.");
             }
             user.setStatus(status);
-        } else if (hasText(request.getRejectionReason()) && STATUS_REJECTED.equals(user.getStatus()) && isJockey(user)) {
-            updateJockeyProfileRejectionReason(user, request.getRejectionReason());
-        }
-
-        if (isJockeyReviewStatus(user.getStatus()) && !isJockey(user)) {
-            throw new ApiException(HttpStatus.BAD_REQUEST,
-                    "PENDING, UNDER_REVIEW and REJECTED statuses are only allowed for jockey users.");
         }
 
         return toResponse(userRepository.save(user));
@@ -201,56 +185,12 @@ public class UserService {
     }
 
     private boolean isJockeyReviewStatus(String status) {
-        return STATUS_PENDING.equals(status)
-                || STATUS_UNDER_REVIEW.equals(status)
+        return STATUS_UNDER_REVIEW.equals(status)
                 || STATUS_REJECTED.equals(status);
     }
 
-    private void syncJockeyProfileStatus(User user, String status) {
-        if (!isJockey(user)) {
-            return;
-        }
-
-        if (STATUS_ACTIVE.equals(status)) {
-            JockeyProfile profile = jockeyProfileRepository.findById(user.getUserID())
-                    .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST,
-                            "Jockey profile does not exist."));
-            profile.setStatus(STATUS_ACTIVE);
-            profile.setRejectionReason(null);
-            jockeyProfileRepository.save(profile);
-            return;
-        }
-
-        if (STATUS_UNDER_REVIEW.equals(status)) {
-            jockeyProfileRepository.findById(user.getUserID())
-                    .ifPresent(profile -> {
-                        profile.setStatus(status);
-                        profile.setRejectionReason(null);
-                        jockeyProfileRepository.save(profile);
-                    });
-            return;
-        }
-
-        if (STATUS_REJECTED.equals(status)) {
-            JockeyProfile profile = jockeyProfileRepository.findById(user.getUserID())
-                    .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST,
-                            "Jockey profile does not exist."));
-            profile.setStatus(status);
-            profile.setRejectionReason(null);
-            jockeyProfileRepository.save(profile);
-        }
-    }
-
-    private void updateJockeyProfileRejectionReason(User user, String rejectionReason) {
-        JockeyProfile profile = jockeyProfileRepository.findById(user.getUserID())
-                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST,
-                        "Jockey profile does not exist."));
-        profile.setRejectionReason(rejectionReason.trim());
-        jockeyProfileRepository.save(profile);
-    }
-
     private JockeyProfileResponse mapJockeyProfileToResponse(User jockey, JockeyProfile profile) {
-        if (profile == null) {
+        if (jockey == null || profile == null) {
             return null;
         }
 
@@ -268,7 +208,7 @@ public class UserService {
     }
 
     private void validateJockeyProfileUnderReview(User jockey, JockeyProfile profile) {
-        if (!STATUS_UNDER_REVIEW.equals(jockey.getStatus())
+        if (!STATUS_ACTIVE.equals(jockey.getStatus())
                 || !STATUS_UNDER_REVIEW.equals(profile.getStatus())) {
             throw new ApiException(
                     HttpStatus.CONFLICT,

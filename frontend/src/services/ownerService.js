@@ -44,6 +44,12 @@ export function getOwnerInvitations() {
         fallbackError: 'Unable to load jockey invitations.'
     });
 }
+export function getAvailableJockeys(tournamentId) {
+    const query = tournamentId ? `?tournamentId=${encodeURIComponent(tournamentId)}` : '';
+    return httpRequest(`/api/owner/jockeys/available${query}`, {
+        fallbackError: 'Unable to load available jockeys.'
+    });
+}
 export function inviteJockey(payload) {
     return httpRequest('/api/owner/invitations', {
         method: 'POST',

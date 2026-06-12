@@ -29,6 +29,7 @@ import com.example.backend.repository.TournamentRepository;
 @Service
 public class AdminRegistrationService {
     private static final String ACTIVE = "ACTIVE";
+    private static final String JOCKEY_PROFILE_READY = "READY";
     private static final String ACCEPTED = "ACCEPTED";
     private static final String CONFIRMED = "CONFIRMED";
     private static final String REJECTED = "REJECTED";
@@ -260,10 +261,10 @@ public class AdminRegistrationService {
                     "Jockey account is not active.");
         }
 
-        if (!ACTIVE.equals(jockeyProfile.getStatus())) {
+        if (!JOCKEY_PROFILE_READY.equals(jockeyProfile.getStatus())) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
-                    "Jockey profile is not active.");
+                    "Jockey profile is not ready.");
         }
 
         if (jockeyProfile.getWeight() == null

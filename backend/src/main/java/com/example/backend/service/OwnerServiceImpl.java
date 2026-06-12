@@ -4,6 +4,8 @@ import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
@@ -18,6 +20,7 @@ import com.example.backend.dto.request.InviteJockeyRequest;
 import com.example.backend.dto.request.UpdateHorseRequest;
 import com.example.backend.dto.response.HorseResponse;
 import com.example.backend.dto.response.JockeyInvitationResponse;
+import com.example.backend.dto.response.JockeyProfileResponse;
 import com.example.backend.dto.response.OwnerDashboardResponse;
 import com.example.backend.entity.Horse;
 import com.example.backend.entity.JockeyInvitation;
@@ -37,6 +40,7 @@ public class OwnerServiceImpl implements OwnerService {
     private static final String ROLE_JOCKEY = "JOCKEY";
     private static final String STATUS_ACTIVE = "ACTIVE";
     private static final String STATUS_PENDING = "PENDING";
+    private static final String JOCKEY_PROFILE_READY = "READY";
 
     private static final String REGISTRATION_ACCEPTED = "ACCEPTED";
     private static final String REGISTRATION_CONFIRMED = "CONFIRMED";
@@ -193,6 +197,33 @@ public class OwnerServiceImpl implements OwnerService {
                 .toList();
     }
 
+    // Lấy danh sách jockey READY mà owner có thể mời.
+    @Transactional(readOnly = true)
+    @Override
+    public List<JockeyProfileResponse> getAvailableJockeys(Integer tournamentId) {
+        getCurrentOwner();
+        if (tournamentId != null) {
+            getTournamentSnapshot(tournamentId);
+        }
+
+        List<JockeyProfile> readyProfiles = jockeyProfileRepository.findByStatusOrderByUpdatedAtDesc(
+                JOCKEY_PROFILE_READY);
+        Map<Integer, User> jockeysById = userRepository.findAllById(
+                        readyProfiles.stream()
+                                .map(JockeyProfile::getJockeyId)
+                                .toList())
+                .stream()
+                .filter(this::isActiveJockey)
+                .collect(Collectors.toMap(User::getUserID, user -> user));
+
+        return readyProfiles.stream()
+                .filter(profile -> jockeysById.containsKey(profile.getJockeyId()))
+                .filter(profile -> tournamentId == null
+                        || isJockeyAvailableForTournament(tournamentId, profile.getJockeyId()))
+                .map(profile -> mapJockeyProfileToResponse(profile, jockeysById.get(profile.getJockeyId())))
+                .toList();
+    }
+
     // Owner mời jockey tham gia tournament cùng một ngựa, chỉ tạo invitation PENDING.
     @Transactional
     @Override
@@ -315,7 +346,7 @@ public class OwnerServiceImpl implements OwnerService {
         User jockey = userRepository.findById(jockeyId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Jockey does not exist."));
 
-        if (jockey.getRole() == null || !ROLE_JOCKEY.equals(jockey.getRole().getRoleName())) {
+        if (!isJockey(jockey)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Selected user is not a jockey.");
         }
 
@@ -326,11 +357,19 @@ public class OwnerServiceImpl implements OwnerService {
         JockeyProfile profile = jockeyProfileRepository.findById(jockeyId)
                 .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Jockey profile does not exist."));
 
-        if (!STATUS_ACTIVE.equals(profile.getStatus())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Selected jockey profile is not active.");
+        if (!JOCKEY_PROFILE_READY.equals(profile.getStatus())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Selected jockey profile is not ready.");
         }
 
         return jockey;
+    }
+
+    private boolean isJockey(User user) {
+        return user.getRole() != null && ROLE_JOCKEY.equals(user.getRole().getRoleName());
+    }
+
+    private boolean isActiveJockey(User user) {
+        return isJockey(user) && STATUS_ACTIVE.equals(user.getStatus());
     }
 
     // Kiểm tra ngựa đủ điều kiện đăng ký tournament trước khi owner gửi lời mời.
@@ -357,6 +396,22 @@ public class OwnerServiceImpl implements OwnerService {
                 throw new ApiException(HttpStatus.CONFLICT, "Tournament has reached maximum participants.");
             }
         }
+    }
+
+    private boolean isJockeyAvailableForTournament(Integer tournamentId, Integer jockeyId) {
+        long activeRegistrations = registrationRepository.countByTournamentIdAndJockeyIdAndStatusInExcludingRegistration(
+                tournamentId,
+                jockeyId,
+                List.of(REGISTRATION_ACCEPTED, REGISTRATION_CONFIRMED),
+                null);
+        if (activeRegistrations > 0) {
+            return false;
+        }
+
+        return !jockeyInvitationRepository.existsActiveInvitationForTournamentAndJockey(
+                tournamentId,
+                jockeyId,
+                INVITATION_PENDING);
     }
 
     // Đảm bảo hạn phản hồi lời mời jockey không vượt quá hạn đăng ký tournament.
@@ -442,6 +497,20 @@ public class OwnerServiceImpl implements OwnerService {
                 .expiredAt(invitation.getExpiredAt())
                 .status(invitation.getStatus())
                 .registrationStatus(registration != null ? registration.getStatus() : null)
+                .build();
+    }
+
+    private JockeyProfileResponse mapJockeyProfileToResponse(JockeyProfile profile, User jockey) {
+        return JockeyProfileResponse.builder()
+                .jockeyId(profile.getJockeyId())
+                .fullName(jockey.getFullName())
+                .email(jockey.getEmail())
+                .licenseNo(profile.getLicenseNo())
+                .weight(profile.getWeight())
+                .ranking(profile.getRanking())
+                .status(profile.getStatus())
+                .rejectionReason(profile.getRejectionReason())
+                .imgUrl(profile.getImgUrl())
                 .build();
     }
 

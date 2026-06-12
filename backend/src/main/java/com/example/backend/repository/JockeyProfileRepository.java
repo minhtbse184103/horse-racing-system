@@ -15,4 +15,6 @@ public interface JockeyProfileRepository extends JpaRepository<JockeyProfile, In
     boolean existsByLicenseNoAndJockeyIdNot(String licenseNo, Integer jockeyId);
 
     List<JockeyProfile> findByJockeyIdIn(Collection<Integer> jockeyIds);
+
+    List<JockeyProfile> findByStatusOrderByUpdatedAtDesc(String status);
 }

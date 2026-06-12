@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
-import { getAllUsers } from '../../services/userService';
-import { cancelOwnerInvitation, getOwnerInvitations, getTournaments, inviteJockey } from '../../services/ownerService';
-import { formatDate, getHorseId, getHorseName, getUserId, getUserRole } from '../../lib';
+import { cancelOwnerInvitation, getAvailableJockeys, getOwnerInvitations, getTournaments, inviteJockey } from '../../services/ownerService';
+import { formatDate, getHorseId, getHorseName, getUserId } from '../../lib';
 
 const INVITATION_STATUS_OPTIONS = ['ALL', 'PENDING', 'ACCEPTED', 'REJECTED', 'CANCELLED', 'EXPIRED'];
 
 function getInvitationId(invitation) {
   return invitation.invitationId ?? '';
+}
+
+function getJockeyId(jockey) {
+  return jockey?.jockeyId ?? getUserId(jockey);
 }
 
 function getTournamentId(tournament) {
@@ -125,14 +128,14 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
     setLoadError('');
 
     try {
-      const [tournamentData, userData, invitationData] = await Promise.all([
+      const [tournamentData, jockeyData, invitationData] = await Promise.all([
         getTournaments(),
-        getAllUsers(),
+        getAvailableJockeys(formValues.tournamentId || null),
         getOwnerInvitations()
       ]);
 
       setTournaments(Array.isArray(tournamentData) ? tournamentData : []);
-      setJockeys((Array.isArray(userData) ? userData : []).filter((user) => getUserRole(user) === 'JOCKEY' && String(user.status || '').toUpperCase() === 'ACTIVE'));
+      setJockeys(Array.isArray(jockeyData) ? jockeyData : []);
       setInvitations(Array.isArray(invitationData) ? invitationData : []);
     } catch (err) {
       setLoadError(getErrorText(err, 'Unable to load jockey invitation data.'));
@@ -147,6 +150,22 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
     setFormErrors((current) => ({ ...current, [name]: '' }));
     setSubmitError('');
     setMessage('');
+
+    if (name === 'tournamentId') {
+      loadAvailableJockeys(value);
+    }
+  }
+
+  async function loadAvailableJockeys(tournamentId) {
+    setLoadError('');
+    try {
+      const data = await getAvailableJockeys(tournamentId || null);
+      setJockeys(Array.isArray(data) ? data : []);
+      setFormValues((current) => ({ ...current, jockeyId: '' }));
+    } catch (err) {
+      setLoadError(getErrorText(err, 'Unable to load available jockeys.'));
+      setJockeys([]);
+    }
   }
 
   async function handleSubmit(event) {
@@ -211,7 +230,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
           <div>
             <p className="eyebrow">Invitation</p>
             <h2>Invite a Jockey to a Tournament</h2>
-            <p>Choose an open tournament, an ACTIVE horse, and an ACTIVE jockey to create a pending jockey invitation.</p>
+            <p>Choose an open tournament, an ACTIVE horse, and a READY jockey to create a pending jockey invitation.</p>
           </div>
           <button className="outline-button" type="button" onClick={onBackToHorses}>Back to Horses</button>
         </div>
@@ -248,16 +267,16 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
 
         <div className="owner-form-row">
           <div>
-            <label className="field-label" htmlFor="ownerJockeyId">ACTIVE Jockey <span className="required">*</span></label>
+            <label className="field-label" htmlFor="ownerJockeyId">READY Jockey <span className="required">*</span></label>
             <select className={formErrors.jockeyId ? 'input has-error' : 'input'} id="ownerJockeyId" name="jockeyId" value={formValues.jockeyId} onChange={handleChange} disabled={isSaving || isLoading}>
               <option value="">Choose a jockey</option>
               {jockeys.map((jockey) => {
-                const jockeyId = getUserId(jockey);
+                const jockeyId = getJockeyId(jockey);
                 return <option key={jockeyId} value={jockeyId}>{jockey.fullName || jockey.email || `Jockey ${jockeyId}`}</option>;
               })}
             </select>
             {formErrors.jockeyId && <p className="field-error">{formErrors.jockeyId}</p>}
-            {!isLoading && jockeys.length === 0 && <p className="field-hint warning-text">No ACTIVE jockeys were found from API /api/user/all.</p>}
+            {!isLoading && jockeys.length === 0 && <p className="field-hint warning-text">No READY jockeys are available for the selected tournament.</p>}
           </div>
 
           <div>

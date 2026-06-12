@@ -11,6 +11,7 @@ import {
   rejectJockeyInvitation,
   updateJockeyProfile
 } from '../../services/jockeyService';
+import { uploadImage } from '../../services/uploadService';
 import { formatDate } from '../../lib';
 
 const jockeyNavItems = [
@@ -48,7 +49,7 @@ function toProfileForm(profile) {
     licenseNo: String(profile.licenseNo || ''),
     weight: profile.weight == null ? '' : String(profile.weight),
     ranking: String(profile.ranking || 'BEGINNER').toUpperCase(),
-    imgUrl: profile.imgUrl && !/^https?:\/\//i.test(String(profile.imgUrl)) ? String(profile.imgUrl) : defaultJockeyAvatar
+    imgUrl: profile.imgUrl && /^https?:\/\//i.test(String(profile.imgUrl)) ? String(profile.imgUrl) : defaultJockeyAvatar
   };
 }
 
@@ -83,7 +84,7 @@ function toPayload(form) {
     licenseNo: form.licenseNo.trim(),
     weight: Number(form.weight),
     ranking: form.ranking,
-    imgUrl: defaultJockeyAvatar
+    imgUrl: form.imgUrl
   };
 }
 
@@ -129,7 +130,7 @@ function getProfileNotice(profile, isLoadingProfile) {
     };
   }
 
-  if (status !== 'ACTIVE') {
+  if (status !== 'READY') {
     return {
       type: 'error',
       text: `Your profile status is ${profile.status || 'N/A'}, so invitations cannot be accepted yet.`
@@ -152,12 +153,13 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
   const [actionId, setActionId] = useState(null);
   const [pageError, setPageError] = useState('');
   const [profileSubmitError, setProfileSubmitError] = useState('');
+  const [profileImageFile, setProfileImageFile] = useState(null);
   const [message, setMessage] = useState('');
 
   const jockeyName = currentUser?.fullName || currentUser?.email || 'Jockey';
   const isLoading = isLoadingProfile || isLoadingInvitations;
   const profileStatus = String(profile?.status || '').toUpperCase();
-  const isProfileActive = Boolean(profile) && profileStatus === 'ACTIVE';
+  const isProfileReady = Boolean(profile) && profileStatus === 'READY';
   const profileNotice = getProfileNotice(profile, isLoadingProfile);
 
   const filteredInvitations = useMemo(() => {
@@ -175,6 +177,7 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
       const data = await getJockeyProfile();
       setProfile(data || null);
       setProfileForm(data ? toProfileForm(data) : emptyProfileForm());
+      setProfileImageFile(null);
     } catch (error) {
       if (isMissingProfileError(error)) {
         setProfile(null);
@@ -229,6 +232,58 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
     setMessage('');
   }
 
+  function handleProfileImageChange(event) {
+    const file = event.target.files?.[0];
+
+    if (!file) return;
+
+    const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/svg+xml'];
+
+    if (!allowedTypes.includes(file.type)) {
+      setProfileErrors((current) => ({
+        ...current,
+        imgUrl: 'Profile image must be PNG, JPG, WEBP, or SVG.'
+      }));
+      event.target.value = '';
+      return;
+    }
+
+    if (file.size > 2 * 1024 * 1024) {
+      setProfileErrors((current) => ({
+        ...current,
+        imgUrl: 'Profile image must not exceed 2MB.'
+      }));
+      event.target.value = '';
+      return;
+    }
+
+    const reader = new FileReader();
+
+    reader.onload = () => {
+      setProfileImageFile(file);
+      setProfileForm((current) => ({
+        ...current,
+        imgUrl: String(reader.result || '')
+      }));
+      setProfileErrors((current) => ({
+        ...current,
+        imgUrl: ''
+      }));
+      setProfileSubmitError('');
+      setPageError('');
+      setMessage('');
+    };
+
+    reader.onerror = () => {
+      setProfileErrors((current) => ({
+        ...current,
+        imgUrl: 'Unable to import this image.'
+      }));
+    };
+
+    reader.readAsDataURL(file);
+  }
+
   async function handleProfileSubmit(event) {
     event.preventDefault();
     const errors = validateProfileForm(profileForm);
@@ -239,13 +294,28 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
 
     if (Object.keys(errors).length > 0) return;
 
+    if (!profileImageFile && !/^https?:\/\//i.test(String(profileForm.imgUrl || ''))) {
+      setProfileErrors((current) => ({
+        ...current,
+        imgUrl: 'Please choose a profile image from your computer.'
+      }));
+      return;
+    }
+
     setIsSavingProfile(true);
     try {
+      let imgUrl = profileForm.imgUrl;
+      if (profileImageFile) {
+        const uploadResult = await uploadImage(profileImageFile);
+        imgUrl = uploadResult?.imageUrl || '';
+      }
+
       const savedProfile = profile
-        ? await updateJockeyProfile(toPayload(profileForm))
-        : await createJockeyProfile(toPayload(profileForm));
+        ? await updateJockeyProfile(toPayload({ ...profileForm, imgUrl }))
+        : await createJockeyProfile(toPayload({ ...profileForm, imgUrl }));
       setProfile(savedProfile);
       setProfileForm(toProfileForm(savedProfile));
+      setProfileImageFile(null);
       setMessage('Profile saved. Your profile has not been verified yet. Please wait for admin verification.');
     } catch (error) {
       setProfileSubmitError(getErrorText(error, 'Unable to save the jockey profile.'));
@@ -267,6 +337,7 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
       await deactivateJockeyProfile();
       setProfile(null);
       setProfileForm(emptyProfileForm());
+      setProfileImageFile(null);
       setMessage('Jockey profile was deactivated.');
     } catch (error) {
       setProfileSubmitError(getErrorText(error, 'Unable to deactivate the jockey profile.'));
@@ -322,7 +393,7 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
 
         <div className="jockey-profile-preview">
           <div className="jockey-avatar facebook-avatar">
-            <img src={defaultJockeyAvatar} alt="Default jockey avatar" />
+            <img src={profileForm.imgUrl || defaultJockeyAvatar} alt="Jockey profile preview" />
           </div>
           <div>
             <h3>{profile?.fullName || jockeyName}</h3>
@@ -384,11 +455,28 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
           </div>
         </div>
 
-        <div className="readonly-field-card full-width">
-          <span>Profile Image</span>
-          <strong>Default imported avatar</strong>
-          <small>The jockey profile uses a local white Facebook-style avatar instead of an external image link.</small>
+        <div className={profileErrors.imgUrl ? 'image-upload-card has-error' : 'image-upload-card'}>
+          <div className="horse-image-preview">
+            <img src={profileForm.imgUrl || defaultJockeyAvatar} alt="Jockey profile preview" />
+          </div>
+          <div className="image-upload-content">
+            <span>Profile Image</span>
+            <strong>Import image from your computer</strong>
+            <small>PNG, JPG, WEBP, or SVG. The image will be uploaded before saving your profile.</small>
+            <label className="image-upload-button" htmlFor="jockeyProfileImage">
+              Choose Image
+            </label>
+            <input
+              id="jockeyProfileImage"
+              className="image-file-input"
+              type="file"
+              accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml"
+              onChange={handleProfileImageChange}
+              disabled={isSavingProfile}
+            />
+          </div>
         </div>
+        {profileErrors.imgUrl && <p className="field-error">{profileErrors.imgUrl}</p>}
 
         <div className="admin-form-actions">
           <button className="primary-button" type="submit" disabled={isSavingProfile}>
@@ -430,7 +518,7 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
             {items.map((invitation) => {
               const invitationId = getInvitationId(invitation);
               const isPending = String(invitation.status || '').toUpperCase() === 'PENDING';
-              const acceptDisabled = !isPending || !isProfileActive || actionId === invitationId;
+              const acceptDisabled = !isPending || !isProfileReady || actionId === invitationId;
 
               return (
                 <tr key={invitationId || `${invitation.tournamentId}-${invitation.horseId}`}>
@@ -452,7 +540,7 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
                           type="button"
                           onClick={() => handleInvitationAction(invitation, 'accept')}
                           disabled={acceptDisabled}
-                          title={!isProfileActive ? 'Profile is not ACTIVE yet, so this invitation cannot be accepted.' : 'Accept invitation'}
+                          title={!isProfileReady ? 'Profile is not READY yet, so this invitation cannot be accepted.' : 'Accept invitation'}
                         >
                           Accept
                         </button>
