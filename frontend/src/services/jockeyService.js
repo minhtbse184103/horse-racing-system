@@ -20,8 +20,8 @@ export function updateJockeyProfile(payload) {
 }
 // The backend currently uses DELETE /api/jockey/profile. The UI treats it as profile deactivation.
 export function deactivateJockeyProfile() {
-    return httpRequest('/api/jockey/profile', {
-        method: 'DELETE',
+    return httpRequest('/api/jockey/profile/inactive', {
+        method: 'PUT',
         fallbackError: 'Unable to deactivate the jockey profile.'
     });
 }
