@@ -8,6 +8,16 @@ function getDisplayImage(src) {
   return src && !/^https?:\/\//i.test(String(src)) ? src : defaultHorseImage;
 }
 
+function isHealthCertificateExpired(value) {
+  if (!value) return true;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const expiry = new Date(`${value}T00:00:00`);
+  return Number.isNaN(expiry.getTime()) || expiry < today;
+}
+
 function ReviewDialog({ review, onClose, onConfirm, isProcessing }) {
   const [feedback, setFeedback] = useState('');
 
@@ -19,6 +29,9 @@ function ReviewDialog({ review, onClose, onConfirm, isProcessing }) {
 
   const isRejecting = review.action === 'reject';
   const horseName = getHorseName(review.horse) || `Horse ${getHorseId(review.horse)}`;
+  const certificateExpired = isHealthCertificateExpired(
+    review.horse.healthCertExpiry
+  );
 
   return (
     <div className="fixed inset-0 z-[1000] grid place-items-center bg-brown-900/60 p-4 backdrop-blur-sm">
@@ -30,11 +43,26 @@ function ReviewDialog({ review, onClose, onConfirm, isProcessing }) {
           {horseName} will be {isRejecting ? 'returned to the owner with your feedback' : 'approved and marked ACTIVE'}.
         </p>
 
+        {!isRejecting && certificateExpired && (
+          <div className="mt-5 rounded-lg border border-danger/20 bg-danger-bg px-4 py-3">
+            <strong className="block text-sm font-extrabold text-danger">
+              Approval blocked
+            </strong>
+            <p className="mt-1 text-sm font-semibold text-danger">
+              This horse's health certificate is missing or expired. Reject the
+              profile so the owner can submit a valid certificate.
+            </p>
+          </div>
+        )}
+
         {isRejecting && (
           <label className="mt-5 block">
-            <span className="field-label">Rejection Reason</span>
+            <span className="mb-2 block text-sm font-extrabold text-brown-900">
+              Rejection Reason
+            </span>
+
             <textarea
-              className="input textarea-input"
+              className="min-h-28 w-full resize-none rounded-lg border border-brown-700/20 bg-white px-4 py-3 font-semibold text-brown-900 outline-none transition focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
               rows={4}
               value={feedback}
               onChange={(event) => setFeedback(event.target.value)}
@@ -44,11 +72,27 @@ function ReviewDialog({ review, onClose, onConfirm, isProcessing }) {
         )}
 
         <div className="mt-6 flex justify-end gap-3">
-          <button className="outline-button" type="button" onClick={onClose} disabled={isProcessing}>Cancel</button>
           <button
-            className={isRejecting ? 'primary-button danger-action' : 'primary-button'}
+            className="rounded-lg border border-brown-700/20 bg-white px-4 py-3 font-extrabold text-brown-700 transition hover:bg-cream-200 disabled:opacity-50"
             type="button"
-            disabled={isProcessing || (isRejecting && !feedback.trim())}
+            onClick={onClose}
+            disabled={isProcessing}
+          >
+            Cancel
+          </button>
+
+          <button
+            className={`rounded-lg px-4 py-3 font-extrabold text-white transition disabled:opacity-50 ${
+              isRejecting
+                ? 'bg-danger hover:bg-red-700'
+                : 'bg-green-700 hover:bg-green-800'
+            }`}
+            type="button"
+            disabled={
+              isProcessing ||
+              (!isRejecting && certificateExpired) ||
+              (isRejecting && !feedback.trim())
+            }
             onClick={() => onConfirm(feedback.trim())}
           >
             {isProcessing ? 'Processing...' : isRejecting ? 'Reject Horse' : 'Approve Horse'}
@@ -186,6 +230,9 @@ export default function HorseReview() {
             {filteredHorses.map((horse) => {
               const horseId = getHorseId(horse);
               const horseName = getHorseName(horse) || `Horse ${horseId}`;
+              const certificateExpired = isHealthCertificateExpired(
+                horse.healthCertExpiry
+              );
 
               return (
                 <article className="rounded-lg border border-brown-700/10 bg-white p-5 shadow-sm" key={horseId}>
@@ -204,13 +251,35 @@ export default function HorseReview() {
                     <div><dt className="text-xs font-extrabold uppercase text-slate-500">Color</dt><dd className="mt-1 break-words text-sm font-extrabold">{horse.color || 'N/A'}</dd></div>
                     <div><dt className="text-xs font-extrabold uppercase text-slate-500">Birth Date</dt><dd className="mt-1 text-sm font-extrabold">{formatDate(horse.dayOfBirth)}</dd></div>
                     <div><dt className="text-xs font-extrabold uppercase text-slate-500">Weight</dt><dd className="mt-1 text-sm font-extrabold">{horse.weight || 'N/A'} kg</dd></div>
-                    <div><dt className="text-xs font-extrabold uppercase text-slate-500">Health Expiry</dt><dd className="mt-1 text-sm font-extrabold">{formatDate(horse.healthCertExpiry)}</dd></div>
+                    <div>
+                      <dt className="text-xs font-extrabold uppercase text-slate-500">
+                        Health Expiry
+                      </dt>
+                      <dd
+                        className={`mt-1 text-sm font-extrabold ${
+                          certificateExpired ? 'text-danger' : 'text-green-700'
+                        }`}
+                      >
+                        {formatDate(horse.healthCertExpiry)}
+                        {certificateExpired && (
+                          <span className="mt-1 block text-xs uppercase">
+                            Expired
+                          </span>
+                        )}
+                      </dd>
+                    </div>
                   </dl>
 
                   <div className="mt-5 grid grid-cols-2 gap-2">
                     <button
-                      className="inline-flex items-center justify-center gap-2 rounded-lg border border-green-700/20 bg-green-50 px-3 py-2.5 text-sm font-extrabold text-green-700"
+                      className="inline-flex items-center justify-center gap-2 rounded-lg border border-green-700/20 bg-green-50 px-3 py-2.5 text-sm font-extrabold text-green-700 disabled:cursor-not-allowed disabled:border-brown-700/10 disabled:bg-stone-100 disabled:text-slate-500 disabled:opacity-60"
                       type="button"
+                      disabled={certificateExpired}
+                      title={
+                        certificateExpired
+                          ? 'A valid health certificate is required before approval.'
+                          : 'Approve horse profile'
+                      }
                       onClick={() => setReview({ action: 'approve', horse })}
                     >
                       <BadgeCheck size={16} />
