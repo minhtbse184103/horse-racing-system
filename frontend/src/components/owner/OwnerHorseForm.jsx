@@ -144,7 +144,7 @@ export default function OwnerHorseForm({
       {errors.healthCertExpiry && <p className="field-error">{errors.healthCertExpiry}</p>}
 
       <label className="field-label" htmlFor="horseImageUrl">
-        Health Certificate URL
+        Health Certificate URL <span className="required">*</span>
       </label>
 
       <input
@@ -152,7 +152,7 @@ export default function OwnerHorseForm({
         id="horseImageUrl"
         name="imgUrl"
         type="text"
-        placeholder="https://example.com/horse.jpg"
+        placeholder="https://example.com/health-certificate.jpg"
         value={formValues.imgUrl || ''}
         onChange={onChange}
         disabled={isSaving}

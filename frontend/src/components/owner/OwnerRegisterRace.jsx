@@ -55,9 +55,10 @@ function isAvailableTournament(tournament) {
 function formatTournamentOption(tournament) {
   const id = getTournamentId(tournament);
   const name = getTournamentName(tournament) || `Tournament ${id}`;
-  const date = tournament.startDate ? ` • ${formatDate(tournament.startDate)}` : '';
+  const date = tournament.startDate ? ` • Bắt đầu: ${formatDate(tournament.startDate)}` : '';
   const location = tournament.location ? ` • ${tournament.location}` : '';
-  return `${name}${location}${date}`;
+  const deadline = tournament.registrationDeadline ? ` • Deadline đăng ký: ${formatDate(tournament.registrationDeadline)}` : '';
+  return `${name}${location}${date}${deadline}`;
 }
 
 function formatTournamentDateRange(invitation) {
@@ -67,6 +68,13 @@ function formatTournamentDateRange(invitation) {
   if (!startDate && !endDate) return 'N/A';
   if (startDate && endDate) return `${formatDate(startDate)} - ${formatDate(endDate)}`;
   return formatDate(startDate || endDate);
+}
+
+function getInvitationRegistrationDeadline(invitation, tournamentById) {
+  return invitation.registrationDeadline
+    ?? invitation.tournamentRegistrationDeadline
+    ?? tournamentById.get(String(invitation.tournamentId))?.registrationDeadline
+    ?? null;
 }
 
 function validateInvitationForm(formValues, horses, tournaments) {
@@ -120,6 +128,11 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
 
   const activeHorses = useMemo(() => horses.filter(isActiveHorse), [horses]);
   const availableTournaments = useMemo(() => tournaments.filter(isAvailableTournament), [tournaments]);
+  const tournamentById = useMemo(() => new Map(tournaments.map((tournament) => [String(getTournamentId(tournament)), tournament])), [tournaments]);
+  const selectedTournament = useMemo(
+    () => tournamentById.get(String(formValues.tournamentId)) || null,
+    [formValues.tournamentId, tournamentById]
+  );
   const filteredInvitations = useMemo(() => {
     if (statusFilter === 'ALL') return invitations;
     return invitations.filter((invitation) => String(invitation.status || '').toUpperCase() === statusFilter);
@@ -238,6 +251,11 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
               })}
             </select>
             {formErrors.tournamentId && <p className="field-error">{formErrors.tournamentId}</p>}
+            {selectedTournament && (
+              <p className="field-hint">
+                Deadline đăng ký: <strong>{formatDate(selectedTournament.registrationDeadline)}</strong>
+              </p>
+            )}
             {!isLoading && tournaments.length > 0 && availableTournaments.length === 0 && <p className="field-hint warning-text">Hiện không có giải đấu nào đang mở đăng ký.</p>}
           </div>
 
@@ -311,6 +329,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
                   <th>ID</th>
                   <th>Giải đấu</th>
                   <th>Thời gian</th>
+                  <th>Deadline đăng ký</th>
                   <th>Ngựa</th>
                   <th>Jockey</th>
                   <th>Ngày tạo</th>
@@ -330,6 +349,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
                       <td>{invitationId || 'N/A'}</td>
                       <td>{invitation.tournamentName || invitation.tournamentId || 'N/A'}</td>
                       <td>{formatTournamentDateRange(invitation)}</td>
+                      <td>{formatDate(getInvitationRegistrationDeadline(invitation, tournamentById))}</td>
                       <td>{invitation.horseName || invitation.horseId || 'N/A'}</td>
                       <td>{invitation.jockeyName || invitation.jockeyId || 'N/A'}</td>
                       <td>{formatDate(invitation.createdAt)}</td>

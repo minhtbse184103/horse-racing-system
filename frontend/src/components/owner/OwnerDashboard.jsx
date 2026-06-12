@@ -125,7 +125,7 @@ export default function OwnerDashboard({ currentUser, onLogout }) {
       dayOfBirth: horse.dayOfBirth || '',
       weight: horse.weight ?? '',
       healthCertExpiry: horse.healthCertExpiry || '',
-      imgUrl: horse.imgUrl || emptyHorseForm().imgUrl
+      imgUrl: horse.imgUrl || ''
     });
 
     setActiveSection('horses');
@@ -309,6 +309,13 @@ export default function OwnerDashboard({ currentUser, onLogout }) {
 
                 <span>Hạn chứng nhận sức khỏe</span>
                 <strong>{selectedHorse.healthCertExpiry || 'Chưa cập nhật'}</strong>
+
+                <span>Health Certificate URL</span>
+                <strong className="break-anywhere">
+                  {selectedHorse.imgUrl ? (
+                    <a href={selectedHorse.imgUrl} target="_blank" rel="noreferrer">{selectedHorse.imgUrl}</a>
+                  ) : 'Chưa cập nhật'}
+                </strong>
 
                 <span>Trạng thái</span>
                 <strong>

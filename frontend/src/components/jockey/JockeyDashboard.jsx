@@ -11,6 +11,7 @@ import {
   rejectJockeyInvitation,
   updateJockeyProfile
 } from '../../services/jockeyService';
+import { getPublicTournaments } from '../../services/eventService';
 import { formatDate, formatDisplayLabel } from '../../lib';
 
 const jockeyNavItems = [
@@ -76,8 +77,10 @@ function validateProfileForm(form) {
     errors.ranking = 'Xếp hạng phải là BEGINNER, INTERMEDIATE, PROFESSIONAL hoặc ELITE.';
   }
 
-  if (imgUrl && !/^https?:\/\/.+/i.test(imgUrl)) {
-    errors.imgUrl = 'URL ảnh phải bắt đầu bằng http:// hoặc https://';
+  if (!imgUrl) {
+    errors.imgUrl = 'URL ảnh giấy phép jockey là bắt buộc.';
+  } else if (!/^https?:\/\/.+/i.test(imgUrl)) {
+    errors.imgUrl = 'URL ảnh giấy phép jockey phải bắt đầu bằng http:// hoặc https://';
   }
 
   return errors;
@@ -108,6 +111,117 @@ function formatTournamentDateRange(invitation) {
   if (!startDate && !endDate) return 'N/A';
   if (startDate && endDate) return `${formatDate(startDate)} - ${formatDate(endDate)}`;
   return formatDate(startDate || endDate);
+}
+
+function getInvitationRegistrationDeadline(invitation, tournamentById) {
+  return invitation.registrationDeadline
+    ?? invitation.tournamentRegistrationDeadline
+    ?? tournamentById.get(String(invitation.tournamentId))?.registrationDeadline
+    ?? null;
+}
+
+function getNestedHorse(invitation) {
+  return invitation.horse || invitation.horseInfo || invitation.horseDetail || invitation.horseResponse || {};
+}
+
+function readHorseValue(invitation, nestedHorse, fieldName, prefixedFieldName) {
+  return invitation[prefixedFieldName] ?? nestedHorse[fieldName] ?? nestedHorse[prefixedFieldName] ?? null;
+}
+
+function getInvitationHorseDetails(invitation) {
+  const horse = getNestedHorse(invitation);
+
+  return {
+    horseId: invitation.horseId ?? horse.horseId ?? horse.id,
+    horseName: invitation.horseName ?? horse.horseName ?? horse.name,
+    breed: readHorseValue(invitation, horse, 'breed', 'horseBreed'),
+    gender: readHorseValue(invitation, horse, 'gender', 'horseGender'),
+    color: readHorseValue(invitation, horse, 'color', 'horseColor'),
+    dayOfBirth: readHorseValue(invitation, horse, 'dayOfBirth', 'horseDayOfBirth'),
+    weight: readHorseValue(invitation, horse, 'weight', 'horseWeight'),
+    healthCertExpiry: readHorseValue(invitation, horse, 'healthCertExpiry', 'horseHealthCertExpiry'),
+    status: readHorseValue(invitation, horse, 'status', 'horseStatus'),
+    imgUrl: readHorseValue(invitation, horse, 'imgUrl', 'horseImgUrl')
+  };
+}
+
+function hasHorseDetailData(details) {
+  return Boolean(details.breed || details.gender || details.color || details.dayOfBirth || details.weight || details.healthCertExpiry || details.status || details.imgUrl);
+}
+
+function InvitationDetailModal({ invitation, tournamentById, onClose }) {
+  if (!invitation) return null;
+
+  const horse = getInvitationHorseDetails(invitation);
+  const registrationDeadline = getInvitationRegistrationDeadline(invitation, tournamentById);
+  const hasExtraHorseData = hasHorseDetailData(horse);
+
+  return (
+    <div className="fixed inset-0 z-[1000] grid place-items-center bg-brown-900/60 p-4 backdrop-blur-sm" onClick={onClose}>
+      <section className="w-full max-w-2xl rounded-lg bg-cream-100 p-6 shadow-2xl" onClick={(event) => event.stopPropagation()}>
+        <div className="owner-panel-header">
+          <div>
+            <p className="eyebrow">Chi tiết lời mời</p>
+            <h2>{horse.horseName || `Horse ${horse.horseId || ''}`}</h2>
+            <p>Xem thông tin ngựa và deadline đăng ký trước khi chấp nhận lời mời.</p>
+          </div>
+          <button className="outline-button compact-button" type="button" onClick={onClose}>Đóng</button>
+        </div>
+
+        <div className="detail-grid">
+          <span>Giải đấu</span>
+          <strong>{invitation.tournamentName || invitation.tournamentId || 'N/A'}</strong>
+
+          <span>Thời gian giải</span>
+          <strong>{formatTournamentDateRange(invitation)}</strong>
+
+          <span>Deadline đăng ký</span>
+          <strong>{formatDate(registrationDeadline)}</strong>
+
+          <span>Owner</span>
+          <strong>{invitation.ownerName || invitation.ownerId || 'N/A'}</strong>
+
+          <span>Horse ID</span>
+          <strong>{horse.horseId || 'N/A'}</strong>
+
+          <span>Tên ngựa</span>
+          <strong>{horse.horseName || 'N/A'}</strong>
+
+          <span>Giống ngựa</span>
+          <strong>{horse.breed || 'Chưa có trong dữ liệu lời mời'}</strong>
+
+          <span>Giới tính</span>
+          <strong>{horse.gender ? formatDisplayLabel(horse.gender) : 'Chưa có trong dữ liệu lời mời'}</strong>
+
+          <span>Màu lông</span>
+          <strong>{horse.color || 'Chưa có trong dữ liệu lời mời'}</strong>
+
+          <span>Ngày sinh</span>
+          <strong>{formatDate(horse.dayOfBirth)}</strong>
+
+          <span>Cân nặng</span>
+          <strong>{horse.weight ? `${horse.weight} kg` : 'Chưa có trong dữ liệu lời mời'}</strong>
+
+          <span>Hạn chứng nhận sức khỏe</span>
+          <strong>{formatDate(horse.healthCertExpiry)}</strong>
+
+          <span>Trạng thái ngựa</span>
+          <strong>{horse.status ? formatDisplayLabel(horse.status) : 'Chưa có trong dữ liệu lời mời'}</strong>
+
+          <span>Health Certificate URL</span>
+          <strong className="break-anywhere">
+            {horse.imgUrl ? <a href={horse.imgUrl} target="_blank" rel="noreferrer">{horse.imgUrl}</a> : 'Chưa có trong dữ liệu lời mời'}
+          </strong>
+        </div>
+
+        {!hasExtraHorseData && (
+          <div className="admin-alert warning soft-alert mt-4" role="note">
+            API lời mời hiện chỉ gửi tên ngựa và mã ngựa. Giao diện đã sẵn sàng hiển thị breed, gender, color, weight, health certificate nếu backend trả các field đó trong response lời mời.
+          </div>
+        )}
+      </section>
+    </div>
+  );
 }
 
 function getInvitationId(invitation) {
@@ -159,6 +273,8 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
   const [profileForm, setProfileForm] = useState(emptyProfileForm());
   const [profileErrors, setProfileErrors] = useState({});
   const [invitations, setInvitations] = useState([]);
+  const [tournaments, setTournaments] = useState([]);
+  const [selectedInvitation, setSelectedInvitation] = useState(null);
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [isLoadingInvitations, setIsLoadingInvitations] = useState(true);
@@ -173,6 +289,8 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
   const profileStatus = String(profile?.status || '').toUpperCase();
   const isProfileActive = Boolean(profile) && profileStatus === 'ACTIVE';
   const profileNotice = getProfileNotice(profile, isLoadingProfile);
+
+  const tournamentById = useMemo(() => new Map(tournaments.map((tournament) => [String(tournament.tournamentId ?? tournament.tournamentID ?? tournament.id), tournament])), [tournaments]);
 
   const filteredInvitations = useMemo(() => {
     if (statusFilter === 'ALL') return invitations;
@@ -206,8 +324,12 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
     setPageError('');
 
     try {
-      const data = await getJockeyInvitations();
-      setInvitations(Array.isArray(data) ? data : []);
+      const [invitationData, tournamentData] = await Promise.all([
+        getJockeyInvitations(),
+        getPublicTournaments()
+      ]);
+      setInvitations(Array.isArray(invitationData) ? invitationData : []);
+      setTournaments(Array.isArray(tournamentData) ? tournamentData : []);
     } catch (error) {
       setPageError(getErrorText(error, 'Không thể tải lời mời jockey.'));
     } finally {
@@ -410,7 +532,7 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
 
         <div>
           <label className="field-label" htmlFor="jockeyImage">
-            Profile Image URL
+            Jockey License Image URL <span className="required">*</span>
           </label>
 
           <input
@@ -418,7 +540,7 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
             id="jockeyImage"
             name="imgUrl"
             type="text"
-            placeholder="https://example.com/avatar.jpg"
+            placeholder="https://example.com/jockey-license.jpg"
             value={profileForm.imgUrl}
             onChange={handleProfileChange}
             disabled={isSavingProfile}
@@ -457,6 +579,7 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
               <th>ID</th>
               <th>Giải đấu</th>
               <th>Thời gian</th>
+              <th>Deadline đăng ký</th>
               <th>Ngựa</th>
               <th>Owner</th>
               <th>Ngày tạo</th>
@@ -480,7 +603,13 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
                     {invitation.message && <p className="table-subtext">{invitation.message}</p>}
                   </td>
                   <td>{formatTournamentDateRange(invitation)}</td>
-                  <td>{invitation.horseName || invitation.horseId || 'N/A'}</td>
+                  <td>{formatDate(getInvitationRegistrationDeadline(invitation, tournamentById))}</td>
+                  <td>
+                    <strong>{invitation.horseName || invitation.horseId || 'N/A'}</strong>
+                    <button className="table-button mt-2" type="button" onClick={() => setSelectedInvitation(invitation)}>
+                      Xem thông tin ngựa
+                    </button>
+                  </td>
                   <td>{invitation.ownerName || invitation.ownerId || 'N/A'}</td>
                   <td>{formatDate(invitation.createdAt)}</td>
                   <td>{formatDate(invitation.expiredAt)}</td>
@@ -599,7 +728,7 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
               <div>
                 <p className="eyebrow">Lời mời</p>
                 <h2>Lời mời đã nhận</h2>
-                <p>Jockey có thể chấp nhận hoặc từ chối các lời mời đang ở trạng thái PENDING.</p>
+                <p>Jockey có thể xem thông tin ngựa, deadline đăng ký, rồi chấp nhận hoặc từ chối lời mời PENDING.</p>
               </div>
               <div className="inline-filter-row">
                 <select className="input compact-select" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
@@ -612,6 +741,12 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
           </section>
         </section>
       )}
+
+      <InvitationDetailModal
+        invitation={selectedInvitation}
+        tournamentById={tournamentById}
+        onClose={() => setSelectedInvitation(null)}
+      />
     </AppShell>
   );
 }

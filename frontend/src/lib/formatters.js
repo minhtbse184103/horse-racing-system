@@ -1,5 +1,3 @@
-import defaultHorseImage from '../assets/default-horse.svg';
-
 export function formatNumber(value) {
     const number = Number(value || 0);
     return Number.isFinite(number) ? number.toLocaleString('en-US') : '0';
@@ -88,7 +86,7 @@ export function emptyHorseForm() {
         dayOfBirth: '',
         weight: '',
         healthCertExpiry: '',
-        imgUrl: defaultHorseImage
+        imgUrl: ''
     };
 }
 
@@ -104,6 +102,6 @@ export function toHorsePayload(formValues) {
     dayOfBirth: formValues.dayOfBirth || null,
     weight,
     healthCertExpiry: formValues.healthCertExpiry || null,
-    imgUrl: formValues.imgUrl || defaultHorseImage
+    imgUrl: String(formValues.imgUrl ?? '').trim()
   };
 }

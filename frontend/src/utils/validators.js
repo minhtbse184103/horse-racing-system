@@ -118,5 +118,12 @@ export function validateHorseForm(values) {
     errors.healthCertExpiry = 'Ngày hết hạn chứng nhận sức khỏe phải là hôm nay hoặc một ngày trong tương lai.';
   }
 
+  const imgUrl = String(values.imgUrl ?? '').trim();
+  if (!imgUrl) {
+    errors.imgUrl = 'URL chứng nhận sức khỏe là bắt buộc.';
+  } else if (!/^https?:\/\/.+/i.test(imgUrl)) {
+    errors.imgUrl = 'URL chứng nhận sức khỏe phải bắt đầu bằng http:// hoặc https://';
+  }
+
   return errors;
 }

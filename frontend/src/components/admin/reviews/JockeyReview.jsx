@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import defaultJockeyAvatar from '../../../assets/default-jockey-avatar.svg';
+import UrlImagePreview from '../../common/UrlImagePreview';
 import {
   BadgeCheck,
   Eye,
@@ -13,15 +14,23 @@ import {
   rejectJockeyProfile
 } from '../../../services/adminProfileReviewService';
 
-function getProfileImage(src) {
-  return src && !/^https?:\/\//i.test(String(src)) ? src : defaultJockeyAvatar;
+function isHttpUrl(value) {
+  return /^https?:\/\/.+/i.test(String(value || '').trim());
 }
 
 function ReviewModal({ review, onClose, onConfirm, isProcessing }) {
   const [feedback, setFeedback] = useState('');
   const isRejecting = review?.action === 'reject';
 
+  useEffect(() => {
+    setFeedback('');
+  }, [review]);
+
   if (!review) return null;
+
+  const licenseImageUrl = String(review.profile.imgUrl || '').trim();
+  const licenseImageMissing = !isHttpUrl(licenseImageUrl);
+  const approvalBlocked = !isRejecting && licenseImageMissing;
 
   return (
     <div
@@ -42,6 +51,15 @@ function ReviewModal({ review, onClose, onConfirm, isProcessing }) {
         <p className="mt-3 text-sm font-semibold text-slate-500">
           {review.profile.fullName} · {review.profile.licenseNo}
         </p>
+
+        {approvalBlocked && (
+          <div className="mt-5 rounded-lg border border-danger/20 bg-danger-bg px-4 py-3">
+            <strong className="block text-sm font-extrabold text-danger">Approval blocked</strong>
+            <p className="mt-1 text-sm font-semibold text-danger">
+              Jockey chưa gửi URL ảnh giấy phép hợp lệ. Hãy reject để jockey bổ sung license image URL.
+            </p>
+          </div>
+        )}
 
         {isRejecting && (
           <label className="mt-5 grid gap-2">
@@ -76,7 +94,7 @@ function ReviewModal({ review, onClose, onConfirm, isProcessing }) {
               isRejecting ? 'bg-danger' : 'bg-green-700'
             } disabled:opacity-50`}
             type="button"
-            disabled={isProcessing || (isRejecting && !feedback.trim())}
+            disabled={isProcessing || approvalBlocked || (isRejecting && !feedback.trim())}
             onClick={() => onConfirm(feedback.trim())}
           >
             {isProcessing
@@ -240,7 +258,7 @@ export default function JockeyReview() {
                 <div className="flex items-start gap-4">
                   <img
                     className="size-20 rounded-lg border border-brown-700/10 object-cover"
-                    src={getProfileImage(profile.imgUrl)}
+                    src={defaultJockeyAvatar}
                     alt={`${profile.fullName} proof`}
                   />
                   <div className="min-w-0 flex-1">
@@ -281,6 +299,16 @@ export default function JockeyReview() {
                       {profile.ranking}
                     </dd>
                   </div>
+                  <div className="col-span-3">
+                    <dt className="text-xs font-extrabold uppercase text-slate-500">
+                      Jockey License Image URL
+                    </dt>
+                    <dd className="mt-1 break-words text-sm font-extrabold">
+                      {isHttpUrl(profile.imgUrl) ? (
+                        <a className="text-green-700 underline" href={profile.imgUrl} target="_blank" rel="noreferrer">{profile.imgUrl}</a>
+                      ) : 'Chưa gửi URL hợp lệ'}
+                    </dd>
+                  </div>
                 </dl>
 
                 <div className="mt-5 grid grid-cols-3 gap-2">
@@ -293,8 +321,10 @@ export default function JockeyReview() {
                     View
                   </button>
                   <button
-                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-green-700/20 bg-green-50 px-3 py-2.5 text-sm font-extrabold text-green-700"
+                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-green-700/20 bg-green-50 px-3 py-2.5 text-sm font-extrabold text-green-700 disabled:cursor-not-allowed disabled:border-brown-700/10 disabled:bg-stone-100 disabled:text-slate-500 disabled:opacity-60"
                     type="button"
+                    disabled={!isHttpUrl(profile.imgUrl)}
+                    title={!isHttpUrl(profile.imgUrl) ? 'Cần có URL ảnh giấy phép jockey hợp lệ trước khi phê duyệt.' : 'Phê duyệt hồ sơ jockey'}
                     onClick={() => setReview({ action: 'approve', profile })}
                   >
                     <BadgeCheck size={16} />
@@ -324,10 +354,15 @@ export default function JockeyReview() {
             className="w-full max-w-2xl rounded-lg bg-cream-100 p-6 shadow-2xl"
             onClick={(event) => event.stopPropagation()}
           >
-            <img
-              className="max-h-[60vh] w-full rounded-lg object-contain"
-              src={getProfileImage(selectedProfile.imgUrl)}
+            <p className="break-words text-sm font-semibold text-slate-500">
+              URL: {isHttpUrl(selectedProfile.imgUrl) ? (
+                <a className="text-green-700 underline" href={selectedProfile.imgUrl} target="_blank" rel="noreferrer">{selectedProfile.imgUrl}</a>
+              ) : 'Chưa gửi URL hợp lệ'}
+            </p>
+            <UrlImagePreview
+              url={selectedProfile.imgUrl}
               alt={`${selectedProfile.fullName} proof`}
+              className="mt-4 max-h-[60vh] w-full rounded-lg object-contain"
             />
             <button
               className="mt-4 w-full rounded-lg border border-brown-700/15 bg-white px-4 py-3 font-extrabold text-brown-700"

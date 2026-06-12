@@ -5,7 +5,8 @@ import { formatDate, formatDisplayLabel, formatNumber, getHorseId, getHorseName 
 const STATUS_OPTIONS = ['ALL', 'ACTIVE', 'INACTIVE', 'PENDING', 'REJECTED'];
 
 function getDisplayImage(src) {
-  return src && !/^https?:\/\//i.test(String(src)) ? src : defaultHorseImage;
+  const value = String(src || '').trim();
+  return /^https?:\/\/.+/i.test(value) ? value : defaultHorseImage;
 }
 
 export default function OwnerHorseTable({ horses, isLoading, onViewHorse, onEditHorse, onDeleteHorse }) {
