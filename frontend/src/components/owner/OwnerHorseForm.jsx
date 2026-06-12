@@ -144,7 +144,7 @@ export default function OwnerHorseForm({
       {errors.healthCertExpiry && <p className="field-error">{errors.healthCertExpiry}</p>}
 
       <label className="field-label" htmlFor="horseImageUrl">
-        Horse Image URL
+        Health Certificate URL
       </label>
 
       <input
