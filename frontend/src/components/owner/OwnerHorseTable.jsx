@@ -96,7 +96,7 @@ export default function OwnerHorseTable({ horses, isLoading, onViewHorse, onEdit
                     <span className={horse.participated ? 'flag-badge success' : 'flag-badge'}>
                       {horse.participated ? 'Đã thi đấu' : 'Chưa thi đấu'}
                     </span>
-                    {horse.status === 'PENDING' && <span className="flag-badge">Đang chờ quản trị viên phê duyệt</span>}
+                    {horse.status === 'PENDING' && <span className="flag-badge">Đang chờ admin phê duyệt</span>}
                     {horse.rejectionReason && <span className="flag-badge danger">Đã từ chối: {horse.rejectionReason}</span>}
                   </div>
                 </div>

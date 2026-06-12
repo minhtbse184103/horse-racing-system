@@ -209,7 +209,7 @@ const availableStatuses = STANDARD_STATUSES;
       form.status === 'REJECTED' &&
       !form.rejectionReason.trim()
     ) {
-      return 'Bắt buộc nhập lý do khi từ chối nài ngựa.';
+      return 'Bắt buộc nhập lý do khi từ chối jockey.';
     }
     return '';
   }
@@ -337,7 +337,7 @@ const availableStatuses = STANDARD_STATUSES;
         />
         <SummaryCard
           icon={ShieldCheck}
-          label="Xét duyệt nài ngựa"
+          label="Xét duyệt jockey"
           value={
             users.filter((user) =>
               ['PENDING', 'UNDER_REVIEW', 'REJECTED'].includes(user.status)
@@ -392,7 +392,7 @@ const availableStatuses = STANDARD_STATUSES;
             value={roleFilter}
             onChange={(event) => setRoleFilter(event.target.value)}
           >
-            <option value="ALL">Tất cả vai trò</option>
+            <option value="ALL">All roles</option>
             {ROLES.map((role) => (
               <option key={role} value={role}>{formatDisplayLabel(role)}</option>
             ))}
@@ -427,7 +427,7 @@ const availableStatuses = STANDARD_STATUSES;
               </colgroup>
               <thead className="bg-cream-200/60">
                 <tr>
-                  {['ID', 'Người dùng', 'Email', 'Số điện thoại', 'Vai trò', 'Trạng thái', 'Thao tác'].map(
+                  {['ID', 'Người dùng', 'Email', 'Số điện thoại', 'Role', 'Trạng thái', 'Thao tác'].map(
                     (heading) => (
                       <th
                         className="border-b border-brown-700/10 px-2 py-4 text-left text-[0.68rem] font-extrabold uppercase tracking-wide text-brown-700"
@@ -523,8 +523,8 @@ const availableStatuses = STANDARD_STATUSES;
                 </h2>
                 <p className="mt-2 text-sm text-slate-500">
                   {editingUser
-                    ? 'Cập nhật thông tin tài khoản, vai trò và trạng thái truy cập.'
-                    : 'Tài khoản do quản trị viên tạo sẽ hoạt động ngay lập tức.'}
+                    ? 'Cập nhật thông tin tài khoản, role và trạng thái truy cập.'
+                    : 'Tài khoản do admin tạo sẽ hoạt động ngay lập tức.'}
                 </p>
               </div>
               <button
@@ -577,7 +577,7 @@ const availableStatuses = STANDARD_STATUSES;
               )}
 
               <label className="grid gap-2 text-sm font-extrabold">
-                <span>Vai trò</span>
+                <span>Role</span>
                 <select
                   className="rounded-xl border border-brown-700/15 bg-white/90 px-4 py-3 outline-none"
                   name="roleName"

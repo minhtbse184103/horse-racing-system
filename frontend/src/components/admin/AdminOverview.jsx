@@ -216,7 +216,7 @@ export default function AdminOverview({ onNavigate }) {
       key: 'registrations',
       label: 'Duyệt đơn đăng ký',
       count: data.pendingRegistrations.length,
-      note: 'Lời mời nài ngựa đã chấp nhận đang chờ quản trị viên quyết định',
+      note: 'Lời mời jockey đã chấp nhận đang chờ admin quyết định',
       icon: UserCheck,
       tone: 'bg-blue-100 text-blue-700'
     },
@@ -230,9 +230,9 @@ export default function AdminOverview({ onNavigate }) {
     },
     {
       key: 'jockeyReviews',
-      label: 'Duyệt nài ngựa',
+      label: 'Duyệt jockey',
       count: data.pendingJockeys.length,
-      note: 'Hồ sơ nài ngựa đang chờ phê duyệt',
+      note: 'Hồ sơ jockey đang chờ phê duyệt',
       icon: ClipboardCheck,
       tone: 'bg-amber-100 text-amber-700'
     },
@@ -255,7 +255,7 @@ export default function AdminOverview({ onNavigate }) {
     },
     {
       key: 'refereeAssignments',
-      label: 'Phân công trọng tài',
+      label: 'Phân công referee',
       note: `${data.refereeAssignments.length} races currently covered`,
       icon: Gavel
     },
@@ -313,7 +313,7 @@ export default function AdminOverview({ onNavigate }) {
           icon={ClipboardCheck}
           label="Hồ sơ đang chờ xét duyệt"
           value={totalReviewQueue}
-          note="Tổng hợp đơn đăng ký, ngựa và nài ngựa"
+          note="Tổng hợp đơn đăng ký, ngựa và jockey"
           tone="gold"
           onClick={() => onNavigate('registrations')}
         />
@@ -327,9 +327,9 @@ export default function AdminOverview({ onNavigate }) {
         />
         <MetricCard
           icon={Gavel}
-          label="Trọng tài đã phân công"
+          label="Referee đã phân công"
           value={data.refereeAssignments.length}
-          note="Cuộc đua đã có trọng tài phụ trách"
+          note="Cuộc đua đã có referee phụ trách"
           tone="cream"
           onClick={() => onNavigate('refereeAssignments')}
         />

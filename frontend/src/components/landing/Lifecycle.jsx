@@ -2,10 +2,10 @@ import { ChevronRight, XCircle } from "lucide-react";
 import StatusBadge from "./StatusBadge";
 
 const LIFECYCLE_STAGES = [
-  { key: "draft", description: "Quản trị viên chuẩn bị lịch trình, quy tắc và hạng cân." },
-  { key: "openforregistration", description: "Chủ ngựa đăng ký ngựa và mời nài ngựa." },
-  { key: "closedregistration", description: "Khóa đơn đăng ký để quản trị viên xét duyệt danh sách tham gia." },
-  { key: "ongoing", description: "Các cuộc đua diễn ra và trọng tài ghi nhận kết quả." },
+  { key: "draft", description: "Admin chuẩn bị lịch trình, quy tắc và hạng cân." },
+  { key: "openforregistration", description: "Owner đăng ký ngựa và mời jockey." },
+  { key: "closedregistration", description: "Khóa đơn đăng ký để admin xét duyệt danh sách tham gia." },
+  { key: "ongoing", description: "Các cuộc đua diễn ra và referee ghi nhận kết quả." },
   { key: "finished", description: "Công bố kết quả chính thức, xếp hạng và giải thưởng." },
 ];
 

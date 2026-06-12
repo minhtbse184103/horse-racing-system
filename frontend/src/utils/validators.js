@@ -48,7 +48,7 @@ export function validateSignupForm(values) {
   }
 
   if (!values.roleName || !PUBLIC_ROLES.includes(values.roleName)) {
-    errors.roleName = 'Vai trò phải là OWNER, JOCKEY hoặc SPECTATOR.';
+    errors.roleName = 'Role phải là OWNER, JOCKEY hoặc SPECTATOR.';
   }
 
   return errors;

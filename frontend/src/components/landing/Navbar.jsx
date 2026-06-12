@@ -5,7 +5,7 @@ const NAV = [
   { href: "#home", label: "Trang chủ" },
   { href: "#tournaments", label: "Giải đấu" },
   { href: "#how-it-works", label: "Quy trình hoạt động" },
-  { href: "#roles", label: "Vai trò" },
+  { href: "#roles", label: "Role" },
 ];
 
 export default function Navbar({ onGoLogin, onGoRegister }) {

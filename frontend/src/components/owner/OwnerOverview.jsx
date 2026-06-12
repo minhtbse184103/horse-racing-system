@@ -16,7 +16,7 @@ export default function OwnerOverview({ dashboard, horses, onGoHorses, onGoInvit
       <section className="owner-overview-grid">
         <div className="owner-panel hero-owner-panel">
           <div>
-            <p className="eyebrow">Không gian chủ ngựa</p>
+            <p className="eyebrow">Không gian owner</p>
             <h2>Quản lý chuồng ngựa</h2>
             <p>
               Track horse totals, registration status, and race history. New horse profiles are submitted as PENDING until admin approval.

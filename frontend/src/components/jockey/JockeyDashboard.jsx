@@ -69,7 +69,7 @@ function validateProfileForm(form) {
   if (!form.weight) {
     errors.weight = 'Cân nặng là bắt buộc.';
   } else if (!Number.isFinite(weight) || weight < 35 || weight > 90) {
-    errors.weight = 'Cân nặng của nài ngựa phải từ 35 đến 90 kg.';
+    errors.weight = 'Cân nặng của jockey phải từ 35 đến 90 kg.';
   }
 
   if (!rankingOptions.includes(form.ranking)) {
@@ -114,7 +114,7 @@ function getProfileNotice(profile, isLoadingProfile) {
   if (!profile) {
     return {
       type: 'error',
-      text: 'Bạn chưa có hồ sơ nài ngựa. Hãy tạo hồ sơ trước khi chấp nhận lời mời.'
+      text: 'Bạn chưa có hồ sơ jockey. Hãy tạo hồ sơ trước khi chấp nhận lời mời.'
     };
   }
 
@@ -123,7 +123,7 @@ function getProfileNotice(profile, isLoadingProfile) {
   if (status === 'UNDER_REVIEW') {
     return {
       type: 'warning',
-      text: 'Hồ sơ của bạn chưa được xác minh. Vui lòng chờ quản trị viên xét duyệt.'
+      text: 'Hồ sơ của bạn chưa được xác minh. Vui lòng chờ admin xét duyệt.'
     };
   }
 
@@ -159,7 +159,7 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
   const [profileSubmitError, setProfileSubmitError] = useState('');
   const [message, setMessage] = useState('');
 
-  const jockeyName = currentUser?.fullName || currentUser?.email || 'Nài ngựa';
+  const jockeyName = currentUser?.fullName || currentUser?.email || 'Jockey';
   const isLoading = isLoadingProfile || isLoadingInvitations;
   const profileStatus = String(profile?.status || '').toUpperCase();
   const isProfileActive = Boolean(profile) && profileStatus === 'ACTIVE';
@@ -186,7 +186,7 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
         setProfileForm(emptyProfileForm());
         return;
       }
-      setPageError(getErrorText(error, 'Không thể tải hồ sơ nài ngựa.'));
+      setPageError(getErrorText(error, 'Không thể tải hồ sơ jockey.'));
     } finally {
       setIsLoadingProfile(false);
     }
@@ -200,7 +200,7 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
       const data = await getJockeyInvitations();
       setInvitations(Array.isArray(data) ? data : []);
     } catch (error) {
-      setPageError(getErrorText(error, 'Không thể tải lời mời nài ngựa.'));
+      setPageError(getErrorText(error, 'Không thể tải lời mời jockey.'));
     } finally {
       setIsLoadingInvitations(false);
     }
@@ -252,16 +252,16 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
 
       setProfile(savedProfile);
       setProfileForm(toProfileForm(savedProfile));
-      setMessage('Đã lưu hồ sơ. Hồ sơ chưa được xác minh, vui lòng chờ quản trị viên xét duyệt.');
+      setMessage('Đã lưu hồ sơ. Hồ sơ chưa được xác minh, vui lòng chờ admin xét duyệt.');
     } catch (error) {
-      setProfileSubmitError(getErrorText(error, 'Không thể lưu hồ sơ nài ngựa.'));
+      setProfileSubmitError(getErrorText(error, 'Không thể lưu hồ sơ jockey.'));
     } finally {
       setIsSavingProfile(false);
     }
   }
 
   async function handleDeactivateProfile() {
-    const confirmed = window.confirm('Bạn có chắc muốn vô hiệu hóa hồ sơ nài ngựa hiện tại? Sau đó bạn sẽ không thể chấp nhận lời mời.');
+    const confirmed = window.confirm('Bạn có chắc muốn vô hiệu hóa hồ sơ jockey hiện tại? Sau đó bạn sẽ không thể chấp nhận lời mời.');
     if (!confirmed) return;
 
     setProfileSubmitError('');
@@ -273,9 +273,9 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
       await deactivateJockeyProfile();
       setProfile(null);
       setProfileForm(emptyProfileForm());
-      setMessage('Đã vô hiệu hóa hồ sơ nài ngựa.');
+      setMessage('Đã vô hiệu hóa hồ sơ jockey.');
     } catch (error) {
-      setProfileSubmitError(getErrorText(error, 'Không thể vô hiệu hóa hồ sơ nài ngựa.'));
+      setProfileSubmitError(getErrorText(error, 'Không thể vô hiệu hóa hồ sơ jockey.'));
     } finally {
       setIsSavingProfile(false);
     }
@@ -298,7 +298,7 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
     try {
       if (action === 'accept') {
         await acceptJockeyInvitation(invitationId);
-        setMessage('Đã chấp nhận lời mời. Đơn đăng ký hiện ở trạng thái ACCEPTED và đang chờ quản trị viên xác nhận.');
+        setMessage('Đã chấp nhận lời mời. Đơn đăng ký hiện ở trạng thái ACCEPTED và đang chờ admin xác nhận.');
       } else {
         await rejectJockeyInvitation(invitationId);
         setMessage('Đã từ chối lời mời.');
@@ -318,9 +318,9 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
       <form className="owner-panel owner-form" onSubmit={handleProfileSubmit} noValidate>
         <div className="owner-panel-header">
           <div>
-            <p className="eyebrow">Hồ sơ nài ngựa</p>
-            <h2>{profile ? 'Cập nhật hồ sơ nài ngựa' : 'Tạo hồ sơ nài ngựa'}</h2>
-            <p>Thông tin này giúp chủ ngựa xem xét hồ sơ của bạn trước khi gửi lời mời.</p>
+            <p className="eyebrow">Hồ sơ jockey</p>
+            <h2>{profile ? 'Cập nhật hồ sơ jockey' : 'Tạo hồ sơ jockey'}</h2>
+            <p>Thông tin này giúp owner xem xét hồ sơ của bạn trước khi gửi lời mời.</p>
           </div>
           {profile && <span className={`status-badge ${statusClass(profile.status)}`}>{formatDisplayLabel(profile.status)}</span>}
         </div>
@@ -332,7 +332,7 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
           <div className="jockey-avatar facebook-avatar">
             <img
               src={profileImagePreview}
-              alt="Ảnh đại diện nài ngựa"
+              alt="Ảnh đại diện jockey"
               onError={(event) => {
                 event.currentTarget.onerror = null;
                 event.currentTarget.src = defaultJockeyAvatar;
@@ -448,7 +448,7 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
               <th>ID</th>
               <th>Giải đấu</th>
               <th>Ngựa</th>
-              <th>Chủ ngựa</th>
+              <th>Owner</th>
               <th>Ngày tạo</th>
               <th>Hết hạn</th>
               <th>Trạng thái</th>
@@ -507,7 +507,7 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
     <AppShell
       variant="jockey"
       title={`Hello, ${jockeyName}`}
-      subtitle="Tạo hồ sơ nài ngựa, theo dõi lời mời từ chủ ngựa và phản hồi lời mời thi đấu."
+      subtitle="Tạo hồ sơ jockey, theo dõi lời mời từ owner và phản hồi lời mời thi đấu."
       profileName={jockeyName}
       profileRole={String(currentUser?.role || currentUser?.roleName || 'JOCKEY')}
       activeSection={activeSection}
@@ -527,7 +527,7 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
       {activeSection === 'overview' && (
         <section className="owner-stack">
           <section className="owner-stats-grid">
-            <StatCard label="Trạng thái hồ sơ" value={profile ? formatDisplayLabel(profile.status) : 'Chưa có hồ sơ'} description={profile ? `Giấy phép: ${profile.licenseNo || 'Chưa cập nhật'}` : 'Tạo hồ sơ nài ngựa'} highlight />
+            <StatCard label="Trạng thái hồ sơ" value={profile ? formatDisplayLabel(profile.status) : 'Chưa có hồ sơ'} description={profile ? `Giấy phép: ${profile.licenseNo || 'Chưa cập nhật'}` : 'Tạo hồ sơ jockey'} highlight />
             <StatCard label="Xếp hạng" value={formatDisplayLabel(profile?.ranking)} description="Xếp hạng hiện tại trong hồ sơ" />
             <StatCard label="Lời mời đang chờ phản hồi" value={countByStatus(invitations, 'PENDING')} description="Lời mời đang chờ bạn phản hồi" />
             <StatCard label="Lời mời đã chấp nhận" value={countByStatus(invitations, 'ACCEPTED')} description="Lời mời bạn đã chấp nhận" />
@@ -536,9 +536,9 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
           <section className="owner-overview-grid">
             <div className="owner-panel hero-owner-panel">
               <div>
-                <p className="eyebrow">Bảng điều khiển nài ngựa</p>
+                <p className="eyebrow">Bảng điều khiển jockey</p>
                 <h2>Quản lý hồ sơ và lời mời</h2>
-                <p>Hồ sơ của bạn phải được quản trị viên xác minh trước khi có thể chấp nhận lời mời thi đấu.</p>
+                <p>Hồ sơ của bạn phải được admin xác minh trước khi có thể chấp nhận lời mời thi đấu.</p>
               </div>
               <div className="owner-shortcut-actions">
                 <button className="primary-button owner-hero-action" type="button" onClick={() => setActiveSection('profile')}>Mở hồ sơ</button>
@@ -573,7 +573,7 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
           <div className="owner-section-toolbar">
             <div>
               <p className="eyebrow">Hồ sơ</p>
-              <h2>Hồ sơ nài ngựa</h2>
+              <h2>Hồ sơ jockey</h2>
             </div>
             <button className="outline-button compact-button" type="button" onClick={loadProfile} disabled={isLoadingProfile}>Tải lại hồ sơ</button>
           </div>
@@ -588,7 +588,7 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
               <div>
                 <p className="eyebrow">Lời mời</p>
                 <h2>Lời mời đã nhận</h2>
-                <p>Nài ngựa có thể chấp nhận hoặc từ chối các lời mời đang ở trạng thái PENDING.</p>
+                <p>Jockey có thể chấp nhận hoặc từ chối các lời mời đang ở trạng thái PENDING.</p>
               </div>
               <div className="inline-filter-row">
                 <select className="input compact-select" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>

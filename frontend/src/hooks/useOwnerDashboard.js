@@ -16,7 +16,7 @@ export function useOwnerDashboard() {
             return data || null;
         }
         catch (error) {
-            setDashboardError(getErrorText(error, 'Không thể tải bảng điều khiển chủ ngựa.'));
+            setDashboardError(getErrorText(error, 'Không thể tải bảng điều khiển owner.'));
             throw error;
         }
         finally {

@@ -23,17 +23,17 @@ export default function Footer() {
             <li><a href="#home" className="text-cream-100/80 hover:text-cream-100">Trang chủ</a></li>
             <li><a href="#tournaments" className="text-cream-100/80 hover:text-cream-100">Giải đấu</a></li>
             <li><a href="#how-it-works" className="text-cream-100/80 hover:text-cream-100">Quy trình hoạt động</a></li>
-            <li><a href="#roles" className="text-cream-100/80 hover:text-cream-100">Vai trò</a></li>
+            <li><a href="#roles" className="text-cream-100/80 hover:text-cream-100">Role</a></li>
           </ul>
         </div>
 
         <div>
-          <h4 className="text-xs font-bold uppercase tracking-[0.18em] text-gold-400">Vai trò</h4>
+          <h4 className="text-xs font-bold uppercase tracking-[0.18em] text-gold-400">Role</h4>
           <ul className="mt-4 space-y-2.5 text-sm">
-            <li><a href="#roles" className="text-cream-100/80 hover:text-cream-100">Chủ ngựa</a></li>
-            <li><a href="#roles" className="text-cream-100/80 hover:text-cream-100">Nài ngựa</a></li>
-            <li><a href="#roles" className="text-cream-100/80 hover:text-cream-100">Quản trị viên</a></li>
-            <li><a href="#roles" className="text-cream-100/80 hover:text-cream-100">Trọng tài</a></li>
+            <li><a href="#roles" className="text-cream-100/80 hover:text-cream-100">Owner</a></li>
+            <li><a href="#roles" className="text-cream-100/80 hover:text-cream-100">Jockey</a></li>
+            <li><a href="#roles" className="text-cream-100/80 hover:text-cream-100">Admin</a></li>
+            <li><a href="#roles" className="text-cream-100/80 hover:text-cream-100">Referee</a></li>
           </ul>
         </div>
 
@@ -51,7 +51,7 @@ export default function Footer() {
       <div className="border-t border-cream-100/10">
         <div className="mx-auto flex max-w-7xl flex-col gap-2 px-4 py-5 text-xs text-cream-100/60 sm:flex-row sm:items-center sm:justify-between sm:px-6 lg:px-8">
           <p>© {year} Horse Racing System. All rights reserved.</p>
-          <p>Được xây dựng cho chủ ngựa, nài ngựa, quản trị viên và trọng tài.</p>
+          <p>Được xây dựng cho owner, jockey, admin và referee.</p>
         </div>
       </div>
     </footer>

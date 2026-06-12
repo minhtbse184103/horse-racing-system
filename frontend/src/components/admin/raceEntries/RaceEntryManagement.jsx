@@ -493,7 +493,7 @@ export default function RaceEntryManagement() {
               />
               <input
                 className="w-full rounded-xl border border-brown-700/15 bg-white/90 py-3 pl-10 pr-4 text-sm font-bold text-brown-900 outline-none transition focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
-                placeholder="Tìm giải đấu, ngựa, chủ ngựa hoặc nài ngựa"
+                placeholder="Tìm giải đấu, ngựa, owner hoặc jockey"
                 value={queueSearch}
                 onChange={(event) => setQueueSearch(event.target.value)}
               />
@@ -516,7 +516,7 @@ export default function RaceEntryManagement() {
             <table className="min-w-[860px] w-full table-fixed border-collapse">
               <thead className="bg-cream-200/60">
                 <tr>
-                  {['Đăng ký', 'Giải đấu', 'Vòng đấu', 'Ngựa', 'Chủ ngựa', 'Nài ngựa', 'Action'].map(
+                  {['Đăng ký', 'Giải đấu', 'Vòng đấu', 'Ngựa', 'Owner', 'Jockey', 'Action'].map(
                     (heading) => (
                       <th
                         className="border-b border-brown-700/10 px-3 py-4 text-left text-xs font-extrabold uppercase tracking-wide text-brown-700"
@@ -647,7 +647,7 @@ export default function RaceEntryManagement() {
               />
               <input
                 className="w-full rounded-xl border border-brown-700/15 bg-white/90 py-3 pl-10 pr-4 text-sm font-bold text-brown-900 outline-none transition focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
-                placeholder="Tìm theo làn, ngựa, chủ ngựa hoặc nài ngựa"
+                placeholder="Tìm theo làn, ngựa, owner hoặc jockey"
                 value={entrySearch}
                 onChange={(event) => setEntrySearch(event.target.value)}
               />
@@ -676,8 +676,8 @@ export default function RaceEntryManagement() {
                     'Làn đua',
                     'Đăng ký',
                     'Ngựa',
-                    'Chủ ngựa',
-                    'Nài ngựa',
+                    'Owner',
+                    'Jockey',
                     'Trạng thái'
                   ].map((heading) => (
                     <th
@@ -763,7 +763,7 @@ export default function RaceEntryManagement() {
               />
               <input
                 className="w-full rounded-xl border border-brown-700/15 bg-white/90 py-3 pl-10 pr-4 text-sm font-bold text-brown-900 outline-none transition focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
-                placeholder="Tìm theo ngựa, chủ ngựa hoặc nài ngựa"
+                placeholder="Tìm theo ngựa, owner hoặc jockey"
                 value={unassignedSearch}
                 onChange={(event) => setUnassignedSearch(event.target.value)}
               />
@@ -788,7 +788,7 @@ export default function RaceEntryManagement() {
             <table className="min-w-[600px] w-full table-fixed border-collapse">
               <thead className="bg-cream-200/60">
                 <tr>
-                  {['Đăng ký', 'Ngựa', 'Chủ ngựa', 'Nài ngựa', 'Trạng thái', 'Action'].map(
+                  {['Đăng ký', 'Ngựa', 'Owner', 'Jockey', 'Trạng thái', 'Action'].map(
                     (heading) => (
                       <th
                         className="border-b border-brown-700/10 px-3 py-4 text-left text-xs font-extrabold uppercase tracking-wide text-brown-700"

@@ -53,7 +53,7 @@ function ReviewModal({ review, onClose, onConfirm, isProcessing }) {
               maxLength={500}
               value={feedback}
               onChange={(event) => setFeedback(event.target.value)}
-              placeholder="Giải thích nội dung nài ngựa cần chỉnh sửa..."
+              placeholder="Giải thích nội dung jockey cần chỉnh sửa..."
             />
             <span className="text-right text-xs font-bold text-slate-500">
               {feedback.length}/500
@@ -113,7 +113,7 @@ export default function JockeyReview() {
       const data = await getJockeyProfilesUnderReview();
       setProfiles(Array.isArray(data) ? data : []);
     } catch (err) {
-      setError(err.message || 'Không thể tải danh sách duyệt nài ngựa.');
+      setError(err.message || 'Không thể tải danh sách duyệt jockey.');
     } finally {
       setIsLoading(false);
     }
@@ -157,7 +157,7 @@ export default function JockeyReview() {
       setSelectedProfile(null);
       await loadProfiles();
     } catch (err) {
-      setError(err.message || 'Không thể xét duyệt hồ sơ nài ngựa.');
+      setError(err.message || 'Không thể xét duyệt hồ sơ jockey.');
     } finally {
       setIsProcessing(false);
     }

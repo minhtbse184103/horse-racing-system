@@ -27,9 +27,9 @@ const adminNavItems = [
   { key: 'events', label: 'Giải đấu', icon: Trophy },
   { key: 'registrations', label: 'Đơn đăng ký', icon: UserCheck },
   { key: 'raceEntries', label: 'Suất tham gia đua', icon: Flag },
-  { key: 'jockeyReviews', label: 'Duyệt nài ngựa', icon: ClipboardCheck },
+  { key: 'jockeyReviews', label: 'Duyệt jockey', icon: ClipboardCheck },
   { key: 'horseReviews', label: 'Duyệt ngựa', icon: ShieldCheck },
-  { key: 'refereeAssignments', label: 'Phân công trọng tài', icon: Gavel }
+  { key: 'refereeAssignments', label: 'Phân công referee', icon: Gavel }
 ];
 
 export default function AdminDashboard({ currentUser, onLogout }) {

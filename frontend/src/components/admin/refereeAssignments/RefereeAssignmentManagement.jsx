@@ -77,7 +77,7 @@ function AssignmentModal({
         </p>
 
         <h2 className="mt-2 text-2xl font-black text-brown-900">
-          {replacing ? 'Thay trọng tài' : 'Phân công trọng tài'}
+          {replacing ? 'Thay referee' : 'Phân công referee'}
         </h2>
 
         <div className="mt-6 grid gap-4">
@@ -110,7 +110,7 @@ function AssignmentModal({
               value={selectedRefereeId}
               onChange={(event) => setSelectedRefereeId(event.target.value)}
             >
-              <option value="">Chọn trọng tài đang hoạt động</option>
+              <option value="">Chọn referee đang hoạt động</option>
 
               {availableReferees.map((referee) => (
                 <option
@@ -147,8 +147,8 @@ function AssignmentModal({
             {isProcessing
               ? 'Đang lưu...'
               : replacing
-                ? 'Thay trọng tài'
-                : 'Phân công trọng tài'}
+                ? 'Thay referee'
+                : 'Phân công referee'}
           </button>
         </div>
       </section>
@@ -281,7 +281,7 @@ export default function RefereeAssignmentManagement() {
       setReferees(Array.isArray(refereeData) ? refereeData : []);
       setEligibleRaces(await loadEligibleRaces(nextAssignments));
     } catch (err) {
-      setError(err.message || 'Không thể tải phân công trọng tài.');
+      setError(err.message || 'Không thể tải phân công referee.');
     } finally {
       setIsLoading(false);
     }
@@ -313,19 +313,19 @@ export default function RefereeAssignmentManagement() {
     try {
       if (action.type === 'replace') {
         await replaceRefereeAssignment(raceId, selectedRefereeId);
-        setMessage('Đã thay trọng tài thành công.');
+        setMessage('Đã thay referee thành công.');
       } else {
         await createRefereeAssignment({
           raceId,
           refereeUserId: selectedRefereeId
         });
-        setMessage('Đã phân công trọng tài thành công.');
+        setMessage('Đã phân công referee thành công.');
       }
 
       setAction(null);
       await loadData();
     } catch (err) {
-      setError(err.message || 'Không thể lưu phân công trọng tài.');
+      setError(err.message || 'Không thể lưu phân công referee.');
     } finally {
       setIsProcessing(false);
     }
@@ -338,11 +338,11 @@ export default function RefereeAssignmentManagement() {
 
     try {
       await removeRefereeAssignment(removeTarget.raceId);
-      setMessage('Đã gỡ phân công trọng tài.');
+      setMessage('Đã gỡ phân công referee.');
       setRemoveTarget(null);
       await loadData();
     } catch (err) {
-      setError(err.message || 'Không thể gỡ phân công trọng tài.');
+      setError(err.message || 'Không thể gỡ phân công referee.');
     } finally {
       setIsProcessing(false);
     }
@@ -439,7 +439,7 @@ export default function RefereeAssignmentManagement() {
                     'Vòng đấu',
                     'Cuộc đua',
                     'Lịch trình',
-                    'Trọng tài',
+                    'Referee',
                     'Trạng thái',
                     'Thao tác'
                   ].map((heading) => (

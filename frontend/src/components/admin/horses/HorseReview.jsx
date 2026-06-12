@@ -40,7 +40,7 @@ function ReviewDialog({ review, onClose, onConfirm, isProcessing }) {
           {isRejecting ? 'Từ chối hồ sơ ngựa' : 'Phê duyệt hồ sơ ngựa'}
         </h2>
         <p className="mt-2 text-sm font-semibold text-slate-500">
-          {horseName} will be {isRejecting ? 'được trả lại cho chủ ngựa cùng phản hồi của bạn' : 'được phê duyệt và chuyển sang trạng thái hoạt động'}.
+          {horseName} will be {isRejecting ? 'được trả lại cho owner cùng phản hồi của bạn' : 'được phê duyệt và chuyển sang trạng thái hoạt động'}.
         </p>
 
         {!isRejecting && certificateExpired && (
@@ -66,7 +66,7 @@ function ReviewDialog({ review, onClose, onConfirm, isProcessing }) {
               rows={4}
               value={feedback}
               onChange={(event) => setFeedback(event.target.value)}
-              placeholder="Giải thích nội dung chủ ngựa cần chỉnh sửa trước khi gửi lại."
+              placeholder="Giải thích nội dung owner cần chỉnh sửa trước khi gửi lại."
             />
           </label>
         )}
@@ -214,7 +214,7 @@ export default function HorseReview() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={17} />
             <input
               className="w-full rounded-lg border border-brown-700/15 bg-white py-3 pl-10 pr-4 text-sm font-bold outline-none focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
-              placeholder="Tìm theo tên ngựa, giống, màu lông hoặc mã chủ ngựa"
+              placeholder="Tìm theo tên ngựa, giống, màu lông hoặc mã owner"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
             />

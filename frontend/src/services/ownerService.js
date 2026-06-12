@@ -1,7 +1,7 @@
 import { httpRequest } from '../api/httpClient';
 export function getOwnerDashboard() {
     return httpRequest('/api/owner/dashboard', {
-        fallbackError: 'Không thể tải bảng điều khiển chủ ngựa.'
+        fallbackError: 'Không thể tải bảng điều khiển owner.'
     });
 }
 export function getOwnerHorses() {
@@ -41,19 +41,19 @@ export function getTournaments() {
 }
 export function getOwnerInvitations() {
     return httpRequest('/api/owner/invitations', {
-        fallbackError: 'Không thể tải lời mời nài ngựa.'
+        fallbackError: 'Không thể tải lời mời jockey.'
     });
 }
 export function inviteJockey(payload) {
     return httpRequest('/api/owner/invitations', {
         method: 'POST',
         body: payload,
-        fallbackError: 'Không thể gửi lời mời nài ngựa.'
+        fallbackError: 'Không thể gửi lời mời jockey.'
     });
 }
 export function cancelOwnerInvitation(invitationId) {
     return httpRequest(`/api/owner/invitations/${invitationId}/cancel`, {
         method: 'PUT',
-        fallbackError: 'Không thể hủy lời mời nài ngựa.'
+        fallbackError: 'Không thể hủy lời mời jockey.'
     });
 }

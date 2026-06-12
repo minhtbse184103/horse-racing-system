@@ -9,7 +9,7 @@ const FEATURES = [
   {
     icon: ShieldCheck,
     title: 'Người tham gia được xác minh',
-    description: 'Kết nối chủ ngựa, nài ngựa, quản trị viên và trọng tài.'
+    description: 'Kết nối owner, jockey, admin và referee.'
   },
   {
     icon: Flag,

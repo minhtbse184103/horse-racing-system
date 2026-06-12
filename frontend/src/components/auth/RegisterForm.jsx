@@ -196,7 +196,7 @@ export default function RegisterForm({ onGoHome, onGoLogin }) {
           </label>
 
           <label className="grid gap-2" htmlFor="roleName">
-            <span className="text-sm font-extrabold text-brown-900">Vai trò</span>
+            <span className="text-sm font-extrabold text-brown-900">Role</span>
             <select
               className={fieldClasses(errors.roleName)}
               id="roleName"
@@ -205,9 +205,9 @@ export default function RegisterForm({ onGoHome, onGoLogin }) {
               onChange={handleChange}
               disabled={isSubmitting}
             >
-              <option value="OWNER">Chủ ngựa</option>
-              <option value="JOCKEY">Nài ngựa</option>
-              <option value="SPECTATOR">Khán giả</option>
+              <option value="OWNER">Owner</option>
+              <option value="JOCKEY">Jockey</option>
+              <option value="SPECTATOR">Spectator</option>
             </select>
             {errors.roleName && (
               <span className="text-xs font-bold text-danger">

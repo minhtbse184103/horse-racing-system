@@ -9,7 +9,7 @@ export default function UserPanel({ user, onLogout }) {
         <h1>Đăng nhập thành công</h1>
         <p>
           Hello <strong>{user?.fullName || user?.email}</strong>, your account has the{' '}
-          Vai trò <strong>{formatDisplayLabel(getUserRole(user))}</strong>.
+          Role <strong>{formatDisplayLabel(getUserRole(user))}</strong>.
         </p>
         <div className="user-info-grid">
           <span>Email</span>

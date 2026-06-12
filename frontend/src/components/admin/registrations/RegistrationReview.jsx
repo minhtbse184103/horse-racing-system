@@ -183,7 +183,7 @@ export default function RegistrationReview() {
             />
             <input
               className="w-full rounded-xl border border-brown-700/15 bg-white/90 py-3 pl-10 pr-4 text-sm font-bold text-brown-900 outline-none transition focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
-              placeholder="Tìm giải đấu, ngựa, chủ ngựa, nài ngựa hoặc trạng thái"
+              placeholder="Tìm giải đấu, ngựa, owner, jockey hoặc trạng thái"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
             />
@@ -207,8 +207,8 @@ export default function RegistrationReview() {
                     'ID',
                     'Giải đấu',
                     'Ngựa',
-                    'Chủ ngựa',
-                    'Nài ngựa',
+                    'Owner',
+                    'Jockey',
                     'Trạng thái',
                     'Đã cập nhật'
                   ].map((heading) => (
@@ -376,7 +376,7 @@ export default function RegistrationReview() {
                 </dd>
               </div>
               <div className="mt-px grid grid-cols-[7rem_minmax(0,1fr)] gap-4 bg-white/70 px-4 py-3 max-sm:grid-cols-1 max-sm:gap-1">
-                <dt className="text-sm font-bold text-slate-500">Nài ngựa</dt>
+                <dt className="text-sm font-bold text-slate-500">Jockey</dt>
                 <dd className="m-0 break-words text-sm font-extrabold text-brown-900">
                   {reviewConfirmation.registration.jockeyName || 'N/A'}
                 </dd>

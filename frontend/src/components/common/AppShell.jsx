@@ -30,7 +30,7 @@ export default function AppShell({
           <div className={logoClass}>🏇</div>
           <div>
             <strong>Đường đua chiến thắng</strong>
-            <span>{variant === 'owner' ? 'Cổng thông tin chủ ngựa' : variant === 'jockey' ? 'Cổng thông tin nài ngựa' : 'Bảng điều khiển quản trị'}</span>
+            <span>{variant === 'owner' ? 'Cổng thông tin owner' : variant === 'jockey' ? 'Cổng thông tin jockey' : 'Bảng điều khiển quản trị'}</span>
           </div>
         </div>
 
@@ -62,7 +62,7 @@ export default function AppShell({
       <section className={mainClass}>
         <header className={topbarClass}>
           <div>
-            <p className="eyebrow">{variant === 'owner' ? 'Bảng điều khiển chủ ngựa' : variant === 'jockey' ? 'Bảng điều khiển nài ngựa' : 'Quản trị viên'}</p>
+            <p className="eyebrow">{variant === 'owner' ? 'Bảng điều khiển owner' : variant === 'jockey' ? 'Bảng điều khiển jockey' : 'Admin'}</p>
             <h1>{title}</h1>
             {subtitle && <p>{subtitle}</p>}
           </div>

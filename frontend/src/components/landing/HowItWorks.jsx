@@ -2,9 +2,9 @@ import { Search, ClipboardList, UserPlus, ShieldCheck, Flag, Trophy } from "luci
 
 const STEPS = [
   { icon: Search, title: "Khám phá giải đấu", desc: "Xem lịch và tìm giải đấu phù hợp." },
-  { icon: ClipboardList, title: "Đăng ký ngựa", desc: "Chủ ngựa gửi hồ sơ ngựa đáp ứng điều kiện." },
-  { icon: UserPlus, title: "Mời nài ngựa", desc: "Gửi lời mời đến các nài ngựa đủ điều kiện." },
-  { icon: ShieldCheck, title: "Quản trị viên xét duyệt", desc: "Các đơn đăng ký được xác minh và phê duyệt." },
+  { icon: ClipboardList, title: "Đăng ký ngựa", desc: "Owner gửi hồ sơ ngựa đáp ứng điều kiện." },
+  { icon: UserPlus, title: "Mời jockey", desc: "Gửi lời mời đến các jockey đủ điều kiện." },
+  { icon: ShieldCheck, title: "Admin xét duyệt", desc: "Các đơn đăng ký được xác minh và phê duyệt." },
   { icon: Flag, title: "Phân công cuộc đua", desc: "Ngựa được xếp vào cuộc đua và phân làn." },
   { icon: Trophy, title: "Thi đấu và xem kết quả", desc: "Thi đấu, ghi nhận kết quả và công bố xếp hạng." },
 ];

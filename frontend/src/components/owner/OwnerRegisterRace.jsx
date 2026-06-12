@@ -83,7 +83,7 @@ function validateInvitationForm(formValues, horses, tournaments) {
   }
 
   if (!formValues.jockeyId) {
-    errors.jockeyId = 'Vui lòng chọn nài ngựa.';
+    errors.jockeyId = 'Vui lòng chọn jockey.';
   }
 
   if (formValues.expiredAt && !expiredAt) {
@@ -135,7 +135,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
       setJockeys((Array.isArray(userData) ? userData : []).filter((user) => getUserRole(user) === 'JOCKEY' && String(user.status || '').toUpperCase() === 'ACTIVE'));
       setInvitations(Array.isArray(invitationData) ? invitationData : []);
     } catch (err) {
-      setLoadError(getErrorText(err, 'Không thể tải dữ liệu lời mời nài ngựa.'));
+      setLoadError(getErrorText(err, 'Không thể tải dữ liệu lời mời jockey.'));
     } finally {
       setIsLoading(false);
     }
@@ -167,12 +167,12 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
         expiredAt: formValues.expiredAt || null,
         message: formValues.message.trim() || null
       });
-      setMessage('Đã gửi lời mời nài ngựa. Khi nài ngựa chấp nhận, đơn đăng ký sẽ chuyển sang ACCEPTED và chờ quản trị viên xét duyệt.');
+      setMessage('Đã gửi lời mời jockey. Khi jockey chấp nhận, đơn đăng ký sẽ chuyển sang ACCEPTED và chờ admin xét duyệt.');
       setFormValues(emptyInvitationForm());
       setFormErrors({});
       await loadPageData();
     } catch (err) {
-      setSubmitError(getErrorText(err, 'Không thể gửi lời mời nài ngựa.'));
+      setSubmitError(getErrorText(err, 'Không thể gửi lời mời jockey.'));
     } finally {
       setIsSaving(false);
     }
@@ -182,7 +182,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
     const invitationId = getInvitationId(invitation);
     if (!invitationId) return;
 
-    const confirmed = window.confirm('Bạn có chắc muốn hủy lời mời nài ngựa này?');
+    const confirmed = window.confirm('Bạn có chắc muốn hủy lời mời jockey này?');
     if (!confirmed) return;
 
     setActingId(invitationId);
@@ -192,7 +192,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
 
     try {
       await cancelOwnerInvitation(invitationId);
-      setMessage('Đã hủy lời mời nài ngựa.');
+      setMessage('Đã hủy lời mời jockey.');
       await loadPageData();
     } catch (err) {
       setLoadError(getErrorText(err, 'Không thể hủy lời mời.'));
@@ -210,8 +210,8 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
         <div className="owner-panel-header">
           <div>
             <p className="eyebrow">Lời mời</p>
-            <h2>Mời nài ngựa tham gia giải đấu</h2>
-            <p>Chọn giải đấu đang mở đăng ký, ngựa ACTIVE và nài ngựa ACTIVE để tạo lời mời đang chờ phản hồi.</p>
+            <h2>Mời jockey tham gia giải đấu</h2>
+            <p>Chọn giải đấu đang mở đăng ký, ngựa ACTIVE và jockey ACTIVE để tạo lời mời đang chờ phản hồi.</p>
           </div>
           <button className="outline-button" type="button" onClick={onBackToHorses}>Quay lại danh sách ngựa</button>
         </div>
@@ -248,16 +248,16 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
 
         <div className="owner-form-row">
           <div>
-            <label className="field-label" htmlFor="ownerJockeyId">Nài ngựa đang hoạt động <span className="required">*</span></label>
+            <label className="field-label" htmlFor="ownerJockeyId">Jockey đang hoạt động <span className="required">*</span></label>
             <select className={formErrors.jockeyId ? 'input has-error' : 'input'} id="ownerJockeyId" name="jockeyId" value={formValues.jockeyId} onChange={handleChange} disabled={isSaving || isLoading}>
-              <option value="">Chọn nài ngựa</option>
+              <option value="">Chọn jockey</option>
               {jockeys.map((jockey) => {
                 const jockeyId = getUserId(jockey);
                 return <option key={jockeyId} value={jockeyId}>{jockey.fullName || jockey.email || `Jockey ${jockeyId}`}</option>;
               })}
             </select>
             {formErrors.jockeyId && <p className="field-error">{formErrors.jockeyId}</p>}
-            {!isLoading && jockeys.length === 0 && <p className="field-hint warning-text">Không tìm thấy nài ngựa ACTIVE nào.</p>}
+            {!isLoading && jockeys.length === 0 && <p className="field-hint warning-text">Không tìm thấy jockey ACTIVE nào.</p>}
           </div>
 
           <div>
@@ -302,7 +302,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
                   <th>ID</th>
                   <th>Giải đấu</th>
                   <th>Ngựa</th>
-                  <th>Nài ngựa</th>
+                  <th>Jockey</th>
                   <th>Ngày tạo</th>
                   <th>Hết hạn</th>
                   <th>Lời mời</th>

@@ -42,7 +42,7 @@ export default function OwnerDashboard({ currentUser, onLogout }) {
   const { horses, horseError, isHorsesLoading, loadHorses, saveHorse, removeHorse } = useHorses();
 
   const isLoading = isDashboardLoading || isHorsesLoading;
-  const ownerName = dashboard?.ownerName || currentUser?.fullName || currentUser?.email || 'Chủ ngựa';
+  const ownerName = dashboard?.ownerName || currentUser?.fullName || currentUser?.email || 'Owner';
   const error = pageError || dashboardError || horseError;
 
   async function reloadOwnerData() {
@@ -51,7 +51,7 @@ export default function OwnerDashboard({ currentUser, onLogout }) {
     try {
       await Promise.all([loadDashboard(), loadHorses()]);
     } catch (err) {
-      setPageError(getErrorText(err, 'Không thể tải bảng điều khiển chủ ngựa.'));
+      setPageError(getErrorText(err, 'Không thể tải bảng điều khiển owner.'));
     }
   }
 
@@ -168,8 +168,8 @@ export default function OwnerDashboard({ currentUser, onLogout }) {
 
       setMessage(
         editingHorse
-          ? 'Đã cập nhật hồ sơ ngựa và gửi ở trạng thái PENDING để quản trị viên phê duyệt.'
-          : 'Đã gửi hồ sơ ngựa ở trạng thái PENDING để quản trị viên phê duyệt.'
+          ? 'Đã cập nhật hồ sơ ngựa và gửi ở trạng thái PENDING để admin phê duyệt.'
+          : 'Đã gửi hồ sơ ngựa ở trạng thái PENDING để admin phê duyệt.'
       );
 
       setEditingHorse(null);

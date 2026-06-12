@@ -41,7 +41,7 @@ export interface JockeyInvitation {
 
 export function getJockeyProfile(): Promise<JockeyProfile> {
   return httpRequest<JockeyProfile>('/api/jockey/profile', {
-    fallbackError: 'Không thể tải hồ sơ nài ngựa.'
+    fallbackError: 'Không thể tải hồ sơ jockey.'
   });
 }
 
@@ -49,7 +49,7 @@ export function createJockeyProfile(payload: JockeyProfilePayload): Promise<Jock
   return httpRequest<JockeyProfile, JockeyProfilePayload>('/api/jockey/profile', {
     method: 'POST',
     body: payload,
-    fallbackError: 'Không thể tạo hồ sơ nài ngựa.'
+    fallbackError: 'Không thể tạo hồ sơ jockey.'
   });
 }
 
@@ -57,20 +57,20 @@ export function updateJockeyProfile(payload: JockeyProfilePayload): Promise<Jock
   return httpRequest<JockeyProfile, JockeyProfilePayload>('/api/jockey/profile', {
     method: 'PUT',
     body: payload,
-    fallbackError: 'Không thể cập nhật hồ sơ nài ngựa.'
+    fallbackError: 'Không thể cập nhật hồ sơ jockey.'
   });
 }
 
 export function deactivateJockeyProfile(): Promise<JockeyProfile> {
   return httpRequest<JockeyProfile>('/api/jockey/profile/inactive', {
     method: 'PUT',
-    fallbackError: 'Không thể vô hiệu hóa hồ sơ nài ngựa.'
+    fallbackError: 'Không thể vô hiệu hóa hồ sơ jockey.'
   });
 }
 
 export function getJockeyInvitations(): Promise<JockeyInvitation[]> {
   return httpRequest<JockeyInvitation[]>('/api/jockey/invitations', {
-    fallbackError: 'Không thể tải lời mời nài ngựa.'
+    fallbackError: 'Không thể tải lời mời jockey.'
   });
 }
 
