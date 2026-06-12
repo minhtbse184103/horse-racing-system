@@ -48,7 +48,7 @@ function toProfileForm(profile) {
     licenseNo: String(profile.licenseNo || ''),
     weight: profile.weight == null ? '' : String(profile.weight),
     ranking: String(profile.ranking || 'BEGINNER').toUpperCase(),
-    imgUrl: profile.imgUrl && !/^https?:\/\//i.test(String(profile.imgUrl)) ? String(profile.imgUrl) : defaultJockeyAvatar
+    iimgUrl: profile.imgUrl || ''
   };
 }
 
@@ -75,6 +75,10 @@ function validateProfileForm(form) {
     errors.ranking = 'Ranking must be BEGINNER, INTERMEDIATE, PROFESSIONAL, or ELITE.';
   }
 
+  if (form.imgUrl && !/^https?:\/\/.+/i.test(form.imgUrl.trim())) {
+    errors.imgUrl = 'Image URL must start with http:// or https://';
+  }
+
   return errors;
 }
 
@@ -83,7 +87,7 @@ function toPayload(form) {
     licenseNo: form.licenseNo.trim(),
     weight: Number(form.weight),
     ranking: form.ranking,
-    imgUrl: defaultJockeyAvatar
+    imgUrl: form.imgUrl
   };
 }
 
@@ -384,10 +388,25 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
           </div>
         </div>
 
-        <div className="readonly-field-card full-width">
-          <span>Profile Image</span>
-          <strong>Default imported avatar</strong>
-          <small>The jockey profile uses a local white Facebook-style avatar instead of an external image link.</small>
+        <div>
+          <label className="field-label" htmlFor="jockeyImage">
+            Profile Image URL
+          </label>
+
+          <input
+            className={profileErrors.imgUrl ? 'input has-error' : 'input'}
+            id="jockeyImage"
+            name="imgUrl"
+            type="text"
+            placeholder="https://example.com/avatar.jpg"
+            value={profileForm.imgUrl}
+            onChange={handleProfileChange}
+            disabled={isSavingProfile}
+          />
+
+          {profileErrors.imgUrl && (
+            <p className="field-error">{profileErrors.imgUrl}</p>
+          )}
         </div>
 
         <div className="admin-form-actions">
