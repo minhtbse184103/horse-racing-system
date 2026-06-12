@@ -37,6 +37,37 @@ function getDateTime(value) {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
+function padDatePart(value) {
+  return String(value).padStart(2, '0');
+}
+
+function toDateTimeLocalValue(value) {
+  const date = value instanceof Date ? value : getDateTime(value);
+  if (!date) return '';
+
+  return `${date.getFullYear()}-${padDatePart(date.getMonth() + 1)}-${padDatePart(date.getDate())}T${padDatePart(date.getHours())}:${padDatePart(date.getMinutes())}`;
+}
+
+function getDateTimeLocalMinValue() {
+  const now = new Date();
+  now.setMinutes(now.getMinutes() + 1);
+  now.setSeconds(0, 0);
+  return toDateTimeLocalValue(now);
+}
+
+function formatDateTime(value) {
+  const date = getDateTime(value);
+  if (!date) return 'Chưa cập nhật';
+
+  return date.toLocaleString('vi-VN', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
 function isActiveHorse(horse) {
   return String(horse.status || '').toUpperCase() === 'ACTIVE';
 }
@@ -57,7 +88,7 @@ function formatTournamentOption(tournament) {
   const name = getTournamentName(tournament) || `Tournament ${id}`;
   const date = tournament.startDate ? ` • Bắt đầu: ${formatDate(tournament.startDate)}` : '';
   const location = tournament.location ? ` • ${tournament.location}` : '';
-  const deadline = tournament.registrationDeadline ? ` • Deadline đăng ký: ${formatDate(tournament.registrationDeadline)}` : '';
+  const deadline = tournament.registrationDeadline ? ` • Deadline đăng ký: ${formatDateTime(tournament.registrationDeadline)}` : '';
   return `${name}${location}${date}${deadline}`;
 }
 
@@ -105,8 +136,14 @@ function validateInvitationForm(formValues, horses, tournaments) {
 
   if (formValues.expiredAt && !expiredAt) {
     errors.expiredAt = 'Hạn phản hồi không hợp lệ.';
-  } else if (expiredAt && expiredAt.getTime() <= Date.now()) {
-    errors.expiredAt = 'Hạn phản hồi phải ở trong tương lai.';
+  } else if (expiredAt) {
+    const registrationDeadline = getDateTime(selectedTournament?.registrationDeadline);
+
+    if (expiredAt.getTime() <= Date.now()) {
+      errors.expiredAt = 'Hạn phản hồi phải ở trong tương lai.';
+    } else if (registrationDeadline && expiredAt.getTime() >= registrationDeadline.getTime()) {
+      errors.expiredAt = 'Hạn phản hồi phải trước deadline đăng ký giải đấu.';
+    }
   }
 
   return errors;
@@ -132,6 +169,11 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
   const selectedTournament = useMemo(
     () => tournamentById.get(String(formValues.tournamentId)) || null,
     [formValues.tournamentId, tournamentById]
+  );
+  const responseDeadlineMin = useMemo(() => getDateTimeLocalMinValue(), []);
+  const responseDeadlineMax = useMemo(
+    () => selectedTournament?.registrationDeadline ? toDateTimeLocalValue(selectedTournament.registrationDeadline) : '',
+    [selectedTournament]
   );
   const filteredInvitations = useMemo(() => {
     if (statusFilter === 'ALL') return invitations;
@@ -253,7 +295,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
             {formErrors.tournamentId && <p className="field-error">{formErrors.tournamentId}</p>}
             {selectedTournament && (
               <p className="field-hint">
-                Deadline đăng ký: <strong>{formatDate(selectedTournament.registrationDeadline)}</strong>
+                Deadline đăng ký: <strong>{formatDateTime(selectedTournament.registrationDeadline)}</strong>
               </p>
             )}
             {!isLoading && tournaments.length > 0 && availableTournaments.length === 0 && <p className="field-hint warning-text">Hiện không có giải đấu nào đang mở đăng ký.</p>}
@@ -289,7 +331,22 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
 
           <div>
             <label className="field-label" htmlFor="ownerExpiredAt">Hạn phản hồi lời mời</label>
-            <input className={formErrors.expiredAt ? 'input has-error' : 'input'} id="ownerExpiredAt" name="expiredAt" type="datetime-local" value={formValues.expiredAt} onChange={handleChange} disabled={isSaving} />
+            <input
+              className={formErrors.expiredAt ? 'input has-error' : 'input'}
+              id="ownerExpiredAt"
+              name="expiredAt"
+              type="datetime-local"
+              value={formValues.expiredAt}
+              onChange={handleChange}
+              min={responseDeadlineMin}
+              max={responseDeadlineMax || undefined}
+              disabled={isSaving}
+            />
+            {selectedTournament?.registrationDeadline && (
+              <p className="field-hint">
+                Chọn thời điểm sau hiện tại và trước deadline đăng ký: <strong>{formatDateTime(selectedTournament.registrationDeadline)}</strong>.
+              </p>
+            )}
             {formErrors.expiredAt && <p className="field-error">{formErrors.expiredAt}</p>}
           </div>
         </div>
@@ -349,11 +406,11 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
                       <td>{invitationId || 'N/A'}</td>
                       <td>{invitation.tournamentName || invitation.tournamentId || 'N/A'}</td>
                       <td>{formatTournamentDateRange(invitation)}</td>
-                      <td>{formatDate(getInvitationRegistrationDeadline(invitation, tournamentById))}</td>
+                      <td>{formatDateTime(getInvitationRegistrationDeadline(invitation, tournamentById))}</td>
                       <td>{invitation.horseName || invitation.horseId || 'N/A'}</td>
                       <td>{invitation.jockeyName || invitation.jockeyId || 'N/A'}</td>
                       <td>{formatDate(invitation.createdAt)}</td>
-                      <td>{formatDate(invitation.expiredAt)}</td>
+                      <td>{formatDateTime(invitation.expiredAt)}</td>
                       <td><span className={`status-badge ${String(invitation.status || '').toLowerCase()}`}>{formatDisplayLabel(invitation.status)}</span></td>
                       <td><span className={`status-badge ${String(invitation.registrationStatus || '').toLowerCase()}`}>{formatDisplayLabel(invitation.registrationStatus)}</span></td>
                       <td>

@@ -350,13 +350,17 @@ export default function AdminOverview({ onNavigate }) {
           </div>
 
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            {workQueues.map((queue) => (
-              <WorkQueueCard
-                key={queue.key}
-                {...queue}
-                onClick={() => onNavigate(queue.key)}
-              />
-            ))}
+            {workQueues.map((queue) => {
+              const { key, ...queueProps } = queue;
+
+              return (
+                <WorkQueueCard
+                  key={key}
+                  {...queueProps}
+                  onClick={() => onNavigate(key)}
+                />
+              );
+            })}
           </div>
         </section>
 
