@@ -53,9 +53,10 @@ function toProfileForm(profile) {
 }
 
 function validateProfileForm(form) {
-  const errors = {};
+  const errors: Record<string, string> = {};
   const licenseNo = form.licenseNo.trim();
   const weight = Number(form.weight);
+
 
   if (!licenseNo) {
     errors.licenseNo = 'License number is required.';
@@ -404,7 +405,7 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
     );
   }
 
-  function renderInvitationList(limit) {
+  function renderInvitationList(limit?: number) {
     const items = typeof limit === 'number' ? latestInvitations.slice(0, limit) : filteredInvitations;
 
     if (isLoadingInvitations) return <p className="table-empty">Loading invitations...</p>;
