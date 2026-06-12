@@ -20,7 +20,7 @@ import {
 } from '../../../services/refereeAssignmentService';
 
 function formatDateTime(value) {
-  if (!value) return 'Not scheduled';
+  if (!value) return 'Chưa lên lịch';
 
   return new Date(value).toLocaleString('en-GB', {
     day: '2-digit',
@@ -45,6 +45,11 @@ function AssignmentModal({
 }) {
   const [raceId, setRaceId] = useState(action?.assignment?.raceId || '');
   const [selectedRefereeId, setSelectedRefereeId] = useState('');
+
+  useEffect(() => {
+    setRaceId(action?.assignment?.raceId || '');
+    setSelectedRefereeId('');
+  }, [action]);
 
   if (!action) return null;
 
@@ -72,12 +77,12 @@ function AssignmentModal({
         </p>
 
         <h2 className="mt-2 text-2xl font-black text-brown-900">
-          {replacing ? 'Replace Referee' : 'Assign Referee'}
+          {replacing ? 'Thay trọng tài' : 'Phân công trọng tài'}
         </h2>
 
         <div className="mt-6 grid gap-4">
           <label className="grid gap-2">
-            <span className="text-sm font-extrabold text-brown-900">Race</span>
+            <span className="text-sm font-extrabold text-brown-900">Cuộc đua</span>
 
             <select
               className="rounded-lg border border-brown-700/20 bg-white px-4 py-3 font-bold text-brown-900 outline-none focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20 disabled:opacity-60"
@@ -85,7 +90,7 @@ function AssignmentModal({
               disabled={replacing}
               onChange={(event) => setRaceId(event.target.value)}
             >
-              <option value="">Select eligible race</option>
+              <option value="">Chọn cuộc đua đủ điều kiện</option>
 
               {races.map((race) => (
                 <option key={race.raceId} value={race.raceId}>
@@ -105,7 +110,7 @@ function AssignmentModal({
               value={selectedRefereeId}
               onChange={(event) => setSelectedRefereeId(event.target.value)}
             >
-              <option value="">Select active referee</option>
+              <option value="">Chọn trọng tài đang hoạt động</option>
 
               {availableReferees.map((referee) => (
                 <option
@@ -140,10 +145,10 @@ function AssignmentModal({
             onClick={() => onConfirm(Number(raceId), Number(selectedRefereeId))}
           >
             {isProcessing
-              ? 'Saving...'
+              ? 'Đang lưu...'
               : replacing
-                ? 'Replace Referee'
-                : 'Assign Referee'}
+                ? 'Thay trọng tài'
+                : 'Phân công trọng tài'}
           </button>
         </div>
       </section>
@@ -187,7 +192,7 @@ function RemoveModal({ assignment, isProcessing, onClose, onConfirm }) {
             disabled={isProcessing}
             onClick={onConfirm}
           >
-            {isProcessing ? 'Removing...' : 'Remove'}
+            {isProcessing ? 'Đang gỡ...' : 'Gỡ bỏ'}
           </button>
         </div>
       </section>
@@ -276,7 +281,7 @@ export default function RefereeAssignmentManagement() {
       setReferees(Array.isArray(refereeData) ? refereeData : []);
       setEligibleRaces(await loadEligibleRaces(nextAssignments));
     } catch (err) {
-      setError(err.message || 'Unable to load referee assignments.');
+      setError(err.message || 'Không thể tải phân công trọng tài.');
     } finally {
       setIsLoading(false);
     }
@@ -308,19 +313,19 @@ export default function RefereeAssignmentManagement() {
     try {
       if (action.type === 'replace') {
         await replaceRefereeAssignment(raceId, selectedRefereeId);
-        setMessage('Referee replaced successfully.');
+        setMessage('Đã thay trọng tài thành công.');
       } else {
         await createRefereeAssignment({
           raceId,
           refereeUserId: selectedRefereeId
         });
-        setMessage('Referee assigned successfully.');
+        setMessage('Đã phân công trọng tài thành công.');
       }
 
       setAction(null);
       await loadData();
     } catch (err) {
-      setError(err.message || 'Unable to save referee assignment.');
+      setError(err.message || 'Không thể lưu phân công trọng tài.');
     } finally {
       setIsProcessing(false);
     }
@@ -333,11 +338,11 @@ export default function RefereeAssignmentManagement() {
 
     try {
       await removeRefereeAssignment(removeTarget.raceId);
-      setMessage('Referee assignment removed.');
+      setMessage('Đã gỡ phân công trọng tài.');
       setRemoveTarget(null);
       await loadData();
     } catch (err) {
-      setError(err.message || 'Unable to remove referee assignment.');
+      setError(err.message || 'Không thể gỡ phân công trọng tài.');
     } finally {
       setIsProcessing(false);
     }
@@ -397,7 +402,7 @@ export default function RefereeAssignmentManagement() {
       <section className="overflow-hidden rounded-xl border border-brown-700/10 bg-cream-100 shadow-xl">
         <div className="flex items-center justify-between gap-4 border-b border-brown-700/10 bg-cream-200/50 px-6 py-5 max-sm:grid">
           <div>
-            <h2 className="text-2xl font-black">Current Assignments</h2>
+            <h2 className="text-2xl font-black">Phân công hiện tại</h2>
             <p className="mt-2 font-semibold text-slate-500">
               {assignments.length} races currently have referees
             </p>
@@ -411,7 +416,7 @@ export default function RefereeAssignmentManagement() {
 
             <input
               className="w-full rounded-xl border border-brown-700/15 bg-white py-3 pl-10 pr-4 font-bold outline-none focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
-              placeholder="Search assignments"
+              placeholder="Tìm kiếm phân công"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
             />
@@ -419,7 +424,7 @@ export default function RefereeAssignmentManagement() {
         </div>
 
         {isLoading ? (
-          <p className="px-6 py-10 text-slate-500">Loading assignments...</p>
+          <p className="px-6 py-10 text-slate-500">Đang tải phân công...</p>
         ) : filteredAssignments.length === 0 ? (
           <p className="px-6 py-10 text-slate-500">
             No referee assignments found.
@@ -430,13 +435,13 @@ export default function RefereeAssignmentManagement() {
               <thead className="bg-cream-200/60">
                 <tr>
                   {[
-                    'Tournament',
-                    'Round',
-                    'Race',
-                    'Schedule',
-                    'Referee',
-                    'Status',
-                    'Actions'
+                    'Giải đấu',
+                    'Vòng đấu',
+                    'Cuộc đua',
+                    'Lịch trình',
+                    'Trọng tài',
+                    'Trạng thái',
+                    'Thao tác'
                   ].map((heading) => (
                     <th
                       className="border-b border-brown-700/10 px-4 py-4 text-left text-xs font-extrabold uppercase text-brown-700"

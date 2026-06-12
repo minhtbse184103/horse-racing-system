@@ -139,7 +139,7 @@ class RaceEntryServiceTest {
                 () -> service.createRaceEntry(request));
 
         assertEquals(HttpStatus.CONFLICT, exception.getStatus());
-        assertEquals("Only draft races can receive entries.", exception.getMessage());
+        assertEquals("Chỉ cuộc đua đang ở trạng thái DRAFT mới có thể nhận suất tham gia.", exception.getMessage());
     }
 
     @Test

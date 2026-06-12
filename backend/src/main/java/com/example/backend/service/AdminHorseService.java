@@ -43,20 +43,20 @@ public class AdminHorseService {
     @Transactional
     public HorseResponse approveHorse(Integer horseId) {
         Horse horse = horseRepository.findById(horseId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Horse does not exist."));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Ngựa không tồn tại."));
 
         if (!STATUS_PENDING.equals(horse.getStatus())) {
-            throw new ApiException(HttpStatus.CONFLICT, "Only pending horses can be approved.");
+            throw new ApiException(HttpStatus.CONFLICT, "Chỉ có thể phê duyệt ngựa đang ở trạng thái PENDING.");
         }
 
         if (horse.getHealthCertExpiry() == null || horse.getHealthCertExpiry().isBefore(LocalDate.now())) {
             throw new ApiException(HttpStatus.BAD_REQUEST,
-                    "Horse health certificate must be valid before approval.");
+                    "Giấy chứng nhận sức khỏe của ngựa phải còn hiệu lực trước khi phê duyệt.");
         }
 
         if (horse.getImgUrl() == null || horse.getImgUrl().isBlank()) {
             throw new ApiException(HttpStatus.BAD_REQUEST,
-                    "Horse proof image is required before approval.");
+                    "Ảnh minh chứng của ngựa là bắt buộc trước khi phê duyệt.");
         }
 
         horse.setStatus(STATUS_ACTIVE);
@@ -67,10 +67,10 @@ public class AdminHorseService {
     @Transactional
     public HorseResponse rejectHorse(Integer horseId, String feedback) {
         Horse horse = horseRepository.findById(horseId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Horse does not exist."));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Ngựa không tồn tại."));
 
         if (!STATUS_PENDING.equals(horse.getStatus())) {
-            throw new ApiException(HttpStatus.CONFLICT, "Only pending horses can be rejected.");
+            throw new ApiException(HttpStatus.CONFLICT, "Chỉ có thể từ chối ngựa đang ở trạng thái PENDING.");
         }
 
         horse.setStatus(STATUS_REJECTED);

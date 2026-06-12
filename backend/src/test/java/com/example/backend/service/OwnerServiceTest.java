@@ -98,7 +98,7 @@ class OwnerServiceTest {
                 () -> ownerService.inviteJockey(request));
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
-        assertEquals("Invitation expiry must be before tournament registration deadline.", exception.getMessage());
+        assertEquals("Thời hạn lời mời phải trước hạn đăng ký của giải đấu.", exception.getMessage());
         verify(userRepository, never()).findById(20);
         verify(jockeyInvitationRepository, never()).save(any());
     }

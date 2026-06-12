@@ -4,6 +4,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import  com.example.backend.dto.response.ErrorResponse;
@@ -22,19 +23,26 @@ public class GlobalExceptionHandler {
         String message = ex.getBindingResult().getFieldErrors().stream()
                 .findFirst()
                 .map(error -> error.getDefaultMessage())
-                .orElse("Request validation failed.");
+                .orElse("Dữ liệu yêu cầu không hợp lệ.");
 
         return ResponseEntity.badRequest().body(new ErrorResponse(400, message));
     }
 
     @ExceptionHandler(NoResourceFoundException.class)
     public ResponseEntity<ErrorResponse> handleNoResourceFoundException(NoResourceFoundException ex) {
-        return ResponseEntity.status(404).body(new ErrorResponse(404, "Resource does not exist."));
+        return ResponseEntity.status(404).body(new ErrorResponse(404, "Tài nguyên không tồn tại."));
+    }
+
+    @ExceptionHandler(HttpRequestMethodNotSupportedException.class)
+    public ResponseEntity<ErrorResponse> handleMethodNotSupportedException(
+            HttpRequestMethodNotSupportedException ex) {
+        return ResponseEntity.status(405)
+                .body(new ErrorResponse(405, "Phương thức HTTP không được hỗ trợ cho tài nguyên này."));
     }
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleAllException(Exception ex) {
-        ErrorResponse error = new ErrorResponse(500, "Internal server error");
+        ErrorResponse error = new ErrorResponse(500, "Lỗi máy chủ nội bộ");
         return ResponseEntity.status(500).body(error);
     }
 }

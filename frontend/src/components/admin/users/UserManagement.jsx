@@ -11,7 +11,7 @@ import {
   UserRoundX,
   Users
 } from 'lucide-react';
-import { getUserId } from '../../../lib';
+import { formatDisplayLabel, getUserId } from '../../../lib';
 import {
   createUser,
   deleteUser,
@@ -58,7 +58,7 @@ function getStatusClasses(status) {
 }
 
 function formatStatus(status) {
-  return String(status || 'N/A').replace(/_/g, ' ');
+  return formatDisplayLabel(status);
 }
 
 function SummaryCard({ icon: Icon, label, value, tone }) {
@@ -110,7 +110,7 @@ export default function UserManagement() {
       const data = await getUsers();
       setUsers(Array.isArray(data) ? data : []);
     } catch (err) {
-      setError(err.message || 'Unable to load users.');
+      setError(err.message || 'Không thể tải danh sách người dùng.');
     } finally {
       setIsLoading(false);
     }
@@ -193,23 +193,23 @@ const availableStatuses = STANDARD_STATUSES;
   }
 
   function validateForm() {
-    if (!form.fullName.trim()) return 'Full name is required.';
-    if (!form.email.trim()) return 'Email is required.';
+    if (!form.fullName.trim()) return 'Họ và tên là bắt buộc.';
+    if (!form.email.trim()) return 'Email là bắt buộc.';
     if (!/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(form.email)) {
-      return 'Email format is invalid.';
+      return 'Định dạng email không hợp lệ.';
     }
     if (!/^\+?[0-9]{9,15}$/.test(form.phone)) {
-      return 'Phone must contain 9-15 digits and may start with +.';
+      return 'Số điện thoại phải gồm 9-15 chữ số và có thể bắt đầu bằng +.';
     }
     if (!editingUser && (form.password.length < 6 || form.password.length > 72)) {
-      return 'Password must be between 6 and 72 characters.';
+      return 'Mật khẩu phải có từ 6 đến 72 ký tự.';
     }
     if (
       editingUser &&
       form.status === 'REJECTED' &&
       !form.rejectionReason.trim()
     ) {
-      return 'Rejection reason is required when rejecting a jockey.';
+      return 'Bắt buộc nhập lý do khi từ chối nài ngựa.';
     }
     return '';
   }
@@ -248,7 +248,7 @@ const availableStatuses = STANDARD_STATUSES;
         }
 
         await updateUser(getUserId(editingUser), payload);
-        setMessage('User updated successfully.');
+        setMessage('Đã cập nhật người dùng thành công.');
       } else {
         await createUser({
           email: form.email.trim(),
@@ -257,7 +257,7 @@ const availableStatuses = STANDARD_STATUSES;
           password: form.password,
           roleName: form.roleName
         });
-        setMessage('User created successfully.');
+        setMessage('Đã tạo người dùng thành công.');
       }
 
       setIsFormOpen(false);
@@ -265,7 +265,7 @@ const availableStatuses = STANDARD_STATUSES;
       setForm(emptyForm());
       await loadUsers();
     } catch (err) {
-      setError(err.message || 'Unable to save user.');
+      setError(err.message || 'Không thể lưu người dùng.');
     } finally {
       setIsSaving(false);
     }
@@ -280,11 +280,11 @@ const availableStatuses = STANDARD_STATUSES;
 
     try {
       await deleteUser(getUserId(userToDeactivate));
-      setMessage('User moved to INACTIVE successfully.');
+      setMessage('Đã chuyển người dùng sang trạng thái INACTIVE thành công.');
       setUserToDeactivate(null);
       await loadUsers();
     } catch (err) {
-      setError(err.message || 'Unable to deactivate user.');
+      setError(err.message || 'Không thể vô hiệu hóa người dùng.');
     } finally {
       setIsSaving(false);
     }
@@ -328,7 +328,7 @@ const availableStatuses = STANDARD_STATUSES;
       )}
 
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-        <SummaryCard icon={Users} label="Total Users" value={users.length} tone="brown" />
+        <SummaryCard icon={Users} label="Tổng số người dùng" value={users.length} tone="brown" />
         <SummaryCard
           icon={CheckCircle2}
           label="Active"
@@ -337,7 +337,7 @@ const availableStatuses = STANDARD_STATUSES;
         />
         <SummaryCard
           icon={ShieldCheck}
-          label="Jockey Review"
+          label="Xét duyệt nài ngựa"
           value={
             users.filter((user) =>
               ['PENDING', 'UNDER_REVIEW', 'REJECTED'].includes(user.status)
@@ -359,7 +359,7 @@ const availableStatuses = STANDARD_STATUSES;
       <section className="overflow-hidden rounded-xl border border-brown-700/10 bg-cream-100/90 shadow-[0_18px_45px_rgba(78,44,25,0.12)]">
         <div className="flex items-center justify-between gap-4 border-b border-brown-700/10 bg-cream-200/50 px-5 py-4 max-sm:grid">
           <div>
-            <h2 className="text-xl font-extrabold text-brown-900">User List</h2>
+            <h2 className="text-xl font-extrabold text-brown-900">Danh sách người dùng</h2>
             <p className="mt-1 text-sm text-slate-500">
               {filteredUsers.length} of {users.length} users
             </p>
@@ -382,7 +382,7 @@ const availableStatuses = STANDARD_STATUSES;
             />
             <input
               className="w-full rounded-xl border border-brown-700/15 bg-white/90 py-3 pl-10 pr-4 text-sm font-bold text-brown-900 outline-none transition focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
-              placeholder="Search name, email, or phone"
+              placeholder="Tìm theo tên, email hoặc số điện thoại"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
             />
@@ -392,9 +392,9 @@ const availableStatuses = STANDARD_STATUSES;
             value={roleFilter}
             onChange={(event) => setRoleFilter(event.target.value)}
           >
-            <option value="ALL">All roles</option>
+            <option value="ALL">Tất cả vai trò</option>
             {ROLES.map((role) => (
-              <option key={role}>{role}</option>
+              <option key={role} value={role}>{formatDisplayLabel(role)}</option>
             ))}
           </select>
           <select
@@ -402,17 +402,17 @@ const availableStatuses = STANDARD_STATUSES;
             value={statusFilter}
             onChange={(event) => setStatusFilter(event.target.value)}
           >
-            <option value="ALL">All statuses</option>
+            <option value="ALL">Tất cả trạng thái</option>
             {JOCKEY_STATUSES.map((status) => (
-              <option key={status}>{status}</option>
+              <option key={status} value={status}>{formatDisplayLabel(status)}</option>
             ))}
           </select>
         </div>
 
         {isLoading ? (
-          <p className="px-5 py-10 text-slate-500">Loading users...</p>
+          <p className="px-5 py-10 text-slate-500">Đang tải người dùng...</p>
         ) : filteredUsers.length === 0 ? (
-          <p className="px-5 py-10 text-slate-500">No users found.</p>
+          <p className="px-5 py-10 text-slate-500">Không tìm thấy người dùng.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full table-fixed border-collapse">
@@ -427,7 +427,7 @@ const availableStatuses = STANDARD_STATUSES;
               </colgroup>
               <thead className="bg-cream-200/60">
                 <tr>
-                  {['ID', 'User', 'Email', 'Phone', 'Role', 'Status', 'Actions'].map(
+                  {['ID', 'Người dùng', 'Email', 'Số điện thoại', 'Vai trò', 'Trạng thái', 'Thao tác'].map(
                     (heading) => (
                       <th
                         className="border-b border-brown-700/10 px-2 py-4 text-left text-[0.68rem] font-extrabold uppercase tracking-wide text-brown-700"
@@ -466,7 +466,7 @@ const availableStatuses = STANDARD_STATUSES;
                     </td>
                     <td className="border-b border-brown-700/10 px-2 py-4">
                       <span className="inline-flex rounded-full bg-cream-200 px-2 py-1 text-[0.68rem] font-extrabold text-brown-700">
-                        {user.role}
+                        {formatDisplayLabel(user.role)}
                       </span>
                     </td>
                     <td className="border-b border-brown-700/10 px-2 py-4">
@@ -516,15 +516,15 @@ const availableStatuses = STANDARD_STATUSES;
             <div className="mb-6 flex items-start justify-between gap-4">
               <div>
                 <span className="text-xs font-extrabold uppercase text-brown-500">
-                  {editingUser ? `User #${getUserId(editingUser)}` : 'New Account'}
+                  {editingUser ? `User #${getUserId(editingUser)}` : 'Tài khoản mới'}
                 </span>
                 <h2 className="mt-1 text-2xl font-extrabold">
-                  {editingUser ? 'Edit User' : 'Create User'}
+                  {editingUser ? 'Chỉnh sửa người dùng' : 'Tạo người dùng'}
                 </h2>
                 <p className="mt-2 text-sm text-slate-500">
                   {editingUser
-                    ? 'Update account details, role, and access status.'
-                    : 'New admin-created accounts become active immediately.'}
+                    ? 'Cập nhật thông tin tài khoản, vai trò và trạng thái truy cập.'
+                    : 'Tài khoản do quản trị viên tạo sẽ hoạt động ngay lập tức.'}
                 </p>
               </div>
               <button
@@ -544,9 +544,9 @@ const availableStatuses = STANDARD_STATUSES;
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {[
-                ['fullName', 'Full Name', 'text'],
+                ['fullName', 'Họ và tên', 'text'],
                 ['email', 'Email', 'email'],
-                ['phone', 'Phone', 'tel']
+                ['phone', 'Số điện thoại', 'tel']
               ].map(([name, label, type]) => (
                 <label
                   className="grid gap-2 text-sm font-extrabold"
@@ -565,7 +565,7 @@ const availableStatuses = STANDARD_STATUSES;
 
               {!editingUser && (
                 <label className="grid gap-2 text-sm font-extrabold">
-                  <span>Password</span>
+                  <span>Mật khẩu</span>
                   <input
                     className="rounded-xl border border-brown-700/15 bg-white/90 px-4 py-3 outline-none transition focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
                     name="password"
@@ -577,7 +577,7 @@ const availableStatuses = STANDARD_STATUSES;
               )}
 
               <label className="grid gap-2 text-sm font-extrabold">
-                <span>Role</span>
+                <span>Vai trò</span>
                 <select
                   className="rounded-xl border border-brown-700/15 bg-white/90 px-4 py-3 outline-none"
                   name="roleName"
@@ -585,14 +585,14 @@ const availableStatuses = STANDARD_STATUSES;
                   onChange={handleChange}
                 >
                   {ROLES.map((role) => (
-                    <option key={role}>{role}</option>
+                    <option key={role} value={role}>{formatDisplayLabel(role)}</option>
                   ))}
                 </select>
               </label>
 
               {editingUser && (
                 <label className="grid gap-2 text-sm font-extrabold">
-                  <span>Status</span>
+                  <span>Trạng thái</span>
                   <select
                     className="rounded-xl border border-brown-700/15 bg-white/90 px-4 py-3 outline-none"
                     name="status"
@@ -600,7 +600,7 @@ const availableStatuses = STANDARD_STATUSES;
                     onChange={handleChange}
                   >
                     {availableStatuses.map((status) => (
-                      <option key={status}>{status}</option>
+                      <option key={status} value={status}>{formatDisplayLabel(status)}</option>
                     ))}
                   </select>
                 </label>
@@ -608,7 +608,7 @@ const availableStatuses = STANDARD_STATUSES;
 
               {editingUser && form.status === 'REJECTED' && (
                 <label className="grid gap-2 text-sm font-extrabold sm:col-span-2">
-                  <span>Rejection Reason</span>
+                  <span>Lý do từ chối</span>
                   <textarea
                     className="min-h-28 rounded-xl border border-brown-700/15 bg-white/90 px-4 py-3 outline-none transition focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
                     maxLength="500"
@@ -634,7 +634,7 @@ const availableStatuses = STANDARD_STATUSES;
                 type="submit"
                 disabled={isSaving}
               >
-                {isSaving ? 'Saving...' : editingUser ? 'Save Changes' : 'Create User'}
+                {isSaving ? 'Đang lưu...' : editingUser ? 'Lưu thay đổi' : 'Tạo người dùng'}
               </button>
             </div>
           </form>
@@ -658,7 +658,7 @@ const availableStatuses = STANDARD_STATUSES;
                 <span className="text-xs font-extrabold uppercase text-slate-500">
                   User #{getUserId(userToDeactivate)}
                 </span>
-                <h2 className="mt-1 text-xl font-extrabold">Deactivate User</h2>
+                <h2 className="mt-1 text-xl font-extrabold">Vô hiệu hóa người dùng</h2>
               </div>
             </div>
             <p className="my-5 leading-relaxed text-slate-500">

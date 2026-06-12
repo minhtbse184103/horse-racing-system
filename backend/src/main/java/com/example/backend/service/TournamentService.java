@@ -24,7 +24,7 @@ public class TournamentService {
     private final TournamentRoundRepository tournamentRoundRepository;
     public Tournament getTournamentById(Integer id) {
         return tournamentRepository.findById(id)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Tournament does not exist."));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Giải đấu không tồn tại."));
     }
 
     public TournamentService(
@@ -59,12 +59,12 @@ public class TournamentService {
         if (!tournamentConditionRepository.existsById(request.getConditionId())) {
             throw new ApiException(
                     HttpStatus.NOT_FOUND,
-                    "Tournament condition does not exist."
+                    "Điều kiện giải đấu không tồn tại."
             );
         }
 
         User admin = userRepository.findByEmail(adminEmail)
-                .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Admin account does not exist."));
+                .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Tài khoản quản trị viên không tồn tại."));
 
         if (tournamentRepository.existsByLocationIgnoreCaseAndStartDateAndEndDateAndStatusNot(
                 request.getLocation(),
@@ -72,7 +72,7 @@ public class TournamentService {
                 request.getEndDate(),
                 EventStatus.CANCELLED
         )) {
-            throw new ApiException(HttpStatus.CONFLICT, "Tournament already exists at this location with the same start date and end date.");
+            throw new ApiException(HttpStatus.CONFLICT, "Đã tồn tại giải đấu tại địa điểm này với cùng ngày bắt đầu và ngày kết thúc.");
         }
 
         Tournament tournament = new Tournament();
@@ -96,10 +96,10 @@ public class TournamentService {
 
     public Tournament updateTournament(Integer id, UpdateTournamentRequest request) {
     Tournament tournament = tournamentRepository.findById(id)
-            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Tournament does not exist."));
+            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Giải đấu không tồn tại."));
 
     if (!EventStatus.DRAFT.equals(tournament.getStatus())) {
-        throw new ApiException(HttpStatus.BAD_REQUEST, "Only draft tournaments can be updated.");
+        throw new ApiException(HttpStatus.BAD_REQUEST, "Chỉ có thể cập nhật giải đấu đang ở trạng thái DRAFT.");
     }
 
         validateTournamentRules(
@@ -113,7 +113,7 @@ public class TournamentService {
         if (!tournamentConditionRepository.existsById(request.getConditionId())) {
             throw new ApiException(
                     HttpStatus.NOT_FOUND,
-                    "Tournament condition does not exist."
+                    "Điều kiện giải đấu không tồn tại."
             );
         }
     if (tournamentRepository.existsByLocationIgnoreCaseAndStartDateAndEndDateAndStatusNotAndTournamentIdNot(
@@ -123,7 +123,7 @@ public class TournamentService {
             EventStatus.CANCELLED,
             id
     )) {
-        throw new ApiException(HttpStatus.CONFLICT, "Tournament already exists at this location with the same start date and end date.");
+        throw new ApiException(HttpStatus.CONFLICT, "Đã tồn tại giải đấu tại địa điểm này với cùng ngày bắt đầu và ngày kết thúc.");
     }
 
     tournament.setTournamentName(request.getTournamentName());
@@ -140,24 +140,24 @@ public class TournamentService {
 @Transactional
 public Tournament openRegistration(Integer id) {
     Tournament tournament = tournamentRepository.findById(id)
-            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Tournament does not exist."));
+            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Giải đấu không tồn tại."));
 
     if (!EventStatus.DRAFT.equals(tournament.getStatus())) {
         throw new ApiException(HttpStatus.CONFLICT,
-                "Only draft tournaments can be opened for registration.");
+                "Chỉ có thể mở đăng ký cho giải đấu đang ở trạng thái DRAFT.");
     }
 
     LocalDate today = LocalDate.now();
     if (tournament.getStartDate() == null || tournament.getStartDate().isBefore(today)) {
         throw new ApiException(HttpStatus.BAD_REQUEST,
-                "Tournament start date must not have passed.");
+                "Ngày bắt đầu giải đấu không được là ngày đã qua.");
     }
 
     LocalDateTime now = LocalDateTime.now();
     if (tournament.getRegistrationDeadline() == null
             || tournament.getRegistrationDeadline().isBefore(now)) {
         throw new ApiException(HttpStatus.BAD_REQUEST,
-                "Tournament registration deadline must not have passed.");
+                "Hạn đăng ký giải đấu không được là thời điểm đã qua.");
     }
 
     if (tournament.getMinParticipants() == null
@@ -166,20 +166,20 @@ public Tournament openRegistration(Integer id) {
             || tournament.getMaxParticipants() <= 0
             || tournament.getMinParticipants() > tournament.getMaxParticipants()) {
         throw new ApiException(HttpStatus.CONFLICT,
-                "Tournament participant limits are invalid.");
+                "Giới hạn số người tham gia giải đấu không hợp lệ.");
     }
 
     if (tournament.getConditionId() == null
             || !tournamentConditionRepository.existsById(tournament.getConditionId())) {
         throw new ApiException(HttpStatus.CONFLICT,
-                "Tournament condition does not exist.");
+                "Điều kiện giải đấu không tồn tại.");
     }
 
     List<TournamentRound> rounds = tournamentRoundRepository
             .findByTournamentIdOrderByRoundOrderAsc(tournament.getTournamentId());
     if (!hasRequiredDraftRounds(rounds)) {
         throw new ApiException(HttpStatus.CONFLICT,
-                "Tournament must have the required draft rounds before registration can open.");
+                "Giải đấu phải có đủ các vòng đấu DRAFT bắt buộc trước khi mở đăng ký.");
     }
 
     tournament.setStatus(EventStatus.OPEN_FOR_REGISTRATION);
@@ -205,10 +205,10 @@ private boolean isExpectedDraftRound(TournamentRound round, int order, String na
 @Transactional
 public Tournament cancelTournament(Integer id) {
     Tournament tournament = tournamentRepository.findById(id)
-            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Tournament does not exist."));
+            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Giải đấu không tồn tại."));
 
     if (!EventStatus.DRAFT.equals(tournament.getStatus())) {
-        throw new ApiException(HttpStatus.BAD_REQUEST, "Only draft tournaments can be cancelled.");
+        throw new ApiException(HttpStatus.BAD_REQUEST, "Chỉ có thể hủy giải đấu đang ở trạng thái DRAFT.");
     }
 
     List<TournamentRound> rounds = tournamentRoundRepository
@@ -272,35 +272,35 @@ public Tournament cancelTournament(Integer id) {
         if (!startDate.isAfter(LocalDate.now())) {
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
-                    "Start date must be after today."
+                    "Ngày bắt đầu phải sau ngày hôm nay."
             );
         }
 
         if (startDate.isAfter(endDate)) {
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
-                    "Start date cannot be after end date."
+                    "Ngày bắt đầu không được sau ngày kết thúc."
             );
         }
 
         if (!registrationDeadline.isBefore(startDate)) {
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
-                    "Registration deadline must be before start date."
+                    "Hạn đăng ký phải trước ngày bắt đầu."
             );
         }
 
         if (minParticipants <= 2) {
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
-                    "Minimum participants must be greater than 2."
+                    "Số người tham gia tối thiểu phải lớn hơn 2."
             );
         }
 
         if (minParticipants > maxParticipants) {
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
-                    "Minimum participants cannot be greater than maximum participants."
+                    "Số người tham gia tối thiểu không được lớn hơn số người tham gia tối đa."
             );
         }
     }

@@ -29,8 +29,8 @@ export default function AppShell({
         <div className={brandClass}>
           <div className={logoClass}>🏇</div>
           <div>
-            <strong>Trackside Triumph</strong>
-            <span>{variant === 'owner' ? 'Owner Portal' : variant === 'jockey' ? 'Jockey Portal' : 'Admin Dashboard'}</span>
+            <strong>Đường đua chiến thắng</strong>
+            <span>{variant === 'owner' ? 'Cổng thông tin chủ ngựa' : variant === 'jockey' ? 'Cổng thông tin nài ngựa' : 'Bảng điều khiển quản trị'}</span>
           </div>
         </div>
 
@@ -49,7 +49,7 @@ export default function AppShell({
         </nav>
 
         <div className={profileClass}>
-          <span>Signed in as</span>
+          <span>Đăng nhập với tài khoản</span>
           <strong>{profileName}</strong>
           <small>{profileRole}</small>
         </div>
@@ -62,7 +62,7 @@ export default function AppShell({
       <section className={mainClass}>
         <header className={topbarClass}>
           <div>
-            <p className="eyebrow">{variant === 'owner' ? 'Owner Dashboard' : variant === 'jockey' ? 'Jockey Dashboard' : 'Admin'}</p>
+            <p className="eyebrow">{variant === 'owner' ? 'Bảng điều khiển chủ ngựa' : variant === 'jockey' ? 'Bảng điều khiển nài ngựa' : 'Quản trị viên'}</p>
             <h1>{title}</h1>
             {subtitle && <p>{subtitle}</p>}
           </div>

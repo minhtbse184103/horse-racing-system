@@ -62,7 +62,7 @@ public class RaceEntryService {
         if (!raceRepository.existsById(raceId)) {
             throw new ApiException(
                     HttpStatus.NOT_FOUND,
-                    "Race does not exist.");
+                    "Cuộc đua không tồn tại.");
         }
 
         return raceEntryRepository.findByRaceIdOrderByLaneNumberAsc(raceId);
@@ -74,48 +74,48 @@ public class RaceEntryService {
                 .findByIdForUpdate(request.getRegistrationId())
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
-                        "Registration does not exist."));
+                        "Đơn đăng ký không tồn tại."));
 
         if (!CONFIRMED.equals(registration.getStatus())) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
-                    "Only confirmed registrations can be assigned to a race.");
+                    "Chỉ có thể xếp đơn đăng ký đã được xác nhận vào cuộc đua.");
         }
 
         Race race = raceRepository.findByIdForUpdate(request.getRaceId())
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
-                        "Race does not exist."));
+                        "Cuộc đua không tồn tại."));
 
         if (!EventStatus.DRAFT.equals(race.getStatus())) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
-                    "Only draft races can receive entries.");
+                    "Chỉ cuộc đua đang ở trạng thái DRAFT mới có thể nhận suất tham gia.");
         }
 
         TournamentRound round = tournamentRoundRepository.findById(race.getRoundId())
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
-                        "Tournament round does not exist."));
+                        "Vòng đấu không tồn tại."));
 
         if (!registration.getTournamentId().equals(round.getTournamentId())) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
-                    "Registration and race must belong to the same tournament.");
+                    "Đơn đăng ký và cuộc đua phải thuộc cùng một giải đấu.");
         }
 
         if (raceEntryRepository.existsByRaceIdAndRegistrationId(
                 race.getRaceId(), registration.getRegistrationId())) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
-                    "Registration already has an entry for this race.");
+                    "Đơn đăng ký đã có suất tham gia cuộc đua này.");
         }
 
         if (raceEntryRepository.existsActiveEntryByRoundAndRegistration(
                 round.getRoundId(), registration.getRegistrationId(), WITHDRAWN)) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
-                    "Registration is already assigned to a race in this round.");
+                    "Đơn đăng ký đã được xếp vào một cuộc đua trong vòng đấu này.");
         }
 
         int laneNumber = raceEntryRepository
@@ -132,7 +132,7 @@ public class RaceEntryService {
         } catch (DataIntegrityViolationException ex) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
-                    "Race entry conflicts with an existing assignment.");
+                    "Suất tham gia cuộc đua xung đột với một phân công hiện có.");
         }
     }
 
@@ -159,7 +159,7 @@ public class RaceEntryService {
         TournamentRound round = tournamentRoundRepository.findById(roundId)
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
-                        "Tournament round does not exist."));
+                        "Vòng đấu không tồn tại."));
 
         return registrationRepository
                 .findUnassignedByRound(

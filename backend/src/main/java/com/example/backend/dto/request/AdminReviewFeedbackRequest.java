@@ -8,7 +8,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class AdminReviewFeedbackRequest {
-    @NotBlank(message = "Feedback is required")
-    @Size(max = 500, message = "Feedback must not exceed 500 characters")
+    @NotBlank(message = "Phản hồi là bắt buộc")
+    @Size(max = 500, message = "Phản hồi không được vượt quá 500 ký tự")
     private String feedback;
 }

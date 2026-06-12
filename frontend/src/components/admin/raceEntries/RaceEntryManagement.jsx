@@ -12,11 +12,10 @@ import {
   getRaceEntryAssignmentQueue,
   getUnassignedRaceEntriesByRound
 } from '../../../services/raceEntryService';
+import { formatDisplayLabel } from '../../../lib';
 
 function formatStatus(status) {
-  return String(status || '')
-    .replace(/([a-z])([A-Z])/g, '$1 $2')
-    .replace(/_/g, ' ');
+  return formatDisplayLabel(status);
 }
 function getStatusClasses(status) {
   switch (String(status || '').toLowerCase()) {
@@ -293,7 +292,7 @@ export default function RaceEntryManagement() {
       setRegistrations(Array.isArray(historyData) ? historyData : []);
       setAssignmentQueue(Array.isArray(queueData) ? queueData : []);
     } catch (err) {
-      setError(err.message || 'Unable to load RaceEntry data.');
+      setError(err.message || 'Không thể tải dữ liệu suất tham gia đua.');
     } finally {
       setIsLoading(false);
     }
@@ -318,7 +317,7 @@ export default function RaceEntryManagement() {
       const data = await getTournamentRounds(tournamentId);
       setRounds(Array.isArray(data) ? data : []);
     } catch (err) {
-      setError(err.message || 'Unable to load tournament rounds.');
+      setError(err.message || 'Không thể tải các vòng đấu.');
     }
   }
 
@@ -341,7 +340,7 @@ export default function RaceEntryManagement() {
       setRaces(nextRaces);
       await loadUnassignedEntries(roundId);
     } catch (err) {
-      setError(err.message || 'Unable to load races.');
+      setError(err.message || 'Không thể tải danh sách cuộc đua.');
     }
   }
 
@@ -374,7 +373,7 @@ export default function RaceEntryManagement() {
       setAssignmentRaces(eligibleRaces);
     } catch (err) {
       setAssignmentTarget(null);
-      setError(err.message || 'Unable to load eligible draft races.');
+      setError(err.message || 'Không thể tải các cuộc đua bản nháp đủ điều kiện.');
     } finally {
       setIsLoadingAssignmentRaces(false);
     }
@@ -386,7 +385,7 @@ export default function RaceEntryManagement() {
       setEntries(Array.isArray(data) ? data : []);
     } catch (err) {
       setEntries([]);
-      setError(err.message || 'Unable to load race entries.');
+      setError(err.message || 'Không thể tải suất tham gia đua.');
     }
   }
 
@@ -400,7 +399,7 @@ export default function RaceEntryManagement() {
       setUnassignedEntries(Array.isArray(data) ? data : []);
     } catch (err) {
       setUnassignedEntries([]);
-      setError(err.message || 'Unable to load unassigned registrations for this round.');
+      setError(err.message || 'Không thể tải đơn đăng ký chưa phân công của vòng này.');
     }
   }
 
@@ -430,7 +429,7 @@ export default function RaceEntryManagement() {
       ]);
       setAssignmentQueue(Array.isArray(queueData) ? queueData : []);
     } catch (err) {
-      setError(err.message || 'Unable to assign registration.');
+      setError(err.message || 'Không thể phân công đơn đăng ký.');
     } finally {
       setIsAssigning(false);
     }
@@ -460,7 +459,7 @@ export default function RaceEntryManagement() {
     onClick={loadInitialData}
     disabled={isLoading}
   >
-    {isLoading ? 'Loading...' : 'Refresh'}
+    {isLoading ? 'Đang tải...' : 'Làm mới'}
   </button>
 </header>
       {error && (
@@ -494,7 +493,7 @@ export default function RaceEntryManagement() {
               />
               <input
                 className="w-full rounded-xl border border-brown-700/15 bg-white/90 py-3 pl-10 pr-4 text-sm font-bold text-brown-900 outline-none transition focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
-                placeholder="Search tournament, horse, owner, or jockey"
+                placeholder="Tìm giải đấu, ngựa, chủ ngựa hoặc nài ngựa"
                 value={queueSearch}
                 onChange={(event) => setQueueSearch(event.target.value)}
               />
@@ -503,7 +502,7 @@ export default function RaceEntryManagement() {
         </div>
 
         {isLoading ? (
-          <p className="px-6 py-10 text-slate-500">Loading assignment queue...</p>
+          <p className="px-6 py-10 text-slate-500">Đang tải hàng chờ phân công...</p>
         ) : assignmentQueue.length === 0 ? (
           <p className="px-6 py-10 text-slate-500">
             No confirmed registrations are waiting for Qualified assignment.
@@ -517,7 +516,7 @@ export default function RaceEntryManagement() {
             <table className="min-w-[860px] w-full table-fixed border-collapse">
               <thead className="bg-cream-200/60">
                 <tr>
-                  {['Registration', 'Tournament', 'Round', 'Horse', 'Owner', 'Jockey', 'Action'].map(
+                  {['Đăng ký', 'Giải đấu', 'Vòng đấu', 'Ngựa', 'Chủ ngựa', 'Nài ngựa', 'Action'].map(
                     (heading) => (
                       <th
                         className="border-b border-brown-700/10 px-3 py-4 text-left text-xs font-extrabold uppercase tracking-wide text-brown-700"
@@ -583,8 +582,8 @@ export default function RaceEntryManagement() {
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
           <PrettySelect
-            label="Tournament"
-            placeholder="Select tournament"
+            label="Giải đấu"
+            placeholder="Chọn giải đấu"
             value={selectedTournamentId}
             onChange={handleTournamentChange}
             options={tournaments.map((tournament) => ({
@@ -596,8 +595,8 @@ export default function RaceEntryManagement() {
           />
 
           <PrettySelect
-            label="Round"
-            placeholder="Select round"
+            label="Vòng đấu"
+            placeholder="Chọn vòng đấu"
             value={selectedRoundId}
             disabled={!selectedTournamentId}
             onChange={handleRoundChange}
@@ -610,8 +609,8 @@ export default function RaceEntryManagement() {
           />
 
           <PrettySelect
-            label="Race"
-            placeholder="Select race"
+            label="Cuộc đua"
+            placeholder="Chọn cuộc đua"
             value={selectedRaceId}
             disabled={!selectedRoundId}
             onChange={handleRaceChange}
@@ -636,7 +635,7 @@ export default function RaceEntryManagement() {
             <p className="mt-2 text-slate-500">
               {selectedRace
                 ? `${filteredEntries.length} of ${entries.length} entries assigned to ${selectedRace.raceName}`
-                : 'Select a race to view assigned entries'}
+                : 'Chọn cuộc đua để xem các suất đã phân công'}
             </p>
           </div>
 
@@ -648,7 +647,7 @@ export default function RaceEntryManagement() {
               />
               <input
                 className="w-full rounded-xl border border-brown-700/15 bg-white/90 py-3 pl-10 pr-4 text-sm font-bold text-brown-900 outline-none transition focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
-                placeholder="Search lane, horse, owner, or jockey"
+                placeholder="Tìm theo làn, ngựa, chủ ngựa hoặc nài ngựa"
                 value={entrySearch}
                 onChange={(event) => setEntrySearch(event.target.value)}
               />
@@ -674,12 +673,12 @@ export default function RaceEntryManagement() {
               <thead className="bg-cream-200/60">
                 <tr>
                   {[
-                    'Lane',
-                    'Registration',
-                    'Horse',
-                    'Owner',
-                    'Jockey',
-                    'Status'
+                    'Làn đua',
+                    'Đăng ký',
+                    'Ngựa',
+                    'Chủ ngựa',
+                    'Nài ngựa',
+                    'Trạng thái'
                   ].map((heading) => (
                     <th
                       className="border-b border-brown-700/10 px-3 py-4 text-left text-xs font-extrabold uppercase tracking-wide text-brown-700"
@@ -752,7 +751,7 @@ export default function RaceEntryManagement() {
             <p className="mt-2 text-slate-500">
               {selectedRoundId
                 ? `${filteredUnassignedRegistrations.length} of ${unassignedEntries.length} confirmed registrations available in this round`
-                : 'Select a tournament and round to view unassigned entries'}
+                : 'Chọn giải đấu và vòng đấu để xem các suất chưa phân công'}
             </p>
           </div>
 
@@ -764,7 +763,7 @@ export default function RaceEntryManagement() {
               />
               <input
                 className="w-full rounded-xl border border-brown-700/15 bg-white/90 py-3 pl-10 pr-4 text-sm font-bold text-brown-900 outline-none transition focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
-                placeholder="Search horse, owner, or jockey"
+                placeholder="Tìm theo ngựa, chủ ngựa hoặc nài ngựa"
                 value={unassignedSearch}
                 onChange={(event) => setUnassignedSearch(event.target.value)}
               />
@@ -789,7 +788,7 @@ export default function RaceEntryManagement() {
             <table className="min-w-[600px] w-full table-fixed border-collapse">
               <thead className="bg-cream-200/60">
                 <tr>
-                  {['Registration', 'Horse', 'Owner', 'Jockey', 'Status', 'Action'].map(
+                  {['Đăng ký', 'Ngựa', 'Chủ ngựa', 'Nài ngựa', 'Trạng thái', 'Action'].map(
                     (heading) => (
                       <th
                         className="border-b border-brown-700/10 px-3 py-4 text-left text-xs font-extrabold uppercase tracking-wide text-brown-700"
@@ -897,7 +896,7 @@ export default function RaceEntryManagement() {
                   Round
                 </dt>
                 <dd className="m-0 break-words text-sm font-extrabold text-brown-900">
-                  {assignmentTarget.roundName || 'Selected round'}
+                  {assignmentTarget.roundName || 'Vòng đấu đã chọn'}
                 </dd>
               </div>
 
@@ -930,8 +929,8 @@ export default function RaceEntryManagement() {
               </p>
             ) : (
               <PrettySelect
-                label="Destination Race"
-                placeholder="Choose a draft race"
+                label="Cuộc đua đích"
+                placeholder="Chọn cuộc đua bản nháp"
                 value={assignmentRaceId}
                 onChange={setAssignmentRaceId}
                 options={assignmentRaces.map((race) => ({
@@ -963,7 +962,7 @@ export default function RaceEntryManagement() {
                 }
                 onClick={assignRegistration}
               >
-                {isAssigning ? 'Assigning...' : 'Confirm Assignment'}
+                {isAssigning ? 'Đang phân công...' : 'Xác nhận phân công'}
               </button>
             </div>
           </div>

@@ -6,15 +6,15 @@ export function validateLoginForm(values) {
   const errors = {};
 
   if (!values.email?.trim()) {
-    errors.email = 'Email is required.';
+    errors.email = 'Email là bắt buộc.';
   } else if (!EMAIL_REGEX.test(values.email.trim())) {
-    errors.email = 'Email format is invalid.';
+    errors.email = 'Định dạng email không hợp lệ.';
   }
 
   if (!values.password) {
-    errors.password = 'Password is required.';
+    errors.password = 'Mật khẩu là bắt buộc.';
   } else if (values.password.length < 6 || values.password.length > 72) {
-    errors.password = 'Password must be between 6 and 72 characters.';
+    errors.password = 'Mật khẩu phải có từ 6 đến 72 ký tự.';
   }
 
   return errors;
@@ -24,31 +24,31 @@ export function validateSignupForm(values) {
   const errors = {};
 
   if (!values.fullName?.trim()) {
-    errors.fullName = 'Full name is required.';
+    errors.fullName = 'Họ và tên là bắt buộc.';
   } else if (values.fullName.trim().length > 255) {
-    errors.fullName = 'Full name must not exceed 255 characters.';
+    errors.fullName = 'Họ và tên không được vượt quá 255 ký tự.';
   }
 
   if (!values.email?.trim()) {
-    errors.email = 'Email is required.';
+    errors.email = 'Email là bắt buộc.';
   } else if (!EMAIL_REGEX.test(values.email.trim())) {
-    errors.email = 'Email format is invalid.';
+    errors.email = 'Định dạng email không hợp lệ.';
   }
 
   if (!values.phone?.trim()) {
-    errors.phone = 'Phone number is required.';
+    errors.phone = 'Số điện thoại là bắt buộc.';
   } else if (!PHONE_REGEX.test(values.phone.trim())) {
-    errors.phone = 'Phone number must contain 9-15 digits and may start with +.';
+    errors.phone = 'Số điện thoại phải gồm 9-15 chữ số và có thể bắt đầu bằng +.';
   }
 
   if (!values.password) {
-    errors.password = 'Password is required.';
+    errors.password = 'Mật khẩu là bắt buộc.';
   } else if (values.password.length < 6 || values.password.length > 72) {
-    errors.password = 'Password must be between 6 and 72 characters.';
+    errors.password = 'Mật khẩu phải có từ 6 đến 72 ký tự.';
   }
 
   if (!values.roleName || !PUBLIC_ROLES.includes(values.roleName)) {
-    errors.roleName = 'Role must be OWNER, JOCKEY, or SPECTATOR.';
+    errors.roleName = 'Vai trò phải là OWNER, JOCKEY hoặc SPECTATOR.';
   }
 
   return errors;
@@ -73,49 +73,49 @@ export function validateHorseForm(values) {
   const healthCertExpiry = toDateOnly(values.healthCertExpiry);
 
   if (!values.horseName?.trim()) {
-    errors.horseName = 'Horse name is required.';
+    errors.horseName = 'Tên ngựa là bắt buộc.';
   } else if (values.horseName.trim().length < 2 || values.horseName.trim().length > 100) {
-    errors.horseName = 'Horse name must be between 2 and 100 characters.';
+    errors.horseName = 'Tên ngựa phải có từ 2 đến 100 ký tự.';
   } else if (!/^[\p{L}0-9][\p{L}0-9 .'-]*$/u.test(values.horseName.trim())) {
-    errors.horseName = 'Horse name contains invalid characters.';
+    errors.horseName = 'Tên ngựa chứa ký tự không hợp lệ.';
   }
 
   if (!values.breed?.trim()) {
-    errors.breed = 'Breed is required.';
+    errors.breed = 'Giống ngựa là bắt buộc.';
   } else if (values.breed.trim().length < 2 || values.breed.trim().length > 100) {
-    errors.breed = 'Breed must be between 2 and 100 characters.';
+    errors.breed = 'Tên giống ngựa phải có từ 2 đến 100 ký tự.';
   } else if (!/^[\p{L}0-9][\p{L}0-9 .'-]*$/u.test(values.breed.trim())) {
-    errors.breed = 'Breed contains invalid characters.';
+    errors.breed = 'Tên giống ngựa chứa ký tự không hợp lệ.';
   }
 
   if (!values.color?.trim()) {
-    errors.color = 'Coat color is required.';
+    errors.color = 'Màu lông là bắt buộc.';
   } else if (values.color.trim().length < 2 || values.color.trim().length > 50) {
-    errors.color = 'Coat color must be between 2 and 50 characters.';
+    errors.color = 'Màu lông phải có từ 2 đến 50 ký tự.';
   } else if (!/^[\p{L}][\p{L} .'-]*$/u.test(values.color.trim())) {
-    errors.color = 'Coat color contains invalid characters.';
+    errors.color = 'Màu lông chứa ký tự không hợp lệ.';
   }
 
   if (!values.dayOfBirth) {
-    errors.dayOfBirth = 'Birth date is required.';
+    errors.dayOfBirth = 'Ngày sinh là bắt buộc.';
   } else if (!dayOfBirth) {
-    errors.dayOfBirth = 'Birth date is invalid.';
+    errors.dayOfBirth = 'Ngày sinh không hợp lệ.';
   } else if (dayOfBirth > today) {
-    errors.dayOfBirth = 'Birth date must be today or in the past.';
+    errors.dayOfBirth = 'Ngày sinh phải là hôm nay hoặc một ngày trong quá khứ.';
   }
 
   if (values.weight === '' || values.weight === null || values.weight === undefined) {
-    errors.weight = 'Weight is required.';
+    errors.weight = 'Cân nặng là bắt buộc.';
   } else if (!Number.isFinite(weight) || weight < 200 || weight > 1000) {
-    errors.weight = 'Horse weight must be between 200 and 1000 kg.';
+    errors.weight = 'Cân nặng của ngựa phải từ 200 đến 1000 kg.';
   }
 
   if (!values.healthCertExpiry) {
-    errors.healthCertExpiry = 'Health certificate expiry is required.';
+    errors.healthCertExpiry = 'Ngày hết hạn chứng nhận sức khỏe là bắt buộc.';
   } else if (!healthCertExpiry) {
-    errors.healthCertExpiry = 'Health certificate expiry date is invalid.';
+    errors.healthCertExpiry = 'Ngày hết hạn chứng nhận sức khỏe không hợp lệ.';
   } else if (healthCertExpiry < today) {
-    errors.healthCertExpiry = 'Health certificate expiry must be today or in the future.';
+    errors.healthCertExpiry = 'Ngày hết hạn chứng nhận sức khỏe phải là hôm nay hoặc một ngày trong tương lai.';
   }
 
   return errors;

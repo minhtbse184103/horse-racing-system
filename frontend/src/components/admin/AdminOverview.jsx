@@ -12,6 +12,7 @@ import {
   UserCheck,
   Users
 } from 'lucide-react';
+import { formatDisplayLabel } from '../../lib';
 import { getPendingHorses } from '../../services/adminHorseReviewService';
 import { getJockeyProfilesUnderReview } from '../../services/adminProfileReviewService';
 import {
@@ -33,13 +34,11 @@ const STATUS_STYLES = {
 };
 
 function formatStatus(status) {
-  return String(status || 'Unknown')
-    .replace(/([a-z])([A-Z])/g, '$1 $2')
-    .replace(/_/g, ' ');
+  return formatDisplayLabel(status);
 }
 
 function formatDate(value) {
-  if (!value) return 'Date unavailable';
+  if (!value) return 'Chưa có ngày';
 
   return new Date(`${value}T00:00:00`).toLocaleDateString('en-GB', {
     day: '2-digit',
@@ -168,7 +167,7 @@ export default function AdminOverview({ onNavigate }) {
           : []
       });
     } catch (err) {
-      setError(err.message || 'Unable to load dashboard overview.');
+      setError(err.message || 'Không thể tải dữ liệu tổng quan.');
     } finally {
       setIsLoading(false);
     }
@@ -215,33 +214,33 @@ export default function AdminOverview({ onNavigate }) {
   const workQueues = [
     {
       key: 'registrations',
-      label: 'Registration Reviews',
+      label: 'Duyệt đơn đăng ký',
       count: data.pendingRegistrations.length,
-      note: 'Accepted jockey invitations awaiting admin decision',
+      note: 'Lời mời nài ngựa đã chấp nhận đang chờ quản trị viên quyết định',
       icon: UserCheck,
       tone: 'bg-blue-100 text-blue-700'
     },
     {
       key: 'horseReviews',
-      label: 'Horse Reviews',
+      label: 'Duyệt ngựa',
       count: data.pendingHorses.length,
-      note: 'Pending horse profiles and health certificates',
+      note: 'Hồ sơ ngựa và chứng nhận sức khỏe đang chờ duyệt',
       icon: ShieldCheck,
       tone: 'bg-green-100 text-green-700'
     },
     {
       key: 'jockeyReviews',
-      label: 'Jockey Reviews',
+      label: 'Duyệt nài ngựa',
       count: data.pendingJockeys.length,
-      note: 'Jockey profiles awaiting approval',
+      note: 'Hồ sơ nài ngựa đang chờ phê duyệt',
       icon: ClipboardCheck,
       tone: 'bg-amber-100 text-amber-700'
     },
     {
       key: 'raceEntries',
-      label: 'Race Entry Queue',
+      label: 'Hàng chờ xếp cuộc đua',
       count: data.raceEntryQueue.length,
-      note: 'Confirmed registrations waiting for a race',
+      note: 'Đơn đăng ký đã xác nhận đang chờ xếp cuộc đua',
       icon: Flag,
       tone: 'bg-purple-100 text-purple-700'
     }
@@ -250,19 +249,19 @@ export default function AdminOverview({ onNavigate }) {
   const quickActions = [
     {
       key: 'events',
-      label: 'Tournament Setup',
-      note: 'Create tournaments, rounds, and races',
+      label: 'Thiết lập giải đấu',
+      note: 'Tạo giải đấu, vòng đấu và cuộc đua',
       icon: Trophy
     },
     {
       key: 'refereeAssignments',
-      label: 'Referee Assignments',
+      label: 'Phân công trọng tài',
       note: `${data.refereeAssignments.length} races currently covered`,
       icon: Gavel
     },
     {
       key: 'users',
-      label: 'User Management',
+      label: 'Quản lý người dùng',
       note: `${activeUsers} active accounts`,
       icon: Users
     }
@@ -304,7 +303,7 @@ export default function AdminOverview({ onNavigate }) {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           icon={Trophy}
-          label="Open Tournaments"
+          label="Giải đấu đang mở"
           value={openTournaments}
           note={`${data.tournaments.length} tournaments total`}
           tone="brown"
@@ -312,15 +311,15 @@ export default function AdminOverview({ onNavigate }) {
         />
         <MetricCard
           icon={ClipboardCheck}
-          label="Pending Reviews"
+          label="Hồ sơ đang chờ xét duyệt"
           value={totalReviewQueue}
-          note="Across registrations, horses, and jockeys"
+          note="Tổng hợp đơn đăng ký, ngựa và nài ngựa"
           tone="gold"
           onClick={() => onNavigate('registrations')}
         />
         <MetricCard
           icon={Flag}
-          label="Awaiting Race Entry"
+          label="Đang chờ xếp cuộc đua"
           value={data.raceEntryQueue.length}
           note={`${confirmedRegistrations} confirmed registrations`}
           tone="green"
@@ -328,9 +327,9 @@ export default function AdminOverview({ onNavigate }) {
         />
         <MetricCard
           icon={Gavel}
-          label="Referees Assigned"
+          label="Trọng tài đã phân công"
           value={data.refereeAssignments.length}
-          note="Races with active referee coverage"
+          note="Cuộc đua đã có trọng tài phụ trách"
           tone="cream"
           onClick={() => onNavigate('refereeAssignments')}
         />
@@ -343,7 +342,7 @@ export default function AdminOverview({ onNavigate }) {
               <span className="text-xs font-extrabold uppercase text-brown-500">
                 Action Required
               </span>
-              <h2 className="mt-1 text-2xl font-black">Admin work queues</h2>
+              <h2 className="mt-1 text-2xl font-black">Hàng chờ công việc quản trị</h2>
             </div>
             <span className="rounded-full bg-danger-bg px-3 py-1 text-sm font-black text-danger">
               {totalReviewQueue + data.raceEntryQueue.length} waiting
@@ -365,7 +364,7 @@ export default function AdminOverview({ onNavigate }) {
           <span className="text-xs font-extrabold uppercase text-gold-400">
             Quick Operations
           </span>
-          <h2 className="mt-1 text-2xl font-black">Continue setup</h2>
+          <h2 className="mt-1 text-2xl font-black">Tiếp tục thiết lập</h2>
 
           <div className="mt-5 grid gap-3">
             {quickActions.map((action) => {
@@ -405,14 +404,14 @@ export default function AdminOverview({ onNavigate }) {
               <span className="text-xs font-extrabold uppercase text-brown-500">
                 Calendar
               </span>
-              <h2 className="mt-1 text-xl font-black">Upcoming tournaments</h2>
+              <h2 className="mt-1 text-xl font-black">Giải đấu sắp diễn ra</h2>
             </div>
             <CalendarDays size={22} className="text-brown-500" />
           </div>
 
           <div className="divide-y divide-brown-700/10">
             {upcomingTournaments.length === 0 ? (
-              <p className="px-5 py-8 text-slate-500">No upcoming tournaments.</p>
+              <p className="px-5 py-8 text-slate-500">Không có giải đấu sắp diễn ra.</p>
             ) : (
               upcomingTournaments.map((tournament) => (
                 <button
@@ -455,7 +454,7 @@ export default function AdminOverview({ onNavigate }) {
           <span className="text-xs font-extrabold uppercase text-brown-500">
             Tournament Lifecycle
           </span>
-          <h2 className="mt-1 text-xl font-black">Events by status</h2>
+          <h2 className="mt-1 text-xl font-black">Giải đấu theo trạng thái</h2>
 
           <div className="mt-5 grid gap-3">
             {tournamentStatuses.map(({ status, count }) => (

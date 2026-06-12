@@ -104,7 +104,7 @@ class AdminRegistrationServiceTest {
                 validJockeyProfile(), validCondition());
 
         assertConflict(() -> service.confirmRegistration(1),
-                "Tournament must be open or closed for registration.");
+                "Giải đấu phải đang mở hoặc đã đóng đăng ký.");
     }
 
     @Test
@@ -115,7 +115,7 @@ class AdminRegistrationServiceTest {
         mockEntityLookups(registration, validTournament(), horse, validOwner(), validJockey(),
                 validJockeyProfile(), validCondition());
 
-        assertConflict(() -> service.confirmRegistration(1), "Horse is not active.");
+        assertConflict(() -> service.confirmRegistration(1), "Ngựa không ở trạng thái ACTIVE.");
     }
 
     @Test
@@ -127,7 +127,7 @@ class AdminRegistrationServiceTest {
                 validJockeyProfile(), validCondition());
 
         assertConflict(() -> service.confirmRegistration(1),
-                "Horse health certificate expires before the tournament starts.");
+                "Giấy chứng nhận sức khỏe của ngựa hết hạn trước khi giải đấu bắt đầu.");
     }
 
     @Test
@@ -139,7 +139,7 @@ class AdminRegistrationServiceTest {
                 validJockeyProfile(), validCondition());
 
         assertConflict(() -> service.confirmRegistration(1),
-                "Horse exceeds the tournament weight limit.");
+                "Cân nặng của ngựa vượt quá giới hạn của giải đấu.");
     }
 
     @Test
@@ -151,7 +151,7 @@ class AdminRegistrationServiceTest {
                 profile, validCondition());
 
         assertConflict(() -> service.confirmRegistration(1),
-                "Jockey profile is not active.");
+                "Hồ sơ nài ngựa không hoạt động.");
     }
 
     @Test
@@ -163,7 +163,7 @@ class AdminRegistrationServiceTest {
                 profile, validCondition());
 
         assertConflict(() -> service.confirmRegistration(1),
-                "Jockey exceeds the tournament weight limit.");
+                "Nài ngựa vượt quá giới hạn cân nặng của giải đấu.");
     }
 
     @Test
@@ -175,7 +175,7 @@ class AdminRegistrationServiceTest {
                 .thenReturn(12L);
 
         assertConflict(() -> service.confirmRegistration(1),
-                "Tournament has reached maximum participants.");
+                "Giải đấu đã đạt số người tham gia tối đa.");
     }
 
     @Test
@@ -189,7 +189,7 @@ class AdminRegistrationServiceTest {
                 1, 3, List.of("CONFIRMED"), 1)).thenReturn(1L);
 
         assertConflict(() -> service.confirmRegistration(1),
-                "Jockey already has a confirmed registration for this tournament.");
+                "Nài ngựa đã có đơn đăng ký được xác nhận trong giải đấu này.");
         verify(registrationRepository, never()).countByTournamentIdAndStatusIn(any(), any());
     }
 

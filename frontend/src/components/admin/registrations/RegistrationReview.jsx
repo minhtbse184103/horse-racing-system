@@ -6,11 +6,10 @@ import {
   getRegistrationHistory,
   rejectRegistration
 } from '../../../services/adminRegistrationService';
+import { formatDisplayLabel } from '../../../lib';
 
 function formatStatus(status) {
-  return String(status || '')
-    .replace(/([a-z])([A-Z])/g, '$1 $2')
-    .replace(/_/g, ' ');
+  return formatDisplayLabel(status);
 }
 
 function getStatusClasses(status) {
@@ -53,7 +52,7 @@ export default function RegistrationReview() {
       setAccepted(Array.isArray(acceptedData) ? acceptedData : []);
       setHistory(Array.isArray(historyData) ? historyData : []);
     } catch (err) {
-      setError(err.message || 'Unable to load registrations.');
+      setError(err.message || 'Không thể tải đơn đăng ký.');
     } finally {
       setIsLoading(false);
     }
@@ -68,15 +67,15 @@ export default function RegistrationReview() {
     try {
       if (action === 'confirm') {
         await confirmRegistration(registrationId);
-        setMessage('Registration confirmed successfully.');
+        setMessage('Đã xác nhận đơn đăng ký thành công.');
       } else {
         await rejectRegistration(registrationId);
-        setMessage('Registration rejected successfully.');
+        setMessage('Đã từ chối đơn đăng ký thành công.');
       }
 
       await loadRegistrations();
     } catch (err) {
-      setError(err.message || 'Unable to review registration.');
+      setError(err.message || 'Không thể xét duyệt đơn đăng ký.');
     } finally {
       setProcessingId(null);
     }
@@ -124,7 +123,7 @@ export default function RegistrationReview() {
           onClick={loadRegistrations}
           disabled={isLoading}
         >
-          {isLoading ? 'Loading...' : 'Refresh'}
+          {isLoading ? 'Đang tải...' : 'Làm mới'}
         </button>
       </header>
 
@@ -170,7 +169,7 @@ export default function RegistrationReview() {
         <div className="flex items-center justify-between gap-4 border-b border-brown-700/10 bg-cream-200/45 px-5 py-4 max-sm:grid">
           <div>
             <h2 className="text-xl font-extrabold text-brown-900">
-              {activeTab === 'accepted' ? 'Pending Review' : 'Review History'}
+              {activeTab === 'accepted' ? 'Đang chờ xét duyệt' : 'Lịch sử xét duyệt'}
             </h2>
             <p className="mt-1 text-sm text-slate-500">
               {filteredRegistrations.length} of {registrations.length}{' '}
@@ -184,7 +183,7 @@ export default function RegistrationReview() {
             />
             <input
               className="w-full rounded-xl border border-brown-700/15 bg-white/90 py-3 pl-10 pr-4 text-sm font-bold text-brown-900 outline-none transition focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
-              placeholder="Search tournament, horse, owner, jockey, or status"
+              placeholder="Tìm giải đấu, ngựa, chủ ngựa, nài ngựa hoặc trạng thái"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
             />
@@ -192,9 +191,9 @@ export default function RegistrationReview() {
         </div>
 
         {isLoading ? (
-          <p className="px-6 py-10 text-slate-500">Loading registrations...</p>
+          <p className="px-6 py-10 text-slate-500">Đang tải đơn đăng ký...</p>
         ) : registrations.length === 0 ? (
-          <p className="px-6 py-10 text-slate-500">No registrations found.</p>
+          <p className="px-6 py-10 text-slate-500">Không tìm thấy đơn đăng ký.</p>
         ) : filteredRegistrations.length === 0 ? (
           <p className="px-6 py-10 text-slate-500">
             No registrations match your search.
@@ -206,12 +205,12 @@ export default function RegistrationReview() {
                 <tr>
                   {[
                     'ID',
-                    'Tournament',
-                    'Horse',
-                    'Owner',
-                    'Jockey',
-                    'Status',
-                    'Updated'
+                    'Giải đấu',
+                    'Ngựa',
+                    'Chủ ngựa',
+                    'Nài ngựa',
+                    'Trạng thái',
+                    'Đã cập nhật'
                   ].map((heading) => (
                     <th
                       className="border-b border-brown-700/10 px-2 py-4 text-left text-[0.68rem] font-extrabold uppercase tracking-wide text-brown-700"
@@ -325,7 +324,7 @@ export default function RegistrationReview() {
             <button
               className="absolute right-4 top-4 grid size-9 place-items-center rounded-full border border-brown-700/20 bg-white/70 text-xl text-slate-500 transition hover:bg-cream-200"
               type="button"
-              aria-label="Close confirmation"
+              aria-label="Đóng hộp xác nhận"
               onClick={() => setReviewConfirmation(null)}
             >
               ×
@@ -351,33 +350,33 @@ export default function RegistrationReview() {
                   id="confirmation-title"
                 >
                   {reviewConfirmation.action === 'confirm'
-                    ? 'Confirm registration'
-                    : 'Reject registration'}
+                    ? 'Xác nhận đơn đăng ký'
+                    : 'Từ chối đơn đăng ký'}
                 </h2>
               </div>
             </div>
 
             <p className="my-5 leading-relaxed text-slate-500">
               {reviewConfirmation.action === 'confirm'
-                ? 'This registration will become eligible for race assignment.'
-                : 'This registration will be moved to review history as rejected.'}
+                ? 'Đơn đăng ký sẽ đủ điều kiện để xếp vào cuộc đua.'
+                : 'Đơn đăng ký sẽ được chuyển vào lịch sử xét duyệt với trạng thái bị từ chối.'}
             </p>
 
             <dl className="grid overflow-hidden rounded-lg border border-brown-700/10 bg-brown-700/10">
               <div className="grid grid-cols-[7rem_minmax(0,1fr)] gap-4 bg-white/70 px-4 py-3 max-sm:grid-cols-1 max-sm:gap-1">
-                <dt className="text-sm font-bold text-slate-500">Tournament</dt>
+                <dt className="text-sm font-bold text-slate-500">Giải đấu</dt>
                 <dd className="m-0 break-words text-sm font-extrabold text-brown-900">
                   {reviewConfirmation.registration.tournamentName || 'N/A'}
                 </dd>
               </div>
               <div className="mt-px grid grid-cols-[7rem_minmax(0,1fr)] gap-4 bg-white/70 px-4 py-3 max-sm:grid-cols-1 max-sm:gap-1">
-                <dt className="text-sm font-bold text-slate-500">Horse</dt>
+                <dt className="text-sm font-bold text-slate-500">Ngựa</dt>
                 <dd className="m-0 break-words text-sm font-extrabold text-brown-900">
                   {reviewConfirmation.registration.horseName || 'N/A'}
                 </dd>
               </div>
               <div className="mt-px grid grid-cols-[7rem_minmax(0,1fr)] gap-4 bg-white/70 px-4 py-3 max-sm:grid-cols-1 max-sm:gap-1">
-                <dt className="text-sm font-bold text-slate-500">Jockey</dt>
+                <dt className="text-sm font-bold text-slate-500">Nài ngựa</dt>
                 <dd className="m-0 break-words text-sm font-extrabold text-brown-900">
                   {reviewConfirmation.registration.jockeyName || 'N/A'}
                 </dd>
@@ -411,8 +410,8 @@ export default function RegistrationReview() {
                 }
               >
                 {reviewConfirmation.action === 'confirm'
-                  ? 'Confirm registration'
-                  : 'Reject registration'}
+                  ? 'Xác nhận đơn đăng ký'
+                  : 'Từ chối đơn đăng ký'}
               </button>
             </div>
           </div>

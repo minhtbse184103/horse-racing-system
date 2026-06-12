@@ -7,17 +7,17 @@ export default function OwnerOverview({ dashboard, horses, onGoHorses, onGoInvit
   return (
     <section className="owner-stack">
       <section className="owner-stats-grid">
-        <StatCard label="Total Horses" value={dashboard?.totalHorses ?? horses.length} description="Horse profiles under your management" highlight />
-        <StatCard label="Registrations" value={dashboard?.totalRegistrations ?? 0} description="Total recorded race registrations" />
-        <StatCard label="Registered Horses" value={dashboard?.registeredHorses ?? registeredHorses} description="Horses with race registrations" />
-        <StatCard label="Participated" value={dashboard?.participatedHorses ?? participatedHorses} description="Horses that have joined races" />
+        <StatCard label="Tổng số ngựa" value={dashboard?.totalHorses ?? horses.length} description="Hồ sơ ngựa bạn đang quản lý" highlight />
+        <StatCard label="Đơn đăng ký" value={dashboard?.totalRegistrations ?? 0} description="Tổng số đơn đăng ký thi đấu đã ghi nhận" />
+        <StatCard label="Registered Horses" value={dashboard?.registeredHorses ?? registeredHorses} description="Ngựa đã có đăng ký thi đấu" />
+        <StatCard label="Participated" value={dashboard?.participatedHorses ?? participatedHorses} description="Ngựa đã tham gia thi đấu" />
       </section>
 
       <section className="owner-overview-grid">
         <div className="owner-panel hero-owner-panel">
           <div>
-            <p className="eyebrow">Owner workspace</p>
-            <h2>Manage Your Stable</h2>
+            <p className="eyebrow">Không gian chủ ngựa</p>
+            <h2>Quản lý chuồng ngựa</h2>
             <p>
               Track horse totals, registration status, and race history. New horse profiles are submitted as PENDING until admin approval.
             </p>
@@ -35,18 +35,18 @@ export default function OwnerOverview({ dashboard, horses, onGoHorses, onGoInvit
         <div className="owner-panel compact-panel">
           <div className="owner-panel-header">
             <div>
-              <p className="eyebrow">Quick status</p>
-              <h2>Horse Readiness</h2>
-              <p>Based on your current horse list.</p>
+              <p className="eyebrow">Trạng thái nhanh</p>
+              <h2>Mức độ sẵn sàng của ngựa</h2>
+              <p>Dựa trên danh sách ngựa hiện tại.</p>
             </div>
           </div>
           <div className="owner-mini-list">
             <div>
-              <span>With registration</span>
+              <span>Đã có đăng ký</span>
               <strong>{registeredHorses}</strong>
             </div>
             <div>
-              <span>Already participated</span>
+              <span>Đã tham gia</span>
               <strong>{participatedHorses}</strong>
             </div>
           </div>

@@ -1,31 +1,31 @@
 import { httpRequest } from '../api/httpClient';
 export function getAllUsers() {
     return httpRequest('/api/user/all', {
-        fallbackError: 'Unable to load users.'
+        fallbackError: 'Không thể tải danh sách người dùng.'
     });
 }
 export function getUsers() {
     return httpRequest('/api/admin/users', {
-        fallbackError: 'Unable to load users.'
+        fallbackError: 'Không thể tải danh sách người dùng.'
     });
 }
 export function createUser(payload) {
     return httpRequest('/api/admin/users', {
         method: 'POST',
         body: payload,
-        fallbackError: 'Unable to create the user.'
+        fallbackError: 'Không thể tạo người dùng.'
     });
 }
 export function updateUser(userId, payload) {
     return httpRequest(`/api/admin/users/${userId}`, {
         method: 'PUT',
         body: payload,
-        fallbackError: 'Unable to update the user.'
+        fallbackError: 'Không thể cập nhật người dùng.'
     });
 }
 export function deleteUser(userId) {
     return httpRequest(`/api/admin/users/${userId}`, {
         method: 'DELETE',
-        fallbackError: 'Unable to delete the user.'
+        fallbackError: 'Không thể xóa người dùng.'
     });
 }

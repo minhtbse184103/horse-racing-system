@@ -5,6 +5,7 @@ import {
   getRacesByRound,
   updateRace
 } from '../../../services/eventService';
+import { formatDisplayLabel } from '../../../lib';
 
 const CONFIGURABLE_STATUSES = [
   'Draft',
@@ -21,9 +22,7 @@ function emptyRaceForm() {
 }
 
 function formatStatus(status) {
-  return String(status || '')
-    .replace(/([a-z])([A-Z])/g, '$1 $2')
-    .replace(/_/g, ' ');
+  return formatDisplayLabel(status);
 }
 
 function getStatusClasses(status) {
@@ -83,7 +82,7 @@ export default function RaceManagement({ tournament, rounds }) {
       setRaces(Array.isArray(data) ? data : []);
     } catch (err) {
       setRaces([]);
-      setError(err.message || 'Unable to load races.');
+      setError(err.message || 'Không thể tải danh sách cuộc đua.');
     } finally {
       setIsLoading(false);
     }
@@ -139,7 +138,7 @@ export default function RaceManagement({ tournament, rounds }) {
     event.preventDefault();
 
     if (!selectedRoundId) {
-      setError('Select a tournament round first.');
+      setError('Vui lòng chọn vòng đấu trước.');
       return;
     }
 
@@ -156,13 +155,13 @@ export default function RaceManagement({ tournament, rounds }) {
     try {
       if (editingRace) {
         await updateRace(editingRace.raceId, payload);
-        setMessage('Race updated successfully.');
+        setMessage('Đã cập nhật cuộc đua thành công.');
       } else {
         await createRace({
           roundId: Number(selectedRoundId),
           ...payload
         });
-        setMessage('Race created successfully.');
+        setMessage('Đã tạo cuộc đua thành công.');
       }
 
       setEditingRace(null);
@@ -170,7 +169,7 @@ export default function RaceManagement({ tournament, rounds }) {
       setIsFormOpen(false);
       await loadRaces(selectedRoundId);
     } catch (err) {
-      setError(err.message || 'Unable to save race.');
+      setError(err.message || 'Không thể lưu cuộc đua.');
     } finally {
       setIsSaving(false);
     }
@@ -185,11 +184,11 @@ export default function RaceManagement({ tournament, rounds }) {
 
     try {
       await cancelRace(raceToCancel.raceId);
-      setMessage('Race cancelled successfully.');
+      setMessage('Đã hủy cuộc đua thành công.');
       setRaceToCancel(null);
       await loadRaces(selectedRoundId);
     } catch (err) {
-      setError(err.message || 'Unable to cancel race.');
+      setError(err.message || 'Không thể hủy cuộc đua.');
     } finally {
       setIsSaving(false);
     }
@@ -203,7 +202,7 @@ export default function RaceManagement({ tournament, rounds }) {
             Race Setup
           </span>
           <h3 className="mt-1 text-xl font-extrabold text-brown-900">
-            {selectedRound?.roundName || 'Select a round'}
+            {selectedRound?.roundName || 'Chọn vòng đấu'}
           </h3>
         </div>
 
@@ -254,10 +253,10 @@ export default function RaceManagement({ tournament, rounds }) {
 
       <div className="min-h-0 overflow-auto rounded-xl border border-brown-700/10 bg-white/60 shadow-[0_12px_30px_rgba(78,44,25,0.08)]">
         {isLoading ? (
-          <p className="px-6 py-10 text-slate-500">Loading races...</p>
+          <p className="px-6 py-10 text-slate-500">Đang tải cuộc đua...</p>
         ) : races.length === 0 ? (
           <div className="grid min-h-40 place-items-center content-center gap-2 px-6 text-center">
-            <strong className="text-brown-900">No races in this round</strong>
+            <strong className="text-brown-900">Chưa có cuộc đua trong vòng này</strong>
             <span className="text-slate-500">
               Create the first race for {selectedRound?.roundName}.
             </span>
@@ -267,7 +266,7 @@ export default function RaceManagement({ tournament, rounds }) {
             <table className="w-full table-fixed border-collapse">
               <thead className="bg-cream-200/60">
                 <tr>
-                  {['Race', 'Schedule', 'Distance', 'Status', 'Actions'].map(
+                  {['Cuộc đua', 'Lịch trình', 'Cự ly', 'Trạng thái', 'Thao tác'].map(
                     (heading) => (
                       <th
                         className="border-b border-brown-700/10 px-3 py-4 text-left text-xs font-extrabold uppercase tracking-wide text-brown-700"
@@ -363,7 +362,7 @@ export default function RaceManagement({ tournament, rounds }) {
                   {selectedRound?.roundName}
                 </span>
                 <h2 className="mt-1 text-2xl font-extrabold text-brown-900">
-                  {editingRace ? 'Edit Race' : 'Create Race'}
+                  {editingRace ? 'Chỉnh sửa cuộc đua' : 'Tạo cuộc đua'}
                 </h2>
                 <p className="mt-2 text-sm text-slate-500">
                   Race name and order are generated automatically.
@@ -373,7 +372,7 @@ export default function RaceManagement({ tournament, rounds }) {
               <button
                 className="grid size-9 shrink-0 place-items-center rounded-full border border-brown-700/20 bg-white/70 text-xl text-slate-500 transition hover:bg-cream-200"
                 type="button"
-                aria-label="Close race form"
+                aria-label="Đóng biểu mẫu cuộc đua"
                 onClick={closeForm}
               >
                 ×
@@ -388,7 +387,7 @@ export default function RaceManagement({ tournament, rounds }) {
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <label className="grid gap-2 text-sm font-bold text-brown-900">
-                <span>Start Time</span>
+                <span>Thời gian bắt đầu</span>
                 <input
                   className="w-full rounded-lg border border-brown-700/20 bg-white/80 px-4 py-3 text-brown-900 outline-none transition focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
                   name="startTime"
@@ -400,7 +399,7 @@ export default function RaceManagement({ tournament, rounds }) {
               </label>
 
               <label className="grid gap-2 text-sm font-bold text-brown-900">
-                <span>End Time</span>
+                <span>Thời gian kết thúc</span>
                 <input
                   className="w-full rounded-lg border border-brown-700/20 bg-white/80 px-4 py-3 text-brown-900 outline-none transition focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
                   name="endTime"
@@ -412,7 +411,7 @@ export default function RaceManagement({ tournament, rounds }) {
               </label>
 
               <label className="grid gap-2 text-sm font-bold text-brown-900 sm:col-span-2">
-                <span>Distance in meters</span>
+                <span>Cự ly tính bằng mét</span>
                 <input
                   className="w-full rounded-lg border border-brown-700/20 bg-white/80 px-4 py-3 text-brown-900 outline-none transition focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
                   name="distance"
@@ -441,10 +440,10 @@ export default function RaceManagement({ tournament, rounds }) {
                 disabled={isSaving}
               >
                 {isSaving
-                  ? 'Saving...'
+                  ? 'Đang lưu...'
                   : editingRace
-                    ? 'Save Changes'
-                    : 'Create Race'}
+                    ? 'Lưu thay đổi'
+                    : 'Tạo cuộc đua'}
               </button>
             </div>
           </form>
@@ -481,14 +480,14 @@ export default function RaceManagement({ tournament, rounds }) {
 
             <dl className="grid overflow-hidden rounded-lg border border-brown-700/10 bg-brown-700/10">
               <div className="grid grid-cols-[7rem_minmax(0,1fr)] gap-4 bg-white/70 px-4 py-3 max-sm:grid-cols-1 max-sm:gap-1">
-                <dt className="text-sm font-bold text-slate-500">Race</dt>
+                <dt className="text-sm font-bold text-slate-500">Cuộc đua</dt>
                 <dd className="m-0 text-sm font-extrabold text-brown-900">
                   {raceToCancel.raceName}
                 </dd>
               </div>
 
               <div className="mt-px grid grid-cols-[7rem_minmax(0,1fr)] gap-4 bg-white/70 px-4 py-3 max-sm:grid-cols-1 max-sm:gap-1">
-                <dt className="text-sm font-bold text-slate-500">Distance</dt>
+                <dt className="text-sm font-bold text-slate-500">Cự ly</dt>
                 <dd className="m-0 text-sm font-extrabold text-brown-900">
                   {raceToCancel.distance}m
                 </dd>

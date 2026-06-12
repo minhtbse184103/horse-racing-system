@@ -5,11 +5,53 @@ export function formatNumber(value) {
 }
 export function formatDate(value) {
     if (!value)
-        return 'Not updated';
+        return 'Chưa cập nhật';
     const date = new Date(String(value));
     if (Number.isNaN(date.getTime()))
         return String(value);
-    return date.toLocaleDateString('en-US');
+    return date.toLocaleDateString('vi-VN');
+}
+
+const DISPLAY_LABELS = {
+    ACTIVE: 'Đang hoạt động',
+    INACTIVE: 'Không hoạt động',
+    PENDING: 'Đang chờ xử lý',
+    UNDER_REVIEW: 'Đang xét duyệt',
+    ACCEPTED: 'Đã chấp nhận',
+    CONFIRMED: 'Đã xác nhận',
+    REJECTED: 'Đã từ chối',
+    BLOCKED: 'Đã khóa',
+    CANCELLED: 'Đã hủy',
+    EXPIRED: 'Đã hết hạn',
+    ASSIGNED: 'Đã phân công',
+    DRAFT: 'Bản nháp',
+    OPEN_FOR_REGISTRATION: 'Mở đăng ký',
+    OPENFORREGISTRATION: 'Mở đăng ký',
+    CLOSED_REGISTRATION: 'Đã đóng đăng ký',
+    CLOSEDREGISTRATION: 'Đã đóng đăng ký',
+    ONGOING: 'Đang diễn ra',
+    FINISHED: 'Đã kết thúc',
+    OWNER: 'Chủ ngựa',
+    JOCKEY: 'Nài ngựa',
+    ADMIN: 'Quản trị viên',
+    REFEREE: 'Trọng tài',
+    SPECTATOR: 'Khán giả',
+    MALE: 'Đực',
+    FEMALE: 'Cái',
+    BEGINNER: 'Mới bắt đầu',
+    INTERMEDIATE: 'Trung cấp',
+    PROFESSIONAL: 'Chuyên nghiệp',
+    ELITE: 'Tinh anh',
+    ALL: 'Tất cả'
+};
+
+export function formatDisplayLabel(value, fallback = 'Không có') {
+    if (value === null || value === undefined || value === '') return fallback;
+    const normalized = String(value)
+        .replace(/([a-z])([A-Z])/g, '$1_$2')
+        .replace(/\s+/g, '_')
+        .toUpperCase();
+    return DISPLAY_LABELS[normalized] || String(value).replace(/_/g, ' ');
 }
 export function getUserId(user) {
     return user?.id ?? user?.Id ?? user?.userID ?? user?.userId;

@@ -19,16 +19,17 @@ import JockeyReview from './reviews/JockeyReview';
 import RefereeAssignmentManagement from './refereeAssignments/RefereeAssignmentManagement';
 import HorseReview from './horses/HorseReview';
 import UserManagement from './users/UserManagement';
+import { formatDisplayLabel } from '../../lib';
 
 const adminNavItems = [
-  { key: 'overview', label: 'Overview', icon: LayoutDashboard },
-  { key: 'users', label: 'User Management', icon: Users },
-  { key: 'events', label: 'Tournaments', icon: Trophy },
-  { key: 'registrations', label: 'Registrations', icon: UserCheck },
-  { key: 'raceEntries', label: 'Race Entries', icon: Flag },
-  { key: 'jockeyReviews', label: 'Jockey Reviews', icon: ClipboardCheck },
-  { key: 'horseReviews', label: 'Horse Reviews', icon: ShieldCheck },
-  { key: 'refereeAssignments', label: 'Referee Assignments', icon: Gavel }
+  { key: 'overview', label: 'Tổng quan', icon: LayoutDashboard },
+  { key: 'users', label: 'Quản lý người dùng', icon: Users },
+  { key: 'events', label: 'Giải đấu', icon: Trophy },
+  { key: 'registrations', label: 'Đơn đăng ký', icon: UserCheck },
+  { key: 'raceEntries', label: 'Suất tham gia đua', icon: Flag },
+  { key: 'jockeyReviews', label: 'Duyệt nài ngựa', icon: ClipboardCheck },
+  { key: 'horseReviews', label: 'Duyệt ngựa', icon: ShieldCheck },
+  { key: 'refereeAssignments', label: 'Phân công trọng tài', icon: Gavel }
 ];
 
 export default function AdminDashboard({ currentUser, onLogout }) {
@@ -86,7 +87,7 @@ export default function AdminDashboard({ currentUser, onLogout }) {
           </strong>
 
           <small className="mt-0.5 block text-xs font-bold text-gold-400">
-            {currentUser?.role}
+            {formatDisplayLabel(currentUser?.role)}
           </small>
         </div>
 

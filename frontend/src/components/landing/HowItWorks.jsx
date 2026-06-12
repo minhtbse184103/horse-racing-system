@@ -1,12 +1,12 @@
 import { Search, ClipboardList, UserPlus, ShieldCheck, Flag, Trophy } from "lucide-react";
 
 const STEPS = [
-  { icon: Search, title: "Discover Tournament", desc: "Browse the calendar and find an eligible event." },
-  { icon: ClipboardList, title: "Register Horse", desc: "Owners submit horses that match the conditions." },
-  { icon: UserPlus, title: "Invite Jockey", desc: "Send invitations to qualified professional jockeys." },
-  { icon: ShieldCheck, title: "Admin Review", desc: "Entries are verified and the field is approved." },
-  { icon: Flag, title: "Race Assignment", desc: "Horses are drawn into races and gates assigned." },
-  { icon: Trophy, title: "Compete & View Results", desc: "Race, record results, publish standings." },
+  { icon: Search, title: "Khám phá giải đấu", desc: "Xem lịch và tìm giải đấu phù hợp." },
+  { icon: ClipboardList, title: "Đăng ký ngựa", desc: "Chủ ngựa gửi hồ sơ ngựa đáp ứng điều kiện." },
+  { icon: UserPlus, title: "Mời nài ngựa", desc: "Gửi lời mời đến các nài ngựa đủ điều kiện." },
+  { icon: ShieldCheck, title: "Quản trị viên xét duyệt", desc: "Các đơn đăng ký được xác minh và phê duyệt." },
+  { icon: Flag, title: "Phân công cuộc đua", desc: "Ngựa được xếp vào cuộc đua và phân làn." },
+  { icon: Trophy, title: "Thi đấu và xem kết quả", desc: "Thi đấu, ghi nhận kết quả và công bố xếp hạng." },
 ];
 
 export default function HowItWorks() {
@@ -14,8 +14,8 @@ export default function HowItWorks() {
     <section id="how-it-works" className="bg-cream-200 py-20 sm:py-24">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brown-500">Process</p>
-          <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-brown-900 sm:text-4xl">How It Works</h2>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brown-500">Quy trình</p>
+          <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-brown-900 sm:text-4xl">Quy trình hoạt động</h2>
           <p className="mt-3 text-base text-brown-900/70">
             From discovery to the winner's circle — every stage is tracked in one place.
           </p>

@@ -74,7 +74,7 @@ public class JockeyServiceImpl implements JockeyService {
     public JockeyProfileResponse getProfile() {
         User jockey = getCurrentJockey();
         JockeyProfile profile = jockeyProfileRepository.findById(jockey.getUserID())
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Jockey profile does not exist."));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Hồ sơ nài ngựa không tồn tại."));
         return mapProfileToResponse(profile, jockey);
     }
 
@@ -87,11 +87,11 @@ public class JockeyServiceImpl implements JockeyService {
         String licenseNo = normalizeUppercase(request.getLicenseNo());
 
         if (jockeyProfileRepository.existsById(jockeyId)) {
-            throw new ApiException(HttpStatus.CONFLICT, "Jockey profile already exists.");
+            throw new ApiException(HttpStatus.CONFLICT, "Hồ sơ nài ngựa đã tồn tại.");
         }
 
         if (jockeyProfileRepository.existsByLicenseNo(licenseNo)) {
-            throw new ApiException(HttpStatus.CONFLICT, "License number already exists.");
+            throw new ApiException(HttpStatus.CONFLICT, "Số giấy phép đã tồn tại.");
         }
 
         JockeyProfile profile = JockeyProfile.builder()
@@ -116,11 +116,11 @@ public class JockeyServiceImpl implements JockeyService {
         User jockey = getCurrentJockey();
         Integer jockeyId = jockey.getUserID();
         JockeyProfile profile = jockeyProfileRepository.findById(jockeyId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Jockey profile does not exist."));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Hồ sơ nài ngựa không tồn tại."));
         String licenseNo = normalizeUppercase(request.getLicenseNo());
 
         if (jockeyProfileRepository.existsByLicenseNoAndJockeyIdNot(licenseNo, jockeyId)) {
-            throw new ApiException(HttpStatus.CONFLICT, "License number already exists.");
+            throw new ApiException(HttpStatus.CONFLICT, "Số giấy phép đã tồn tại.");
         }
 
         profile.setLicenseNo(licenseNo);
@@ -141,7 +141,7 @@ public class JockeyServiceImpl implements JockeyService {
     public JockeyProfileResponse deactivateProfile() {
         User jockey = getCurrentJockey();
         JockeyProfile profile = jockeyProfileRepository.findById(jockey.getUserID())
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Jockey profile does not exist."));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Hồ sơ nài ngựa không tồn tại."));
         profile.setStatus(STATUS_INACTIVE);
         JockeyProfile savedProfile = jockeyProfileRepository.save(profile);
         return mapProfileToResponse(savedProfile, jockey);
@@ -179,7 +179,7 @@ public class JockeyServiceImpl implements JockeyService {
         if (registration.getRegistrationId() != null
                 && !List.of(REGISTRATION_CANCELLED, REGISTRATION_REJECTED).contains(registration.getStatus())) {
             throw new ApiException(HttpStatus.CONFLICT,
-                    "This horse already has an active registration for the tournament.");
+                    "Ngựa này đã có đơn đăng ký đang hoạt động trong giải đấu.");
         }
 
         invitation.setStatus(INVITATION_ACCEPTED);
@@ -214,14 +214,14 @@ public class JockeyServiceImpl implements JockeyService {
     private User getCurrentJockey() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || authentication.getName() == null) {
-            throw new ApiException(HttpStatus.UNAUTHORIZED, "User is not authenticated.");
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "Người dùng chưa được xác thực.");
         }
 
         User user = userRepository.findByEmail(authentication.getName())
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Jockey does not exist."));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Nài ngựa không tồn tại."));
 
         if (user.getRole() == null || !ROLE_JOCKEY.equals(user.getRole().getRoleName())) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "Only jockeys can access this resource.");
+            throw new ApiException(HttpStatus.FORBIDDEN, "Chỉ nài ngựa mới có thể truy cập tài nguyên này.");
         }
 
         return user;
@@ -231,14 +231,14 @@ public class JockeyServiceImpl implements JockeyService {
     private User getCurrentJockeyWithActiveProfile() {
         User jockey = getCurrentJockey();
         JockeyProfile profile = jockeyProfileRepository.findById(jockey.getUserID())
-                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Jockey profile does not exist."));
+                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Hồ sơ nài ngựa không tồn tại."));
 
         if (!STATUS_ACTIVE.equals(profile.getStatus())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Only active jockey profiles can accept invitations.");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Chỉ hồ sơ nài ngựa đang hoạt động mới có thể chấp nhận lời mời.");
         }
 
         if (!STATUS_ACTIVE.equals(jockey.getStatus())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Only active jockey accounts can accept invitations.");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Chỉ tài khoản nài ngựa đang hoạt động mới có thể chấp nhận lời mời.");
         }
 
         return jockey;
@@ -247,13 +247,13 @@ public class JockeyServiceImpl implements JockeyService {
     // Lấy lời mời theo invitationId và đảm bảo lời mời thuộc jockey hiện tại.
     private JockeyInvitation getOwnedInvitation(Integer invitationId, Integer jockeyId) {
         return jockeyInvitationRepository.findByInvitationIdAndJockeyId(invitationId, jockeyId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Invitation does not exist."));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Lời mời không tồn tại."));
     }
 
     // Kiểm tra invitation còn PENDING trước khi jockey phản hồi.
     private void validatePendingInvitation(JockeyInvitation invitation) {
         if (!INVITATION_PENDING.equals(invitation.getStatus())) {
-            throw new ApiException(HttpStatus.CONFLICT, "Only pending invitations can be responded to.");
+            throw new ApiException(HttpStatus.CONFLICT, "Chỉ có thể phản hồi lời mời đang ở trạng thái PENDING.");
         }
     }
 
@@ -264,7 +264,7 @@ public class JockeyServiceImpl implements JockeyService {
             invitation.setStatus(INVITATION_EXPIRED);
             invitation.setRespondedAt(LocalDateTime.now());
             jockeyInvitationRepository.save(invitation);
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Invitation has expired.");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Lời mời đã hết hạn.");
         }
     }
 
@@ -280,22 +280,22 @@ public class JockeyServiceImpl implements JockeyService {
                 excludedRegistrationId);
         if (activeRegistrations > 0) {
             throw new ApiException(HttpStatus.CONFLICT,
-                    "This jockey already has an active registration for the tournament.");
+                    "Nài ngựa này đã có đơn đăng ký đang hoạt động trong giải đấu.");
         }
     }
 
     // Kiểm tra ngựa của invitation thật sự thuộc owner đã gửi invitation và ngựa đang ACTIVE.
     private Horse validateOwnerHorseForInvitation(JockeyInvitation invitation) {
         Horse horse = horseRepository.findById(invitation.getHorseId())
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Horse does not exist."));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Ngựa không tồn tại."));
 
         if (!Objects.equals(horse.getOwnerId(), invitation.getOwnerId())) {
             throw new ApiException(HttpStatus.CONFLICT,
-                    "Horse does not belong to the invitation owner.");
+                    "Ngựa không thuộc sở hữu của người gửi lời mời.");
         }
 
         if (!STATUS_ACTIVE.equals(horse.getStatus())) {
-            throw new ApiException(HttpStatus.CONFLICT, "Horse is not active.");
+            throw new ApiException(HttpStatus.CONFLICT, "Ngựa không ở trạng thái ACTIVE.");
         }
 
         return horse;

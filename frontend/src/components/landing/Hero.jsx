@@ -6,7 +6,7 @@ export default function Hero({ stats, isLoading }) {
     <section id="home" className="relative isolate overflow-hidden bg-brown-900 text-cream-100">
       <img
         src={heroImage}
-        alt="Thoroughbred racehorses thundering out of the starting gate"
+        alt="Ngựa đua lao nhanh khỏi cổng xuất phát"
         width={1920}
         height={1080}
         className="absolute inset-0 h-full w-full object-cover object-center"
@@ -15,26 +15,25 @@ export default function Hero({ stats, isLoading }) {
 
       <div className="relative mx-auto flex min-h-[88vh] max-w-7xl flex-col justify-center px-4 pt-24 pb-40 sm:px-6 lg:px-8 lg:pt-32 lg:pb-48">
         <span className="inline-flex w-fit items-center gap-2 rounded-md border border-gold-400/40 bg-brown-900/40 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-gold-400">
-          Tournament Management Platform
+          Nền tảng quản lý giải đấu
         </span>
 
         <h1 className="mt-6 max-w-3xl text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-5xl lg:text-6xl">
-          Where Champions Enter the Starting Gate
+          Nơi những nhà vô địch bước vào vạch xuất phát
         </h1>
 
         <p className="mt-6 max-w-2xl text-base leading-relaxed text-cream-100/85 sm:text-lg">
-          A complete system for managing equestrian tournaments — registrations,
-          jockey invitations, race assignments and official results — built for
-          owners, jockeys, admins and referees.
+          Hệ thống toàn diện để quản lý giải đua ngựa, từ đăng ký, lời mời nài
+          ngựa, phân công cuộc đua đến kết quả chính thức.
         </p>
 
         <div className="mt-9 flex flex-wrap items-center gap-3">
           <a href="#tournaments" className="inline-flex items-center gap-2 rounded-md bg-gold-400 px-5 py-3 text-sm font-bold text-brown-900 shadow-sm transition hover:bg-gold-400/90">
-            Explore Tournaments
+            Khám phá giải đấu
             <ArrowRight className="h-4 w-4" aria-hidden />
           </a>
           <a href="#how-it-works" className="inline-flex items-center gap-2 rounded-md border border-cream-100/30 bg-brown-900/30 px-5 py-3 text-sm font-bold text-cream-100 backdrop-blur transition hover:bg-brown-900/50">
-            How It Works
+            Quy trình hoạt động
           </a>
         </div>
 

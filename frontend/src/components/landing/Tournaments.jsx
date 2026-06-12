@@ -11,8 +11,8 @@ export default function Tournaments({ tournaments, isLoading, error }) {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="max-w-2xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brown-500">Tournament Discovery</p>
-            <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-brown-900 sm:text-4xl">Upcoming Tournaments</h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brown-500">Khám phá giải đấu</p>
+            <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-brown-900 sm:text-4xl">Giải đấu sắp diễn ra</h2>
             <p className="mt-3 text-base text-brown-900/70">
               A curated look at the racing calendar. Sign in to register a horse or accept a jockey invitation.
             </p>
@@ -23,7 +23,7 @@ export default function Tournaments({ tournaments, isLoading, error }) {
               onClick={() => setShowAll((current) => !current)}
               className="inline-flex items-center gap-2 self-start rounded-md border border-brown-900/15 bg-white px-4 py-2.5 text-sm font-semibold text-brown-900 shadow-sm transition hover:bg-cream-200 sm:self-auto"
             >
-              {showAll ? "Show Featured" : "View All Tournaments"}
+              {showAll ? "Hiện giải nổi bật" : "Xem tất cả giải đấu"}
               <ArrowRight className="h-4 w-4" aria-hidden />
             </button>
           )}

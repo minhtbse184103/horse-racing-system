@@ -36,7 +36,7 @@ function ReviewModal({ review, onClose, onConfirm, isProcessing }) {
           Jockey Review
         </p>
         <h2 className="mt-2 text-2xl font-black text-brown-900">
-          {isRejecting ? 'Reject Profile' : 'Approve Profile'}
+          {isRejecting ? 'Từ chối hồ sơ' : 'Phê duyệt hồ sơ'}
         </h2>
 
         <p className="mt-3 text-sm font-semibold text-slate-500">
@@ -53,7 +53,7 @@ function ReviewModal({ review, onClose, onConfirm, isProcessing }) {
               maxLength={500}
               value={feedback}
               onChange={(event) => setFeedback(event.target.value)}
-              placeholder="Explain what the jockey must correct..."
+              placeholder="Giải thích nội dung nài ngựa cần chỉnh sửa..."
             />
             <span className="text-right text-xs font-bold text-slate-500">
               {feedback.length}/500
@@ -80,10 +80,10 @@ function ReviewModal({ review, onClose, onConfirm, isProcessing }) {
             onClick={() => onConfirm(feedback.trim())}
           >
             {isProcessing
-              ? 'Processing...'
+              ? 'Đang xử lý...'
               : isRejecting
-                ? 'Reject Profile'
-                : 'Approve Profile'}
+                ? 'Từ chối hồ sơ'
+                : 'Phê duyệt hồ sơ'}
           </button>
         </div>
       </section>
@@ -113,7 +113,7 @@ export default function JockeyReview() {
       const data = await getJockeyProfilesUnderReview();
       setProfiles(Array.isArray(data) ? data : []);
     } catch (err) {
-      setError(err.message || 'Unable to load jockey reviews.');
+      setError(err.message || 'Không thể tải danh sách duyệt nài ngựa.');
     } finally {
       setIsLoading(false);
     }
@@ -157,7 +157,7 @@ export default function JockeyReview() {
       setSelectedProfile(null);
       await loadProfiles();
     } catch (err) {
-      setError(err.message || 'Unable to review jockey profile.');
+      setError(err.message || 'Không thể xét duyệt hồ sơ nài ngựa.');
     } finally {
       setIsProcessing(false);
     }
@@ -204,7 +204,7 @@ export default function JockeyReview() {
       <section className="overflow-hidden rounded-lg border border-brown-700/10 bg-cream-100 shadow-lg">
         <div className="flex items-center justify-between gap-4 border-b border-brown-700/10 bg-cream-200/50 p-5 max-sm:grid">
           <div>
-            <h2 className="text-xl font-extrabold">Awaiting Review</h2>
+            <h2 className="text-xl font-extrabold">Đang chờ xét duyệt</h2>
             <p className="mt-1 text-sm text-slate-500">
               {filteredProfiles.length} of {profiles.length} profiles
             </p>
@@ -217,7 +217,7 @@ export default function JockeyReview() {
             />
             <input
               className="w-full rounded-lg border border-brown-700/15 bg-white py-3 pl-10 pr-4 text-sm font-bold outline-none focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
-              placeholder="Search name, email, license, or ranking"
+              placeholder="Tìm theo tên, email, giấy phép hoặc xếp hạng"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
             />
@@ -225,7 +225,7 @@ export default function JockeyReview() {
         </div>
 
         {isLoading ? (
-          <p className="px-5 py-10 text-slate-500">Loading profiles...</p>
+          <p className="px-5 py-10 text-slate-500">Đang tải hồ sơ...</p>
         ) : filteredProfiles.length === 0 ? (
           <p className="px-5 py-10 text-slate-500">
             No jockey profiles are awaiting review.

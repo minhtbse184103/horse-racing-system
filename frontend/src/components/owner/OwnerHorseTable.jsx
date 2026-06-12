@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import defaultHorseImage from '../../assets/default-horse.svg';
-import { formatDate, formatNumber, getHorseId, getHorseName } from '../../lib';
+import { formatDate, formatDisplayLabel, formatNumber, getHorseId, getHorseName } from '../../lib';
 
 const STATUS_OPTIONS = ['ALL', 'ACTIVE', 'INACTIVE', 'PENDING', 'REJECTED'];
 
@@ -26,8 +26,8 @@ export default function OwnerHorseTable({ horses, isLoading, onViewHorse, onEdit
     <section className="owner-panel">
       <div className="owner-panel-header">
         <div>
-          <h2>My Horses</h2>
-          <p>Manage horse profiles, health certificates, and admin approval status.</p>
+          <h2>Ngựa của tôi</h2>
+          <p>Quản lý hồ sơ ngựa, chứng nhận sức khỏe và trạng thái phê duyệt.</p>
         </div>
         <span className="owner-count-pill">
           {formatNumber(filteredHorses.length)} / {formatNumber(horses.length)} horses
@@ -38,27 +38,27 @@ export default function OwnerHorseTable({ horses, isLoading, onViewHorse, onEdit
         <input
           className="input"
           type="search"
-          placeholder="Search by horse name..."
+          placeholder="Tìm theo tên ngựa..."
           value={searchTerm}
           onChange={(event) => setSearchTerm(event.target.value)}
         />
         <select className="input compact-select" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
           {STATUS_OPTIONS.map((status) => (
-            <option key={status} value={status}>{status === 'ALL' ? 'All statuses' : status}</option>
+            <option key={status} value={status}>{formatDisplayLabel(status)}</option>
           ))}
         </select>
       </div>
 
       {isLoading ? (
-        <p className="table-empty">Loading horses...</p>
+        <p className="table-empty">Đang tải danh sách ngựa...</p>
       ) : horses.length === 0 ? (
         <div className="owner-empty-state">
           <div>🐎</div>
-          <h3>No horses yet</h3>
-          <p>Click “Add New Horse” to create your first horse profile.</p>
+          <h3>Chưa có ngựa</h3>
+          <p>Nhấn “Thêm ngựa mới” để tạo hồ sơ ngựa đầu tiên.</p>
         </div>
       ) : filteredHorses.length === 0 ? (
-        <p className="table-empty">No horses match the current filters.</p>
+        <p className="table-empty">Không có ngựa phù hợp với bộ lọc hiện tại.</p>
       ) : (
         <div className="horse-card-list">
           {filteredHorses.map((horse) => {
@@ -74,43 +74,43 @@ export default function OwnerHorseTable({ horses, isLoading, onViewHorse, onEdit
                 <div className="horse-info">
                   <div className="horse-title-row">
                     <h3>{horseName}</h3>
-                    <span className={`status-badge ${status}`}>{horse.status || 'N/A'}</span>
+                    <span className={`status-badge ${status}`}>{formatDisplayLabel(horse.status)}</span>
                   </div>
                   <div className="horse-meta-grid">
-                    <span>Breed</span>
-                    <strong>{horse.breed || 'Not updated'}</strong>
-                    <span>Gender</span>
-                    <strong>{horse.gender || 'Not updated'}</strong>
-                    <span>Color</span>
-                    <strong>{horse.color || 'Not updated'}</strong>
-                    <span>Birth Date</span>
+                    <span>Giống ngựa</span>
+                    <strong>{horse.breed || 'Chưa cập nhật'}</strong>
+                    <span>Giới tính</span>
+                    <strong>{formatDisplayLabel(horse.gender, 'Chưa cập nhật')}</strong>
+                    <span>Màu lông</span>
+                    <strong>{horse.color || 'Chưa cập nhật'}</strong>
+                    <span>Ngày sinh</span>
                     <strong>{formatDate(horse.dayOfBirth)}</strong>
-                    <span>Weight</span>
-                    <strong>{horse.weight ? `${horse.weight} kg` : 'Not updated'}</strong>
-                    <span>Health Cert</span>
+                    <span>Cân nặng</span>
+                    <strong>{horse.weight ? `${horse.weight} kg` : 'Chưa cập nhật'}</strong>
+                    <span>Chứng nhận sức khỏe</span>
                     <strong>{formatDate(horse.healthCertExpiry)}</strong>
-                    <span>Registrations</span>
+                    <span>Đơn đăng ký</span>
                     <strong>{formatNumber(horse.registrationCount)}</strong>
                   </div>
                   <div className="horse-flags">
                     <span className={horse.participated ? 'flag-badge success' : 'flag-badge'}>
-                      {horse.participated ? 'Has raced' : 'No races yet'}
+                      {horse.participated ? 'Đã thi đấu' : 'Chưa thi đấu'}
                     </span>
-                    {horse.status === 'PENDING' && <span className="flag-badge">Waiting for admin approval</span>}
-                    {horse.rejectionReason && <span className="flag-badge danger">Rejected: {horse.rejectionReason}</span>}
+                    {horse.status === 'PENDING' && <span className="flag-badge">Đang chờ quản trị viên phê duyệt</span>}
+                    {horse.rejectionReason && <span className="flag-badge danger">Đã từ chối: {horse.rejectionReason}</span>}
                   </div>
                 </div>
                 <div className="horse-actions">
-                  <button type="button" onClick={() => onViewHorse(horse)}>View</button>
-                  <button type="button" onClick={() => onEditHorse(horse)}>Edit</button>
+                  <button type="button" onClick={() => onViewHorse(horse)}>Xem</button>
+                  <button type="button" onClick={() => onEditHorse(horse)}>Chỉnh sửa</button>
                   <button
                     className="danger-action"
                     type="button"
                     onClick={() => onDeleteHorse(horse)}
                     disabled={horse.participated}
-                    title={horse.participated ? 'Profiles with race history cannot be deleted.' : 'Delete horse profile'}
+                    title={horse.participated ? 'Không thể xóa hồ sơ đã có lịch sử thi đấu.' : 'Xóa hồ sơ ngựa'}
                   >
-                    Delete
+                    Xóa
                   </button>
                 </div>
               </article>

@@ -5,10 +5,10 @@ export function login({ email, password }) {
         method: 'POST',
         auth: false,
         body: { email, password },
-        fallbackError: 'Login failed. Please try again.'
+        fallbackError: 'Đăng nhập thất bại. Vui lòng thử lại.'
     }).then((data) => {
         if (!data?.token || !data?.user) {
-            throw new Error('Login failed. The system did not return complete login information.');
+            throw new Error('Đăng nhập thất bại. Hệ thống không trả về đầy đủ thông tin đăng nhập.');
         }
         return data;
     });
@@ -18,7 +18,7 @@ export function signup({ email, fullName, phone, password, roleName }) {
         method: 'POST',
         auth: false,
         body: { email, fullName, phone, password, roleName },
-        fallbackError: 'Registration failed. Please try again.'
+        fallbackError: 'Đăng ký thất bại. Vui lòng thử lại.'
     });
 }
 export function startGoogleLogin() {
@@ -54,7 +54,7 @@ export function logout() {
 }
 export function getMe() {
     return httpRequest('/api/user/me', {
-        fallbackError: 'Unable to get the current user information.'
+        fallbackError: 'Không thể lấy thông tin người dùng hiện tại.'
     });
 }
 export function updateStoredUser(user) {

@@ -45,7 +45,7 @@ public class AuthService {
         }
 
         if (!isPasswordValid(password, user)) {
-            throw new ApiException(HttpStatus.UNAUTHORIZED, "Sai password");
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "Mật khẩu không chính xác");
         }
 
         String roleName = user.getRole().getRoleName();
@@ -69,7 +69,7 @@ public class AuthService {
         }
 
         if (userRepository.existsByPhone(request.getPhone())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Phone already exists");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Số điện thoại đã tồn tại");
         }
 
         String roleName = normalizePublicRole(request.getRoleName());
@@ -91,7 +91,7 @@ public class AuthService {
         }
 
         if (userRepository.existsByPhone(request.getPhone())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Phone already exists");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Số điện thoại đã tồn tại");
         }
 
         Role role = getRoleByName(normalizeAdminRole(request.getRoleName()));
@@ -113,10 +113,10 @@ public class AuthService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Email không đúng định dạng");
         }
         if (password == null || password.isBlank()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Password không được để trống");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Mật khẩu không được để trống");
         }
         if (password.length() < 6 || password.length() > 72) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Password phải từ 6 đến 72 ký tự");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Mật khẩu phải có từ 6 đến 72 ký tự");
         }
     }
 
@@ -128,22 +128,22 @@ public class AuthService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Email không đúng định dạng");
         }
         if (request.getFullName() == null || request.getFullName().isBlank()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Full name không được để trống");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Họ và tên không được để trống");
         }
         if (request.getFullName().length() > 255) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Full name không được vượt quá 255 ký tự");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Họ và tên không được vượt quá 255 ký tự");
         }
         if (request.getPassword() == null || request.getPassword().isBlank()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Password không được để trống");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Mật khẩu không được để trống");
         }
         if (request.getPassword().length() < 6 || request.getPassword().length() > 72) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Password phải từ 6 đến 72 ký tự");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Mật khẩu phải có từ 6 đến 72 ký tự");
         }
         if (request.getPhone() == null || request.getPhone().isBlank()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Phone không được để trống");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Số điện thoại không được để trống");
         }
         if (!request.getPhone().matches(PHONE_REGEX)) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Phone phải gồm 9-15 chữ số và có thể bắt đầu bằng +");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Số điện thoại phải gồm 9-15 chữ số và có thể bắt đầu bằng +");
         }
         normalizePublicRole(request.getRoleName());
     }
@@ -158,14 +158,14 @@ public class AuthService {
                 && !normalizedRole.equals("JOCKEY")
                 && !normalizedRole.equals("SPECTATOR")) {
             throw new ApiException(HttpStatus.BAD_REQUEST,
-                    "Role đăng ký public chỉ được là OWNER, JOCKEY hoặc SPECTATOR");
+                    "Vai trò đăng ký công khai chỉ được là OWNER, JOCKEY hoặc SPECTATOR");
         }
         return normalizedRole;
     }
 
     private String normalizeAdminRole(String roleName) {
         if (roleName == null || roleName.isBlank()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Role không được để trống");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Vai trò không được để trống");
         }
 
         String normalizedRole = roleName.trim().toUpperCase();
@@ -175,7 +175,7 @@ public class AuthService {
                 && !normalizedRole.equals("REFEREE")
                 && !normalizedRole.equals("SPECTATOR")) {
             throw new ApiException(HttpStatus.BAD_REQUEST,
-                    "Role phải là ADMIN, OWNER, JOCKEY, REFEREE hoặc SPECTATOR");
+                    "Vai trò phải là ADMIN, OWNER, JOCKEY, REFEREE hoặc SPECTATOR");
         }
         return normalizedRole;
     }
@@ -183,7 +183,7 @@ public class AuthService {
     private Role getRoleByName(String roleName) {
         return roleRepository.findByRoleName(roleName)
                 .orElseThrow(() -> new ApiException(HttpStatus.INTERNAL_SERVER_ERROR,
-                        "Role " + roleName + " chưa được seed"));
+                        "Vai trò " + roleName + " chưa được khởi tạo trong hệ thống"));
     }
 
     private User createUser(String email, String fullName, String phone, String password, Role role, String status) {

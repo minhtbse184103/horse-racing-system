@@ -57,7 +57,7 @@ export default function RegisterForm({ onGoHome, onGoLogin }) {
         password: values.password,
         roleName: values.roleName
       });
-      setSuccessMessage('Account created successfully. You can now sign in.');
+      setSuccessMessage('Đã tạo tài khoản thành công. Bạn có thể đăng nhập ngay.');
       setValues({
         fullName: '',
         email: '',
@@ -66,7 +66,7 @@ export default function RegisterForm({ onGoHome, onGoLogin }) {
         roleName: 'OWNER'
       });
     } catch (error) {
-      setApiError(error.message || 'Registration failed. Please try again.');
+      setApiError(error.message || 'Đăng ký thất bại. Vui lòng thử lại.');
     } finally {
       setIsSubmitting(false);
     }
@@ -80,7 +80,7 @@ export default function RegisterForm({ onGoHome, onGoLogin }) {
 
   return (
     <AuthLayout>
-      <section className="py-2" aria-label="Create account form">
+      <section className="py-2" aria-label="Biểu mẫu tạo tài khoản">
         <div className="mb-7 flex flex-wrap items-center justify-between gap-3">
           <button
             className="inline-flex items-center gap-2 rounded-lg border border-brown-700/15 bg-white px-3.5 py-2.5 text-sm font-extrabold text-brown-700 shadow-sm transition hover:-translate-y-0.5 hover:border-brown-700/35 hover:bg-cream-200 hover:shadow-md"
@@ -88,7 +88,7 @@ export default function RegisterForm({ onGoHome, onGoLogin }) {
             onClick={onGoHome}
           >
             <ArrowLeft size={16} strokeWidth={2.5} />
-            Back to Home
+            Về trang chủ
           </button>
           <button
             className="inline-flex items-center gap-2 rounded-lg border border-brown-700/15 bg-cream-200 px-3.5 py-2.5 text-sm font-extrabold text-brown-700 transition hover:-translate-y-0.5 hover:border-brown-700/35 hover:bg-white hover:shadow-md"
@@ -96,7 +96,7 @@ export default function RegisterForm({ onGoHome, onGoLogin }) {
             onClick={onGoLogin}
           >
             <LogIn size={16} strokeWidth={2.5} />
-            Sign In
+            Đăng nhập
           </button>
         </div>
 
@@ -104,13 +104,13 @@ export default function RegisterForm({ onGoHome, onGoLogin }) {
           <Trophy size={19} />
         </span>
         <p className="text-xs font-extrabold uppercase tracking-widest text-brown-500">
-          Join the system
+          Tham gia hệ thống
         </p>
         <h2 className="mt-2 text-4xl font-black text-brown-900">
-          Create Account
+          Tạo tài khoản
         </h2>
         <p className="mt-3 font-medium text-slate-500">
-          Create an account to participate in the racing system.
+          Tạo tài khoản để tham gia hệ thống đua ngựa.
         </p>
 
         {apiError && (
@@ -134,14 +134,14 @@ export default function RegisterForm({ onGoHome, onGoLogin }) {
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="grid gap-2" htmlFor="fullName">
               <span className="text-sm font-extrabold text-brown-900">
-                Full Name
+                Họ và tên
               </span>
               <input
                 className={fieldClasses(errors.fullName)}
                 id="fullName"
                 name="fullName"
                 type="text"
-                placeholder="Your full name"
+                placeholder="Nhập họ và tên"
                 autoComplete="name"
                 value={values.fullName}
                 onChange={handleChange}
@@ -156,7 +156,7 @@ export default function RegisterForm({ onGoHome, onGoLogin }) {
 
             <label className="grid gap-2" htmlFor="phone">
               <span className="text-sm font-extrabold text-brown-900">
-                Phone Number
+                Số điện thoại
               </span>
               <input
                 className={fieldClasses(errors.phone)}
@@ -196,7 +196,7 @@ export default function RegisterForm({ onGoHome, onGoLogin }) {
           </label>
 
           <label className="grid gap-2" htmlFor="roleName">
-            <span className="text-sm font-extrabold text-brown-900">Role</span>
+            <span className="text-sm font-extrabold text-brown-900">Vai trò</span>
             <select
               className={fieldClasses(errors.roleName)}
               id="roleName"
@@ -205,9 +205,9 @@ export default function RegisterForm({ onGoHome, onGoLogin }) {
               onChange={handleChange}
               disabled={isSubmitting}
             >
-              <option value="OWNER">Owner</option>
-              <option value="JOCKEY">Jockey</option>
-              <option value="SPECTATOR">Spectator</option>
+              <option value="OWNER">Chủ ngựa</option>
+              <option value="JOCKEY">Nài ngựa</option>
+              <option value="SPECTATOR">Khán giả</option>
             </select>
             {errors.roleName && (
               <span className="text-xs font-bold text-danger">
@@ -219,7 +219,7 @@ export default function RegisterForm({ onGoHome, onGoLogin }) {
           <label className="grid gap-2" htmlFor="registerPassword">
             <span className="flex items-center justify-between gap-3">
               <span className="text-sm font-extrabold text-brown-900">
-                Password
+                Mật khẩu
               </span>
               <button
                 className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-extrabold text-brown-500 transition hover:bg-cream-200 hover:text-brown-700"
@@ -227,7 +227,7 @@ export default function RegisterForm({ onGoHome, onGoLogin }) {
                 onClick={() => setShowPassword((value) => !value)}
               >
                 {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
-                {showPassword ? 'Hide' : 'Show'}
+                {showPassword ? 'Ẩn' : 'Hiện'}
               </button>
             </span>
             <input
@@ -235,7 +235,7 @@ export default function RegisterForm({ onGoHome, onGoLogin }) {
               id="registerPassword"
               name="password"
               type={showPassword ? 'text' : 'password'}
-              placeholder="Minimum 6 characters"
+              placeholder="Tối thiểu 6 ký tự"
               autoComplete="new-password"
               value={values.password}
               onChange={handleChange}
@@ -253,18 +253,18 @@ export default function RegisterForm({ onGoHome, onGoLogin }) {
             type="submit"
             disabled={!isFormReady || isSubmitting}
           >
-            {isSubmitting ? 'Creating account...' : 'Create Account'}
+            {isSubmitting ? 'Đang tạo tài khoản...' : 'Tạo tài khoản'}
           </button>
         </form>
 
         <p className="mt-6 text-center text-sm font-semibold text-slate-500">
-          Already have an account?{' '}
+          Đã có tài khoản?{' '}
           <button
             className="rounded-md px-1.5 py-1 font-extrabold text-brown-500 transition hover:bg-cream-200 hover:text-brown-700"
             type="button"
             onClick={onGoLogin}
           >
-            Sign In
+            Đăng nhập
           </button>
         </p>
       </section>

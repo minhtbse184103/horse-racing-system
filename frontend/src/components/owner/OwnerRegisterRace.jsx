@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { getAllUsers } from '../../services/userService';
 import { cancelOwnerInvitation, getOwnerInvitations, getTournaments, inviteJockey } from '../../services/ownerService';
-import { formatDate, getHorseId, getHorseName, getUserId, getUserRole } from '../../lib';
+import { formatDate, formatDisplayLabel, getHorseId, getHorseName, getUserId, getUserRole } from '../../lib';
 
 const INVITATION_STATUS_OPTIONS = ['ALL', 'PENDING', 'ACCEPTED', 'REJECTED', 'CANCELLED', 'EXPIRED'];
 
@@ -67,29 +67,29 @@ function validateInvitationForm(formValues, horses, tournaments) {
   const expiredAt = formValues.expiredAt ? getDateTime(formValues.expiredAt) : null;
 
   if (!formValues.tournamentId) {
-    errors.tournamentId = 'Please choose a tournament.';
+    errors.tournamentId = 'Vui lòng chọn giải đấu.';
   } else if (!selectedTournament) {
-    errors.tournamentId = 'The selected tournament is not in the loaded list.';
+    errors.tournamentId = 'Giải đấu đã chọn không nằm trong danh sách đã tải.';
   } else if (!isAvailableTournament(selectedTournament)) {
-    errors.tournamentId = 'This tournament is no longer open for registration or its deadline has passed.';
+    errors.tournamentId = 'Giải đấu không còn mở đăng ký hoặc đã quá hạn đăng ký.';
   }
 
   if (!formValues.horseId) {
-    errors.horseId = 'Please choose a horse.';
+    errors.horseId = 'Vui lòng chọn ngựa.';
   } else if (!selectedHorse) {
-    errors.horseId = 'The selected horse is not in your horse list.';
+    errors.horseId = 'Ngựa đã chọn không nằm trong danh sách ngựa của bạn.';
   } else if (!isActiveHorse(selectedHorse)) {
-    errors.horseId = 'Only ACTIVE horses can be selected.';
+    errors.horseId = 'Chỉ có thể chọn ngựa ở trạng thái ACTIVE.';
   }
 
   if (!formValues.jockeyId) {
-    errors.jockeyId = 'Please choose a jockey.';
+    errors.jockeyId = 'Vui lòng chọn nài ngựa.';
   }
 
   if (formValues.expiredAt && !expiredAt) {
-    errors.expiredAt = 'Response deadline is invalid.';
+    errors.expiredAt = 'Hạn phản hồi không hợp lệ.';
   } else if (expiredAt && expiredAt.getTime() <= Date.now()) {
-    errors.expiredAt = 'Response deadline must be in the future.';
+    errors.expiredAt = 'Hạn phản hồi phải ở trong tương lai.';
   }
 
   return errors;
@@ -135,7 +135,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
       setJockeys((Array.isArray(userData) ? userData : []).filter((user) => getUserRole(user) === 'JOCKEY' && String(user.status || '').toUpperCase() === 'ACTIVE'));
       setInvitations(Array.isArray(invitationData) ? invitationData : []);
     } catch (err) {
-      setLoadError(getErrorText(err, 'Unable to load jockey invitation data.'));
+      setLoadError(getErrorText(err, 'Không thể tải dữ liệu lời mời nài ngựa.'));
     } finally {
       setIsLoading(false);
     }
@@ -167,12 +167,12 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
         expiredAt: formValues.expiredAt || null,
         message: formValues.message.trim() || null
       });
-      setMessage('Jockey invitation was sent. When the jockey accepts, the registration becomes ACCEPTED and waits for admin review.');
+      setMessage('Đã gửi lời mời nài ngựa. Khi nài ngựa chấp nhận, đơn đăng ký sẽ chuyển sang ACCEPTED và chờ quản trị viên xét duyệt.');
       setFormValues(emptyInvitationForm());
       setFormErrors({});
       await loadPageData();
     } catch (err) {
-      setSubmitError(getErrorText(err, 'Unable to send the jockey invitation.'));
+      setSubmitError(getErrorText(err, 'Không thể gửi lời mời nài ngựa.'));
     } finally {
       setIsSaving(false);
     }
@@ -182,7 +182,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
     const invitationId = getInvitationId(invitation);
     if (!invitationId) return;
 
-    const confirmed = window.confirm('Are you sure you want to cancel this jockey invitation?');
+    const confirmed = window.confirm('Bạn có chắc muốn hủy lời mời nài ngựa này?');
     if (!confirmed) return;
 
     setActingId(invitationId);
@@ -192,10 +192,10 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
 
     try {
       await cancelOwnerInvitation(invitationId);
-      setMessage('Jockey invitation was cancelled.');
+      setMessage('Đã hủy lời mời nài ngựa.');
       await loadPageData();
     } catch (err) {
-      setLoadError(getErrorText(err, 'Unable to cancel the invitation.'));
+      setLoadError(getErrorText(err, 'Không thể hủy lời mời.'));
     } finally {
       setActingId(null);
     }
@@ -209,105 +209,105 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
       <form className="owner-panel owner-form" onSubmit={handleSubmit} noValidate>
         <div className="owner-panel-header">
           <div>
-            <p className="eyebrow">Invitation</p>
-            <h2>Invite a Jockey to a Tournament</h2>
-            <p>Choose an open tournament, an ACTIVE horse, and an ACTIVE jockey to create a pending jockey invitation.</p>
+            <p className="eyebrow">Lời mời</p>
+            <h2>Mời nài ngựa tham gia giải đấu</h2>
+            <p>Chọn giải đấu đang mở đăng ký, ngựa ACTIVE và nài ngựa ACTIVE để tạo lời mời đang chờ phản hồi.</p>
           </div>
-          <button className="outline-button" type="button" onClick={onBackToHorses}>Back to Horses</button>
+          <button className="outline-button" type="button" onClick={onBackToHorses}>Quay lại danh sách ngựa</button>
         </div>
 
         {submitError && <div className="admin-alert error modal-alert" role="alert">{submitError}</div>}
 
         <div className="owner-form-row">
           <div>
-            <label className="field-label" htmlFor="ownerTournamentId">Tournament <span className="required">*</span></label>
+            <label className="field-label" htmlFor="ownerTournamentId">Giải đấu <span className="required">*</span></label>
             <select className={formErrors.tournamentId ? 'input has-error' : 'input'} id="ownerTournamentId" name="tournamentId" value={formValues.tournamentId} onChange={handleChange} disabled={isSaving || isLoading}>
-              <option value="">Choose an open tournament</option>
+              <option value="">Chọn giải đấu đang mở đăng ký</option>
               {availableTournaments.map((tournament) => {
                 const tournamentId = getTournamentId(tournament);
                 return <option key={tournamentId} value={tournamentId}>{formatTournamentOption(tournament)}</option>;
               })}
             </select>
             {formErrors.tournamentId && <p className="field-error">{formErrors.tournamentId}</p>}
-            {!isLoading && tournaments.length > 0 && availableTournaments.length === 0 && <p className="field-hint warning-text">No tournaments are currently open for registration.</p>}
+            {!isLoading && tournaments.length > 0 && availableTournaments.length === 0 && <p className="field-hint warning-text">Hiện không có giải đấu nào đang mở đăng ký.</p>}
           </div>
 
           <div>
-            <label className="field-label" htmlFor="ownerHorseId">ACTIVE Horse <span className="required">*</span></label>
+            <label className="field-label" htmlFor="ownerHorseId">Ngựa đang hoạt động <span className="required">*</span></label>
             <select className={formErrors.horseId ? 'input has-error' : 'input'} id="ownerHorseId" name="horseId" value={formValues.horseId} onChange={handleChange} disabled={isSaving}>
-              <option value="">Choose a horse</option>
+              <option value="">Chọn ngựa</option>
               {activeHorses.map((horse) => {
                 const horseId = getHorseId(horse);
                 return <option key={horseId} value={horseId}>{getHorseName(horse) || `Horse ${horseId}`}</option>;
               })}
             </select>
             {formErrors.horseId && <p className="field-error">{formErrors.horseId}</p>}
-            {horses.length > 0 && activeHorses.length === 0 && <p className="field-hint warning-text">You do not have any ACTIVE horses available for invitations.</p>}
+            {horses.length > 0 && activeHorses.length === 0 && <p className="field-hint warning-text">Bạn không có ngựa ACTIVE nào có thể gửi lời mời.</p>}
           </div>
         </div>
 
         <div className="owner-form-row">
           <div>
-            <label className="field-label" htmlFor="ownerJockeyId">ACTIVE Jockey <span className="required">*</span></label>
+            <label className="field-label" htmlFor="ownerJockeyId">Nài ngựa đang hoạt động <span className="required">*</span></label>
             <select className={formErrors.jockeyId ? 'input has-error' : 'input'} id="ownerJockeyId" name="jockeyId" value={formValues.jockeyId} onChange={handleChange} disabled={isSaving || isLoading}>
-              <option value="">Choose a jockey</option>
+              <option value="">Chọn nài ngựa</option>
               {jockeys.map((jockey) => {
                 const jockeyId = getUserId(jockey);
                 return <option key={jockeyId} value={jockeyId}>{jockey.fullName || jockey.email || `Jockey ${jockeyId}`}</option>;
               })}
             </select>
             {formErrors.jockeyId && <p className="field-error">{formErrors.jockeyId}</p>}
-            {!isLoading && jockeys.length === 0 && <p className="field-hint warning-text">No ACTIVE jockeys were found from API /api/user/all.</p>}
+            {!isLoading && jockeys.length === 0 && <p className="field-hint warning-text">Không tìm thấy nài ngựa ACTIVE nào.</p>}
           </div>
 
           <div>
-            <label className="field-label" htmlFor="ownerExpiredAt">Invitation Response Deadline</label>
+            <label className="field-label" htmlFor="ownerExpiredAt">Hạn phản hồi lời mời</label>
             <input className={formErrors.expiredAt ? 'input has-error' : 'input'} id="ownerExpiredAt" name="expiredAt" type="datetime-local" value={formValues.expiredAt} onChange={handleChange} disabled={isSaving} />
             {formErrors.expiredAt && <p className="field-error">{formErrors.expiredAt}</p>}
           </div>
         </div>
 
-        <label className="field-label" htmlFor="ownerInviteMessage">Message</label>
-        <textarea className="input textarea-input" id="ownerInviteMessage" name="message" rows={3} value={formValues.message} onChange={handleChange} disabled={isSaving} placeholder="Example: I would like to invite you to race with my horse." />
+        <label className="field-label" htmlFor="ownerInviteMessage">Lời nhắn</label>
+        <textarea className="input textarea-input" id="ownerInviteMessage" name="message" rows={3} value={formValues.message} onChange={handleChange} disabled={isSaving} placeholder="Ví dụ: Tôi muốn mời bạn thi đấu cùng ngựa của tôi." />
 
         <div className="admin-form-actions tournament-modal-actions">
-          <button className="primary-button" type="submit" disabled={isSaving || isLoading}>{isSaving ? 'Sending...' : 'Send Invitation'}</button>
-          <button className="outline-button" type="button" onClick={loadPageData} disabled={isLoading || isSaving}>{isLoading ? 'Loading...' : 'Refresh Data'}</button>
+          <button className="primary-button" type="submit" disabled={isSaving || isLoading}>{isSaving ? 'Đang gửi...' : 'Gửi lời mời'}</button>
+          <button className="outline-button" type="button" onClick={loadPageData} disabled={isLoading || isSaving}>{isLoading ? 'Đang tải...' : 'Làm mới dữ liệu'}</button>
         </div>
       </form>
 
       <section className="owner-panel">
         <div className="owner-panel-header">
           <div>
-            <h2>Sent Invitations</h2>
-            <p>Track invitation and registration statuses.</p>
+            <h2>Lời mời đã gửi</h2>
+            <p>Theo dõi trạng thái lời mời và đơn đăng ký.</p>
           </div>
           <div className="inline-filter-row">
             <select className="input compact-select" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
-              {INVITATION_STATUS_OPTIONS.map((status) => <option key={status} value={status}>{status === 'ALL' ? 'All statuses' : status}</option>)}
+              {INVITATION_STATUS_OPTIONS.map((status) => <option key={status} value={status}>{formatDisplayLabel(status)}</option>)}
             </select>
             <span className="owner-count-pill">{filteredInvitations.length} invitations</span>
           </div>
         </div>
 
         {isLoading ? (
-          <p className="table-empty">Loading invitations...</p>
+          <p className="table-empty">Đang tải lời mời...</p>
         ) : filteredInvitations.length === 0 ? (
-          <p className="table-empty">No invitations match the current filters.</p>
+          <p className="table-empty">Không có lời mời phù hợp với bộ lọc hiện tại.</p>
         ) : (
           <div className="table-wrapper">
             <table className="user-table">
               <thead>
                 <tr>
                   <th>ID</th>
-                  <th>Tournament</th>
-                  <th>Horse</th>
-                  <th>Jockey</th>
-                  <th>Created</th>
-                  <th>Expires</th>
-                  <th>Invitation</th>
-                  <th>Registration</th>
-                  <th>Actions</th>
+                  <th>Giải đấu</th>
+                  <th>Ngựa</th>
+                  <th>Nài ngựa</th>
+                  <th>Ngày tạo</th>
+                  <th>Hết hạn</th>
+                  <th>Lời mời</th>
+                  <th>Đăng ký</th>
+                  <th>Thao tác</th>
                 </tr>
               </thead>
               <tbody>
@@ -323,13 +323,13 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
                       <td>{invitation.jockeyName || invitation.jockeyId || 'N/A'}</td>
                       <td>{formatDate(invitation.createdAt)}</td>
                       <td>{formatDate(invitation.expiredAt)}</td>
-                      <td><span className={`status-badge ${String(invitation.status || '').toLowerCase()}`}>{invitation.status || 'N/A'}</span></td>
-                      <td><span className={`status-badge ${String(invitation.registrationStatus || '').toLowerCase()}`}>{invitation.registrationStatus || 'N/A'}</span></td>
+                      <td><span className={`status-badge ${String(invitation.status || '').toLowerCase()}`}>{formatDisplayLabel(invitation.status)}</span></td>
+                      <td><span className={`status-badge ${String(invitation.registrationStatus || '').toLowerCase()}`}>{formatDisplayLabel(invitation.registrationStatus)}</span></td>
                       <td>
                         {canCancel ? (
-                          <button type="button" className="table-button danger-action" onClick={() => handleCancel(invitation)} disabled={actingId === invitationId}>Cancel</button>
+                          <button type="button" className="table-button danger-action" onClick={() => handleCancel(invitation)} disabled={actingId === invitationId}>Hủy</button>
                         ) : (
-                          <span className="readonly-note">Cannot cancel</span>
+                          <span className="readonly-note">Không thể hủy</span>
                         )}
                       </td>
                     </tr>

@@ -15,18 +15,18 @@ public class SignupRequest {
     @Pattern(regexp = "^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$", message = "Email không đúng định dạng")
     private String email;
 
-    @NotBlank(message = "Full name không được để trống")
-    @Size(max = 255, message = "Full name không được vượt quá 255 ký tự")
+    @NotBlank(message = "Họ và tên không được để trống")
+    @Size(max = 255, message = "Họ và tên không được vượt quá 255 ký tự")
     private String fullName;
 
-    @NotBlank(message = "Phone không được để trống")
-    @Pattern(regexp = "^\\+?[0-9]{9,15}$", message = "Phone phải gồm 9-15 chữ số và có thể bắt đầu bằng +")
+    @NotBlank(message = "Số điện thoại không được để trống")
+    @Pattern(regexp = "^\\+?[0-9]{9,15}$", message = "Số điện thoại phải gồm 9-15 chữ số và có thể bắt đầu bằng +")
     private String phone;
 
-    @NotBlank(message = "Password không được để trống")
-    @Size(min = 6, max = 72, message = "Password phải từ 6 đến 72 ký tự")
+    @NotBlank(message = "Mật khẩu không được để trống")
+    @Size(min = 6, max = 72, message = "Mật khẩu phải có từ 6 đến 72 ký tự")
     private String password;
 
-    @Pattern(regexp = "(?i)OWNER|JOCKEY|SPECTATOR", message = "Role đăng ký public chỉ được là OWNER, JOCKEY hoặc SPECTATOR")
+    @Pattern(regexp = "(?i)OWNER|JOCKEY|SPECTATOR", message = "Vai trò đăng ký công khai chỉ được là OWNER, JOCKEY hoặc SPECTATOR")
     private String roleName;
 }

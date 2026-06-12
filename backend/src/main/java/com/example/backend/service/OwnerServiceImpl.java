@@ -118,7 +118,7 @@ public class OwnerServiceImpl implements OwnerService {
         String horseName = normalizeText(request.getHorseName());
 
         if (horseRepository.existsByHorseNameIgnoreCase(horseName)) {
-            throw new ApiException(HttpStatus.CONFLICT, "Horse name already exists.");
+            throw new ApiException(HttpStatus.CONFLICT, "Tên ngựa đã tồn tại.");
         }
 
         Horse horse = Horse.builder()
@@ -146,7 +146,7 @@ public class OwnerServiceImpl implements OwnerService {
         String horseName = normalizeText(request.getHorseName());
 
         if (horseRepository.existsByHorseNameIgnoreCaseAndHorseIdNot(horseName, horse.getHorseId())) {
-            throw new ApiException(HttpStatus.CONFLICT, "Horse name already exists.");
+            throw new ApiException(HttpStatus.CONFLICT, "Tên ngựa đã tồn tại.");
         }
 
         horse.setHorseName(horseName);
@@ -171,12 +171,12 @@ public class OwnerServiceImpl implements OwnerService {
 
         if (jockeyInvitationRepository.existsByHorseId(horse.getHorseId())) {
             throw new ApiException(HttpStatus.CONFLICT,
-                    "Horse already has jockey invitations and cannot be deleted.");
+                    "Ngựa đã có lời mời nài ngựa nên không thể xóa.");
         }
 
         if (registrationRepository.existsByHorseId(horse.getHorseId())) {
             throw new ApiException(HttpStatus.CONFLICT,
-                    "Horse already has tournament registrations and cannot be deleted.");
+                    "Ngựa đã có đơn đăng ký giải đấu nên không thể xóa.");
         }
 
         horseRepository.delete(horse);
@@ -212,12 +212,12 @@ public class OwnerServiceImpl implements OwnerService {
         if (registration != null
                 && !List.of(REGISTRATION_CANCELLED, REGISTRATION_REJECTED).contains(registration.getStatus())) {
             throw new ApiException(HttpStatus.CONFLICT,
-                    "This horse already has an active registration for the tournament.");
+                    "Ngựa này đã có đơn đăng ký đang hoạt động trong giải đấu.");
         }
 
         if (jockeyInvitationRepository.existsByTournamentIdAndHorseIdAndJockeyIdAndStatus(
                 tournament.tournamentId(), horse.getHorseId(), jockey.getUserID(), INVITATION_PENDING)) {
-            throw new ApiException(HttpStatus.CONFLICT, "A pending invitation already exists for this jockey.");
+            throw new ApiException(HttpStatus.CONFLICT, "Đã tồn tại lời mời đang chờ xử lý cho nài ngựa này.");
         }
 
         JockeyInvitation invitation = JockeyInvitation.builder()
@@ -245,7 +245,7 @@ public class OwnerServiceImpl implements OwnerService {
                 excludedRegistrationId);
         if (activeRegistrations > 0) {
             throw new ApiException(HttpStatus.CONFLICT,
-                    "This jockey already has an active registration for the tournament.");
+                    "Nài ngựa này đã có đơn đăng ký đang hoạt động trong giải đấu.");
         }
 
         if (jockeyInvitationRepository.existsActiveInvitationForTournamentAndJockey(
@@ -253,7 +253,7 @@ public class OwnerServiceImpl implements OwnerService {
                 jockeyId,
                 INVITATION_PENDING)) {
             throw new ApiException(HttpStatus.CONFLICT,
-                    "This jockey already has a pending invitation for the tournament.");
+                    "Nài ngựa này đã có lời mời đang chờ xử lý trong giải đấu.");
         }
     }
 
@@ -264,10 +264,10 @@ public class OwnerServiceImpl implements OwnerService {
         User owner = getCurrentOwner();
         JockeyInvitation invitation = jockeyInvitationRepository
                 .findByInvitationIdAndOwnerId(invitationId, owner.getUserID())
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Invitation does not exist."));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Lời mời không tồn tại."));
 
         if (!INVITATION_PENDING.equals(invitation.getStatus())) {
-            throw new ApiException(HttpStatus.CONFLICT, "Only pending invitations can be cancelled.");
+            throw new ApiException(HttpStatus.CONFLICT, "Chỉ có thể hủy lời mời đang ở trạng thái PENDING.");
         }
 
         Registration registration = invitation.getRegistrationId() != null
@@ -290,14 +290,14 @@ public class OwnerServiceImpl implements OwnerService {
     private User getCurrentOwner() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || authentication.getName() == null) {
-            throw new ApiException(HttpStatus.UNAUTHORIZED, "User is not authenticated.");
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "Người dùng chưa được xác thực.");
         }
 
         User user = userRepository.findByEmail(authentication.getName())
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Owner does not exist."));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Chủ ngựa không tồn tại."));
 
         if (user.getRole() == null || !ROLE_OWNER.equals(user.getRole().getRoleName())) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "Only owners can access this resource.");
+            throw new ApiException(HttpStatus.FORBIDDEN, "Chỉ chủ ngựa mới có thể truy cập tài nguyên này.");
         }
 
         return user;
@@ -307,27 +307,27 @@ public class OwnerServiceImpl implements OwnerService {
     private Horse getOwnedHorse(Integer horseId) {
         Integer ownerId = getCurrentOwner().getUserID();
         return horseRepository.findByHorseIdAndOwnerId(horseId, ownerId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Horse does not exist."));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Ngựa không tồn tại."));
     }
 
     // Lấy user jockey được mời và kiểm tra user đó có role JOCKEY cùng profile hợp lệ.
     private User getJockey(Integer jockeyId) {
         User jockey = userRepository.findById(jockeyId)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Jockey does not exist."));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Nài ngựa không tồn tại."));
 
         if (jockey.getRole() == null || !ROLE_JOCKEY.equals(jockey.getRole().getRoleName())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Selected user is not a jockey.");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Người dùng được chọn không phải là nài ngựa.");
         }
 
         if (!STATUS_ACTIVE.equals(jockey.getStatus())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Selected jockey account is not active.");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Tài khoản nài ngựa được chọn không hoạt động.");
         }
 
         JockeyProfile profile = jockeyProfileRepository.findById(jockeyId)
-                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Jockey profile does not exist."));
+                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Hồ sơ nài ngựa không tồn tại."));
 
         if (!STATUS_ACTIVE.equals(profile.getStatus())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Selected jockey profile is not active.");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Hồ sơ nài ngựa được chọn không hoạt động.");
         }
 
         return jockey;
@@ -336,17 +336,17 @@ public class OwnerServiceImpl implements OwnerService {
     // Kiểm tra ngựa đủ điều kiện đăng ký tournament trước khi owner gửi lời mời.
     private void validateHorseCanRegister(Horse horse, TournamentSnapshot tournament) {
         if (!STATUS_ACTIVE.equals(horse.getStatus())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Only active horses can be registered.");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Chỉ ngựa đang hoạt động mới có thể đăng ký.");
         }
 
         if (!TOURNAMENT_OPEN_FOR_REGISTRATION.equals(tournament.status())) {
             throw new ApiException(HttpStatus.BAD_REQUEST,
-                    "Only tournaments open for registration can accept owner registrations.");
+                    "Chỉ giải đấu đang mở đăng ký mới có thể nhận đơn đăng ký từ chủ ngựa.");
         }
 
         if (tournament.registrationDeadline() != null
                 && tournament.registrationDeadline().isBefore(LocalDateTime.now())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Tournament registration deadline has passed.");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Hạn đăng ký giải đấu đã qua.");
         }
 
         if (tournament.maxParticipants() != null) {
@@ -354,7 +354,7 @@ public class OwnerServiceImpl implements OwnerService {
                     tournament.tournamentId(),
                     List.of(REGISTRATION_ACCEPTED, REGISTRATION_CONFIRMED));
             if (activeRegistrations >= tournament.maxParticipants()) {
-                throw new ApiException(HttpStatus.CONFLICT, "Tournament has reached maximum participants.");
+                throw new ApiException(HttpStatus.CONFLICT, "Giải đấu đã đạt số người tham gia tối đa.");
             }
         }
     }
@@ -367,7 +367,7 @@ public class OwnerServiceImpl implements OwnerService {
 
         if (!expiredAt.isBefore(tournament.registrationDeadline())) {
             throw new ApiException(HttpStatus.BAD_REQUEST,
-                    "Invitation expiry must be before tournament registration deadline.");
+                    "Thời hạn lời mời phải trước hạn đăng ký của giải đấu.");
         }
     }
 
@@ -449,7 +449,7 @@ public class OwnerServiceImpl implements OwnerService {
     private TournamentSnapshot getTournamentSnapshot(Integer tournamentId) {
         TournamentSnapshot tournament = getTournamentSnapshotOrNull(tournamentId);
         if (tournament == null) {
-            throw new ApiException(HttpStatus.NOT_FOUND, "Tournament does not exist.");
+            throw new ApiException(HttpStatus.NOT_FOUND, "Giải đấu không tồn tại.");
         }
         return tournament;
     }

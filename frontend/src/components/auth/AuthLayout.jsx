@@ -3,18 +3,18 @@ import { CalendarDays, Flag, ShieldCheck, Trophy } from 'lucide-react';
 const FEATURES = [
   {
     icon: CalendarDays,
-    title: 'Tournament Operations',
-    description: 'Manage schedules, rounds, races, and registrations.'
+    title: 'Vận hành giải đấu',
+    description: 'Quản lý lịch trình, vòng đấu, cuộc đua và đơn đăng ký.'
   },
   {
     icon: ShieldCheck,
-    title: 'Verified Participation',
-    description: 'Connect owners, jockeys, admins, and referees.'
+    title: 'Người tham gia được xác minh',
+    description: 'Kết nối chủ ngựa, nài ngựa, quản trị viên và trọng tài.'
   },
   {
     icon: Flag,
-    title: 'Race Day Ready',
-    description: 'Assign entries and follow each event through the finish.'
+    title: 'Sẵn sàng cho ngày thi đấu',
+    description: 'Phân công suất thi đấu và theo dõi từng sự kiện đến khi kết thúc.'
   }
 ];
 
@@ -30,20 +30,20 @@ export default function AuthLayout({ children }) {
               </span>
               <div>
                 <strong className="block text-lg font-extrabold">
-                  Horse Racing System
+                  Hệ thống đua ngựa
                 </strong>
                 <span className="text-xs font-bold uppercase tracking-widest text-gold-400">
-                  Equestrian Tournament
+                  Giải đua ngựa
                 </span>
               </div>
             </div>
 
             <h1 className="mt-16 max-w-2xl text-5xl font-black leading-tight xl:text-6xl">
-              Every race begins with a well-managed starting gate.
+              Mỗi cuộc đua bắt đầu từ một vạch xuất phát được quản lý tốt.
             </h1>
             <p className="mt-6 max-w-xl text-base font-medium leading-7 text-cream-100/70">
-              Sign in to manage tournaments, horses, registrations, race
-              assignments, and official results.
+              Đăng nhập để quản lý giải đấu, ngựa, đơn đăng ký, phân công cuộc
+              đua và kết quả chính thức.
             </p>
           </div>
 

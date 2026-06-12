@@ -13,7 +13,7 @@ export default function OwnerHorseForm({
     <form className="owner-panel owner-form" onSubmit={onSubmit}>
       <div className="owner-panel-header">
         <div>
-          <h2>{editingHorse ? 'Update Horse Profile' : 'Add New Horse'}</h2>
+          <h2>{editingHorse ? 'Cập nhật hồ sơ ngựa' : 'Thêm ngựa mới'}</h2>
           <p>
             New and edited horse profiles are submitted as PENDING for admin approval.
             Owners cannot choose the horse status manually.
@@ -35,7 +35,7 @@ export default function OwnerHorseForm({
         id="horseName"
         name="horseName"
         type="text"
-        placeholder="Example: Thunder Bolt"
+        placeholder="Ví dụ: Thunder Bolt"
         value={formValues.horseName}
         onChange={onChange}
         disabled={isSaving}
@@ -69,7 +69,7 @@ export default function OwnerHorseForm({
             id="horseColor"
             name="color"
             type="text"
-            placeholder="Brown, Black, White..."
+            placeholder="Nâu, đen, trắng..."
             value={formValues.color}
             onChange={onChange}
             disabled={isSaving}
@@ -78,7 +78,7 @@ export default function OwnerHorseForm({
         </div>
       </div>
 
-      <label className="field-label" htmlFor="horseGender">Gender</label>
+      <label className="field-label" htmlFor="horseGender">Giới tính</label>
       <select
         className="input"
         id="horseGender"
@@ -87,8 +87,8 @@ export default function OwnerHorseForm({
         onChange={onChange}
         disabled={isSaving}
       >
-        <option value="MALE">MALE</option>
-        <option value="FEMALE">FEMALE</option>
+        <option value="MALE">Đực</option>
+        <option value="FEMALE">Cái</option>
       </select>
 
       <div className="owner-form-row">
@@ -145,16 +145,16 @@ export default function OwnerHorseForm({
       <div className={errors.imgUrl ? 'image-upload-card has-error' : 'image-upload-card'}>
         <div className="horse-image-preview">
           {formValues.imgUrl ? (
-            <img src={formValues.imgUrl} alt="Horse preview" />
+            <img src={formValues.imgUrl} alt="Xem trước ảnh ngựa" />
           ) : (
             <span>🐎</span>
           )}
         </div>
 
         <div className="image-upload-content">
-          <span>Horse Image</span>
-          <strong>Import image from your computer</strong>
-          <small>PNG, JPG, WEBP, or SVG. The image will be submitted with the horse profile.</small>
+          <span>Ảnh ngựa</span>
+          <strong>Nhập ảnh từ máy tính</strong>
+          <small>PNG, JPG, WEBP hoặc SVG. Ảnh sẽ được gửi cùng hồ sơ ngựa.</small>
 
           <label className="image-upload-button" htmlFor="horseImage">
             Choose Image
@@ -174,11 +174,11 @@ export default function OwnerHorseForm({
 
       <div className="admin-form-actions">
         <button className="primary-button" type="submit" disabled={isSaving}>
-          {isSaving ? 'Saving...' : editingHorse ? 'Update Profile' : 'Submit Horse'}
+          {isSaving ? 'Đang lưu...' : editingHorse ? 'Cập nhật hồ sơ' : 'Gửi hồ sơ ngựa'}
         </button>
 
         <button className="outline-button" type="button" onClick={onCancelEdit} disabled={isSaving}>
-          {editingHorse ? 'Cancel Edit' : 'Close Form'}
+          {editingHorse ? 'Hủy chỉnh sửa' : 'Đóng biểu mẫu'}
         </button>
       </div>
     </form>

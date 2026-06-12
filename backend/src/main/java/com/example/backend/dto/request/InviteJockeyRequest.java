@@ -11,16 +11,16 @@ import lombok.Setter;
 @Setter
 public class InviteJockeyRequest {
 
-    @NotNull(message = "Tournament id is required")
+    @NotNull(message = "Mã giải đấu là bắt buộc")
     private Integer tournamentId;
 
-    @NotNull(message = "Horse id is required")
+    @NotNull(message = "Mã ngựa là bắt buộc")
     private Integer horseId;
 
-    @NotNull(message = "Jockey id is required")
+    @NotNull(message = "Mã nài ngựa là bắt buộc")
     private Integer jockeyId;
 
-    @Future(message = "Expired time must be in the future")
+    @Future(message = "Thời gian hết hạn phải ở trong tương lai")
     private LocalDateTime expiredAt;
 
     private String message;

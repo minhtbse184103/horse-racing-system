@@ -11,6 +11,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -43,61 +44,61 @@ public class RefereeAssignmentService {
         Race race = raceRepository.findByIdForUpdate(request.getRaceId())
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
-                        "Race does not exist."
+                        "Cuộc đua không tồn tại."
                 ));
 
         if (!EventStatus.DRAFT.equals(race.getStatus())) {
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
-                    "Referees can only be assigned to draft races."
+                    "Chỉ có thể phân công trọng tài cho cuộc đua đang ở trạng thái DRAFT."
             );
         }
 
         TournamentRound round = roundRepository.findById(race.getRoundId())
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
-                        "Tournament round does not exist."
+                        "Vòng đấu không tồn tại."
                 ));
 
         Tournament tournament = tournamentRepository
                 .findById(round.getTournamentId())
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
-                        "Tournament does not exist."
+                        "Giải đấu không tồn tại."
                 ));
 
         if (!EventStatus.OPEN_FOR_REGISTRATION.equals(tournament.getStatus())) {
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
-                    "Referees can only be assigned while registration is open."
+                    "Chỉ có thể phân công trọng tài khi giải đấu đang mở đăng ký."
             );
         }
 
         User referee = userRepository.findById(request.getRefereeUserId())
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
-                        "Referee does not exist."
+                        "Trọng tài không tồn tại."
                 ));
 
         if (referee.getRole() == null
                 || !"REFEREE".equalsIgnoreCase(referee.getRole().getRoleName())) {
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
-                    "Selected user is not a referee."
+                    "Người dùng được chọn không phải là trọng tài."
             );
         }
 
         if (!"ACTIVE".equalsIgnoreCase(referee.getStatus())) {
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
-                    "Selected referee is not active."
+                    "Trọng tài được chọn không hoạt động."
             );
         }
 
         if (assignmentRepository.existsByRaceId(race.getRaceId())) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
-                    "This race already has a referee."
+                    "Cuộc đua này đã có trọng tài."
             );
         }
 
@@ -108,7 +109,7 @@ public class RefereeAssignmentService {
         )) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
-                    "Referee is already assigned to an overlapping race."
+                    "Trọng tài đã được phân công cho một cuộc đua bị trùng thời gian."
             );
         }
 
@@ -124,49 +125,117 @@ public class RefereeAssignmentService {
             Integer raceId,
             Integer refereeUserId
     ) {
+        Race race = raceRepository.findByIdForUpdate(raceId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "Cuộc đua không tồn tại."
+                ));
+
         RefereeAssignment existing = assignmentRepository.findByRaceId(raceId)
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
-                        "Race does not have a referee assignment."
+                        "Cuộc đua chưa có phân công trọng tài."
                 ));
 
         if (existing.getRefereeUserId().equals(refereeUserId)) {
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
-                    "This referee is already assigned to the race."
+                    "Trọng tài này đã được phân công cho cuộc đua."
             );
         }
 
-        existing.setStatus("Cancelled");
-        assignmentRepository.save(existing);
+        validateRaceCanReceiveAssignment(race);
+        User referee = validateReferee(refereeUserId);
 
-        CreateRefereeAssignmentRequest request = new CreateRefereeAssignmentRequest();
-        request.setRaceId(raceId);
-        request.setRefereeUserId(refereeUserId);
+        if (assignmentRepository.existsOverlappingAssignment(
+                referee.getUserID(),
+                race.getStartTime(),
+                race.getEndTime()
+        )) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "Trọng tài đã được phân công cho một cuộc đua bị trùng thời gian."
+            );
+        }
 
-        assignmentRepository.delete(existing);
-        assignmentRepository.flush();
+        existing.setRefereeUserId(referee.getUserID());
+        existing.setAssignedAt(LocalDateTime.now());
+        existing.setStatus("Assigned");
 
-        return createAssignment(request);
+        return assignmentRepository.save(existing);
+    }
+
+    private void validateRaceCanReceiveAssignment(Race race) {
+        if (!EventStatus.DRAFT.equals(race.getStatus())) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Chỉ có thể phân công trọng tài cho cuộc đua đang ở trạng thái DRAFT."
+            );
+        }
+
+        TournamentRound round = roundRepository.findById(race.getRoundId())
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "Vòng đấu không tồn tại."
+                ));
+
+        Tournament tournament = tournamentRepository
+                .findById(round.getTournamentId())
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "Giải đấu không tồn tại."
+                ));
+
+        if (!EventStatus.OPEN_FOR_REGISTRATION.equals(tournament.getStatus())) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Chỉ có thể phân công trọng tài khi giải đấu đang mở đăng ký."
+            );
+        }
+    }
+
+    private User validateReferee(Integer refereeUserId) {
+        User referee = userRepository.findById(refereeUserId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "Trọng tài không tồn tại."
+                ));
+
+        if (referee.getRole() == null
+                || !"REFEREE".equalsIgnoreCase(referee.getRole().getRoleName())) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Người dùng được chọn không phải là trọng tài."
+            );
+        }
+
+        if (!"ACTIVE".equalsIgnoreCase(referee.getStatus())) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Trọng tài được chọn không hoạt động."
+            );
+        }
+
+        return referee;
     }
     @Transactional
     public void removeAssignment(Integer raceId) {
         RefereeAssignment assignment = assignmentRepository.findByRaceId(raceId)
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
-                        "Race does not have a referee assignment."
+                        "Cuộc đua chưa có phân công trọng tài."
                 ));
 
         Race race = raceRepository.findById(raceId)
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
-                        "Race does not exist."
+                        "Cuộc đua không tồn tại."
                 ));
 
         if (!EventStatus.DRAFT.equals(race.getStatus())) {
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
-                    "Referee assignment can only be removed from draft races."
+                    "Chỉ có thể gỡ phân công trọng tài khỏi cuộc đua đang ở trạng thái DRAFT."
             );
         }
 
@@ -184,7 +253,7 @@ public class RefereeAssignmentService {
         RefereeAssignment assignment = assignmentRepository.findByRaceId(raceId)
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
-                        "Race does not have a referee assignment."
+                        "Cuộc đua chưa có phân công trọng tài."
                 ));
 
         return toResponse(assignment);
@@ -217,25 +286,25 @@ public class RefereeAssignmentService {
         Race race = raceRepository.findById(assignment.getRaceId())
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
-                        "Assigned race does not exist."
+                        "Cuộc đua được phân công không tồn tại."
                 ));
 
         TournamentRound round = roundRepository.findById(race.getRoundId())
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
-                        "Assigned tournament round does not exist."
+                        "Vòng đấu được phân công không tồn tại."
                 ));
 
         Tournament tournament = tournamentRepository.findById(round.getTournamentId())
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
-                        "Assigned tournament does not exist."
+                        "Giải đấu được phân công không tồn tại."
                 ));
 
         User referee = userRepository.findById(assignment.getRefereeUserId())
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
-                        "Assigned referee does not exist."
+                        "Trọng tài được phân công không tồn tại."
                 ));
 
         return RefereeAssignmentResponse.builder()

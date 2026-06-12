@@ -32,7 +32,7 @@ export default function LandingPage({ onGoLogin, onGoRegister }) {
         setTournaments(Array.isArray(tournamentData) ? tournamentData : []);
         setConditions(Array.isArray(conditionData) ? conditionData : []);
       } catch (err) {
-        setError(err.message || "Unable to load tournament information.");
+        setError(err.message || "Không thể tải thông tin giải đấu.");
       } finally {
         setIsLoading(false);
       }
@@ -60,7 +60,7 @@ export default function LandingPage({ onGoLogin, onGoRegister }) {
           ...tournament,
           conditionName:
             conditionById.get(String(tournament.conditionId)) ||
-            `Condition ${tournament.conditionId}`
+            `Điều kiện ${tournament.conditionId}`
         }))
         .sort((a, b) => String(a.startDate).localeCompare(String(b.startDate))),
     [tournaments, conditionById]
@@ -69,7 +69,7 @@ export default function LandingPage({ onGoLogin, onGoRegister }) {
   const heroStats = useMemo(
     () => [
       {
-        label: "Active Tournaments",
+        label: "Giải đấu đang hoạt động",
         value: tournaments.filter((tournament) =>
           ["OpenForRegistration", "ClosedRegistration", "Ongoing"].includes(
             tournament.status
@@ -77,13 +77,13 @@ export default function LandingPage({ onGoLogin, onGoRegister }) {
         ).length
       },
       {
-        label: "Open Registration",
+        label: "Đang mở đăng ký",
         value: tournaments.filter(
           (tournament) => tournament.status === "OpenForRegistration"
         ).length
       },
       {
-        label: "Available Capacity",
+        label: "Sức chứa còn lại",
         value: visibleTournaments.reduce(
           (total, tournament) => total + Number(tournament.maxParticipants || 0),
           0

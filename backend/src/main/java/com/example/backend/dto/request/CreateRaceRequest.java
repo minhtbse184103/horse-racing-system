@@ -7,17 +7,17 @@ import java.time.LocalDateTime;
 
 public class CreateRaceRequest {
 
-    @NotNull(message = "Tournament round is required")
+    @NotNull(message = "Vòng đấu là bắt buộc")
     private Integer roundId;
 
-    @NotNull(message = "Start time is required")
+    @NotNull(message = "Thời gian bắt đầu là bắt buộc")
     private LocalDateTime startTime;
 
-    @NotNull(message = "End time is required")
+    @NotNull(message = "Thời gian kết thúc là bắt buộc")
     private LocalDateTime endTime;
 
-    @NotNull(message = "Distance is required")
-    @Positive(message = "Distance must be positive")
+    @NotNull(message = "Cự ly là bắt buộc")
+    @Positive(message = "Cự ly phải lớn hơn 0")
     private Integer distance;
 
     public Integer getRoundId() {

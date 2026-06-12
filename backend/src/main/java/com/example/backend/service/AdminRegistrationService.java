@@ -97,12 +97,12 @@ public class AdminRegistrationService {
     private Registration getAcceptedRegistration(Integer registrationId) {
         Registration registration = registrationRepository.findByIdForUpdate(registrationId)
                 .orElseThrow(() ->
-                        new ApiException(HttpStatus.NOT_FOUND, "Registration does not exist."));
+                        new ApiException(HttpStatus.NOT_FOUND, "Đơn đăng ký không tồn tại."));
 
         if (!ACCEPTED.equals(registration.getStatus())) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
-                    "Only accepted registrations can be reviewed.");
+                    "Chỉ có thể xét duyệt đơn đăng ký đang ở trạng thái ACCEPTED.");
         }
 
         return registration;
@@ -158,32 +158,32 @@ public class AdminRegistrationService {
     private Tournament getTournamentForUpdate(Integer tournamentId) {
         return tournamentRepository.findByIdForUpdate(tournamentId)
                 .orElseThrow(() ->
-                        new ApiException(HttpStatus.NOT_FOUND, "Tournament does not exist."));
+                        new ApiException(HttpStatus.NOT_FOUND, "Giải đấu không tồn tại."));
     }
 
     private TournamentCondition getTournamentCondition(Integer conditionId) {
         return tournamentConditionRepository.findById(conditionId)
                 .orElseThrow(() ->
-                        new ApiException(HttpStatus.NOT_FOUND, "Tournament condition does not exist."));
+                        new ApiException(HttpStatus.NOT_FOUND, "Điều kiện giải đấu không tồn tại."));
     }
 
     private Horse getHorse(Integer horseId) {
         return horseRepository.findById(horseId)
                 .orElseThrow(() ->
-                        new ApiException(HttpStatus.NOT_FOUND, "Horse does not exist."));
+                        new ApiException(HttpStatus.NOT_FOUND, "Ngựa không tồn tại."));
     }
 
     private User getUser(Integer userId, String userType) {
         return userRepository.findById(userId)
                 .orElseThrow(() ->
-                        new ApiException(HttpStatus.NOT_FOUND, userType + " does not exist."));
+                        new ApiException(HttpStatus.NOT_FOUND, userType + " không tồn tại."));
     }
 
     private User getJockey(Integer jockeyId) {
         if (jockeyId == null) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
-                    "Registration does not have an accepted jockey.");
+                    "Đơn đăng ký chưa có nài ngựa đã chấp nhận lời mời.");
         }
 
         return getUser(jockeyId, "Jockey");
@@ -192,14 +192,14 @@ public class AdminRegistrationService {
     private JockeyProfile getJockeyProfile(Integer jockeyId) {
         return jockeyProfileRepository.findById(jockeyId)
                 .orElseThrow(() ->
-                        new ApiException(HttpStatus.NOT_FOUND, "Jockey profile does not exist."));
+                        new ApiException(HttpStatus.NOT_FOUND, "Hồ sơ nài ngựa không tồn tại."));
     }
     private void validateTournament(Tournament tournament) {
         if (!EventStatus.OPEN_FOR_REGISTRATION.equals(tournament.getStatus())
                 && !EventStatus.CLOSED_REGISTRATION.equals(tournament.getStatus())) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
-                    "Tournament must be open or closed for registration.");
+                    "Giải đấu phải đang mở hoặc đã đóng đăng ký.");
         }
     }
 
@@ -207,7 +207,7 @@ public class AdminRegistrationService {
         if (!ACTIVE.equals(owner.getStatus())) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
-                    "Owner account is not active.");
+                    "Tài khoản chủ ngựa không hoạt động.");
         }
     }
     private void validateHorse(
@@ -219,27 +219,27 @@ public class AdminRegistrationService {
         if (!Objects.equals(horse.getOwnerId(), registration.getOwnerId())) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
-                    "Horse does not belong to the registration owner.");
+                    "Ngựa không thuộc sở hữu của chủ đơn đăng ký.");
         }
 
         if (!ACTIVE.equals(horse.getStatus())) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
-                    "Horse is not active.");
+                    "Ngựa không ở trạng thái ACTIVE.");
         }
 
         if (horse.getHealthCertExpiry() == null
                 || horse.getHealthCertExpiry().isBefore(tournament.getStartDate())) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
-                    "Horse health certificate expires before the tournament starts.");
+                    "Giấy chứng nhận sức khỏe của ngựa hết hạn trước khi giải đấu bắt đầu.");
         }
 
         if (horse.getWeight() == null
                 || horse.getWeight().compareTo(condition.getMaxHorseWeight()) > 0) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
-                    "Horse exceeds the tournament weight limit.");
+                    "Cân nặng của ngựa vượt quá giới hạn của giải đấu.");
         }
     }
     private void validateJockey(
@@ -251,19 +251,19 @@ public class AdminRegistrationService {
         if (!Objects.equals(jockey.getUserID(), registration.getJockeyId())) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
-                    "Registration jockey is invalid.");
+                    "Nài ngựa trong đơn đăng ký không hợp lệ.");
         }
 
         if (!ACTIVE.equals(jockey.getStatus())) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
-                    "Jockey account is not active.");
+                    "Tài khoản nài ngựa không hoạt động.");
         }
 
         if (!ACTIVE.equals(jockeyProfile.getStatus())) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
-                    "Jockey profile is not active.");
+                    "Hồ sơ nài ngựa không hoạt động.");
         }
 
         if (jockeyProfile.getWeight() == null
@@ -271,7 +271,7 @@ public class AdminRegistrationService {
                 .compareTo(condition.getMaxJockeyWeight()) > 0) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
-                    "Jockey exceeds the tournament weight limit.");
+                    "Nài ngựa vượt quá giới hạn cân nặng của giải đấu.");
         }
     }
     private void validateTournamentCapacity(Tournament tournament) {
@@ -282,7 +282,7 @@ public class AdminRegistrationService {
         if (confirmedCount >= tournament.getMaxParticipants()) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
-                    "Tournament has reached maximum participants.");
+                    "Giải đấu đã đạt số người tham gia tối đa.");
         }
     }
 
@@ -300,7 +300,7 @@ public class AdminRegistrationService {
         if (confirmedHorseCount > 0) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
-                    "Horse already has a confirmed registration for this tournament.");
+                    "Ngựa đã có đơn đăng ký được xác nhận trong giải đấu này.");
         }
 
         long confirmedJockeyCount =
@@ -314,7 +314,7 @@ public class AdminRegistrationService {
         if (confirmedJockeyCount > 0) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
-                    "Jockey already has a confirmed registration for this tournament.");
+                    "Nài ngựa đã có đơn đăng ký được xác nhận trong giải đấu này.");
         }
     }
 

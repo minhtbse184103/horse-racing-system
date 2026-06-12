@@ -1,10 +1,10 @@
 import API_BASE_URL from '../configs/apiConfig';
 
 const MESSAGE_TRANSLATIONS = {
-  'Horse name is required': 'Horse name is required.',
+  'Horse name is required': 'Tên ngựa là bắt buộc.',
   'Age must be zero or positive': 'Age must be zero or positive.',
   'Weight must be a positive number': 'Weight must be a positive number.',
-  'Weight is required': 'Weight is required.',
+  'Weight is required': 'Cân nặng là bắt buộc.',
   'Horse has participated in at least one race and cannot be deleted.': 'Horse has participated in at least one race and cannot be deleted.',
   'User is not authenticated.': 'You must sign in to continue.',
   'Only owners can access this resource.': 'Only horse owners can access this feature.',
@@ -14,22 +14,22 @@ const MESSAGE_TRANSLATIONS = {
   'Email already exists': 'Email already exists.',
   'Role not found': 'Role is invalid.',
   'Account is not active': 'Account is not ACTIVE and cannot sign in.',
-  'Horse name must be between 2 and 100 characters': 'Horse name must be between 2 and 100 characters.',
-  'Horse name contains invalid characters': 'Horse name contains invalid characters.',
-  'Breed is required': 'Breed is required.',
-  'Breed must be between 2 and 100 characters': 'Breed must be between 2 and 100 characters.',
-  'Breed contains invalid characters': 'Breed contains invalid characters.',
+  'Horse name must be between 2 and 100 characters': 'Tên ngựa phải có từ 2 đến 100 ký tự.',
+  'Horse name contains invalid characters': 'Tên ngựa chứa ký tự không hợp lệ.',
+  'Breed is required': 'Giống ngựa là bắt buộc.',
+  'Breed must be between 2 and 100 characters': 'Tên giống ngựa phải có từ 2 đến 100 ký tự.',
+  'Breed contains invalid characters': 'Tên giống ngựa chứa ký tự không hợp lệ.',
   'Gender is required': 'Gender is required.',
   'Gender must be MALE or FEMALE': 'Gender must be MALE or FEMALE.',
-  'Color is required': 'Coat color is required.',
-  'Color must be between 2 and 50 characters': 'Coat color must be between 2 and 50 characters.',
-  'Color contains invalid characters': 'Coat color contains invalid characters.',
-  'Date of birth is required': 'Birth date is required.',
-  'Date of birth must be today or in the past': 'Birth date must be today or in the past.',
+  'Color is required': 'Màu lông là bắt buộc.',
+  'Color must be between 2 and 50 characters': 'Màu lông phải có từ 2 đến 50 ký tự.',
+  'Color contains invalid characters': 'Màu lông chứa ký tự không hợp lệ.',
+  'Date of birth is required': 'Ngày sinh là bắt buộc.',
+  'Date of birth must be today or in the past': 'Ngày sinh phải là hôm nay hoặc một ngày trong quá khứ.',
   'Horse weight must be at least 200 kg': 'Horse weight must be at least 200 kg.',
   'Horse weight must not exceed 1000 kg': 'Horse weight must not exceed 1000 kg.',
-  'Health certificate expiry is required': 'Health certificate expiry is required.',
-  'Health certificate expiry must be today or in the future': 'Health certificate expiry must be today or in the future.',
+  'Health certificate expiry is required': 'Ngày hết hạn chứng nhận sức khỏe là bắt buộc.',
+  'Health certificate expiry must be today or in the future': 'Ngày hết hạn chứng nhận sức khỏe phải là hôm nay hoặc một ngày trong tương lai.',
   'Status is required': 'Status is required.',
   'Status must be ACTIVE or INACTIVE': 'Status must be ACTIVE or INACTIVE.',
   'Image URL is required': 'Profile image is required.',
@@ -54,9 +54,9 @@ const MESSAGE_TRANSLATIONS = {
   'Tournament registration deadline must not have passed.': 'Tournament registration deadline must not have passed.',
   'Tournament participant limits are invalid.': 'Tournament participant limits are invalid.',
   'Tournament must have the required draft rounds before registration can open.': 'Tournament must have the required draft rounds before registration can open.',
-  'Tournament id is required': 'Please choose a tournament.',
-  'Horse id is required': 'Please choose a horse.',
-  'Jockey id is required': 'Please choose a jockey.',
+  'Tournament id is required': 'Vui lòng chọn giải đấu.',
+  'Horse id is required': 'Vui lòng chọn ngựa.',
+  'Jockey id is required': 'Vui lòng chọn nài ngựa.',
   'Expired time must be in the future': 'Invitation response deadline must be in the future.',
   'Only active horses can be invited.': 'Only ACTIVE horses can be invited.',
   'Only active horses can be registered.': 'Only ACTIVE horses can be registered.',
@@ -103,7 +103,7 @@ function hasErrorsArray(value) {
   return typeof value === 'object' && value !== null && Array.isArray(value.errors);
 }
 
-export function getErrorMessage(data, fallbackMessage = 'Something went wrong. Please try again.') {
+export function getErrorMessage(data, fallbackMessage = 'Đã xảy ra lỗi. Vui lòng thử lại.') {
   if (!data) return fallbackMessage;
   if (typeof data === 'string') return translateMessage(data);
   if (hasStringField(data, 'message')) return translateMessage(data.message);
@@ -130,7 +130,7 @@ function isFormData(value) {
 }
 
 export async function httpRequest(path, options = {}) {
-  const { method = 'GET', body, auth = true, headers = {}, fallbackError = 'Something went wrong. Please try again.' } = options;
+  const { method = 'GET', body, auth = true, headers = {}, fallbackError = 'Đã xảy ra lỗi. Vui lòng thử lại.' } = options;
   const requestHeaders = { ...headers };
 
   if (!isFormData(body)) {
@@ -140,7 +140,7 @@ export async function httpRequest(path, options = {}) {
   if (auth) {
     const token = getStoredToken();
     if (!token) {
-      throw new Error('You are not signed in or your token has expired.');
+      throw new Error('Bạn chưa đăng nhập hoặc phiên đăng nhập đã hết hạn.');
     }
     requestHeaders.Authorization = `Bearer ${token}`;
   }

@@ -18,39 +18,39 @@ import lombok.Setter;
 @Setter
 public class CreateHorseRequest {
 
-    @NotBlank(message = "Horse name is required")
-    @Size(min = 2, max = 100, message = "Horse name must be between 2 and 100 characters")
-    @Pattern(regexp = "^[\\p{L}0-9][\\p{L}0-9 .'-]*$", message = "Horse name contains invalid characters")
+    @NotBlank(message = "Tên ngựa là bắt buộc")
+    @Size(min = 2, max = 100, message = "Tên ngựa phải có từ 2 đến 100 ký tự")
+    @Pattern(regexp = "^[\\p{L}0-9][\\p{L}0-9 .'-]*$", message = "Tên ngựa chứa ký tự không hợp lệ")
     private String horseName;
 
-    @NotBlank(message = "Breed is required")
-    @Size(min = 2, max = 100, message = "Breed must be between 2 and 100 characters")
-    @Pattern(regexp = "^[\\p{L}0-9][\\p{L}0-9 .'-]*$", message = "Breed contains invalid characters")
+    @NotBlank(message = "Giống ngựa là bắt buộc")
+    @Size(min = 2, max = 100, message = "Tên giống ngựa phải có từ 2 đến 100 ký tự")
+    @Pattern(regexp = "^[\\p{L}0-9][\\p{L}0-9 .'-]*$", message = "Tên giống ngựa chứa ký tự không hợp lệ")
     private String breed;
 
-    @NotBlank(message = "Gender is required")
-    @Pattern(regexp = "(?i)MALE|FEMALE", message = "Gender must be MALE or FEMALE")
+    @NotBlank(message = "Giới tính là bắt buộc")
+    @Pattern(regexp = "(?i)MALE|FEMALE", message = "Giới tính phải là MALE hoặc FEMALE")
     private String gender;
 
-    @NotBlank(message = "Color is required")
-    @Size(min = 2, max = 50, message = "Color must be between 2 and 50 characters")
-    @Pattern(regexp = "^[\\p{L}][\\p{L} .'-]*$", message = "Color contains invalid characters")
+    @NotBlank(message = "Màu lông là bắt buộc")
+    @Size(min = 2, max = 50, message = "Màu lông phải có từ 2 đến 50 ký tự")
+    @Pattern(regexp = "^[\\p{L}][\\p{L} .'-]*$", message = "Màu lông chứa ký tự không hợp lệ")
     private String color;
 
-    @NotNull(message = "Date of birth is required")
-    @PastOrPresent(message = "Date of birth must be today or in the past")
+    @NotNull(message = "Ngày sinh là bắt buộc")
+    @PastOrPresent(message = "Ngày sinh phải là hôm nay hoặc một ngày trong quá khứ")
     private LocalDate dayOfBirth;
 
-    @NotNull(message = "Weight is required")
-    @DecimalMin(value = "200.00", message = "Horse weight must be at least 200 kg")
-    @DecimalMax(value = "1000.00", message = "Horse weight must not exceed 1000 kg")
+    @NotNull(message = "Cân nặng là bắt buộc")
+    @DecimalMin(value = "200.00", message = "Cân nặng của ngựa phải ít nhất là 200 kg")
+    @DecimalMax(value = "1000.00", message = "Cân nặng của ngựa không được vượt quá 1000 kg")
     private BigDecimal weight;
 
-    @NotNull(message = "Health certificate expiry is required")
-    @FutureOrPresent(message = "Health certificate expiry must be today or in the future")
+    @NotNull(message = "Ngày hết hạn giấy chứng nhận sức khỏe là bắt buộc")
+    @FutureOrPresent(message = "Ngày hết hạn giấy chứng nhận sức khỏe phải là hôm nay hoặc một ngày trong tương lai")
     private LocalDate healthCertExpiry;
 
-    @NotBlank(message = "Image URL is required")
-    @Pattern(regexp = "^https?://.+$", message = "Image URL must be a valid HTTP or HTTPS URL")
+    @NotBlank(message = "Đường dẫn hình ảnh là bắt buộc")
+    @Pattern(regexp = "^https?://.+$", message = "Đường dẫn hình ảnh phải là URL HTTP hoặc HTTPS hợp lệ")
     private String imgUrl;
 }

@@ -1,10 +1,10 @@
 import { Crown, Medal, ShieldCheck, Gavel } from "lucide-react";
 
 const ROLES = [
-  { icon: Crown, title: "Owner", desc: "Register horses, enter tournaments and invite jockeys to ride." },
-  { icon: Medal, title: "Jockey", desc: "Receive invitations, accept rides and compete in scheduled races." },
-  { icon: ShieldCheck, title: "Admin", desc: "Create tournaments, review registrations and manage race assignments." },
-  { icon: Gavel, title: "Referee", desc: "Record race outcomes and publish official, certified results." },
+  { icon: Crown, title: "Chủ ngựa", desc: "Đăng ký ngựa, tham gia giải đấu và mời nài ngựa thi đấu." },
+  { icon: Medal, title: "Nài ngựa", desc: "Nhận lời mời, chấp nhận thi đấu và tham gia các cuộc đua đã lên lịch." },
+  { icon: ShieldCheck, title: "Quản trị viên", desc: "Tạo giải đấu, xét duyệt đơn đăng ký và quản lý phân công cuộc đua." },
+  { icon: Gavel, title: "Trọng tài", desc: "Ghi nhận kết quả cuộc đua và công bố kết quả chính thức." },
 ];
 
 export default function Roles() {
@@ -12,11 +12,11 @@ export default function Roles() {
     <section id="roles" className="bg-cream-100 py-20 sm:py-24">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brown-500">User Roles</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brown-500">Vai trò người dùng</p>
           <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-brown-900 sm:text-4xl">
             Built for every role in the paddock
           </h2>
-          <p className="mt-3 text-base text-brown-900/70">Four focused workspaces, one shared tournament timeline.</p>
+          <p className="mt-3 text-base text-brown-900/70">Bốn không gian làm việc chuyên biệt trên cùng một tiến trình giải đấu.</p>
         </div>
 
         <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">

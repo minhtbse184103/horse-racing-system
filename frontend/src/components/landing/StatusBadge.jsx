@@ -1,10 +1,10 @@
 const STYLES = {
-  draft: { label: "Draft", cls: "bg-cream-200 text-brown-700 border-brown-700/20" },
-  openforregistration: { label: "Open for Registration", cls: "bg-emerald-50 text-emerald-800 border-emerald-700/20" },
-  closedregistration: { label: "Registration Closed", cls: "bg-cream-200 text-brown-900 border-brown-900/20" },
-  ongoing: { label: "Ongoing", cls: "bg-gold-400/20 text-brown-900 border-gold-400/40" },
-  finished: { label: "Finished", cls: "bg-brown-900/5 text-brown-900 border-brown-900/20" },
-  cancelled: { label: "Cancelled", cls: "bg-danger/10 text-danger border-danger/30" },
+  draft: { label: "Bản nháp", cls: "bg-cream-200 text-brown-700 border-brown-700/20" },
+  openforregistration: { label: "Mở đăng ký", cls: "bg-emerald-50 text-emerald-800 border-emerald-700/20" },
+  closedregistration: { label: "Đã đóng đăng ký", cls: "bg-cream-200 text-brown-900 border-brown-900/20" },
+  ongoing: { label: "Đang diễn ra", cls: "bg-gold-400/20 text-brown-900 border-gold-400/40" },
+  finished: { label: "Đã kết thúc", cls: "bg-brown-900/5 text-brown-900 border-brown-900/20" },
+  cancelled: { label: "Đã hủy", cls: "bg-danger/10 text-danger border-danger/30" },
 };
 
 export default function StatusBadge({ status }) {

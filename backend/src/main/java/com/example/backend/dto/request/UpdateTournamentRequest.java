@@ -8,30 +8,30 @@ import java.time.LocalDate;
 
 public class UpdateTournamentRequest {
 
-    @NotBlank(message = "Tournament name is required")
+    @NotBlank(message = "Tên giải đấu là bắt buộc")
     private String tournamentName;
 
-    @NotBlank(message = "Location is required")
+    @NotBlank(message = "Địa điểm là bắt buộc")
     private String location;
 
-    @NotNull(message = "Start date is required")
+    @NotNull(message = "Ngày bắt đầu là bắt buộc")
     private LocalDate startDate;
 
-    @NotNull(message = "End date is required")
+    @NotNull(message = "Ngày kết thúc là bắt buộc")
     private LocalDate endDate;
 
-    @NotNull(message = "Registration deadline is required")
+    @NotNull(message = "Hạn đăng ký là bắt buộc")
     private LocalDate registrationDeadline;
 
-    @NotNull(message = "Minimum participants is required")
-    @Positive(message = "Minimum participants must be positive")
+    @NotNull(message = "Số người tham gia tối thiểu là bắt buộc")
+    @Positive(message = "Số người tham gia tối thiểu phải lớn hơn 0")
     private Integer minParticipants;
 
-    @NotNull(message = "Maximum participants is required")
-    @Positive(message = "Maximum participants must be positive")
+    @NotNull(message = "Số người tham gia tối đa là bắt buộc")
+    @Positive(message = "Số người tham gia tối đa phải lớn hơn 0")
     private Integer maxParticipants;
 
-    @NotNull(message = "Tournament condition is required")
+    @NotNull(message = "Điều kiện giải đấu là bắt buộc")
     private Integer conditionId;
     public String getTournamentName() {
         return tournamentName;

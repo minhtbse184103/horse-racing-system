@@ -48,7 +48,7 @@ public class RaceService {
         return raceRepository.findById(id)
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
-                        "Race does not exist."
+                        "Cuộc đua không tồn tại."
                 ));
     }
 
@@ -56,7 +56,7 @@ public class RaceService {
         if (!tournamentRoundRepository.existsById(roundId)) {
             throw new ApiException(
                     HttpStatus.NOT_FOUND,
-                    "Tournament round does not exist."
+                    "Vòng đấu không tồn tại."
             );
         }
 
@@ -67,7 +67,7 @@ public class RaceService {
         if (!tournamentRepository.existsById(tournamentId)) {
             throw new ApiException(
                     HttpStatus.NOT_FOUND,
-                    "Tournament does not exist."
+                    "Giải đấu không tồn tại."
             );
         }
 
@@ -102,7 +102,7 @@ public class RaceService {
         )) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
-                    "Another active race overlaps with this race time."
+                    "Một cuộc đua đang hoạt động khác bị trùng thời gian với cuộc đua này."
             );
         }
         long existingRaceCount = raceRepository.countByRoundId(round.getRoundId());
@@ -110,7 +110,7 @@ public class RaceService {
         if ("Final".equalsIgnoreCase(round.getRoundName()) && existingRaceCount >= 1) {
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
-                    "Final round can have only one race."
+                    "Vòng chung kết chỉ được có một cuộc đua."
             );
         }
 
@@ -139,7 +139,7 @@ public class RaceService {
         if (!EventStatus.DRAFT.equals(race.getStatus())) {
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
-                    "Only draft races can be updated."
+                    "Chỉ có thể cập nhật cuộc đua đang ở trạng thái DRAFT."
             );
         }
 
@@ -156,7 +156,7 @@ public class RaceService {
         )) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
-                    "Another active race overlaps with this race time."
+                    "Một cuộc đua đang hoạt động khác bị trùng thời gian với cuộc đua này."
             );
         }
         race.setStartTime(request.getStartTime());
@@ -177,7 +177,7 @@ public class RaceService {
         if (!EventStatus.DRAFT.equals(race.getStatus())) {
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
-                    "Only draft races can be cancelled."
+                    "Chỉ có thể hủy cuộc đua đang ở trạng thái DRAFT."
             );
         }
 
@@ -189,7 +189,7 @@ public class RaceService {
         return tournamentRoundRepository.findById(roundId)
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
-                        "Tournament round does not exist."
+                        "Vòng đấu không tồn tại."
                 ));
     }
 
@@ -197,7 +197,7 @@ public class RaceService {
         if (!RACE_SETUP_TOURNAMENT_STATUSES.contains(tournament.getStatus())) {
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
-                    "Races can only be configured while registration is not ongoing or finished."
+                    "Chỉ có thể cấu hình cuộc đua khi giải đấu chưa bắt đầu hoặc chưa kết thúc."
             );
         }
     }
@@ -210,7 +210,7 @@ public class RaceService {
         if (!startTime.isBefore(endTime)) {
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
-                    "Race start time must be before end time."
+                    "Thời gian bắt đầu cuộc đua phải trước thời gian kết thúc."
             );
         }
 
@@ -218,7 +218,7 @@ public class RaceService {
                 || endTime.toLocalDate().isAfter(tournament.getEndDate())) {
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
-                    "Race time must be within the tournament date range."
+                    "Thời gian cuộc đua phải nằm trong khoảng thời gian của giải đấu."
             );
         }
     }
@@ -243,7 +243,7 @@ public class RaceService {
         return tournamentRepository.findByIdForUpdate(tournamentId)
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
-                        "Tournament does not exist."
+                        "Giải đấu không tồn tại."
                 ));
     }
 
@@ -253,7 +253,7 @@ public class RaceService {
         } catch (DataIntegrityViolationException ex) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
-                    "Race order or name already exists."
+                    "Thứ tự hoặc tên cuộc đua đã tồn tại."
             );
         }
     }

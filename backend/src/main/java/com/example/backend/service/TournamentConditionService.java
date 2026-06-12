@@ -24,7 +24,7 @@ public class TournamentConditionService {
         return repository.findById(id)
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
-                        "Tournament condition does not exist."
+                        "Điều kiện giải đấu không tồn tại."
                 ));
     }
 }

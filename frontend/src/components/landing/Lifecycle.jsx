@@ -2,11 +2,11 @@ import { ChevronRight, XCircle } from "lucide-react";
 import StatusBadge from "./StatusBadge";
 
 const LIFECYCLE_STAGES = [
-  { key: "draft", description: "Admins prepare schedule, rules and weight classes." },
-  { key: "openforregistration", description: "Owners enter horses and invite jockeys." },
-  { key: "closedregistration", description: "Entries locked, admin reviews the field." },
-  { key: "ongoing", description: "Races run and referees record outcomes." },
-  { key: "finished", description: "Official results, standings and prizes published." },
+  { key: "draft", description: "Quản trị viên chuẩn bị lịch trình, quy tắc và hạng cân." },
+  { key: "openforregistration", description: "Chủ ngựa đăng ký ngựa và mời nài ngựa." },
+  { key: "closedregistration", description: "Khóa đơn đăng ký để quản trị viên xét duyệt danh sách tham gia." },
+  { key: "ongoing", description: "Các cuộc đua diễn ra và trọng tài ghi nhận kết quả." },
+  { key: "finished", description: "Công bố kết quả chính thức, xếp hạng và giải thưởng." },
 ];
 
 export default function Lifecycle() {
@@ -14,9 +14,9 @@ export default function Lifecycle() {
     <section className="bg-cream-200 py-20 sm:py-24">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl">
-          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brown-500">Tournament Lifecycle</p>
-          <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-brown-900 sm:text-4xl">From draft to finish line</h2>
-          <p className="mt-3 text-base text-brown-900/70">Every tournament progresses through clear, auditable stages.</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brown-500">Vòng đời giải đấu</p>
+          <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-brown-900 sm:text-4xl">Từ bản nháp đến vạch đích</h2>
+          <p className="mt-3 text-base text-brown-900/70">Mỗi giải đấu tiến triển qua các giai đoạn rõ ràng, có thể kiểm tra.</p>
         </div>
 
         <div className="mt-10 flex flex-wrap items-stretch gap-3">
@@ -37,7 +37,7 @@ export default function Lifecycle() {
 
         <div className="mt-6 inline-flex items-center gap-2.5 rounded-md border border-danger/30 bg-danger/5 px-4 py-2.5 text-sm text-danger">
           <XCircle className="h-4 w-4" aria-hidden />
-          <span><strong className="font-bold">Cancelled</strong> — alternate terminal state if a tournament cannot run.</span>
+          <span><strong className="font-bold">Đã hủy</strong> - trạng thái kết thúc khi giải đấu không thể diễn ra.</span>
         </div>
       </div>
     </section>

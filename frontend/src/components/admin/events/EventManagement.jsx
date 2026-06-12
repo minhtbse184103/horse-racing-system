@@ -10,6 +10,7 @@ import {
   updateTournament
 } from '../../../services/eventService';
 import RaceManagement from './RaceManagement';
+import { formatDisplayLabel } from '../../../lib';
 function emptyTournamentForm() {
   return {
     tournamentName: '',
@@ -34,9 +35,7 @@ function formatDisplayDate(value) {
 }
 
 function formatStatus(status) {
-  return String(status || 'N/A')
-    .replace(/([a-z])([A-Z])/g, '$1 $2')
-    .replace(/_/g, ' ');
+  return formatDisplayLabel(status);
 }
 
 function getStatusClasses(status) {
@@ -87,7 +86,7 @@ export default function EventManagement() {
       setTournaments(Array.isArray(tournamentData) ? tournamentData : []);
       setConditions(Array.isArray(conditionData) ? conditionData : []);
     } catch (err) {
-      setError(err.message || 'Unable to load tournaments.');
+      setError(err.message || 'Không thể tải danh sách giải đấu.');
     } finally {
       setIsLoading(false);
     }
@@ -158,7 +157,7 @@ if (
   formValues.startDate &&
   formValues.registrationDeadline >= formValues.startDate
 ) {
-  setError('Registration deadline must be before start date.');
+  setError('Hạn đăng ký phải trước ngày bắt đầu.');
   setIsSaving(false);
   return;
 }
@@ -176,10 +175,10 @@ if (
     try {
       if (editingTournament) {
         await updateTournament(editingTournament.tournamentId, payload);
-        setMessage('Tournament updated successfully.');
+        setMessage('Đã cập nhật giải đấu thành công.');
       } else {
         await createTournament(payload);
-        setMessage('Tournament created successfully.');
+        setMessage('Đã tạo giải đấu thành công.');
       }
 
       setIsFormOpen(false);
@@ -187,7 +186,7 @@ if (
       setFormValues(emptyTournamentForm());
       await loadEventData();
     } catch (err) {
-      setError(err.message || 'Unable to save tournament.');
+      setError(err.message || 'Không thể lưu giải đấu.');
     } finally {
       setIsSaving(false);
     }
@@ -202,7 +201,7 @@ if (
       setRounds(Array.isArray(data) ? data : []);
     } catch (err) {
       setRounds([]);
-      setError(err.message || 'Unable to load tournament rounds.');
+      setError(err.message || 'Không thể tải các vòng đấu.');
     }
   }
 
@@ -215,17 +214,17 @@ if (
     try {
       if (action === 'open') {
         await openTournamentRegistration(tournament.tournamentId);
-        setMessage('Tournament opened for registration.');
+        setMessage('Đã mở đăng ký giải đấu.');
       } else {
         await cancelTournament(tournament.tournamentId);
-        setMessage('Tournament cancelled successfully.');
+        setMessage('Đã hủy giải đấu thành công.');
       }
 
       setSelectedTournament(null);
       setRounds([]);
       await loadEventData();
     } catch (err) {
-      setError(err.message || 'Unable to update tournament.');
+      setError(err.message || 'Không thể cập nhật giải đấu.');
     } finally {
       setProcessingId(null);
     }
@@ -276,7 +275,7 @@ if (
             onClick={loadEventData}
             disabled={isLoading}
           >
-            {isLoading ? 'Loading...' : 'Refresh'}
+            {isLoading ? 'Đang tải...' : 'Làm mới'}
           </button>
         </div>
       </header>
@@ -306,7 +305,7 @@ if (
 
           <div className="flex items-center gap-3 max-sm:grid">
             <span className="rounded-full bg-cream-200 px-3 py-2 text-sm font-extrabold text-brown-700">
-              {tournaments.filter((t) => t.status === 'Draft').length} Draft
+              {tournaments.filter((t) => t.status === 'Draft').length} bản nháp
             </span>
             <button
               className="rounded-xl border border-brown-700 bg-brown-700 px-4 py-3 font-extrabold text-white shadow-[0_8px_20px_rgba(108,63,36,0.2)] transition hover:-translate-y-0.5 hover:bg-brown-900 hover:shadow-lg"
@@ -326,7 +325,7 @@ if (
             />
             <input
               className="w-full rounded-xl border border-brown-700/15 bg-white/90 py-3 pl-10 pr-4 text-sm font-bold text-brown-900 outline-none transition focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
-              placeholder="Search tournament, location, condition, or status"
+              placeholder="Tìm giải đấu, địa điểm, điều kiện hoặc trạng thái"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
             />
@@ -359,7 +358,7 @@ if (
             <strong className="text-xl text-brown-900">
               No tournaments found
             </strong>
-            <span className="text-slate-500">Try another search.</span>
+            <span className="text-slate-500">Hãy thử từ khóa khác.</span>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -376,13 +375,13 @@ if (
               <thead className="bg-cream-200/60">
                 <tr>
                   {[
-                    'Tournament',
-                    'Location',
-                    'Schedule',
-                    'Condition',
-                    'Participants',
-                    'Status',
-                    'Actions'
+                    'Giải đấu',
+                    'Địa điểm',
+                    'Lịch trình',
+                    'Điều kiện',
+                    'Người tham gia',
+                    'Trạng thái',
+                    'Thao tác'
                   ].map((heading) => (
                     <th
                       className="border-b border-brown-700/10 px-2 py-4 text-center text-[0.68rem] font-extrabold uppercase tracking-wide text-brown-700"
@@ -564,7 +563,7 @@ if (
               <button
                 className="grid size-9 shrink-0 place-items-center rounded-full border border-brown-700/20 bg-white/70 text-xl text-slate-500 transition hover:bg-cream-200"
                 type="button"
-                aria-label="Close tournament details"
+                aria-label="Đóng chi tiết giải đấu"
                 onClick={() => {
                   setSelectedTournament(null);
                   setRounds([]);
@@ -652,13 +651,13 @@ if (
             <div className="mb-6 flex items-start justify-between gap-4">
               <div>
                 <span className="text-xs font-extrabold uppercase text-brown-500">
-                  {editingTournament ? 'Draft Tournament' : 'New Tournament'}
+                  {editingTournament ? 'Giải đấu bản nháp' : 'Giải đấu mới'}
                 </span>
 
                 <h2 className="mt-1 text-2xl font-extrabold text-brown-900">
                   {editingTournament
-                    ? 'Edit Tournament'
-                    : 'Create Tournament'}
+                    ? 'Chỉnh sửa giải đấu'
+                    : 'Tạo giải đấu'}
                 </h2>
 
                 <p className="mt-2 text-sm text-slate-500">
@@ -670,7 +669,7 @@ if (
               <button
                 className="grid size-9 shrink-0 place-items-center rounded-full border border-brown-700/20 bg-white/70 text-xl text-slate-500 transition hover:bg-cream-200"
                 type="button"
-                aria-label="Close form"
+                aria-label="Đóng biểu mẫu"
                 onClick={closeForm}
               >
                 ×
@@ -685,7 +684,7 @@ if (
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <label className="grid gap-2 text-sm font-bold text-brown-900">
-                <span>Tournament Name</span>
+                <span>Tên giải đấu</span>
                 <input
                   className="w-full rounded-lg border border-brown-700/20 bg-white/80 px-4 py-3 text-brown-900 outline-none transition focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
                   name="tournamentName"
@@ -696,7 +695,7 @@ if (
               </label>
 
               <label className="grid gap-2 text-sm font-bold text-brown-900">
-                <span>Location</span>
+                <span>Địa điểm</span>
                 <input
                   className="w-full rounded-lg border border-brown-700/20 bg-white/80 px-4 py-3 text-brown-900 outline-none transition focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
                   name="location"
@@ -707,7 +706,7 @@ if (
               </label>
 
               <label className="grid gap-2 text-sm font-bold text-brown-900 sm:col-span-2">
-                <span>Condition</span>
+                <span>Điều kiện</span>
                 <select
                   className="w-full rounded-lg border border-brown-700/20 bg-white/80 px-4 py-3 text-brown-900 outline-none transition focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
                   name="conditionId"
@@ -715,7 +714,7 @@ if (
                   onChange={handleChange}
                   required
                 >
-                  <option value="">Select condition</option>
+                  <option value="">Chọn điều kiện</option>
 
                   {conditions.map((condition) => (
                     <option
@@ -729,7 +728,7 @@ if (
               </label>
 
               <label className="grid gap-2 text-sm font-bold text-brown-900">
-                <span>Start Date</span>
+                <span>Ngày bắt đầu</span>
                 <input
   className="w-full rounded-lg border border-brown-700/20 bg-white/80 px-4 py-3 text-brown-900 outline-none transition focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
   name="startDate"
@@ -742,7 +741,7 @@ if (
               </label>
 
               <label className="grid gap-2 text-sm font-bold text-brown-900">
-                <span>End Date</span>
+                <span>Ngày kết thúc</span>
                 <input
                   className="w-full rounded-lg border border-brown-700/20 bg-white/80 px-4 py-3 text-brown-900 outline-none transition focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
                   name="endDate"
@@ -754,7 +753,7 @@ if (
               </label>
 
               <label className="grid gap-2 text-sm font-bold text-brown-900 sm:col-span-2">
-                <span>Registration Deadline</span>
+                <span>Hạn đăng ký</span>
                 <input
   className="w-full rounded-lg border border-brown-700/20 bg-white/80 px-4 py-3 text-brown-900 outline-none transition focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
   name="registrationDeadline"
@@ -767,7 +766,7 @@ if (
               </label>
 
               <label className="grid gap-2 text-sm font-bold text-brown-900">
-                <span>Minimum Participants</span>
+                <span>Số người tham gia tối thiểu</span>
                 <input
   className="w-full rounded-lg border border-brown-700/20 bg-white/80 px-4 py-3 text-brown-900 outline-none transition focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
   name="minParticipants"
@@ -780,7 +779,7 @@ if (
               </label>
 
               <label className="grid gap-2 text-sm font-bold text-brown-900">
-                <span>Maximum Participants</span>
+                <span>Số người tham gia tối đa</span>
                 <input
                   className="w-full rounded-lg border border-brown-700/20 bg-white/80 px-4 py-3 text-brown-900 outline-none transition focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
                   name="maxParticipants"
@@ -809,10 +808,10 @@ if (
                 disabled={isSaving}
               >
                 {isSaving
-                  ? 'Saving...'
+                  ? 'Đang lưu...'
                   : editingTournament
-                    ? 'Save Changes'
-                    : 'Create Tournament'}
+                    ? 'Lưu thay đổi'
+                    : 'Tạo giải đấu'}
               </button>
             </div>
           </form>
@@ -850,28 +849,28 @@ if (
 
                 <h2 className="text-xl font-extrabold text-brown-900">
                   {actionConfirmation.action === 'open'
-                    ? 'Open Registration'
-                    : 'Cancel Tournament'}
+                    ? 'Đang mở đăng ký'
+                    : 'Hủy giải đấu'}
                 </h2>
               </div>
             </div>
 
             <p className="my-5 leading-relaxed text-slate-500">
               {actionConfirmation.action === 'open'
-                ? 'After registration opens, this tournament can no longer be edited or cancelled.'
-                : 'The tournament, rounds, and races will be marked as cancelled.'}
+                ? 'Sau khi mở đăng ký, giải đấu không thể chỉnh sửa hoặc hủy.'
+                : 'Giải đấu, các vòng đấu và cuộc đua sẽ được đánh dấu đã hủy.'}
             </p>
 
             <dl className="grid overflow-hidden rounded-lg border border-brown-700/10 bg-brown-700/10">
               <div className="grid grid-cols-[7rem_minmax(0,1fr)] gap-4 bg-white/70 px-4 py-3 max-sm:grid-cols-1 max-sm:gap-1">
-                <dt className="text-sm font-bold text-slate-500">Tournament</dt>
+                <dt className="text-sm font-bold text-slate-500">Giải đấu</dt>
                 <dd className="m-0 break-words text-sm font-extrabold text-brown-900">
                   {actionConfirmation.tournament.tournamentName}
                 </dd>
               </div>
 
               <div className="mt-px grid grid-cols-[7rem_minmax(0,1fr)] gap-4 bg-white/70 px-4 py-3 max-sm:grid-cols-1 max-sm:gap-1">
-                <dt className="text-sm font-bold text-slate-500">Location</dt>
+                <dt className="text-sm font-bold text-slate-500">Địa điểm</dt>
                 <dd className="m-0 break-words text-sm font-extrabold text-brown-900">
                   {actionConfirmation.tournament.location}
                 </dd>
@@ -902,8 +901,8 @@ if (
                 }
               >
                 {actionConfirmation.action === 'open'
-                  ? 'Open Registration'
-                  : 'Cancel Tournament'}
+                  ? 'Đang mở đăng ký'
+                  : 'Hủy giải đấu'}
               </button>
             </div>
           </div>

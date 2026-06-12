@@ -26,17 +26,17 @@ export default function TournamentPreview({ tournament }) {
       <dl className="mt-5 space-y-3 text-sm text-brown-900/80">
         <div className="flex items-center gap-2.5">
           <MapPin className="h-4 w-4 text-brown-500 shrink-0" aria-hidden />
-          <dt className="sr-only">Location</dt>
+          <dt className="sr-only">Địa điểm</dt>
           <dd>{location}</dd>
         </div>
         <div className="flex items-center gap-2.5">
           <CalendarDays className="h-4 w-4 text-brown-500 shrink-0" aria-hidden />
-          <dt className="sr-only">Dates</dt>
+          <dt className="sr-only">Ngày thi đấu</dt>
           <dd>{fmt(startDate)} — {fmt(endDate)}</dd>
         </div>
         <div className="flex items-center gap-2.5">
           <Scale className="h-4 w-4 text-brown-500 shrink-0" aria-hidden />
-          <dt className="sr-only">Condition</dt>
+          <dt className="sr-only">Điều kiện</dt>
           <dd>{conditionName}</dd>
         </div>
       </dl>

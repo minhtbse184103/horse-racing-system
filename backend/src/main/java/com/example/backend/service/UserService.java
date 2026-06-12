@@ -38,7 +38,7 @@ public class UserService {
     @Transactional(readOnly = true)
     public UserResponse getCurrentUser(String email) {
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không thấy user"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy người dùng"));
         return toResponse(user);
     }
 
@@ -77,12 +77,12 @@ public class UserService {
     public JockeyProfileResponse approveJockeyProfile(Integer jockeyId) {
         User jockey = findUserById(jockeyId);
         if (!isJockey(jockey)) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Selected user is not a jockey.");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Người dùng được chọn không phải là nài ngựa.");
         }
 
         JockeyProfile profile = jockeyProfileRepository.findById(jockeyId)
                 .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST,
-                        "Jockey profile does not exist."));
+                        "Hồ sơ nài ngựa không tồn tại."));
         validateJockeyProfileUnderReview(jockey, profile);
         validateJockeyProfileReadyForApproval(profile);
 
@@ -99,15 +99,15 @@ public class UserService {
     public JockeyProfileResponse rejectJockeyProfile(Integer jockeyId, String feedback) {
         User jockey = findUserById(jockeyId);
         if (!isJockey(jockey)) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Selected user is not a jockey.");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Người dùng được chọn không phải là nài ngựa.");
         }
 
         JockeyProfile profile = jockeyProfileRepository.findById(jockeyId)
                 .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST,
-                        "Jockey profile does not exist."));
+                        "Hồ sơ nài ngựa không tồn tại."));
         validateJockeyProfileUnderReview(jockey, profile);
         if (!hasText(feedback)) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Rejection feedback is required.");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Phản hồi từ chối là bắt buộc.");
         }
 
         profile.setStatus(STATUS_REJECTED);
@@ -139,7 +139,7 @@ public class UserService {
             userRepository.findByPhone(request.getPhone())
                     .filter(existingUser -> !existingUser.getUserID().equals(user.getUserID()))
                     .ifPresent(existingUser -> {
-                        throw new ApiException(HttpStatus.BAD_REQUEST, "Phone already exists");
+                        throw new ApiException(HttpStatus.BAD_REQUEST, "Số điện thoại đã tồn tại");
                     });
             user.setPhone(request.getPhone());
         }
@@ -152,10 +152,10 @@ public class UserService {
             String status = request.getStatus().trim().toUpperCase();
             if (isJockeyReviewStatus(status) && !isJockey(user)) {
                 throw new ApiException(HttpStatus.BAD_REQUEST,
-                        "PENDING, UNDER_REVIEW and REJECTED statuses are only allowed for jockey users.");
+                        "Các trạng thái PENDING, UNDER_REVIEW và REJECTED chỉ áp dụng cho người dùng nài ngựa.");
             }
             if (STATUS_REJECTED.equals(status) && !hasText(request.getRejectionReason())) {
-                throw new ApiException(HttpStatus.BAD_REQUEST, "Rejection reason is required when rejecting a jockey.");
+                throw new ApiException(HttpStatus.BAD_REQUEST, "Lý do từ chối là bắt buộc khi từ chối nài ngựa.");
             }
             syncJockeyProfileStatus(user, status);
             if (STATUS_REJECTED.equals(status)) {
@@ -168,7 +168,7 @@ public class UserService {
 
         if (isJockeyReviewStatus(user.getStatus()) && !isJockey(user)) {
             throw new ApiException(HttpStatus.BAD_REQUEST,
-                    "PENDING, UNDER_REVIEW and REJECTED statuses are only allowed for jockey users.");
+                    "Các trạng thái PENDING, UNDER_REVIEW và REJECTED chỉ áp dụng cho người dùng nài ngựa.");
         }
 
         return toResponse(userRepository.save(user));
@@ -183,13 +183,13 @@ public class UserService {
 
     private User findUserById(Integer userID) {
         return userRepository.findById(userID)
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không thấy user"));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy người dùng"));
     }
 
     private Role getRoleByName(String roleName) {
         return roleRepository.findByRoleName(roleName.trim().toUpperCase())
                 .orElseThrow(() -> new ApiException(HttpStatus.INTERNAL_SERVER_ERROR,
-                        "Role " + roleName + " chưa được seed"));
+                        "Vai trò " + roleName + " chưa được khởi tạo trong hệ thống"));
     }
 
     private boolean hasText(String value) {
@@ -214,7 +214,7 @@ public class UserService {
         if (STATUS_ACTIVE.equals(status)) {
             JockeyProfile profile = jockeyProfileRepository.findById(user.getUserID())
                     .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST,
-                            "Jockey profile does not exist."));
+                            "Hồ sơ nài ngựa không tồn tại."));
             profile.setStatus(STATUS_ACTIVE);
             profile.setRejectionReason(null);
             jockeyProfileRepository.save(profile);
@@ -234,7 +234,7 @@ public class UserService {
         if (STATUS_REJECTED.equals(status)) {
             JockeyProfile profile = jockeyProfileRepository.findById(user.getUserID())
                     .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST,
-                            "Jockey profile does not exist."));
+                            "Hồ sơ nài ngựa không tồn tại."));
             profile.setStatus(status);
             profile.setRejectionReason(null);
             jockeyProfileRepository.save(profile);
@@ -244,7 +244,7 @@ public class UserService {
     private void updateJockeyProfileRejectionReason(User user, String rejectionReason) {
         JockeyProfile profile = jockeyProfileRepository.findById(user.getUserID())
                 .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST,
-                        "Jockey profile does not exist."));
+                        "Hồ sơ nài ngựa không tồn tại."));
         profile.setRejectionReason(rejectionReason.trim());
         jockeyProfileRepository.save(profile);
     }
@@ -272,26 +272,26 @@ public class UserService {
                 || !STATUS_UNDER_REVIEW.equals(profile.getStatus())) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
-                    "Only jockey profiles under review can be approved or rejected.");
+                    "Chỉ có thể phê duyệt hoặc từ chối hồ sơ nài ngựa đang được xét duyệt.");
         }
     }
 
     private void validateJockeyProfileReadyForApproval(JockeyProfile profile) {
         if (!hasText(profile.getLicenseNo())) {
             throw new ApiException(HttpStatus.BAD_REQUEST,
-                    "Jockey license number is required before approval.");
+                    "Số giấy phép của nài ngựa là bắt buộc trước khi phê duyệt.");
         }
         if (profile.getWeight() == null) {
             throw new ApiException(HttpStatus.BAD_REQUEST,
-                    "Jockey weight is required before approval.");
+                    "Cân nặng của nài ngựa là bắt buộc trước khi phê duyệt.");
         }
         if (!hasText(profile.getRanking())) {
             throw new ApiException(HttpStatus.BAD_REQUEST,
-                    "Jockey ranking is required before approval.");
+                    "Xếp hạng của nài ngựa là bắt buộc trước khi phê duyệt.");
         }
         if (!hasText(profile.getImgUrl())) {
             throw new ApiException(HttpStatus.BAD_REQUEST,
-                    "Jockey proof image is required before approval.");
+                    "Ảnh minh chứng của nài ngựa là bắt buộc trước khi phê duyệt.");
         }
     }
 

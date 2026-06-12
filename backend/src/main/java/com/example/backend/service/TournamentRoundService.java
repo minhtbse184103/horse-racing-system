@@ -24,7 +24,7 @@ public class TournamentRoundService {
 
     public List<TournamentRound> getRoundsByTournamentId(Integer tournamentId) {
         if (!tournamentRepository.existsById(tournamentId)) {
-            throw new ApiException(HttpStatus.NOT_FOUND, "Tournament does not exist.");
+            throw new ApiException(HttpStatus.NOT_FOUND, "Giải đấu không tồn tại.");
         }
 
         return tournamentRoundRepository
@@ -35,7 +35,7 @@ public class TournamentRoundService {
         return tournamentRoundRepository.findById(id)
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
-                        "Tournament round does not exist."
+                        "Vòng đấu không tồn tại."
                 ));
     }
 }

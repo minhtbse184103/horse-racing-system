@@ -37,10 +37,10 @@ function ReviewDialog({ review, onClose, onConfirm, isProcessing }) {
     <div className="fixed inset-0 z-[1000] grid place-items-center bg-brown-900/60 p-4 backdrop-blur-sm">
       <section className="w-full max-w-lg rounded-lg bg-cream-100 p-6 shadow-2xl">
         <h2 className="text-2xl font-black text-brown-900">
-          {isRejecting ? 'Reject Horse Profile' : 'Approve Horse Profile'}
+          {isRejecting ? 'Từ chối hồ sơ ngựa' : 'Phê duyệt hồ sơ ngựa'}
         </h2>
         <p className="mt-2 text-sm font-semibold text-slate-500">
-          {horseName} will be {isRejecting ? 'returned to the owner with your feedback' : 'approved and marked ACTIVE'}.
+          {horseName} will be {isRejecting ? 'được trả lại cho chủ ngựa cùng phản hồi của bạn' : 'được phê duyệt và chuyển sang trạng thái hoạt động'}.
         </p>
 
         {!isRejecting && certificateExpired && (
@@ -66,7 +66,7 @@ function ReviewDialog({ review, onClose, onConfirm, isProcessing }) {
               rows={4}
               value={feedback}
               onChange={(event) => setFeedback(event.target.value)}
-              placeholder="Explain what the owner must fix before resubmitting."
+              placeholder="Giải thích nội dung chủ ngựa cần chỉnh sửa trước khi gửi lại."
             />
           </label>
         )}
@@ -95,7 +95,7 @@ function ReviewDialog({ review, onClose, onConfirm, isProcessing }) {
             }
             onClick={() => onConfirm(feedback.trim())}
           >
-            {isProcessing ? 'Processing...' : isRejecting ? 'Reject Horse' : 'Approve Horse'}
+            {isProcessing ? 'Đang xử lý...' : isRejecting ? 'Từ chối ngựa' : 'Phê duyệt ngựa'}
           </button>
         </div>
       </section>
@@ -124,7 +124,7 @@ export default function HorseReview() {
       const data = await getPendingHorses();
       setHorses(Array.isArray(data) ? data : []);
     } catch (err) {
-      setError(err.message || 'Unable to load pending horse profiles.');
+      setError(err.message || 'Không thể tải hồ sơ ngựa đang chờ duyệt.');
     } finally {
       setIsLoading(false);
     }
@@ -152,7 +152,7 @@ export default function HorseReview() {
     const horseId = getHorseId(horse);
 
     if (!horseId) {
-      setError('Horse ID was not found.');
+      setError('Không tìm thấy mã ngựa.');
       return;
     }
 
@@ -172,7 +172,7 @@ export default function HorseReview() {
       setReview(null);
       await loadHorses();
     } catch (err) {
-      setError(err.message || 'Unable to review the horse profile.');
+      setError(err.message || 'Không thể xét duyệt hồ sơ ngựa.');
     } finally {
       setIsProcessing(false);
     }
@@ -182,8 +182,8 @@ export default function HorseReview() {
     <section className="space-y-6 text-brown-900">
       <header className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
-          <p className="text-sm font-extrabold uppercase tracking-widest text-brown-500">Horse Reviews</p>
-          <h1 className="mt-2 text-4xl font-black md:text-5xl">Pending Horse Approval</h1>
+          <p className="text-sm font-extrabold uppercase tracking-widest text-brown-500">Duyệt ngựa</p>
+          <h1 className="mt-2 text-4xl font-black md:text-5xl">Ngựa đang chờ phê duyệt</h1>
           <p className="mt-3 font-medium text-slate-500">
             Horses added by owners arrive here as PENDING and require an admin decision before they can be used for race registration.
           </p>
@@ -206,7 +206,7 @@ export default function HorseReview() {
       <section className="overflow-hidden rounded-lg border border-brown-700/10 bg-cream-100 shadow-lg">
         <div className="flex items-center justify-between gap-4 border-b border-brown-700/10 bg-cream-200/50 p-5 max-sm:grid">
           <div>
-            <h2 className="text-xl font-extrabold">Awaiting Approval</h2>
+            <h2 className="text-xl font-extrabold">Đang chờ phê duyệt</h2>
             <p className="mt-1 text-sm text-slate-500">{filteredHorses.length} of {horses.length} horse profiles</p>
           </div>
 
@@ -214,7 +214,7 @@ export default function HorseReview() {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={17} />
             <input
               className="w-full rounded-lg border border-brown-700/15 bg-white py-3 pl-10 pr-4 text-sm font-bold outline-none focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
-              placeholder="Search horse, breed, color, or owner ID"
+              placeholder="Tìm theo tên ngựa, giống, màu lông hoặc mã chủ ngựa"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
             />
@@ -222,9 +222,9 @@ export default function HorseReview() {
         </div>
 
         {isLoading ? (
-          <p className="px-5 py-10 text-slate-500">Loading horse profiles...</p>
+          <p className="px-5 py-10 text-slate-500">Đang tải hồ sơ ngựa...</p>
         ) : filteredHorses.length === 0 ? (
-          <p className="px-5 py-10 text-slate-500">No horse profiles are waiting for approval.</p>
+          <p className="px-5 py-10 text-slate-500">Không có hồ sơ ngựa nào đang chờ phê duyệt.</p>
         ) : (
           <div className="grid gap-4 p-5 lg:grid-cols-2">
             {filteredHorses.map((horse) => {
@@ -246,11 +246,11 @@ export default function HorseReview() {
                   </div>
 
                   <dl className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-3">
-                    <div><dt className="text-xs font-extrabold uppercase text-slate-500">Breed</dt><dd className="mt-1 break-words text-sm font-extrabold">{horse.breed || 'N/A'}</dd></div>
-                    <div><dt className="text-xs font-extrabold uppercase text-slate-500">Gender</dt><dd className="mt-1 break-words text-sm font-extrabold">{horse.gender || 'N/A'}</dd></div>
-                    <div><dt className="text-xs font-extrabold uppercase text-slate-500">Color</dt><dd className="mt-1 break-words text-sm font-extrabold">{horse.color || 'N/A'}</dd></div>
-                    <div><dt className="text-xs font-extrabold uppercase text-slate-500">Birth Date</dt><dd className="mt-1 text-sm font-extrabold">{formatDate(horse.dayOfBirth)}</dd></div>
-                    <div><dt className="text-xs font-extrabold uppercase text-slate-500">Weight</dt><dd className="mt-1 text-sm font-extrabold">{horse.weight || 'N/A'} kg</dd></div>
+                    <div><dt className="text-xs font-extrabold uppercase text-slate-500">Giống ngựa</dt><dd className="mt-1 break-words text-sm font-extrabold">{horse.breed || 'N/A'}</dd></div>
+                    <div><dt className="text-xs font-extrabold uppercase text-slate-500">Giới tính</dt><dd className="mt-1 break-words text-sm font-extrabold">{horse.gender || 'N/A'}</dd></div>
+                    <div><dt className="text-xs font-extrabold uppercase text-slate-500">Màu lông</dt><dd className="mt-1 break-words text-sm font-extrabold">{horse.color || 'N/A'}</dd></div>
+                    <div><dt className="text-xs font-extrabold uppercase text-slate-500">Ngày sinh</dt><dd className="mt-1 text-sm font-extrabold">{formatDate(horse.dayOfBirth)}</dd></div>
+                    <div><dt className="text-xs font-extrabold uppercase text-slate-500">Cân nặng</dt><dd className="mt-1 text-sm font-extrabold">{horse.weight || 'N/A'} kg</dd></div>
                     <div>
                       <dt className="text-xs font-extrabold uppercase text-slate-500">
                         Health Expiry
@@ -277,8 +277,8 @@ export default function HorseReview() {
                       disabled={certificateExpired}
                       title={
                         certificateExpired
-                          ? 'A valid health certificate is required before approval.'
-                          : 'Approve horse profile'
+                          ? 'Cần có chứng nhận sức khỏe hợp lệ trước khi phê duyệt.'
+                          : 'Phê duyệt hồ sơ ngựa'
                       }
                       onClick={() => setReview({ action: 'approve', horse })}
                     >
