@@ -1,32 +1,33 @@
 import StatCard from '../common/StatCard';
-import { formatNumber } from '../../lib';
+
 export default function OwnerOverview({ dashboard, horses, onGoHorses, onGoInvitations }) {
-    const activeHorses = horses.filter((horse) => String(horse.status || '').toUpperCase() === 'ACTIVE').length;
-    const participatedHorses = horses.filter((horse) => horse.participated).length;
-    const registeredHorses = horses.filter((horse) => Number(horse.registrationCount || 0) > 0).length;
-    return (<>
+  const registeredHorses = horses.filter((horse) => Number(horse.registrationCount || 0) > 0).length;
+  const participatedHorses = horses.filter((horse) => horse.participated).length;
+
+  return (
+    <section className="owner-stack">
       <section className="owner-stats-grid">
-        <StatCard label="Total Horses" value={dashboard?.totalHorses ?? horses.length} description="Số hồ sơ ngựa đang thuộc quyền quản lý" highlight/>
-        <StatCard label="Registrations" value={dashboard?.totalRegistrations ?? 0} description="Tổng lượt đăng ký thi đấu đã ghi nhận"/>
-        <StatCard label="Registered Horses" value={dashboard?.registeredHorses ?? registeredHorses} description="Số ngựa đã có đăng ký race"/>
-        <StatCard label="Participated" value={dashboard?.participatedHorses ?? participatedHorses} description="Số ngựa đã tham gia thi đấu"/>
+        <StatCard label="Total Horses" value={dashboard?.totalHorses ?? horses.length} description="Horse profiles under your management" highlight />
+        <StatCard label="Registrations" value={dashboard?.totalRegistrations ?? 0} description="Total recorded race registrations" />
+        <StatCard label="Registered Horses" value={dashboard?.registeredHorses ?? registeredHorses} description="Horses with race registrations" />
+        <StatCard label="Participated" value={dashboard?.participatedHorses ?? participatedHorses} description="Horses that have joined races" />
       </section>
 
       <section className="owner-overview-grid">
         <div className="owner-panel hero-owner-panel">
           <div>
-            <p className="eyebrow">Stable Overview</p>
-            <h2>Quản lý chuồng ngựa của bạn</h2>
+            <p className="eyebrow">Owner workspace</p>
+            <h2>Manage Your Stable</h2>
             <p>
-              Theo dõi tổng số ngựa, tình trạng đăng ký và lịch sử tham gia thi đấu. Các thông tin này giúp owner chuẩn bị hồ sơ ngựa trước khi đăng ký race.
+              Track horse totals, registration status, and race history. New horse profiles are submitted as PENDING until admin approval.
             </p>
           </div>
           <div className="owner-shortcut-actions">
             <button className="primary-button owner-hero-action" type="button" onClick={onGoHorses}>
-              Quản lý ngựa
+              Manage Horses
             </button>
             <button className="outline-button owner-hero-action" type="button" onClick={onGoInvitations}>
-              Lời mời / Đăng ký
+              Invitations / Registrations
             </button>
           </div>
         </div>
@@ -34,25 +35,23 @@ export default function OwnerOverview({ dashboard, horses, onGoHorses, onGoInvit
         <div className="owner-panel compact-panel">
           <div className="owner-panel-header">
             <div>
-              <h2>Trạng thái nhanh</h2>
-              <p>Dựa trên danh sách ngựa hiện tại.</p>
+              <p className="eyebrow">Quick status</p>
+              <h2>Horse Readiness</h2>
+              <p>Based on your current horse list.</p>
             </div>
           </div>
           <div className="owner-mini-list">
             <div>
-              <span>ACTIVE</span>
-              <strong>{formatNumber(activeHorses)}</strong>
+              <span>With registration</span>
+              <strong>{registeredHorses}</strong>
             </div>
             <div>
-              <span>Có registration</span>
-              <strong>{formatNumber(registeredHorses)}</strong>
-            </div>
-            <div>
-              <span>Đã tham gia</span>
-              <strong>{formatNumber(participatedHorses)}</strong>
+              <span>Already participated</span>
+              <strong>{participatedHorses}</strong>
             </div>
           </div>
         </div>
       </section>
-    </>);
+    </section>
+  );
 }

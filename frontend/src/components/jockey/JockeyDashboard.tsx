@@ -1,10 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { ChangeEvent, FormEvent } from 'react';
+import defaultJockeyAvatar from '../../assets/default-jockey-avatar.svg';
 import AppShell from '../common/AppShell';
 import StatCard from '../common/StatCard';
-import type { NavItem } from '../common/AppShell';
-import type { AuthUser, Id } from '../../services/authService';
-import type { JockeyInvitation, JockeyProfile, JockeyProfilePayload } from '../../services/jockeyService';
 import {
   acceptJockeyInvitation,
   createJockeyProfile,
@@ -16,18 +13,7 @@ import {
 } from '../../services/jockeyService';
 import { formatDate } from '../../lib';
 
-type JockeySection = 'overview' | 'profile' | 'invitations';
-
-type JockeyProfileForm = {
-  licenseNo: string;
-  weight: string;
-  ranking: string;
-  imgUrl: string;
-};
-
-type JockeyProfileErrors = Partial<Record<keyof JockeyProfileForm, string>>;
-
-const jockeyNavItems: NavItem[] = [
+const jockeyNavItems = [
   { key: 'overview', label: 'Dashboard', icon: '📊' },
   { key: 'profile', label: 'Profile', icon: '🧑‍✈️' },
   { key: 'invitations', label: 'Invitations', icon: '✉️' }
@@ -36,111 +22,135 @@ const jockeyNavItems: NavItem[] = [
 const rankingOptions = ['BEGINNER', 'INTERMEDIATE', 'PROFESSIONAL', 'ELITE'];
 const INVITATION_STATUS_OPTIONS = ['ALL', 'PENDING', 'ACCEPTED', 'REJECTED', 'EXPIRED'];
 
-interface JockeyDashboardProps {
-  currentUser: AuthUser | null;
-  onLogout: () => void;
-}
-
-function emptyProfileForm(): JockeyProfileForm {
+function emptyProfileForm() {
   return {
     licenseNo: '',
     weight: '',
     ranking: 'BEGINNER',
-    imgUrl: ''
+    imgUrl: defaultJockeyAvatar
   };
 }
 
-function getErrorText(error: unknown, fallback: string): string {
+function getErrorText(error, fallback) {
   return error instanceof Error ? error.message || fallback : fallback;
 }
 
-function isJockeySection(section: string): section is JockeySection {
+function isJockeySection(section) {
   return section === 'overview' || section === 'profile' || section === 'invitations';
 }
 
-function isMissingProfileError(error: unknown): boolean {
-  return error instanceof Error && /profile does not exist|jockey chưa có|không.*hồ sơ|not found/i.test(error.message);
+function isMissingProfileError(error) {
+  return error instanceof Error && /profile does not exist|not found/i.test(error.message);
 }
 
-function toProfileForm(profile: JockeyProfile): JockeyProfileForm {
+function toProfileForm(profile) {
   return {
     licenseNo: String(profile.licenseNo || ''),
     weight: profile.weight == null ? '' : String(profile.weight),
     ranking: String(profile.ranking || 'BEGINNER').toUpperCase(),
-    imgUrl: String(profile.imgUrl || '')
+    imgUrl: profile.imgUrl && !/^https?:\/\//i.test(String(profile.imgUrl)) ? String(profile.imgUrl) : defaultJockeyAvatar
   };
 }
 
-function validateProfileForm(form: JockeyProfileForm): JockeyProfileErrors {
-  const errors: JockeyProfileErrors = {};
+function validateProfileForm(form) {
+  const errors: Record<string, string> = {};
   const licenseNo = form.licenseNo.trim();
   const weight = Number(form.weight);
-  const imgUrl = form.imgUrl.trim();
+
 
   if (!licenseNo) {
-    errors.licenseNo = 'License number không được để trống.';
+    errors.licenseNo = 'License number is required.';
   } else if (licenseNo.length < 5 || licenseNo.length > 50) {
-    errors.licenseNo = 'License number phải từ 5 đến 50 ký tự.';
+    errors.licenseNo = 'License number must be between 5 and 50 characters.';
   } else if (!/^[A-Za-z0-9-]+$/.test(licenseNo)) {
-    errors.licenseNo = 'License number chỉ được chứa chữ, số và dấu gạch ngang.';
+    errors.licenseNo = 'License number may contain only letters, numbers, and hyphens.';
   }
 
   if (!form.weight) {
-    errors.weight = 'Cân nặng không được để trống.';
+    errors.weight = 'Weight is required.';
   } else if (!Number.isFinite(weight) || weight < 35 || weight > 90) {
-    errors.weight = 'Cân nặng jockey phải từ 35 đến 90 kg.';
+    errors.weight = 'Jockey weight must be between 35 and 90 kg.';
   }
 
   if (!rankingOptions.includes(form.ranking)) {
-    errors.ranking = 'Ranking phải là BEGINNER, INTERMEDIATE, PROFESSIONAL hoặc ELITE.';
-  }
-
-  if (!imgUrl) {
-    errors.imgUrl = 'Image URL không được để trống.';
-  } else if (!/^https?:\/\/.+/i.test(imgUrl)) {
-    errors.imgUrl = 'Image URL phải bắt đầu bằng http:// hoặc https://.';
+    errors.ranking = 'Ranking must be BEGINNER, INTERMEDIATE, PROFESSIONAL, or ELITE.';
   }
 
   return errors;
 }
 
-function toPayload(form: JockeyProfileForm): JockeyProfilePayload {
+function toPayload(form) {
   return {
     licenseNo: form.licenseNo.trim(),
     weight: Number(form.weight),
     ranking: form.ranking,
-    imgUrl: form.imgUrl.trim()
+    imgUrl: defaultJockeyAvatar
   };
 }
 
-function statusClass(status: unknown): string {
+function statusClass(status) {
   return String(status || 'unknown').toLowerCase().replace(/\s+/g, '_');
 }
 
-function displayValue(value: unknown, fallback = 'Chưa cập nhật'): string {
+function displayValue(value, fallback = 'Not updated') {
   if (value === null || value === undefined || value === '') return fallback;
   return String(value);
 }
 
-function getInvitationId(invitation: JockeyInvitation): Id | undefined {
+function getInvitationId(invitation) {
   return invitation.invitationId;
 }
 
-function countByStatus(invitations: JockeyInvitation[], status: string): number {
+function countByStatus(invitations, status) {
   return invitations.filter((invitation) => String(invitation.status || '').toUpperCase() === status).length;
 }
 
-export default function JockeyDashboard({ currentUser, onLogout }: JockeyDashboardProps) {
-  const [activeSection, setActiveSection] = useState<JockeySection>('overview');
-  const [profile, setProfile] = useState<JockeyProfile | null>(null);
-  const [profileForm, setProfileForm] = useState<JockeyProfileForm>(emptyProfileForm());
-  const [profileErrors, setProfileErrors] = useState<JockeyProfileErrors>({});
-  const [invitations, setInvitations] = useState<JockeyInvitation[]>([]);
+function getProfileNotice(profile, isLoadingProfile) {
+  if (isLoadingProfile) return null;
+  if (!profile) {
+    return {
+      type: 'error',
+      text: 'You do not have a jockey profile yet. Create one before accepting invitations.'
+    };
+  }
+
+  const status = String(profile.status || '').toUpperCase();
+
+  if (status === 'UNDER_REVIEW') {
+    return {
+      type: 'warning',
+      text: 'Your profile has not been verified yet. Please wait for admin verification.'
+    };
+  }
+
+  if (status === 'REJECTED') {
+    return {
+      type: 'error',
+      text: `Your profile was rejected.${profile.rejectionReason ? ` Reason: ${profile.rejectionReason}` : ''}`
+    };
+  }
+
+  if (status !== 'ACTIVE') {
+    return {
+      type: 'error',
+      text: `Your profile status is ${profile.status || 'N/A'}, so invitations cannot be accepted yet.`
+    };
+  }
+
+  return null;
+}
+
+export default function JockeyDashboard({ currentUser, onLogout }) {
+  const [activeSection, setActiveSection] = useState('overview');
+  const [profile, setProfile] = useState(null);
+  const [profileForm, setProfileForm] = useState(emptyProfileForm());
+  const [profileErrors, setProfileErrors] = useState({});
+  const [invitations, setInvitations] = useState([]);
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [isLoadingInvitations, setIsLoadingInvitations] = useState(true);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
-  const [actionId, setActionId] = useState<Id | null>(null);
+  const [actionId, setActionId] = useState(null);
   const [pageError, setPageError] = useState('');
   const [profileSubmitError, setProfileSubmitError] = useState('');
   const [message, setMessage] = useState('');
@@ -149,15 +159,19 @@ export default function JockeyDashboard({ currentUser, onLogout }: JockeyDashboa
   const isLoading = isLoadingProfile || isLoadingInvitations;
   const profileStatus = String(profile?.status || '').toUpperCase();
   const isProfileActive = Boolean(profile) && profileStatus === 'ACTIVE';
+  const profileNotice = getProfileNotice(profile, isLoadingProfile);
+
   const filteredInvitations = useMemo(() => {
     if (statusFilter === 'ALL') return invitations;
     return invitations.filter((invitation) => String(invitation.status || '').toUpperCase() === statusFilter);
   }, [invitations, statusFilter]);
+
   const latestInvitations = useMemo(() => invitations.slice(0, 5), [invitations]);
 
-  async function loadProfile(): Promise<void> {
+  async function loadProfile() {
     setIsLoadingProfile(true);
     setPageError('');
+
     try {
       const data = await getJockeyProfile();
       setProfile(data || null);
@@ -168,26 +182,27 @@ export default function JockeyDashboard({ currentUser, onLogout }: JockeyDashboa
         setProfileForm(emptyProfileForm());
         return;
       }
-      setPageError(getErrorText(error, 'Không thể tải hồ sơ jockey.'));
+      setPageError(getErrorText(error, 'Unable to load the jockey profile.'));
     } finally {
       setIsLoadingProfile(false);
     }
   }
 
-  async function loadInvitations(): Promise<void> {
+  async function loadInvitations() {
     setIsLoadingInvitations(true);
     setPageError('');
+
     try {
       const data = await getJockeyInvitations();
       setInvitations(Array.isArray(data) ? data : []);
     } catch (error) {
-      setPageError(getErrorText(error, 'Không thể tải lời mời jockey.'));
+      setPageError(getErrorText(error, 'Unable to load jockey invitations.'));
     } finally {
       setIsLoadingInvitations(false);
     }
   }
 
-  async function reloadData(): Promise<void> {
+  async function reloadData() {
     setMessage('');
     setProfileSubmitError('');
     await Promise.all([loadProfile(), loadInvitations()]);
@@ -197,7 +212,7 @@ export default function JockeyDashboard({ currentUser, onLogout }: JockeyDashboa
     reloadData();
   }, []);
 
-  function handleNavigate(section: string): void {
+  function handleNavigate(section) {
     if (isJockeySection(section)) {
       setActiveSection(section);
       setPageError('');
@@ -206,7 +221,7 @@ export default function JockeyDashboard({ currentUser, onLogout }: JockeyDashboa
     }
   }
 
-  function handleProfileChange(event: ChangeEvent<HTMLInputElement | HTMLSelectElement>): void {
+  function handleProfileChange(event) {
     const { name, value } = event.target;
     setProfileForm((current) => ({ ...current, [name]: value }));
     setProfileErrors((current) => ({ ...current, [name]: '' }));
@@ -215,72 +230,77 @@ export default function JockeyDashboard({ currentUser, onLogout }: JockeyDashboa
     setMessage('');
   }
 
-  async function handleProfileSubmit(event: FormEvent<HTMLFormElement>): Promise<void> {
+  async function handleProfileSubmit(event) {
     event.preventDefault();
     const errors = validateProfileForm(profileForm);
     setProfileErrors(errors);
     setProfileSubmitError('');
     setPageError('');
     setMessage('');
+
     if (Object.keys(errors).length > 0) return;
 
     setIsSavingProfile(true);
     try {
-      const savedProfile = profile ? await updateJockeyProfile(toPayload(profileForm)) : await createJockeyProfile(toPayload(profileForm));
+      const savedProfile = profile
+        ? await updateJockeyProfile(toPayload(profileForm))
+        : await createJockeyProfile(toPayload(profileForm));
       setProfile(savedProfile);
       setProfileForm(toProfileForm(savedProfile));
-      setMessage(profile ? 'Cập nhật hồ sơ jockey thành công.' : 'Tạo hồ sơ jockey thành công. Nếu hệ thống cần duyệt, hãy chờ admin chuyển profile sang ACTIVE.');
+      setMessage('Profile saved. Your profile has not been verified yet. Please wait for admin verification.');
     } catch (error) {
-      setProfileSubmitError(getErrorText(error, 'Không thể lưu hồ sơ jockey.'));
+      setProfileSubmitError(getErrorText(error, 'Unable to save the jockey profile.'));
     } finally {
       setIsSavingProfile(false);
     }
   }
 
-  async function handleDeactivateProfile(): Promise<void> {
-    const confirmed = window.confirm('Bạn có chắc muốn deactivate hồ sơ jockey hiện tại không? Sau đó bạn sẽ không accept được invitation.');
+  async function handleDeactivateProfile() {
+    const confirmed = window.confirm('Are you sure you want to deactivate the current jockey profile? You will not be able to accept invitations afterward.');
     if (!confirmed) return;
 
     setProfileSubmitError('');
     setPageError('');
     setMessage('');
     setIsSavingProfile(true);
+
     try {
       await deactivateJockeyProfile();
       setProfile(null);
       setProfileForm(emptyProfileForm());
-      setMessage('Đã chuyển hồ sơ jockey sang INACTIVE.');
+      setMessage('Jockey profile was deactivated.');
     } catch (error) {
-      setProfileSubmitError(getErrorText(error, 'Không thể deactivate hồ sơ jockey.'));
+      setProfileSubmitError(getErrorText(error, 'Unable to deactivate the jockey profile.'));
     } finally {
       setIsSavingProfile(false);
     }
   }
 
-  async function handleInvitationAction(invitation: JockeyInvitation, action: 'accept' | 'reject'): Promise<void> {
+  async function handleInvitationAction(invitation, action) {
     const invitationId = getInvitationId(invitation);
     if (!invitationId) {
-      setPageError('Không tìm thấy mã lời mời.');
+      setPageError('Invitation ID was not found.');
       return;
     }
 
-    const confirmed = window.confirm(action === 'accept' ? 'Bạn có chắc muốn chấp nhận lời mời này không?' : 'Bạn có chắc muốn từ chối lời mời này không?');
+    const confirmed = window.confirm(action === 'accept' ? 'Are you sure you want to accept this invitation?' : 'Are you sure you want to reject this invitation?');
     if (!confirmed) return;
 
     setActionId(invitationId);
     setPageError('');
     setMessage('');
+
     try {
       if (action === 'accept') {
         await acceptJockeyInvitation(invitationId);
-        setMessage('Đã chấp nhận lời mời. Registration đã chuyển sang ACCEPTED và chờ admin duyệt CONFIRMED.');
+        setMessage('Invitation accepted. The registration is now ACCEPTED and waiting for admin confirmation.');
       } else {
         await rejectJockeyInvitation(invitationId);
-        setMessage('Đã từ chối lời mời.');
+        setMessage('Invitation rejected.');
       }
       await loadInvitations();
     } catch (error) {
-      setPageError(getErrorText(error, action === 'accept' ? 'Chấp nhận lời mời thất bại.' : 'Từ chối lời mời thất bại.'));
+      setPageError(getErrorText(error, action === 'accept' ? 'Unable to accept the invitation.' : 'Unable to reject the invitation.'));
     } finally {
       setActionId(null);
     }
@@ -292,39 +312,34 @@ export default function JockeyDashboard({ currentUser, onLogout }: JockeyDashboa
         <div className="owner-panel-header">
           <div>
             <p className="eyebrow">Jockey profile</p>
-            <h2>{profile ? 'Cập nhật hồ sơ jockey' : 'Tạo hồ sơ jockey'}</h2>
-            <p>Thông tin này dùng để owner biết hồ sơ jockey và để hệ thống kiểm tra khi accept invitation.</p>
+            <h2>{profile ? 'Update Jockey Profile' : 'Create Jockey Profile'}</h2>
+            <p>This information helps owners review your jockey profile before sending invitations.</p>
           </div>
           {profile && <span className={`status-badge ${statusClass(profile.status)}`}>{displayValue(profile.status)}</span>}
         </div>
 
         {profileSubmitError && <div className="admin-alert error modal-alert" role="alert">{profileSubmitError}</div>}
-
-        {!profile && !isLoadingProfile && (
-          <div className="admin-alert error soft-alert" role="alert">Bạn chưa có profile jockey. Hãy tạo profile trước khi nhận lời mời.</div>
-        )}
-
-        {profile && !isProfileActive && (
-          <div className="admin-alert error soft-alert" role="alert">Profile hiện không ACTIVE nên nút accept invitation sẽ bị khóa.</div>
-        )}
+        {profileNotice && <div className={`admin-alert ${profileNotice.type} soft-alert`} role="alert">{profileNotice.text}</div>}
 
         <div className="jockey-profile-preview">
-          <div className="jockey-avatar">
-            {profileForm.imgUrl ? <img src={profileForm.imgUrl} alt="Jockey profile" /> : '🧑‍✈️'}
+          <div className="jockey-avatar facebook-avatar">
+            <img src={defaultJockeyAvatar} alt="Default jockey avatar" />
           </div>
           <div>
             <h3>{profile?.fullName || jockeyName}</h3>
-            <p>{profile?.email || currentUser?.email || 'Chưa có email'}</p>
+            <p>{profile?.email || currentUser?.email || 'No email yet'}</p>
           </div>
         </div>
 
-        <label className="field-label" htmlFor="jockeyLicenseNo">License number <span className="required">*</span></label>
+        <label className="field-label" htmlFor="jockeyLicenseNo">
+          License Number <span className="required">*</span>
+        </label>
         <input
           className={profileErrors.licenseNo ? 'input has-error' : 'input'}
           id="jockeyLicenseNo"
           name="licenseNo"
           type="text"
-          placeholder="Ví dụ: JOC-001"
+          placeholder="Example: JOC-001"
           value={profileForm.licenseNo}
           onChange={handleProfileChange}
           disabled={isSavingProfile}
@@ -333,7 +348,9 @@ export default function JockeyDashboard({ currentUser, onLogout }: JockeyDashboa
 
         <div className="owner-form-row">
           <div>
-            <label className="field-label" htmlFor="jockeyWeight">Cân nặng <span className="required">*</span></label>
+            <label className="field-label" htmlFor="jockeyWeight">
+              Weight <span className="required">*</span>
+            </label>
             <input
               className={profileErrors.weight ? 'input has-error' : 'input'}
               id="jockeyWeight"
@@ -351,7 +368,9 @@ export default function JockeyDashboard({ currentUser, onLogout }: JockeyDashboa
           </div>
 
           <div>
-            <label className="field-label" htmlFor="jockeyRanking">Ranking <span className="required">*</span></label>
+            <label className="field-label" htmlFor="jockeyRanking">
+              Ranking <span className="required">*</span>
+            </label>
             <select
               className={profileErrors.ranking ? 'input has-error' : 'input'}
               id="jockeyRanking"
@@ -366,26 +385,19 @@ export default function JockeyDashboard({ currentUser, onLogout }: JockeyDashboa
           </div>
         </div>
 
-        <label className="field-label" htmlFor="jockeyImgUrl">Image URL <span className="required">*</span></label>
-        <input
-          className={profileErrors.imgUrl ? 'input has-error' : 'input'}
-          id="jockeyImgUrl"
-          name="imgUrl"
-          type="url"
-          placeholder="https://example.com/jockey.jpg"
-          value={profileForm.imgUrl}
-          onChange={handleProfileChange}
-          disabled={isSavingProfile}
-        />
-        {profileErrors.imgUrl && <p className="field-error">{profileErrors.imgUrl}</p>}
+        <div className="readonly-field-card full-width">
+          <span>Profile Image</span>
+          <strong>Default imported avatar</strong>
+          <small>The jockey profile uses a local white Facebook-style avatar instead of an external image link.</small>
+        </div>
 
         <div className="admin-form-actions">
           <button className="primary-button" type="submit" disabled={isSavingProfile}>
-            {isSavingProfile ? 'Đang lưu...' : profile ? 'Cập nhật profile' : 'Tạo profile'}
+            {isSavingProfile ? 'Saving...' : profile ? 'Update Profile' : 'Create Profile'}
           </button>
           {profile && (
             <button className="outline-button danger-action" type="button" onClick={handleDeactivateProfile} disabled={isSavingProfile}>
-              Deactivate profile
+              Deactivate Profile
             </button>
           )}
         </div>
@@ -396,13 +408,8 @@ export default function JockeyDashboard({ currentUser, onLogout }: JockeyDashboa
   function renderInvitationList(limit?: number) {
     const items = typeof limit === 'number' ? latestInvitations.slice(0, limit) : filteredInvitations;
 
-    if (isLoadingInvitations) {
-      return <p className="table-empty">Đang tải lời mời...</p>;
-    }
-
-    if (items.length === 0) {
-      return <p className="table-empty">Chưa có lời mời phù hợp.</p>;
-    }
+    if (isLoadingInvitations) return <p className="table-empty">Loading invitations...</p>;
+    if (items.length === 0) return <p className="table-empty">No invitations match the current filters.</p>;
 
     return (
       <div className="table-wrapper">
@@ -410,14 +417,14 @@ export default function JockeyDashboard({ currentUser, onLogout }: JockeyDashboa
           <thead>
             <tr>
               <th>ID</th>
-              <th>Giải đấu</th>
-              <th>Ngựa</th>
+              <th>Tournament</th>
+              <th>Horse</th>
               <th>Owner</th>
-              <th>Tạo lúc</th>
-              <th>Hết hạn</th>
+              <th>Created</th>
+              <th>Expires</th>
               <th>Status</th>
               <th>Registration</th>
-              <th>Thao tác</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -425,6 +432,7 @@ export default function JockeyDashboard({ currentUser, onLogout }: JockeyDashboa
               const invitationId = getInvitationId(invitation);
               const isPending = String(invitation.status || '').toUpperCase() === 'PENDING';
               const acceptDisabled = !isPending || !isProfileActive || actionId === invitationId;
+
               return (
                 <tr key={invitationId || `${invitation.tournamentId}-${invitation.horseId}`}>
                   <td>{invitationId || 'N/A'}</td>
@@ -441,11 +449,20 @@ export default function JockeyDashboard({ currentUser, onLogout }: JockeyDashboa
                   <td>
                     {isPending ? (
                       <div className="table-actions">
-                        <button type="button" onClick={() => handleInvitationAction(invitation, 'accept')} disabled={acceptDisabled} title={!isProfileActive ? 'Profile chưa ACTIVE nên không thể accept.' : 'Accept invitation'}>Accept</button>
-                        <button type="button" className="danger-action" onClick={() => handleInvitationAction(invitation, 'reject')} disabled={actionId === invitationId}>Reject</button>
+                        <button
+                          type="button"
+                          onClick={() => handleInvitationAction(invitation, 'accept')}
+                          disabled={acceptDisabled}
+                          title={!isProfileActive ? 'Profile is not ACTIVE yet, so this invitation cannot be accepted.' : 'Accept invitation'}
+                        >
+                          Accept
+                        </button>
+                        <button type="button" className="danger-action" onClick={() => handleInvitationAction(invitation, 'reject')} disabled={actionId === invitationId}>
+                          Reject
+                        </button>
                       </div>
                     ) : (
-                      <span className="readonly-note">Đã xử lý</span>
+                      <span className="readonly-note">Processed</span>
                     )}
                   </td>
                 </tr>
@@ -459,56 +476,57 @@ export default function JockeyDashboard({ currentUser, onLogout }: JockeyDashboa
 
   return (
     <AppShell
-      variant="owner"
-      title={`Xin chào, ${jockeyName}`}
-      subtitle="Tạo hồ sơ jockey, theo dõi lời mời từ chủ ngựa và phản hồi lời mời thi đấu."
+      variant="jockey"
+      title={`Hello, ${jockeyName}`}
+      subtitle="Create your jockey profile, track owner invitations, and respond to race invitations."
       profileName={jockeyName}
       profileRole={String(currentUser?.role || currentUser?.roleName || 'JOCKEY')}
       activeSection={activeSection}
       navItems={jockeyNavItems}
       onNavigate={handleNavigate}
       onLogout={onLogout}
-      headerAction={
+      headerAction={(
         <button className="refresh-button" type="button" onClick={reloadData} disabled={isLoading}>
-          {isLoading ? 'Đang tải...' : 'Làm mới'}
+          {isLoading ? 'Loading...' : 'Refresh'}
         </button>
-      }
+      )}
     >
       {pageError && <div className="admin-alert error" role="alert">{pageError}</div>}
       {message && <div className="admin-alert success" role="status">{message}</div>}
+      {profileNotice && activeSection !== 'profile' && <div className={`admin-alert ${profileNotice.type}`} role="alert">{profileNotice.text}</div>}
 
       {activeSection === 'overview' && (
         <section className="owner-stack">
           <section className="owner-stats-grid">
-            <StatCard label="Profile status" value={profile?.status || 'NO PROFILE'} description={profile ? `License: ${profile.licenseNo || 'Chưa cập nhật'}` : 'Bạn cần tạo profile jockey'} highlight />
-            <StatCard label="Ranking" value={profile?.ranking || 'N/A'} description="Ranking hiện tại trong profile" />
-            <StatCard label="Pending invitations" value={countByStatus(invitations, 'PENDING')} description="Lời mời đang chờ phản hồi" />
-            <StatCard label="Accepted invitations" value={countByStatus(invitations, 'ACCEPTED')} description="Lời mời đã chấp nhận" />
+            <StatCard label="Profile status" value={profile?.status || 'NO PROFILE'} description={profile ? `License: ${profile.licenseNo || 'Not updated'}` : 'Create a jockey profile'} highlight />
+            <StatCard label="Ranking" value={profile?.ranking || 'N/A'} description="Current ranking in your profile" />
+            <StatCard label="Pending invitations" value={countByStatus(invitations, 'PENDING')} description="Invitations waiting for your response" />
+            <StatCard label="Accepted invitations" value={countByStatus(invitations, 'ACCEPTED')} description="Invitations you accepted" />
           </section>
 
           <section className="owner-overview-grid">
             <div className="owner-panel hero-owner-panel">
               <div>
                 <p className="eyebrow">Jockey dashboard</p>
-                <h2>Quản lý profile và lời mời thi đấu</h2>
-                <p>Trang này tổng hợp dữ liệu từ profile và invitation vì backend chưa có endpoint dashboard riêng cho jockey.</p>
+                <h2>Manage Profile and Invitations</h2>
+                <p>Your profile must be verified by an admin before you can accept race invitations.</p>
               </div>
               <div className="owner-shortcut-actions">
-                <button className="primary-button owner-hero-action" type="button" onClick={() => setActiveSection('profile')}>Mở profile</button>
-                <button className="outline-button owner-hero-action" type="button" onClick={() => setActiveSection('invitations')}>Xem invitations</button>
+                <button className="primary-button owner-hero-action" type="button" onClick={() => setActiveSection('profile')}>Open Profile</button>
+                <button className="outline-button owner-hero-action" type="button" onClick={() => setActiveSection('invitations')}>View Invitations</button>
               </div>
             </div>
 
             <div className="owner-panel compact-panel">
               <div className="owner-panel-header">
                 <div>
-                  <h2>Lời mời mới nhất</h2>
-                  <p>Hiển thị tối đa 5 lời mời gần nhất từ backend.</p>
+                  <h2>Latest Invitations</h2>
+                  <p>Showing up to five latest invitations from the backend.</p>
                 </div>
               </div>
               <div className="owner-mini-list">
                 {latestInvitations.length === 0 ? (
-                  <p className="table-empty">Chưa có lời mời nào.</p>
+                  <p className="table-empty">No invitations yet.</p>
                 ) : latestInvitations.map((invitation) => (
                   <div key={invitation.invitationId || `${invitation.tournamentId}-${invitation.horseId}`}>
                     <span>{invitation.tournamentName || `Tournament ${invitation.tournamentId || ''}`}</span>
@@ -526,9 +544,9 @@ export default function JockeyDashboard({ currentUser, onLogout }: JockeyDashboa
           <div className="owner-section-toolbar">
             <div>
               <p className="eyebrow">Profile</p>
-              <h2>Hồ sơ jockey</h2>
+              <h2>Jockey Profile</h2>
             </div>
-            <button className="outline-button compact-button" type="button" onClick={loadProfile} disabled={isLoadingProfile}>Tải lại profile</button>
+            <button className="outline-button compact-button" type="button" onClick={loadProfile} disabled={isLoadingProfile}>Reload Profile</button>
           </div>
           {renderProfileForm()}
         </section>
@@ -536,24 +554,18 @@ export default function JockeyDashboard({ currentUser, onLogout }: JockeyDashboa
 
       {activeSection === 'invitations' && (
         <section className="owner-stack">
-          {!profile && !isLoadingProfile && (
-            <div className="admin-alert error" role="alert">Bạn chưa có profile jockey nên không thể accept invitation. Hãy tạo profile trước.</div>
-          )}
-          {profile && !isProfileActive && (
-            <div className="admin-alert error" role="alert">Profile của bạn đang là {profile.status || 'N/A'}, không phải ACTIVE nên không thể accept invitation.</div>
-          )}
           <section className="owner-panel">
             <div className="owner-panel-header">
               <div>
                 <p className="eyebrow">Invitations</p>
-                <h2>Lời mời được nhận</h2>
-                <p>Jockey có thể accept hoặc reject lời mời đang ở trạng thái PENDING.</p>
+                <h2>Received Invitations</h2>
+                <p>Jockeys can accept or reject invitations that are still PENDING.</p>
               </div>
               <div className="inline-filter-row">
                 <select className="input compact-select" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
-                  {INVITATION_STATUS_OPTIONS.map((status) => <option key={status} value={status}>{status === 'ALL' ? 'Tất cả status' : status}</option>)}
+                  {INVITATION_STATUS_OPTIONS.map((status) => <option key={status} value={status}>{status === 'ALL' ? 'All statuses' : status}</option>)}
                 </select>
-                <span className="owner-count-pill">{filteredInvitations.length} lời mời</span>
+                <span className="owner-count-pill">{filteredInvitations.length} invitations</span>
               </div>
             </div>
             {renderInvitationList()}

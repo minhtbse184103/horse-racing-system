@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import defaultJockeyAvatar from '../../../assets/default-jockey-avatar.svg';
 import {
   BadgeCheck,
   Eye,
@@ -11,6 +12,10 @@ import {
   getJockeyProfilesUnderReview,
   rejectJockeyProfile
 } from '../../../services/adminProfileReviewService';
+
+function getProfileImage(src) {
+  return src && !/^https?:\/\//i.test(String(src)) ? src : defaultJockeyAvatar;
+}
 
 function ReviewModal({ review, onClose, onConfirm, isProcessing }) {
   const [feedback, setFeedback] = useState('');
@@ -235,7 +240,7 @@ export default function JockeyReview() {
                 <div className="flex items-start gap-4">
                   <img
                     className="size-20 rounded-lg border border-brown-700/10 object-cover"
-                    src={profile.imgUrl}
+                    src={getProfileImage(profile.imgUrl)}
                     alt={`${profile.fullName} proof`}
                   />
                   <div className="min-w-0 flex-1">
@@ -321,7 +326,7 @@ export default function JockeyReview() {
           >
             <img
               className="max-h-[60vh] w-full rounded-lg object-contain"
-              src={selectedProfile.imgUrl}
+              src={getProfileImage(selectedProfile.imgUrl)}
               alt={`${selectedProfile.fullName} proof`}
             />
             <button

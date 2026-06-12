@@ -18,7 +18,7 @@ export function useHorses() {
             return safeData;
         }
         catch (error) {
-            setHorseError(getErrorText(error, 'Không thể tải danh sách ngựa.'));
+            setHorseError(getErrorText(error, 'Unable to load the horse list.'));
             throw error;
         }
         finally {
@@ -32,7 +32,7 @@ export function useHorses() {
         if (editingHorse) {
             const horseId = getHorseId(editingHorse);
             if (!horseId)
-                throw new Error('Không tìm thấy mã hồ sơ ngựa.');
+                throw new Error('Horse profile ID was not found.');
             return updateHorse(horseId, payload);
         }
         return createHorse(payload);
@@ -40,7 +40,7 @@ export function useHorses() {
     async function removeHorse(horse) {
         const horseId = getHorseId(horse);
         if (!horseId)
-            throw new Error('Không tìm thấy mã hồ sơ ngựa.');
+            throw new Error('Horse profile ID was not found.');
         return deleteHorse(horseId);
     }
     return {

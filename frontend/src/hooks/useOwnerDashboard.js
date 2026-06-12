@@ -16,7 +16,7 @@ export function useOwnerDashboard() {
             return data || null;
         }
         catch (error) {
-            setDashboardError(getErrorText(error, 'Không thể tải dashboard chủ ngựa.'));
+            setDashboardError(getErrorText(error, 'Unable to load the owner dashboard.'));
             throw error;
         }
         finally {

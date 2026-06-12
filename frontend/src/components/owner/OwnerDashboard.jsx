@@ -44,7 +44,7 @@ export default function OwnerDashboard({ currentUser, onLogout }) {
             await Promise.all([loadDashboard(), loadHorses()]);
         }
         catch (err) {
-            setPageError(getErrorText(err, 'Không thể tải dashboard chủ ngựa.'));
+            setPageError(getErrorText(err, 'Unable to load the owner dashboard.'));
         }
     }
     function handleNavigate(section) {
@@ -69,10 +69,70 @@ export default function OwnerDashboard({ currentUser, onLogout }) {
         setPageError('');
         setMessage('');
     }
+    function handleHorseImageChange(event) {
+  const file = event.target.files?.[0];
+
+  if (!file) return;
+
+  const allowedTypes = [
+    'image/png',
+    'image/jpeg',
+    'image/jpg',
+    'image/webp',
+    'image/svg+xml'
+  ];
+
+  if (!allowedTypes.includes(file.type)) {
+    setFormErrors((current) => ({
+      ...current,
+      imgUrl: 'Horse image must be PNG, JPG, WEBP, or SVG.'
+    }));
+    event.target.value = '';
+    return;
+  }
+
+  const maxSize = 2 * 1024 * 1024;
+
+  if (file.size > maxSize) {
+    setFormErrors((current) => ({
+      ...current,
+      imgUrl: 'Horse image must not exceed 2MB.'
+    }));
+    event.target.value = '';
+    return;
+  }
+
+  const reader = new FileReader();
+
+  reader.onload = () => {
+    setFormValues((current) => ({
+      ...current,
+      imgUrl: String(reader.result || '')
+    }));
+
+    setFormErrors((current) => ({
+      ...current,
+      imgUrl: ''
+    }));
+
+    setHorseFormError('');
+    setPageError('');
+    setMessage('');
+  };
+
+  reader.onerror = () => {
+    setFormErrors((current) => ({
+      ...current,
+      imgUrl: 'Unable to import this image.'
+    }));
+  };
+
+  reader.readAsDataURL(file);
+}
     async function handleViewHorse(horse) {
         const horseId = getHorseId(horse);
         if (!horseId) {
-            setHorseDetailError('Không tìm thấy mã ngựa.');
+            setHorseDetailError('Horse ID was not found.');
             return;
         }
         setIsLoadingHorseDetail(true);
@@ -85,7 +145,7 @@ export default function OwnerDashboard({ currentUser, onLogout }) {
             setSelectedHorse(detail);
         }
         catch (err) {
-            setHorseDetailError(getErrorText(err, 'Không thể tải chi tiết ngựa.'));
+            setHorseDetailError(getErrorText(err, 'Unable to load horse details.'));
         }
         finally {
             setIsLoadingHorseDetail(false);
@@ -101,8 +161,10 @@ export default function OwnerDashboard({ currentUser, onLogout }) {
             dayOfBirth: horse.dayOfBirth || '',
             weight: horse.weight ?? '',
             healthCertExpiry: horse.healthCertExpiry || '',
-            status: horse.status || 'ACTIVE',
-            imgUrl: horse.imgUrl || ''
+            imgUrl:
+            horse.imgUrl && !/^https?:\/\//i.test(String(horse.imgUrl))
+                ? horse.imgUrl
+                : emptyHorseForm().imgUrl
         });
         setActiveSection('horses');
         setIsHorseFormOpen(true);
@@ -134,7 +196,7 @@ export default function OwnerDashboard({ currentUser, onLogout }) {
         setIsSaving(true);
         try {
             await saveHorse(toHorsePayload(formValues), editingHorse);
-            setMessage(editingHorse ? 'Cập nhật hồ sơ ngựa thành công.' : 'Thêm ngựa mới thành công.');
+            setMessage(editingHorse ? 'Horse profile was updated and submitted as PENDING for admin approval.' : 'Horse profile was submitted as PENDING for admin approval.');
             setEditingHorse(null);
             setFormValues(emptyHorseForm());
             setIsHorseFormOpen(false);
@@ -142,7 +204,7 @@ export default function OwnerDashboard({ currentUser, onLogout }) {
             await reloadOwnerData();
         }
         catch (err) {
-            setHorseFormError(getErrorText(err, 'Không thể lưu hồ sơ ngựa. Vui lòng kiểm tra lại thông tin.'));
+            setHorseFormError(getErrorText(err, 'Unable to save the horse profile. Please check the information and try again.'));
         }
         finally {
             setIsSaving(false);
@@ -150,8 +212,8 @@ export default function OwnerDashboard({ currentUser, onLogout }) {
     }
     async function handleDeleteHorse(horse) {
         const horseId = getHorseId(horse);
-        const horseName = getHorseName(horse) || String(horseId || 'này');
-        const confirmDelete = window.confirm(`Bạn có chắc muốn xóa hồ sơ ngựa "${horseName}" không?\nHồ sơ đã có lịch sử tham gia race hoặc kết quả thi đấu sẽ không được xóa.`);
+        const horseName = getHorseName(horse) || String(horseId || 'this horse');
+        const confirmDelete = window.confirm(`Are you sure you want to delete the horse profile "${horseName}"?\nProfiles with race history or race results cannot be deleted.`);
         if (!confirmDelete)
             return;
         setPageError('');
@@ -159,7 +221,7 @@ export default function OwnerDashboard({ currentUser, onLogout }) {
         setMessage('');
         try {
             await removeHorse(horse);
-            setMessage('Xóa hồ sơ ngựa thành công.');
+            setMessage('Horse profile was deleted successfully.');
             if (editingHorse && getHorseId(editingHorse) === horseId) {
                 handleCancelHorseEdit();
             }
@@ -169,11 +231,11 @@ export default function OwnerDashboard({ currentUser, onLogout }) {
             await reloadOwnerData();
         }
         catch (err) {
-            setPageError(getErrorText(err, 'Không thể xóa hồ sơ ngựa.'));
+            setPageError(getErrorText(err, 'Unable to delete the horse profile.'));
         }
     }
-    return (<AppShell variant="owner" title={`Xin chào, ${ownerName}`} subtitle="Quản lý hồ sơ ngựa và theo dõi tình trạng đăng ký thi đấu." profileName={ownerName} profileRole={String(currentUser?.role || currentUser?.roleName || 'OWNER')} activeSection={activeSection} navItems={ownerNavItems} onNavigate={handleNavigate} onLogout={onLogout} headerAction={<button className="refresh-button" type="button" onClick={reloadOwnerData} disabled={isLoading}>
-          {isLoading ? 'Đang tải...' : 'Làm mới'}
+    return (<AppShell variant="owner" title={`Hello, ${ownerName}`} subtitle="Manage horse profiles and track race registration status." profileName={ownerName} profileRole={String(currentUser?.role || currentUser?.roleName || 'OWNER')} activeSection={activeSection} navItems={ownerNavItems} onNavigate={handleNavigate} onLogout={onLogout} headerAction={<button className="refresh-button" type="button" onClick={reloadOwnerData} disabled={isLoading}>
+          {isLoading ? 'Loading...' : 'Refresh'}
         </button>}>
       {error && <div className="admin-alert error" role="alert">{error}</div>}
       {message && <div className="admin-alert success" role="status">{message}</div>}
@@ -184,14 +246,24 @@ export default function OwnerDashboard({ currentUser, onLogout }) {
           <div className="owner-section-toolbar">
             <div>
               <p className="eyebrow">Horse profile</p>
-              <h2>Quản lý ngựa của tôi</h2>
+              <h2>Manage My Horses</h2>
             </div>
             <button className="primary-button compact-button" type="button" onClick={handleStartCreateHorse}>
-              + Thêm ngựa mới
+              + Add New Horse
             </button>
           </div>
 
-          {isHorseFormOpen && (<OwnerHorseForm formValues={formValues} errors={formErrors} submitError={horseFormError} editingHorse={editingHorse} isSaving={isSaving} onChange={handleHorseChange} onSubmit={handleHorseSubmit} onCancelEdit={handleCancelHorseEdit}/>)}
+          {isHorseFormOpen && (<OwnerHorseForm
+            formValues={formValues}
+            errors={formErrors}
+            submitError={horseFormError}
+            editingHorse={editingHorse}
+            isSaving={isSaving}
+            onChange={handleHorseChange}
+            onImageChange={handleHorseImageChange}
+            onSubmit={handleHorseSubmit}
+            onCancelEdit={handleCancelHorseEdit}
+            />)}
 
           {horseDetailError && <div className="admin-alert error" role="alert">{horseDetailError}</div>}
 
@@ -199,24 +271,24 @@ export default function OwnerDashboard({ currentUser, onLogout }) {
               <div className="owner-panel-header">
                 <div>
                   <p className="eyebrow">Horse detail</p>
-                  <h2>{getHorseName(selectedHorse) || 'Chi tiết ngựa'}</h2>
-                  <p>{isLoadingHorseDetail ? 'Đang tải chi tiết mới nhất từ backend...' : 'Dữ liệu chi tiết lấy từ GET /api/owner/horses/{horseId}.'}</p>
+                  <h2>{getHorseName(selectedHorse) || 'Horse Details'}</h2>
+                  <p>{isLoadingHorseDetail ? 'Loading the latest details from the backend...' : 'Details loaded from GET /api/owner/horses/{horseId}.'}</p>
                 </div>
-                <button className="outline-button compact-button" type="button" onClick={() => setSelectedHorse(null)}>Đóng</button>
+                <button className="outline-button compact-button" type="button" onClick={() => setSelectedHorse(null)}>Close</button>
               </div>
               <div className="detail-grid">
                 <span>ID</span><strong>{getHorseId(selectedHorse) || 'N/A'}</strong>
-                <span>Giống</span><strong>{selectedHorse.breed || 'Chưa cập nhật'}</strong>
-                <span>Giới tính</span><strong>{selectedHorse.gender || 'Chưa cập nhật'}</strong>
-                <span>Màu lông</span><strong>{selectedHorse.color || 'Chưa cập nhật'}</strong>
-                <span>Ngày sinh</span><strong>{selectedHorse.dayOfBirth || 'Chưa cập nhật'}</strong>
-                <span>Cân nặng</span><strong>{selectedHorse.weight ? `${selectedHorse.weight} kg` : 'Chưa cập nhật'}</strong>
-                <span>Hạn sức khỏe</span><strong>{selectedHorse.healthCertExpiry || 'Chưa cập nhật'}</strong>
+                <span>Breed</span><strong>{selectedHorse.breed || 'Not updated'}</strong>
+                <span>Gender</span><strong>{selectedHorse.gender || 'Not updated'}</strong>
+                <span>Coat Color</span><strong>{selectedHorse.color || 'Not updated'}</strong>
+                <span>Birth Date</span><strong>{selectedHorse.dayOfBirth || 'Not updated'}</strong>
+                <span>Weight</span><strong>{selectedHorse.weight ? `${selectedHorse.weight} kg` : 'Not updated'}</strong>
+                <span>Health Expiry</span><strong>{selectedHorse.healthCertExpiry || 'Not updated'}</strong>
                 <span>Status</span><strong><span className={`status-badge ${String(selectedHorse.status || '').toLowerCase()}`}>{selectedHorse.status || 'N/A'}</span></strong>
                 <span>Registration</span><strong>{selectedHorse.registrationCount ?? 0}</strong>
-                <span>Đã thi đấu</span><strong>{selectedHorse.participated ? 'Có' : 'Chưa'}</strong>
+                <span>Has Raced</span><strong>{selectedHorse.participated ? 'Yes' : 'No'}</strong>
                 {selectedHorse.rejectionReason && <>
-                  <span>Lý do từ chối</span><strong>{selectedHorse.rejectionReason}</strong>
+                  <span>Rejection Reason</span><strong>{selectedHorse.rejectionReason}</strong>
                 </>}
               </div>
             </section>)}

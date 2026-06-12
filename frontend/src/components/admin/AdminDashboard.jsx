@@ -3,21 +3,22 @@ import {
   ClipboardCheck,
   Flag,
   Gavel,
+  ShieldCheck,
   LayoutDashboard,
   LogOut,
-  ShieldCheck,
   Trophy,
   UserCheck,
   Users
 } from 'lucide-react';
+
 import AdminOverview from './AdminOverview';
 import EventManagement from './events/EventManagement';
 import RaceEntryManagement from './raceEntries/RaceEntryManagement';
 import RegistrationReview from './registrations/RegistrationReview';
-import HorseReview from './reviews/HorseReview';
-import UserManagement from './users/UserManagement';
 import JockeyReview from './reviews/JockeyReview';
 import RefereeAssignmentManagement from './refereeAssignments/RefereeAssignmentManagement';
+import HorseReview from './horses/HorseReview';
+import UserManagement from './users/UserManagement';
 
 const adminNavItems = [
   { key: 'overview', label: 'Overview', icon: LayoutDashboard },
@@ -84,14 +85,21 @@ export default function AdminDashboard({ currentUser, onLogout }) {
         {activeSection === 'overview' && (
           <AdminOverview onNavigate={setActiveSection} />
         )}
+
         {activeSection === 'users' && <UserManagement />}
+
         {activeSection === 'events' && <EventManagement />}
+
         {activeSection === 'registrations' && <RegistrationReview />}
+
         {activeSection === 'raceEntries' && <RaceEntryManagement />}
+
         {activeSection === 'refereeAssignments' && (
-  <RefereeAssignmentManagement />
-)}
+          <RefereeAssignmentManagement />
+        )}
+
         {activeSection === 'jockeyReviews' && <JockeyReview />}
+
         {activeSection === 'horseReviews' && <HorseReview />}
       </section>
     </main>
