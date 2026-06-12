@@ -117,6 +117,9 @@ export function validateHorseForm(values) {
   } else if (healthCertExpiry < today) {
     errors.healthCertExpiry = 'Health certificate expiry must be today or in the future.';
   }
+  if (values.imgUrl && !/^https?:\/\/.+/i.test(values.imgUrl.trim())) {
+    errors.imgUrl = 'Image URL must start with http:// or https://';
+  }
 
   return errors;
 }

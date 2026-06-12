@@ -142,34 +142,21 @@ export default function OwnerHorseForm({
       />
       {errors.healthCertExpiry && <p className="field-error">{errors.healthCertExpiry}</p>}
 
-      <div className={errors.imgUrl ? 'image-upload-card has-error' : 'image-upload-card'}>
-        <div className="horse-image-preview">
-          {formValues.imgUrl ? (
-            <img src={formValues.imgUrl} alt="Horse preview" />
-          ) : (
-            <span>🐎</span>
-          )}
-        </div>
+      <label className="field-label" htmlFor="horseImageUrl">
+        Horse Image URL
+      </label>
 
-        <div className="image-upload-content">
-          <span>Horse Image</span>
-          <strong>Import image from your computer</strong>
-          <small>PNG, JPG, WEBP, or SVG. The image will be submitted with the horse profile.</small>
+      <input
+        className={errors.imgUrl ? 'input has-error' : 'input'}
+        id="horseImageUrl"
+        name="imgUrl"
+        type="text"
+        placeholder="https://example.com/horse.jpg"
+        value={formValues.imgUrl || ''}
+        onChange={onChange}
+        disabled={isSaving}
+      />
 
-          <label className="image-upload-button" htmlFor="horseImage">
-            Choose Image
-          </label>
-
-          <input
-            id="horseImage"
-            className="image-file-input"
-            type="file"
-            accept="image/png,image/jpeg,image/jpg,image/webp,image/svg+xml"
-            onChange={onImageChange}
-            disabled={isSaving}
-          />
-        </div>
-      </div>
       {errors.imgUrl && <p className="field-error">{errors.imgUrl}</p>}
 
       <div className="admin-form-actions">

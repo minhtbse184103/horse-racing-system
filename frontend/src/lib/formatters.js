@@ -39,21 +39,21 @@ export function emptyHorseForm() {
         dayOfBirth: '',
         weight: '',
         healthCertExpiry: '',
-        imgUrl: defaultHorseImage
+        imgUrl: ''
     };
 }
 export function toHorsePayload(formValues) {
-  const horseName = String(formValues.horseName ?? '').trim();
-  const weight = Number(formValues.weight);
+    const horseName = String(formValues.horseName ?? '').trim();
+    const weight = Number(formValues.weight);
 
-  return {
-    horseName,
-    breed: formValues.breed.trim() || null,
-    gender: formValues.gender || null,
-    color: formValues.color.trim() || null,
-    dayOfBirth: formValues.dayOfBirth || null,
-    weight,
-    healthCertExpiry: formValues.healthCertExpiry || null,
-    imgUrl: formValues.imgUrl || defaultHorseImage
-  };
+    return {
+        horseName,
+        breed: formValues.breed.trim() || null,
+        gender: formValues.gender || null,
+        color: formValues.color.trim() || null,
+        dayOfBirth: formValues.dayOfBirth || null,
+        weight,
+        healthCertExpiry: formValues.healthCertExpiry || null,
+        imgUrl: formValues.imgUrl || null
+    };
 }
