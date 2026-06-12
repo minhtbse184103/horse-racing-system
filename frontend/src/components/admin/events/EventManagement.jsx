@@ -17,7 +17,7 @@ function emptyTournamentForm() {
     startDate: '',
     endDate: '',
     registrationDeadline: '',
-    minParticipants: 2,
+    minParticipants: 3,
     maxParticipants: 12,
     conditionId: ''
   };
@@ -99,6 +99,16 @@ export default function EventManagement() {
     setError('');
     setIsFormOpen(true);
   }
+  function getTomorrowDate() {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+
+  const year = tomorrow.getFullYear();
+  const month = String(tomorrow.getMonth() + 1).padStart(2, '0');
+  const day = String(tomorrow.getDate()).padStart(2, '0');
+
+  return `${year}-${month}-${day}`;
+}
 
   function openEditForm(tournament) {
     setEditingTournament(tournament);
@@ -109,7 +119,7 @@ export default function EventManagement() {
       startDate: tournament.startDate || '',
       endDate: tournament.endDate || '',
       registrationDeadline: tournament.registrationDeadline?.slice(0, 10) || '',
-      minParticipants: tournament.minParticipants || 1,
+      minParticipants: tournament.minParticipants || 3,
       maxParticipants: tournament.maxParticipants || 1,
       conditionId: tournament.conditionId || ''
     });
@@ -143,7 +153,15 @@ export default function EventManagement() {
     setIsSaving(true);
     setError('');
     setMessage('');
-
+if (
+  formValues.registrationDeadline &&
+  formValues.startDate &&
+  formValues.registrationDeadline >= formValues.startDate
+) {
+  setError('Registration deadline must be before start date.');
+  setIsSaving(false);
+  return;
+}
     const payload = {
       tournamentName: formValues.tournamentName.trim(),
       location: formValues.location.trim(),
@@ -713,13 +731,14 @@ export default function EventManagement() {
               <label className="grid gap-2 text-sm font-bold text-brown-900">
                 <span>Start Date</span>
                 <input
-                  className="w-full rounded-lg border border-brown-700/20 bg-white/80 px-4 py-3 text-brown-900 outline-none transition focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
-                  name="startDate"
-                  type="date"
-                  value={formValues.startDate}
-                  onChange={handleChange}
-                  required
-                />
+  className="w-full rounded-lg border border-brown-700/20 bg-white/80 px-4 py-3 text-brown-900 outline-none transition focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
+  name="startDate"
+  type="date"
+  min={getTomorrowDate()}
+  value={formValues.startDate}
+  onChange={handleChange}
+  required
+/>
               </label>
 
               <label className="grid gap-2 text-sm font-bold text-brown-900">
@@ -737,26 +756,27 @@ export default function EventManagement() {
               <label className="grid gap-2 text-sm font-bold text-brown-900 sm:col-span-2">
                 <span>Registration Deadline</span>
                 <input
-                  className="w-full rounded-lg border border-brown-700/20 bg-white/80 px-4 py-3 text-brown-900 outline-none transition focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
-                  name="registrationDeadline"
-                  type="date"
-                  value={formValues.registrationDeadline}
-                  onChange={handleChange}
-                  required
-                />
+  className="w-full rounded-lg border border-brown-700/20 bg-white/80 px-4 py-3 text-brown-900 outline-none transition focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
+  name="registrationDeadline"
+  type="date"
+  max={formValues.startDate || undefined}
+  value={formValues.registrationDeadline}
+  onChange={handleChange}
+  required
+/>
               </label>
 
               <label className="grid gap-2 text-sm font-bold text-brown-900">
                 <span>Minimum Participants</span>
                 <input
-                  className="w-full rounded-lg border border-brown-700/20 bg-white/80 px-4 py-3 text-brown-900 outline-none transition focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
-                  name="minParticipants"
-                  type="number"
-                  min="1"
-                  value={formValues.minParticipants}
-                  onChange={handleChange}
-                  required
-                />
+  className="w-full rounded-lg border border-brown-700/20 bg-white/80 px-4 py-3 text-brown-900 outline-none transition focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
+  name="minParticipants"
+  type="number"
+  min="3"
+  value={formValues.minParticipants}
+  onChange={handleChange}
+  required
+/>
               </label>
 
               <label className="grid gap-2 text-sm font-bold text-brown-900">

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import {
   ClipboardCheck,
   Flag,
+  Gavel,
   LayoutDashboard,
   LogOut,
   ShieldCheck,
@@ -16,6 +17,7 @@ import RegistrationReview from './registrations/RegistrationReview';
 import HorseReview from './reviews/HorseReview';
 import UserManagement from './users/UserManagement';
 import JockeyReview from './reviews/JockeyReview';
+import RefereeAssignmentManagement from './refereeAssignments/RefereeAssignmentManagement';
 
 const adminNavItems = [
   { key: 'overview', label: 'Overview', icon: LayoutDashboard },
@@ -24,7 +26,8 @@ const adminNavItems = [
   { key: 'registrations', label: 'Registrations', icon: UserCheck },
   { key: 'raceEntries', label: 'Race Entries', icon: Flag },
   { key: 'jockeyReviews', label: 'Jockey Reviews', icon: ClipboardCheck },
-  { key: 'horseReviews', label: 'Horse Reviews', icon: ShieldCheck }
+  { key: 'horseReviews', label: 'Horse Reviews', icon: ShieldCheck },
+  { key: 'refereeAssignments', label: 'Referee Assignments', icon: Gavel }
 ];
 
 export default function AdminDashboard({ currentUser, onLogout }) {
@@ -85,6 +88,9 @@ export default function AdminDashboard({ currentUser, onLogout }) {
         {activeSection === 'events' && <EventManagement />}
         {activeSection === 'registrations' && <RegistrationReview />}
         {activeSection === 'raceEntries' && <RaceEntryManagement />}
+        {activeSection === 'refereeAssignments' && (
+  <RefereeAssignmentManagement />
+)}
         {activeSection === 'jockeyReviews' && <JockeyReview />}
         {activeSection === 'horseReviews' && <HorseReview />}
       </section>

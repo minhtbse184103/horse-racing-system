@@ -47,19 +47,14 @@ public class TournamentService {
 
     @Transactional
     public Tournament createTournament(CreateTournamentRequest request, String adminEmail) {
-        if (request.getStartDate().isAfter(request.getEndDate())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Start date cannot be after end date.");
-        }
 
-        if (request.getRegistrationDeadline().isAfter(request.getStartDate())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Registration deadline cannot be after start date.");
-        }
-        if (request.getMinParticipants() > request.getMaxParticipants()) {
-            throw new ApiException(
-                    HttpStatus.BAD_REQUEST,
-                    "Minimum participants cannot be greater than maximum participants."
-            );
-        }
+        validateTournamentRules(
+                request.getStartDate(),
+                request.getEndDate(),
+                request.getRegistrationDeadline(),
+                request.getMinParticipants(),
+                request.getMaxParticipants()
+        );
 
         if (!tournamentConditionRepository.existsById(request.getConditionId())) {
             throw new ApiException(
@@ -107,19 +102,13 @@ public class TournamentService {
         throw new ApiException(HttpStatus.BAD_REQUEST, "Only draft tournaments can be updated.");
     }
 
-    if (request.getStartDate().isAfter(request.getEndDate())) {
-        throw new ApiException(HttpStatus.BAD_REQUEST, "Start date cannot be after end date.");
-    }
-
-    if (request.getRegistrationDeadline().isAfter(request.getStartDate())) {
-        throw new ApiException(HttpStatus.BAD_REQUEST, "Registration deadline cannot be after start date.");
-    }
-        if (request.getMinParticipants() > request.getMaxParticipants()) {
-            throw new ApiException(
-                    HttpStatus.BAD_REQUEST,
-                    "Minimum participants cannot be greater than maximum participants."
-            );
-        }
+        validateTournamentRules(
+                request.getStartDate(),
+                request.getEndDate(),
+                request.getRegistrationDeadline(),
+                request.getMinParticipants(),
+                request.getMaxParticipants()
+        );
 
         if (!tournamentConditionRepository.existsById(request.getConditionId())) {
             throw new ApiException(
@@ -272,5 +261,47 @@ public Tournament cancelTournament(Integer id) {
                 semiFinal,
                 finalRound
         ));
+    }
+    private void validateTournamentRules(
+            LocalDate startDate,
+            LocalDate endDate,
+            LocalDate registrationDeadline,
+            Integer minParticipants,
+            Integer maxParticipants
+    ) {
+        if (!startDate.isAfter(LocalDate.now())) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Start date must be after today."
+            );
+        }
+
+        if (startDate.isAfter(endDate)) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Start date cannot be after end date."
+            );
+        }
+
+        if (!registrationDeadline.isBefore(startDate)) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Registration deadline must be before start date."
+            );
+        }
+
+        if (minParticipants <= 2) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Minimum participants must be greater than 2."
+            );
+        }
+
+        if (minParticipants > maxParticipants) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Minimum participants cannot be greater than maximum participants."
+            );
+        }
     }
 }
