@@ -21,10 +21,13 @@ import {
 
 const ROLES = ['ADMIN', 'OWNER', 'JOCKEY', 'REFEREE', 'SPECTATOR'];
 const STANDARD_STATUSES = ['ACTIVE', 'INACTIVE', 'BLOCKED'];
-const JOCKEY_STATUSES = [,
-  'ACTIVE',,
+const JOCKEY_STATUSES = [
+  'ACTIVE',
   'INACTIVE',
   'BLOCKED',
+  'PENDING',
+  'UNDER_REVIEW',
+  'REJECTED',
 ];
 
 function emptyForm() {
@@ -402,7 +405,7 @@ const availableStatuses = STANDARD_STATUSES;
             value={statusFilter}
             onChange={(event) => setStatusFilter(event.target.value)}
           >
-            <option value="ALL">Tất cả trạng thái</option>
+            <option value="ALL">ALL</option>
             {JOCKEY_STATUSES.map((status) => (
               <option key={status} value={status}>{formatDisplayLabel(status)}</option>
             ))}
