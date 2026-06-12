@@ -101,6 +101,15 @@ function displayValue(value, fallback = 'Chưa cập nhật') {
   return String(value);
 }
 
+function formatTournamentDateRange(invitation) {
+  const startDate = invitation.tournamentStartDate;
+  const endDate = invitation.tournamentEndDate;
+
+  if (!startDate && !endDate) return 'N/A';
+  if (startDate && endDate) return `${formatDate(startDate)} - ${formatDate(endDate)}`;
+  return formatDate(startDate || endDate);
+}
+
 function getInvitationId(invitation) {
   return invitation.invitationId;
 }
@@ -447,6 +456,7 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
             <tr>
               <th>ID</th>
               <th>Giải đấu</th>
+              <th>Thời gian</th>
               <th>Ngựa</th>
               <th>Owner</th>
               <th>Ngày tạo</th>
@@ -469,6 +479,7 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
                     <strong>{invitation.tournamentName || invitation.tournamentId || 'N/A'}</strong>
                     {invitation.message && <p className="table-subtext">{invitation.message}</p>}
                   </td>
+                  <td>{formatTournamentDateRange(invitation)}</td>
                   <td>{invitation.horseName || invitation.horseId || 'N/A'}</td>
                   <td>{invitation.ownerName || invitation.ownerId || 'N/A'}</td>
                   <td>{formatDate(invitation.createdAt)}</td>

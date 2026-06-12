@@ -60,6 +60,15 @@ function formatTournamentOption(tournament) {
   return `${name}${location}${date}`;
 }
 
+function formatTournamentDateRange(invitation) {
+  const startDate = invitation.tournamentStartDate;
+  const endDate = invitation.tournamentEndDate;
+
+  if (!startDate && !endDate) return 'N/A';
+  if (startDate && endDate) return `${formatDate(startDate)} - ${formatDate(endDate)}`;
+  return formatDate(startDate || endDate);
+}
+
 function validateInvitationForm(formValues, horses, tournaments) {
   const errors = {};
   const selectedHorse = horses.find((horse) => String(getHorseId(horse)) === String(formValues.horseId));
@@ -301,6 +310,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
                 <tr>
                   <th>ID</th>
                   <th>Giải đấu</th>
+                  <th>Thời gian</th>
                   <th>Ngựa</th>
                   <th>Jockey</th>
                   <th>Ngày tạo</th>
@@ -319,6 +329,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
                     <tr key={invitationId || `${invitation.tournamentId}-${invitation.jockeyId}`}>
                       <td>{invitationId || 'N/A'}</td>
                       <td>{invitation.tournamentName || invitation.tournamentId || 'N/A'}</td>
+                      <td>{formatTournamentDateRange(invitation)}</td>
                       <td>{invitation.horseName || invitation.horseId || 'N/A'}</td>
                       <td>{invitation.jockeyName || invitation.jockeyId || 'N/A'}</td>
                       <td>{formatDate(invitation.createdAt)}</td>

@@ -37,6 +37,20 @@ public interface RegistrationRepository extends JpaRepository<Registration, Inte
 
     long countByTournamentIdAndStatusIn(Integer tournamentId, Collection<String> statuses);
 
+    @Query("""
+            select count(r)
+            from Registration r
+            where r.tournamentId = :tournamentId
+              and r.ownerId = :ownerId
+              and r.status in :statuses
+              and (:excludedRegistrationId is null or r.registrationId <> :excludedRegistrationId)
+            """)
+    long countByTournamentIdAndOwnerIdAndStatusInExcludingRegistration(
+            @Param("tournamentId") Integer tournamentId,
+            @Param("ownerId") Integer ownerId,
+            @Param("statuses") Collection<String> statuses,
+            @Param("excludedRegistrationId") Integer excludedRegistrationId);
+
     void deleteByHorseId(Integer horseId);
 
     @Query("select count(distinct r.horseId) from Registration r where r.ownerId = :ownerId")
@@ -74,6 +88,42 @@ public interface RegistrationRepository extends JpaRepository<Registration, Inte
     long countByTournamentIdAndHorseIdAndStatusInExcludingRegistration(
             @Param("tournamentId") Integer tournamentId,
             @Param("horseId") Integer horseId,
+            @Param("statuses") Collection<String> statuses,
+            @Param("excludedRegistrationId") Integer excludedRegistrationId);
+
+    @Query("""
+            select count(r)
+            from Registration r
+            join Tournament t on t.tournamentId = r.tournamentId
+            where r.jockeyId = :jockeyId
+              and r.status in :statuses
+              and (:excludedRegistrationId is null or r.registrationId <> :excludedRegistrationId)
+              and t.startDate <= :endDate
+              and t.endDate >= :startDate
+            """)
+    long countByOverlappingTournamentAndJockeyIdAndStatusInExcludingRegistration(
+            @Param("jockeyId") Integer jockeyId,
+            @Param("startDate") java.time.LocalDate startDate,
+            @Param("endDate") java.time.LocalDate endDate,
+            @Param("statuses") Collection<String> statuses,
+            @Param("excludedRegistrationId") Integer excludedRegistrationId);
+
+    @Query("""
+            select count(r)
+            from Registration r
+            join Tournament t on t.tournamentId = r.tournamentId
+            where r.horseId = :horseId
+              and r.jockeyId = :jockeyId
+              and r.status in :statuses
+              and (:excludedRegistrationId is null or r.registrationId <> :excludedRegistrationId)
+              and t.startDate <= :endDate
+              and t.endDate >= :startDate
+            """)
+    long countByOverlappingTournamentAndHorseIdAndJockeyIdAndStatusInExcludingRegistration(
+            @Param("horseId") Integer horseId,
+            @Param("jockeyId") Integer jockeyId,
+            @Param("startDate") java.time.LocalDate startDate,
+            @Param("endDate") java.time.LocalDate endDate,
             @Param("statuses") Collection<String> statuses,
             @Param("excludedRegistrationId") Integer excludedRegistrationId);
 

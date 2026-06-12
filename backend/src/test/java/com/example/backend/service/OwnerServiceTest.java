@@ -12,6 +12,7 @@ import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.sql.ResultSet;
+import java.sql.Date;
 import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.Optional;
@@ -120,6 +121,10 @@ class OwnerServiceTest {
                     ResultSet resultSet = mock(ResultSet.class);
                     when(resultSet.getInt("tournamentID")).thenReturn(1);
                     when(resultSet.getString("tournamentName")).thenReturn("Summer Cup");
+                    when(resultSet.getDate("startDate"))
+                            .thenReturn(Date.valueOf(registrationDeadline.toLocalDate().plusDays(1)));
+                    when(resultSet.getDate("endDate"))
+                            .thenReturn(Date.valueOf(registrationDeadline.toLocalDate().plusDays(2)));
                     when(resultSet.getTimestamp("registrationDeadline"))
                             .thenReturn(Timestamp.valueOf(registrationDeadline));
                     when(resultSet.getObject("maxParticipants")).thenReturn(null);

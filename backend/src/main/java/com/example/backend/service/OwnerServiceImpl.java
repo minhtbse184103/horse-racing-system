@@ -1,5 +1,6 @@
 package com.example.backend.service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
@@ -203,9 +204,17 @@ public class OwnerServiceImpl implements OwnerService {
 
         validateHorseCanRegister(horse, tournament);
         validateInvitationExpiry(request.getExpiredAt(), tournament);
+        validateOwnerCanRegisterForTournament(owner.getUserID(), tournament.tournamentId(), null);
+        validateHorseActiveRegistrationForTournament(horse.getHorseId(), tournament.tournamentId(), null);
 
         User jockey = getJockey(request.getJockeyId());
-        validateJockeyAvailableForTournament(tournament.tournamentId(), jockey.getUserID(), null);
+        validateJockeyAvailableForTournament(tournament, jockey.getUserID(), null, null);
+        validateHorseJockeyPairAvailableForOverlappingTournament(
+                horse.getHorseId(),
+                jockey.getUserID(),
+                tournament,
+                null,
+                null);
 
         Registration registration = registrationRepository.findByTournamentIdAndHorseId(
                         request.getTournamentId(), request.getHorseId()).orElse(null);
@@ -233,27 +242,112 @@ public class OwnerServiceImpl implements OwnerService {
         return mapInvitationToResponse(jockeyInvitationRepository.save(invitation));
     }
 
-    // Kiểm tra jockey chưa có registration active hoặc lời mời pending trong cùng tournament.
-    private void validateJockeyAvailableForTournament(
+    // Kiểm tra owner chưa có registration active hoặc lời mời pending trong cùng tournament.
+    private void validateOwnerCanRegisterForTournament(
+            Integer ownerId,
             Integer tournamentId,
-            Integer jockeyId,
-            Integer excludedRegistrationId) {
-        long activeRegistrations = registrationRepository.countByTournamentIdAndJockeyIdAndStatusInExcludingRegistration(
+            Integer excludedInvitationId) {
+        long activeRegistrations = registrationRepository.countByTournamentIdAndOwnerIdAndStatusInExcludingRegistration(
                 tournamentId,
-                jockeyId,
+                ownerId,
+                List.of(REGISTRATION_ACCEPTED, REGISTRATION_CONFIRMED),
+                null);
+        if (activeRegistrations > 0) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Chủ ngựa đã có một đơn đăng ký đang hoạt động trong giải đấu này.");
+        }
+
+        if (jockeyInvitationRepository.existsPendingInvitationForTournamentAndOwner(
+                tournamentId, ownerId, INVITATION_PENDING, excludedInvitationId)) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Chủ ngựa đã có một lời mời đang chờ xử lý trong giải đấu này.");
+        }
+    }
+
+    // Kiểm tra ngựa chưa có registration active trong cùng tournament.
+    private void validateHorseActiveRegistrationForTournament(
+            Integer horseId,
+            Integer tournamentId,
+            Integer excludedRegistrationId) {
+        long activeRegistrations = registrationRepository.countByTournamentIdAndHorseIdAndStatusInExcludingRegistration(
+                tournamentId,
+                horseId,
                 List.of(REGISTRATION_ACCEPTED, REGISTRATION_CONFIRMED),
                 excludedRegistrationId);
         if (activeRegistrations > 0) {
             throw new ApiException(HttpStatus.CONFLICT,
+                    "Ngựa này đã có đơn đăng ký đang hoạt động trong giải đấu.");
+        }
+    }
+
+    // Kiểm tra jockey chưa có registration active hoặc lời mời pending trong tournament bị overlap.
+    private void validateJockeyAvailableForTournament(
+            TournamentSnapshot tournament,
+            Integer jockeyId,
+            Integer excludedRegistrationId,
+            Integer excludedInvitationId) {
+        long sameTournamentRegistrations = registrationRepository.countByTournamentIdAndJockeyIdAndStatusInExcludingRegistration(
+                tournament.tournamentId(),
+                jockeyId,
+                List.of(REGISTRATION_ACCEPTED, REGISTRATION_CONFIRMED),
+                excludedRegistrationId);
+        if (sameTournamentRegistrations > 0) {
+            throw new ApiException(HttpStatus.CONFLICT,
                     "Nài ngựa này đã có đơn đăng ký đang hoạt động trong giải đấu.");
         }
 
-        if (jockeyInvitationRepository.existsActiveInvitationForTournamentAndJockey(
-                tournamentId,
-                jockeyId,
-                INVITATION_PENDING)) {
+        long overlappingRegistrations = registrationRepository
+                .countByOverlappingTournamentAndJockeyIdAndStatusInExcludingRegistration(
+                        jockeyId,
+                        tournament.startDate(),
+                        tournament.endDate(),
+                        List.of(REGISTRATION_ACCEPTED, REGISTRATION_CONFIRMED),
+                        excludedRegistrationId);
+        if (overlappingRegistrations > 0) {
             throw new ApiException(HttpStatus.CONFLICT,
-                    "Nài ngựa này đã có lời mời đang chờ xử lý trong giải đấu.");
+                    "Nài ngựa này đã có đơn đăng ký ở giải đấu trùng thời gian.");
+        }
+
+        if (jockeyInvitationRepository.existsPendingOverlappingInvitationForJockey(
+                jockeyId,
+                tournament.startDate(),
+                tournament.endDate(),
+                INVITATION_PENDING,
+                excludedInvitationId)) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Nài ngựa này đã có lời mời đang chờ xử lý ở giải đấu trùng thời gian.");
+        }
+    }
+
+    // Kiểm tra cặp horse + jockey chưa được dùng ở tournament khác bị overlap.
+    private void validateHorseJockeyPairAvailableForOverlappingTournament(
+            Integer horseId,
+            Integer jockeyId,
+            TournamentSnapshot tournament,
+            Integer excludedRegistrationId,
+            Integer excludedInvitationId) {
+        long overlappingRegistrations = registrationRepository
+                .countByOverlappingTournamentAndHorseIdAndJockeyIdAndStatusInExcludingRegistration(
+                        horseId,
+                        jockeyId,
+                        tournament.startDate(),
+                        tournament.endDate(),
+                        List.of(REGISTRATION_ACCEPTED, REGISTRATION_CONFIRMED),
+                        excludedRegistrationId);
+        if (overlappingRegistrations > 0) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Cặp ngựa và nài ngựa này đã được đăng ký ở giải đấu trùng thời gian.");
+        }
+
+        if (jockeyInvitationRepository.existsPendingOverlappingInvitationForHorseAndJockey(
+                horseId,
+                jockeyId,
+                tournament.startDate(),
+                tournament.endDate(),
+                INVITATION_PENDING,
+                excludedInvitationId)) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Cặp ngựa và nài ngựa này đã có lời mời ở giải đấu trùng thời gian.");
         }
     }
 
@@ -430,6 +524,8 @@ public class OwnerServiceImpl implements OwnerService {
                 .registrationId(invitation.getRegistrationId())
                 .tournamentId(tournamentId)
                 .tournamentName(tournament != null ? tournament.tournamentName() : null)
+                .tournamentStartDate(tournament != null ? tournament.startDate() : null)
+                .tournamentEndDate(tournament != null ? tournament.endDate() : null)
                 .horseId(horseId)
                 .horseName(horse != null ? horse.getHorseName() : null)
                 .ownerId(invitation.getOwnerId())
@@ -458,13 +554,19 @@ public class OwnerServiceImpl implements OwnerService {
     private TournamentSnapshot getTournamentSnapshotOrNull(Integer tournamentId) {
         try {
             return jdbcTemplate.queryForObject("""
-                    SELECT tournamentID, tournamentName, registrationDeadline, maxParticipants, status
+                    SELECT tournamentID, tournamentName, startDate, endDate, registrationDeadline, maxParticipants, status
                     FROM Tournament
                     WHERE tournamentID = ?
                     """,
                     (rs, rowNum) -> new TournamentSnapshot(
                             rs.getInt("tournamentID"),
                             rs.getString("tournamentName"),
+                            rs.getDate("startDate") != null
+                                    ? rs.getDate("startDate").toLocalDate()
+                                    : null,
+                            rs.getDate("endDate") != null
+                                    ? rs.getDate("endDate").toLocalDate()
+                                    : null,
                             rs.getTimestamp("registrationDeadline") != null
                                     ? rs.getTimestamp("registrationDeadline").toLocalDateTime()
                                     : null,
@@ -479,6 +581,8 @@ public class OwnerServiceImpl implements OwnerService {
     private record TournamentSnapshot(
             Integer tournamentId,
             String tournamentName,
+            LocalDate startDate,
+            LocalDate endDate,
             LocalDateTime registrationDeadline,
             Integer maxParticipants,
             String status) {

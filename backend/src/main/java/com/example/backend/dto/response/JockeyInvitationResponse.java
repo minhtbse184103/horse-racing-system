@@ -1,5 +1,6 @@
 package com.example.backend.dto.response;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import lombok.Builder;
@@ -12,6 +13,8 @@ public class JockeyInvitationResponse {
     private Integer registrationId;
     private Integer tournamentId;
     private String tournamentName;
+    private LocalDate tournamentStartDate;
+    private LocalDate tournamentEndDate;
     private Integer horseId;
     private String horseName;
     private Integer ownerId;

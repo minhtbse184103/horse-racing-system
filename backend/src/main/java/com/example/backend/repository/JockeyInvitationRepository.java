@@ -35,6 +35,20 @@ public interface JockeyInvitationRepository extends JpaRepository<JockeyInvitati
             select count(i) > 0
             from JockeyInvitation i
             where i.tournamentId = :tournamentId
+              and i.ownerId = :ownerId
+              and i.status = :invitationStatus
+              and (:excludedInvitationId is null or i.invitationId <> :excludedInvitationId)
+            """)
+    boolean existsPendingInvitationForTournamentAndOwner(
+            @Param("tournamentId") Integer tournamentId,
+            @Param("ownerId") Integer ownerId,
+            @Param("invitationStatus") String invitationStatus,
+            @Param("excludedInvitationId") Integer excludedInvitationId);
+
+    @Query("""
+            select count(i) > 0
+            from JockeyInvitation i
+            where i.tournamentId = :tournamentId
               and i.jockeyId = :jockeyId
               and i.status = :invitationStatus
             """)
@@ -42,6 +56,42 @@ public interface JockeyInvitationRepository extends JpaRepository<JockeyInvitati
             @Param("tournamentId") Integer tournamentId,
             @Param("jockeyId") Integer jockeyId,
             @Param("invitationStatus") String invitationStatus);
+
+    @Query("""
+            select count(i) > 0
+            from JockeyInvitation i
+            join Tournament t on t.tournamentId = i.tournamentId
+            where i.jockeyId = :jockeyId
+              and i.status = :invitationStatus
+              and (:excludedInvitationId is null or i.invitationId <> :excludedInvitationId)
+              and t.startDate <= :endDate
+              and t.endDate >= :startDate
+            """)
+    boolean existsPendingOverlappingInvitationForJockey(
+            @Param("jockeyId") Integer jockeyId,
+            @Param("startDate") java.time.LocalDate startDate,
+            @Param("endDate") java.time.LocalDate endDate,
+            @Param("invitationStatus") String invitationStatus,
+            @Param("excludedInvitationId") Integer excludedInvitationId);
+
+    @Query("""
+            select count(i) > 0
+            from JockeyInvitation i
+            join Tournament t on t.tournamentId = i.tournamentId
+            where i.horseId = :horseId
+              and i.jockeyId = :jockeyId
+              and i.status = :invitationStatus
+              and (:excludedInvitationId is null or i.invitationId <> :excludedInvitationId)
+              and t.startDate <= :endDate
+              and t.endDate >= :startDate
+            """)
+    boolean existsPendingOverlappingInvitationForHorseAndJockey(
+            @Param("horseId") Integer horseId,
+            @Param("jockeyId") Integer jockeyId,
+            @Param("startDate") java.time.LocalDate startDate,
+            @Param("endDate") java.time.LocalDate endDate,
+            @Param("invitationStatus") String invitationStatus,
+            @Param("excludedInvitationId") Integer excludedInvitationId);
 
     void deleteByRegistrationIdIn(Collection<Integer> registrationIds);
 }
