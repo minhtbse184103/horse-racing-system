@@ -27,7 +27,7 @@ function emptyProfileForm() {
     licenseNo: '',
     weight: '',
     ranking: 'BEGINNER',
-    imgUrl: defaultJockeyAvatar
+    imgUrl: ''
   };
 }
 
@@ -48,7 +48,7 @@ function toProfileForm(profile) {
     licenseNo: String(profile.licenseNo || ''),
     weight: profile.weight == null ? '' : String(profile.weight),
     ranking: String(profile.ranking || 'BEGINNER').toUpperCase(),
-    imgUrl: profile.imgUrl && !/^https?:\/\//i.test(String(profile.imgUrl)) ? String(profile.imgUrl) : defaultJockeyAvatar
+    imgUrl: profile.imgUrl ? String(profile.imgUrl) : ''
   };
 }
 
@@ -56,6 +56,7 @@ function validateProfileForm(form) {
   const errors = {};
   const licenseNo = form.licenseNo.trim();
   const weight = Number(form.weight);
+  const imgUrl = form.imgUrl.trim();
 
   if (!licenseNo) {
     errors.licenseNo = 'Số giấy phép là bắt buộc.';
@@ -75,6 +76,10 @@ function validateProfileForm(form) {
     errors.ranking = 'Xếp hạng phải là BEGINNER, INTERMEDIATE, PROFESSIONAL hoặc ELITE.';
   }
 
+  if (imgUrl && !/^https?:\/\/.+/i.test(imgUrl)) {
+    errors.imgUrl = 'URL ảnh phải bắt đầu bằng http:// hoặc https://';
+  }
+
   return errors;
 }
 
@@ -83,7 +88,7 @@ function toPayload(form) {
     licenseNo: form.licenseNo.trim(),
     weight: Number(form.weight),
     ranking: form.ranking,
-    imgUrl: defaultJockeyAvatar
+    imgUrl: form.imgUrl.trim()
   };
 }
 
@@ -244,6 +249,7 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
       const savedProfile = profile
         ? await updateJockeyProfile(toPayload(profileForm))
         : await createJockeyProfile(toPayload(profileForm));
+
       setProfile(savedProfile);
       setProfileForm(toProfileForm(savedProfile));
       setMessage('Đã lưu hồ sơ. Hồ sơ chưa được xác minh, vui lòng chờ quản trị viên xét duyệt.');
@@ -306,6 +312,8 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
   }
 
   function renderProfileForm() {
+    const profileImagePreview = profileForm.imgUrl.trim() || defaultJockeyAvatar;
+
     return (
       <form className="owner-panel owner-form" onSubmit={handleProfileSubmit} noValidate>
         <div className="owner-panel-header">
@@ -322,7 +330,14 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
 
         <div className="jockey-profile-preview">
           <div className="jockey-avatar facebook-avatar">
-            <img src={defaultJockeyAvatar} alt="Ảnh đại diện nài ngựa mặc định" />
+            <img
+              src={profileImagePreview}
+              alt="Ảnh đại diện nài ngựa"
+              onError={(event) => {
+                event.currentTarget.onerror = null;
+                event.currentTarget.src = defaultJockeyAvatar;
+              }}
+            />
           </div>
           <div>
             <h3>{profile?.fullName || jockeyName}</h3>
@@ -384,10 +399,25 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
           </div>
         </div>
 
-        <div className="readonly-field-card full-width">
-          <span>Ảnh hồ sơ</span>
-          <strong>Ảnh đại diện mặc định</strong>
-          <small>Hồ sơ nài ngựa sử dụng ảnh đại diện mặc định được lưu cục bộ.</small>
+        <div>
+          <label className="field-label" htmlFor="jockeyImage">
+            Profile Image URL
+          </label>
+
+          <input
+            className={profileErrors.imgUrl ? 'input has-error' : 'input'}
+            id="jockeyImage"
+            name="imgUrl"
+            type="text"
+            placeholder="https://example.com/avatar.jpg"
+            value={profileForm.imgUrl}
+            onChange={handleProfileChange}
+            disabled={isSavingProfile}
+          />
+
+          {profileErrors.imgUrl && (
+            <p className="field-error">{profileErrors.imgUrl}</p>
+          )}
         </div>
 
         <div className="admin-form-actions">
