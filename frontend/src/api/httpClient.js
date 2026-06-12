@@ -45,7 +45,7 @@ const MESSAGE_TRANSLATIONS = {
   'Maximum participants must be positive': 'Số lượng người tham gia tối đa phải là số dương.',
   'Tournament condition is required': 'Điều kiện giải đấu là bắt buộc.',
   'Start date cannot be after end date.': 'Ngày bắt đầu không thể sau ngày kết thúc.',
-  'Registration deadline cannot be after start date.': 'Hạn đăng ký không thể sau ngày bắt đầu.'
+  'Registration deadline cannot be after start date.': 'Hạn đăng ký không thể sau ngày bắt đầu.',
   'Minimum participants cannot be greater than maximum participants.': 'Số lượng người tham gia tối thiểu không thể lớn hơn số lượng người tham gia tối đa.',
   'Tournament condition does not exist.': 'Điều kiện giải đấu không tồn tại.',
   'Tournament already exists at this location with the same start date and end date.': 'Giải đấu đã tồn tại tại địa điểm này với cùng ngày bắt đầu và kết thúc.',
@@ -58,7 +58,7 @@ const MESSAGE_TRANSLATIONS = {
   'Horse id is required': 'Vui lòng chọn ngựa.',
   'Jockey id is required': 'Vui lòng chọn nài ngựa.',
   'Expired time must be in the future': 'Hạn phản hồi lời mời phải trong tương lai.',
-  'Only active horses can be invited.': 'Chỉ có thể mời những con ngựa đang ACTIVE.'
+  'Only active horses can be invited.': 'Chỉ có thể mời những con ngựa đang ACTIVE.',
   'Only active horses can be registered.': 'Chỉ có thể đăng ký những con ngựa đang ACTIVE.',
   'Tournament does not exist.': 'Không tìm thấy giải đấu.',
   'Jockey does not exist.': 'Không tìm thấy nài ngựa.',
