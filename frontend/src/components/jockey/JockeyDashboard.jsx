@@ -2,16 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import defaultJockeyAvatar from '../../assets/default-jockey-avatar.svg';
 import AppShell from '../common/AppShell';
 import StatCard from '../common/StatCard';
-import {
-  acceptJockeyInvitation,
-  createJockeyProfile,
-  deactivateJockeyProfile,
-  getJockeyInvitations,
-  getJockeyProfile,
-  rejectJockeyInvitation,
-  updateJockeyProfile
-} from '../../services/jockeyService';
-import { getPublicTournaments } from '../../services/eventService';
+
 import { formatDate, formatDisplayLabel } from '../../lib';
 
 const jockeyNavItems = [
@@ -23,10 +14,26 @@ const jockeyNavItems = [
 const rankingOptions = ['BEGINNER', 'INTERMEDIATE', 'PROFESSIONAL', 'ELITE'];
 const INVITATION_STATUS_OPTIONS = ['ALL', 'PENDING', 'ACCEPTED', 'REJECTED', 'EXPIRED'];
 
-function emptyProfileForm() {
+const issuingAuthorityOptions = [
+  { value: '', label: 'Select authority' },
+  { value: 'BHA', label: 'BHA - British Horseracing Authority' },
+  { value: 'IHRB', label: 'IHRB - Irish Horseracing Regulatory Board' },
+  { value: 'FRANCE_GALOP', label: 'FG - France Galop' },
+  { value: 'OTHER', label: 'OTHER' }
+];
+function emptyProfileForm(currentUser = {}) {
   return {
+    applicantFullName: currentUser?.fullName || '',
+    applicantEmail: currentUser?.email || '',
+    phoneNumber: '',
+    trainerName: '',
+    trainerEmail: '',
+    stableAddress: '',
+    issuingAuthority: '',
+    verificationLink: '',
+    licenseFileName: '',
     licenseNo: '',
-    weight: '',
+    weight: '55',
     ranking: 'BEGINNER',
     imgUrl: ''
   };
@@ -44,54 +51,92 @@ function isMissingProfileError(error) {
   return error instanceof Error && /profile does not exist|not found/i.test(error.message);
 }
 
-function toProfileForm(profile) {
+function toProfileForm(profile, currentUser = {}) {
+  const imgUrl = profile.imgUrl ? String(profile.imgUrl) : '';
+
   return {
+    applicantFullName: String(profile.fullName || currentUser?.fullName || ''),
+    applicantEmail: String(profile.email || currentUser?.email || ''),
+    phoneNumber: String(profile.phoneNumber || ''),
+    trainerName: String(profile.trainerName || ''),
+    trainerEmail: String(profile.trainerEmail || ''),
+    stableAddress: String(profile.stableAddress || ''),
+    issuingAuthority: String(profile.issuingAuthority || ''),
+    verificationLink: /^https?:\/\/.+/i.test(imgUrl) ? imgUrl : '',
+    licenseFileName: '',
     licenseNo: String(profile.licenseNo || ''),
-    weight: profile.weight == null ? '' : String(profile.weight),
+    weight: profile.weight == null ? '55' : String(profile.weight),
     ranking: String(profile.ranking || 'BEGINNER').toUpperCase(),
-    imgUrl: profile.imgUrl ? String(profile.imgUrl) : ''
+    imgUrl
   };
 }
 
 function validateProfileForm(form) {
   const errors = {};
-  const licenseNo = form.licenseNo.trim();
-  const weight = Number(form.weight);
-  const imgUrl = form.imgUrl.trim();
+  const weight = Number(form.weight || 55);
+  const verificationLink = form.verificationLink.trim();
 
-  if (!licenseNo) {
-    errors.licenseNo = 'Số giấy phép là bắt buộc.';
-  } else if (licenseNo.length < 5 || licenseNo.length > 50) {
-    errors.licenseNo = 'Số giấy phép phải có từ 5 đến 50 ký tự.';
-  } else if (!/^[A-Za-z0-9-]+$/.test(licenseNo)) {
-    errors.licenseNo = 'Số giấy phép chỉ được chứa chữ cái, chữ số và dấu gạch nối.';
+  if (!form.applicantFullName.trim()) {
+    errors.applicantFullName = 'Full name is required.';
   }
 
-  if (!form.weight) {
-    errors.weight = 'Cân nặng là bắt buộc.';
-  } else if (!Number.isFinite(weight) || weight < 35 || weight > 90) {
-    errors.weight = 'Cân nặng của jockey phải từ 35 đến 90 kg.';
+  if (!form.applicantEmail.trim()) {
+    errors.applicantEmail = 'Email is required.';
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.applicantEmail.trim())) {
+    errors.applicantEmail = 'Email is invalid.';
+  }
+
+  if (!form.phoneNumber.trim()) {
+    errors.phoneNumber = 'Phone number is required.';
+  }
+
+  if (!form.trainerName.trim()) {
+    errors.trainerName = 'Trainer name is required.';
+  }
+
+  if (!form.trainerEmail.trim()) {
+    errors.trainerEmail = 'Trainer email is required.';
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.trainerEmail.trim())) {
+    errors.trainerEmail = 'Trainer email is invalid.';
+  }
+
+  if (!form.stableAddress.trim()) {
+    errors.stableAddress = 'Academy or stable address is required.';
+  }
+
+  if (!form.issuingAuthority.trim()) {
+    errors.issuingAuthority = 'Issuing authority is required.';
+  }
+
+  if (verificationLink && !/^https?:\/\/.+/i.test(verificationLink)) {
+    errors.verificationLink = 'Verification link must start with http:// or https://';
+  }
+
+  if (!form.licenseFileName.trim()) {
+    errors.licenseFileName = 'Jockey licence file is required.';
+  }
+
+  if (!Number.isFinite(weight) || weight < 35 || weight > 90) {
+    errors.weight = 'Jockey weight must be between 35 and 90 kg.';
   }
 
   if (!rankingOptions.includes(form.ranking)) {
-    errors.ranking = 'Xếp hạng phải là BEGINNER, INTERMEDIATE, PROFESSIONAL hoặc ELITE.';
-  }
-
-  if (!imgUrl) {
-    errors.imgUrl = 'URL ảnh giấy phép jockey là bắt buộc.';
-  } else if (!/^https?:\/\/.+/i.test(imgUrl)) {
-    errors.imgUrl = 'URL ảnh giấy phép jockey phải bắt đầu bằng http:// hoặc https://';
+    errors.ranking = 'Ranking must be BEGINNER, INTERMEDIATE, PROFESSIONAL or ELITE.';
   }
 
   return errors;
 }
 
 function toPayload(form) {
+  const filePlaceholderUrl = form.licenseFileName
+    ? `https://example.com/jockey-licences/${encodeURIComponent(form.licenseFileName)}`
+    : '';
+
   return {
     licenseNo: form.licenseNo.trim(),
-    weight: Number(form.weight),
-    ranking: form.ranking,
-    imgUrl: form.imgUrl.trim()
+    weight: Number(form.weight || 55),
+    ranking: form.ranking || 'BEGINNER',
+    imgUrl: form.verificationLink.trim() || form.imgUrl.trim() || filePlaceholderUrl
   };
 }
 
@@ -270,14 +315,14 @@ function getProfileNotice(profile, isLoadingProfile) {
 export default function JockeyDashboard({ currentUser, onLogout }) {
   const [activeSection, setActiveSection] = useState('overview');
   const [profile, setProfile] = useState(null);
-  const [profileForm, setProfileForm] = useState(emptyProfileForm());
+  const [profileForm, setProfileForm] = useState(() => emptyProfileForm(currentUser));
   const [profileErrors, setProfileErrors] = useState({});
   const [invitations, setInvitations] = useState([]);
   const [tournaments, setTournaments] = useState([]);
   const [selectedInvitation, setSelectedInvitation] = useState(null);
   const [statusFilter, setStatusFilter] = useState('ALL');
-  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
-  const [isLoadingInvitations, setIsLoadingInvitations] = useState(true);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+  const [isLoadingInvitations, setIsLoadingInvitations] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   const [actionId, setActionId] = useState(null);
   const [pageError, setPageError] = useState('');
@@ -299,52 +344,28 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
 
   const latestInvitations = useMemo(() => invitations.slice(0, 5), [invitations]);
 
-  async function loadProfile() {
-    setIsLoadingProfile(true);
+  function loadProfile() {
+    setIsLoadingProfile(false);
     setPageError('');
-
-    try {
-      const data = await getJockeyProfile();
-      setProfile(data || null);
-      setProfileForm(data ? toProfileForm(data) : emptyProfileForm());
-    } catch (error) {
-      if (isMissingProfileError(error)) {
-        setProfile(null);
-        setProfileForm(emptyProfileForm());
-        return;
-      }
-      setPageError(getErrorText(error, 'Không thể tải hồ sơ jockey.'));
-    } finally {
-      setIsLoadingProfile(false);
-    }
   }
 
-  async function loadInvitations() {
-    setIsLoadingInvitations(true);
+  function loadInvitations() {
+    setIsLoadingInvitations(false);
     setPageError('');
-
-    try {
-      const [invitationData, tournamentData] = await Promise.all([
-        getJockeyInvitations(),
-        getPublicTournaments()
-      ]);
-      setInvitations(Array.isArray(invitationData) ? invitationData : []);
-      setTournaments(Array.isArray(tournamentData) ? tournamentData : []);
-    } catch (error) {
-      setPageError(getErrorText(error, 'Không thể tải lời mời jockey.'));
-    } finally {
-      setIsLoadingInvitations(false);
-    }
   }
 
-  async function reloadData() {
+  function reloadData() {
     setMessage('');
     setProfileSubmitError('');
-    await Promise.all([loadProfile(), loadInvitations()]);
+    setPageError('');
+    setIsLoadingProfile(false);
+    setIsLoadingInvitations(false);
   }
 
   useEffect(() => {
-    reloadData();
+    // Frontend only: không gọi API khi mở dashboard.
+    setIsLoadingProfile(false);
+    setIsLoadingInvitations(false);
   }, []);
 
   function handleNavigate(section) {
@@ -356,17 +377,43 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
     }
   }
 
+
   function handleProfileChange(event) {
     const { name, value } = event.target;
-    setProfileForm((current) => ({ ...current, [name]: value }));
-    setProfileErrors((current) => ({ ...current, [name]: '' }));
+
+    setProfileForm((current) => ({
+      ...current,
+      [name]: value
+    }));
+
+    setProfileErrors((current) => ({
+      ...current,
+      [name]: ''
+    }));
+
     setProfileSubmitError('');
     setPageError('');
     setMessage('');
   }
 
-  async function handleProfileSubmit(event) {
+  function handleLicenceFileChange(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setProfileForm((current) => ({
+      ...current,
+      licenseFileName: file.name
+    }));
+
+    setProfileErrors((current) => ({ ...current, licenseFileName: '' }));
+    setProfileSubmitError('');
+    setPageError('');
+    setMessage('');
+  }
+
+  function handleProfileSubmit(event) {
     event.preventDefault();
+
     const errors = validateProfileForm(profileForm);
     setProfileErrors(errors);
     setProfileSubmitError('');
@@ -375,188 +422,348 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
 
     if (Object.keys(errors).length > 0) return;
 
-    setIsSavingProfile(true);
-    try {
-      const savedProfile = profile
-        ? await updateJockeyProfile(toPayload(profileForm))
-        : await createJockeyProfile(toPayload(profileForm));
+    const mockSavedProfile = {
+      profileId: profile?.profileId || 'LOCAL-PROFILE',
+      fullName: profileForm.applicantFullName,
+      email: profileForm.applicantEmail,
+      phoneNumber: profileForm.phoneNumber,
+      trainerName: profileForm.trainerName,
+      trainerEmail: profileForm.trainerEmail,
+      stableAddress: profileForm.stableAddress,
+      issuingAuthority: profileForm.issuingAuthority,
+      licenseNo: 'LOCAL-LICENCE',
+      weight: Number(profileForm.weight || 55),
+      ranking: profileForm.ranking || 'BEGINNER',
+      imgUrl: profileForm.verificationLink || profileForm.licenseFileName,
+      status: 'UNDER_REVIEW'
+    };
 
-      setProfile(savedProfile);
-      setProfileForm(toProfileForm(savedProfile));
-      setMessage('Đã lưu hồ sơ. Hồ sơ chưa được xác minh, vui lòng chờ admin xét duyệt.');
-    } catch (error) {
-      setProfileSubmitError(getErrorText(error, 'Không thể lưu hồ sơ jockey.'));
-    } finally {
-      setIsSavingProfile(false);
-    }
+    setProfile(mockSavedProfile);
+    setProfileForm(toProfileForm(mockSavedProfile, currentUser));
+    setMessage('Đã lưu hồ sơ tạm thời trên giao diện. Chưa gọi API backend.');
   }
 
-  async function handleDeactivateProfile() {
-    const confirmed = window.confirm('Bạn có chắc muốn vô hiệu hóa hồ sơ jockey hiện tại? Sau đó bạn sẽ không thể chấp nhận lời mời.');
+  function handleDeactivateProfile() {
+    const confirmed = window.confirm('Bạn có chắc muốn xóa hồ sơ tạm thời hiện tại?');
     if (!confirmed) return;
 
     setProfileSubmitError('');
     setPageError('');
     setMessage('');
-    setIsSavingProfile(true);
-
-    try {
-      await deactivateJockeyProfile();
-      setProfile(null);
-      setProfileForm(emptyProfileForm());
-      setMessage('Đã vô hiệu hóa hồ sơ jockey.');
-    } catch (error) {
-      setProfileSubmitError(getErrorText(error, 'Không thể vô hiệu hóa hồ sơ jockey.'));
-    } finally {
-      setIsSavingProfile(false);
-    }
+    setProfile(null);
+    setProfileForm(emptyProfileForm(currentUser));
+    setMessage('Đã xóa hồ sơ tạm thời trên giao diện. Chưa gọi API backend.');
   }
 
-  async function handleInvitationAction(invitation, action) {
+  function handleInvitationAction(invitation, action) {
     const invitationId = getInvitationId(invitation);
+
     if (!invitationId) {
       setPageError('Không tìm thấy mã lời mời.');
       return;
     }
 
-    const confirmed = window.confirm(action === 'accept' ? 'Bạn có chắc muốn chấp nhận lời mời này?' : 'Bạn có chắc muốn từ chối lời mời này?');
+    const confirmed = window.confirm(
+      action === 'accept'
+        ? 'Bạn có chắc muốn chấp nhận lời mời này?'
+        : 'Bạn có chắc muốn từ chối lời mời này?'
+    );
+
     if (!confirmed) return;
 
-    setActionId(invitationId);
     setPageError('');
     setMessage('');
 
-    try {
-      if (action === 'accept') {
-        await acceptJockeyInvitation(invitationId);
-        setMessage('Đã chấp nhận lời mời. Đơn đăng ký hiện ở trạng thái ACCEPTED và đang chờ admin xác nhận.');
-      } else {
-        await rejectJockeyInvitation(invitationId);
-        setMessage('Đã từ chối lời mời.');
-      }
-      await loadInvitations();
-    } catch (error) {
-      setPageError(getErrorText(error, action === 'accept' ? 'Không thể chấp nhận lời mời.' : 'Không thể từ chối lời mời.'));
-    } finally {
-      setActionId(null);
-    }
+    setInvitations((current) =>
+      current.map((item) =>
+        getInvitationId(item) === invitationId
+          ? {
+            ...item,
+            status: action === 'accept' ? 'ACCEPTED' : 'REJECTED',
+            registrationStatus: action === 'accept' ? 'ACCEPTED' : 'REJECTED'
+          }
+          : item
+      )
+    );
+
+    setMessage(
+      action === 'accept'
+        ? 'Đã chấp nhận lời mời trên giao diện. Chưa gọi API backend.'
+        : 'Đã từ chối lời mời trên giao diện. Chưa gọi API backend.'
+    );
   }
 
   function renderProfileForm() {
-    const profileImagePreview = profileForm.imgUrl.trim() || defaultJockeyAvatar;
-
     return (
-      <form className="owner-panel owner-form" onSubmit={handleProfileSubmit} noValidate>
+      <form className="owner-panel owner-form licence-application-form" onSubmit={handleProfileSubmit} noValidate>
         <div className="owner-panel-header">
           <div>
             <p className="eyebrow">Hồ sơ jockey</p>
             <h2>{profile ? 'Cập nhật hồ sơ jockey' : 'Tạo hồ sơ jockey'}</h2>
-            <p>Thông tin này giúp owner xem xét hồ sơ của bạn trước khi gửi lời mời.</p>
+            <p>Thông tin này dùng để admin kiểm tra licence và xác minh hồ sơ jockey.</p>
           </div>
-          {profile && <span className={`status-badge ${statusClass(profile.status)}`}>{formatDisplayLabel(profile.status)}</span>}
-        </div>
-
-        {profileSubmitError && <div className="admin-alert error modal-alert" role="alert">{profileSubmitError}</div>}
-        {profileNotice && <div className={`admin-alert ${profileNotice.type} soft-alert`} role="alert">{profileNotice.text}</div>}
-
-        <div className="jockey-profile-preview">
-          <div className="jockey-avatar facebook-avatar">
-            <img
-              src={profileImagePreview}
-              alt="Ảnh đại diện jockey"
-              onError={(event) => {
-                event.currentTarget.onerror = null;
-                event.currentTarget.src = defaultJockeyAvatar;
-              }}
-            />
-          </div>
-          <div>
-            <h3>{profile?.fullName || jockeyName}</h3>
-            <p>{profile?.email || currentUser?.email || 'Chưa có email'}</p>
-          </div>
-        </div>
-
-        <label className="field-label" htmlFor="jockeyLicenseNo">
-          License Number <span className="required">*</span>
-        </label>
-        <input
-          className={profileErrors.licenseNo ? 'input has-error' : 'input'}
-          id="jockeyLicenseNo"
-          name="licenseNo"
-          type="text"
-          placeholder="Ví dụ: JOC-001"
-          value={profileForm.licenseNo}
-          onChange={handleProfileChange}
-          disabled={isSavingProfile}
-        />
-        {profileErrors.licenseNo && <p className="field-error">{profileErrors.licenseNo}</p>}
-
-        <div className="owner-form-row">
-          <div>
-            <label className="field-label" htmlFor="jockeyWeight">
-              Weight <span className="required">*</span>
-            </label>
-            <input
-              className={profileErrors.weight ? 'input has-error' : 'input'}
-              id="jockeyWeight"
-              name="weight"
-              type="number"
-              min="35"
-              max="90"
-              step="0.1"
-              placeholder="55.5"
-              value={profileForm.weight}
-              onChange={handleProfileChange}
-              disabled={isSavingProfile}
-            />
-            {profileErrors.weight && <p className="field-error">{profileErrors.weight}</p>}
-          </div>
-
-          <div>
-            <label className="field-label" htmlFor="jockeyRanking">
-              Ranking <span className="required">*</span>
-            </label>
-            <select
-              className={profileErrors.ranking ? 'input has-error' : 'input'}
-              id="jockeyRanking"
-              name="ranking"
-              value={profileForm.ranking}
-              onChange={handleProfileChange}
-              disabled={isSavingProfile}
-            >
-              {rankingOptions.map((ranking) => <option key={ranking} value={ranking}>{formatDisplayLabel(ranking)}</option>)}
-            </select>
-            {profileErrors.ranking && <p className="field-error">{profileErrors.ranking}</p>}
-          </div>
-        </div>
-
-        <div>
-          <label className="field-label" htmlFor="jockeyImage">
-            Jockey License Image URL <span className="required">*</span>
-          </label>
-
-          <input
-            className={profileErrors.imgUrl ? 'input has-error' : 'input'}
-            id="jockeyImage"
-            name="imgUrl"
-            type="text"
-            placeholder="https://example.com/jockey-license.jpg"
-            value={profileForm.imgUrl}
-            onChange={handleProfileChange}
-            disabled={isSavingProfile}
-          />
-
-          {profileErrors.imgUrl && (
-            <p className="field-error">{profileErrors.imgUrl}</p>
+          {profile && (
+            <span className={`status-badge ${statusClass(profile.status)}`}>
+              {formatDisplayLabel(profile.status)}
+            </span>
           )}
         </div>
+
+        {profileSubmitError && (
+          <div className="admin-alert error modal-alert" role="alert">
+            {profileSubmitError}
+          </div>
+        )}
+
+        {profileNotice && (
+          <div className={`admin-alert ${profileNotice.type} soft-alert`} role="alert">
+            {profileNotice.text}
+          </div>
+        )}
+
+        <section className="jockey-application-section">
+          <div className="jockey-application-heading">
+            <h3>Applicant Details</h3>
+            <p>Tell us about yourself.</p>
+          </div>
+
+          <div className="jockey-form-grid">
+            <div>
+              <label className="field-label" htmlFor="applicantFullName">
+                Full Name <span className="required">*</span>
+              </label>
+              <input
+                className={profileErrors.applicantFullName ? 'input has-error' : 'input'}
+                id="applicantFullName"
+                name="applicantFullName"
+                type="text"
+                placeholder="e.g. Aiden Walsh"
+                value={profileForm.applicantFullName}
+                onChange={handleProfileChange}
+                disabled={isSavingProfile}
+              />
+              {profileErrors.applicantFullName && (
+                <p className="field-error">{profileErrors.applicantFullName}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="field-label" htmlFor="applicantEmail">
+                Email <span className="required">*</span>
+              </label>
+              <input
+                className={profileErrors.applicantEmail ? 'input has-error' : 'input'}
+                id="applicantEmail"
+                name="applicantEmail"
+                type="email"
+                placeholder="you@example.com"
+                value={profileForm.applicantEmail}
+                onChange={handleProfileChange}
+                disabled={isSavingProfile}
+              />
+              {profileErrors.applicantEmail && (
+                <p className="field-error">{profileErrors.applicantEmail}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="field-label" htmlFor="phoneNumber">
+                Phone Number <span className="required">*</span>
+              </label>
+              <input
+                className={profileErrors.phoneNumber ? 'input has-error' : 'input'}
+                id="phoneNumber"
+                name="phoneNumber"
+                type="tel"
+                placeholder="+44 7700 900000"
+                value={profileForm.phoneNumber}
+                onChange={handleProfileChange}
+                disabled={isSavingProfile}
+              />
+              {profileErrors.phoneNumber && (
+                <p className="field-error">{profileErrors.phoneNumber}</p>
+              )}
+            </div>
+          </div>
+        </section>
+
+        <section className="jockey-application-section">
+          <div className="jockey-application-heading">
+            <h3>Trainer &amp; Stable</h3>
+            <p>Your current trainer and operating base.</p>
+          </div>
+
+          <div className="jockey-form-grid">
+            <div>
+              <label className="field-label" htmlFor="trainerName">
+                Trainer Name <span className="required">*</span>
+              </label>
+              <input
+                className={profileErrors.trainerName ? 'input has-error' : 'input'}
+                id="trainerName"
+                name="trainerName"
+                type="text"
+                placeholder="e.g. Henrietta Crane"
+                value={profileForm.trainerName}
+                onChange={handleProfileChange}
+                disabled={isSavingProfile}
+              />
+              {profileErrors.trainerName && (
+                <p className="field-error">{profileErrors.trainerName}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="field-label" htmlFor="trainerEmail">
+                Trainer Email <span className="required">*</span>
+              </label>
+              <input
+                className={profileErrors.trainerEmail ? 'input has-error' : 'input'}
+                id="trainerEmail"
+                name="trainerEmail"
+                type="email"
+                placeholder="trainer@stable.com"
+                value={profileForm.trainerEmail}
+                onChange={handleProfileChange}
+                disabled={isSavingProfile}
+              />
+              {profileErrors.trainerEmail && (
+                <p className="field-error">{profileErrors.trainerEmail}</p>
+              )}
+            </div>
+
+            <div className="jockey-form-wide">
+              <label className="field-label" htmlFor="stableAddress">
+                Academy or Stable Address <span className="required">*</span>
+              </label>
+              <input
+                className={profileErrors.stableAddress ? 'input has-error' : 'input'}
+                id="stableAddress"
+                name="stableAddress"
+                type="text"
+                placeholder="Stable name, town, country"
+                value={profileForm.stableAddress}
+                onChange={handleProfileChange}
+                disabled={isSavingProfile}
+              />
+              {profileErrors.stableAddress && (
+                <p className="field-error">{profileErrors.stableAddress}</p>
+              )}
+            </div>
+          </div>
+        </section>
+
+        <section className="jockey-application-section">
+          <div className="jockey-application-heading">
+            <h3>Licence Verification</h3>
+            <p>Help our team confirm your credentials.</p>
+          </div>
+
+          <div className="jockey-form-grid">
+            <div>
+              <label className="field-label" htmlFor="issuingAuthority">
+                Issuing Authority <span className="required">*</span>
+              </label>
+              <select
+                className={profileErrors.issuingAuthority ? 'input has-error' : 'input'}
+                id="issuingAuthority"
+                name="issuingAuthority"
+                value={profileForm.issuingAuthority}
+                onChange={handleProfileChange}
+                disabled={isSavingProfile}
+              >
+                {issuingAuthorityOptions.map((authority) => (
+                  <option key={authority.value || 'empty'} value={authority.value}>
+                    {authority.label}
+                  </option>
+                ))}
+              </select>
+              {profileErrors.issuingAuthority && (
+                <p className="field-error">{profileErrors.issuingAuthority}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="field-label" htmlFor="verificationLink">
+                Verification Link
+              </label>
+              <input
+                className={profileErrors.verificationLink ? 'input has-error' : 'input'}
+                id="verificationLink"
+                name="verificationLink"
+                type="url"
+                placeholder="https://authority.org/jockeys/your-id"
+                value={profileForm.verificationLink}
+                onChange={handleProfileChange}
+                disabled={isSavingProfile}
+              />
+              <p className="field-help">Optional — public licence or profile page.</p>
+              {profileErrors.verificationLink && (
+                <p className="field-error">{profileErrors.verificationLink}</p>
+              )}
+            </div>
+
+            <div className="jockey-hidden-backend-fields" aria-hidden="true">
+              <input name="weight" type="hidden" value={profileForm.weight} readOnly />
+              <input name="ranking" type="hidden" value={profileForm.ranking} readOnly />
+            </div>
+          </div>
+
+          <div className="jockey-license-upload-group">
+            <label className="field-label" htmlFor="jockeyLicenceFile">
+              Jockey Licence File <span className="required">*</span>
+            </label>
+
+            <label
+              className={
+                profileErrors.licenseFileName
+                  ? 'jockey-license-upload has-error'
+                  : 'jockey-license-upload'
+              }
+              htmlFor="jockeyLicenceFile"
+            >
+              <span className="jockey-upload-icon" aria-hidden="true">
+                ↥
+              </span>
+
+              <span className="jockey-upload-copy">
+                <strong>
+                  {profileForm.licenseFileName || 'Click to upload your licence'}
+                </strong>
+                <small>JPG, PNG, or PDF</small>
+              </span>
+            </label>
+
+            <input
+              className="image-file-input"
+              id="jockeyLicenceFile"
+              name="licenceFile"
+              type="file"
+              accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
+              onChange={handleLicenceFileChange}
+              disabled={isSavingProfile}
+            />
+
+            <p className="field-help">JPG, PNG, or PDF (max 10MB).</p>
+
+            {profileErrors.licenseFileName && (
+              <p className="field-error">{profileErrors.licenseFileName}</p>
+            )}
+          </div>
+        </section>
 
         <div className="admin-form-actions">
           <button className="primary-button" type="submit" disabled={isSavingProfile}>
             {isSavingProfile ? 'Đang lưu...' : profile ? 'Cập nhật hồ sơ' : 'Tạo hồ sơ'}
           </button>
+
           {profile && (
-            <button className="outline-button danger-action" type="button" onClick={handleDeactivateProfile} disabled={isSavingProfile}>
+            <button
+              className="outline-button danger-action"
+              type="button"
+              onClick={handleDeactivateProfile}
+              disabled={isSavingProfile}
+            >
               Deactivate Profile
             </button>
           )}
@@ -715,9 +922,23 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
               <p className="eyebrow">Hồ sơ</p>
               <h2>Hồ sơ jockey</h2>
             </div>
-            <button className="outline-button compact-button" type="button" onClick={loadProfile} disabled={isLoadingProfile}>Tải lại hồ sơ</button>
+            <button
+              className="outline-button compact-button"
+              type="button"
+              onClick={loadProfile}
+              disabled={isLoadingProfile}
+            >
+              {isLoadingProfile ? 'Đang tải...' : 'Tải lại hồ sơ'}
+            </button>
           </div>
-          {renderProfileForm()}
+
+          {isLoadingProfile ? (
+            <div className="owner-panel">
+              <p className="table-empty">Đang tải hồ sơ...</p>
+            </div>
+          ) : (
+            renderProfileForm()
+          )}
         </section>
       )}
 

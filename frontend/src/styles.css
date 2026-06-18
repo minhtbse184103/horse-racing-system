@@ -1,4 +1,5 @@
 @import "tailwindcss";
+
 @theme {
   --font-sans: "Manrope Variable", ui-sans-serif, system-ui, sans-serif;
 
@@ -16,6 +17,7 @@
   --color-danger: #c24135;
   --color-danger-bg: #fff0ed;
 }
+
 :root {
   font-family: "Manrope Variable", ui-sans-serif, system-ui, sans-serif;
   color: #172033;
@@ -723,6 +725,7 @@ select {
     padding: 11px 14px;
   }
 }
+
 /* Owner dashboard - based on prototype app-shell/sidebar/stat-card layout */
 .owner-shell {
   min-height: 100vh;
@@ -1278,6 +1281,7 @@ select {
 }
 
 @media (max-width: 560px) {
+
   .owner-stats-grid,
   .owner-form-row {
     grid-template-columns: 1fr;
@@ -1625,7 +1629,7 @@ select {
   color: var(--slate-500);
 }
 
-.event-form-heading > button {
+.event-form-heading>button {
   width: 36px;
   height: 36px;
   flex: 0 0 auto;
@@ -1661,7 +1665,7 @@ select {
   margin-top: 24px;
 }
 
-.event-form-actions > button:first-child {
+.event-form-actions>button:first-child {
   border: 1px solid rgba(108, 63, 36, 0.18);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.72);
@@ -1671,6 +1675,7 @@ select {
 }
 
 @media (max-width: 700px) {
+
   .event-header-actions,
   .event-list-toolbar,
   .event-list-actions,
@@ -1835,6 +1840,7 @@ select {
 }
 
 @media (max-width: 760px) {
+
   .event-round-grid,
   .event-view-summary {
     grid-template-columns: 1fr;
@@ -1984,6 +1990,7 @@ select {
     display: block;
   }
 }
+
 .race-entry-workspace {
   position: relative;
   z-index: 2;
@@ -2048,7 +2055,7 @@ select {
 }
 
 .pretty-select-value,
-.pretty-select-option > span {
+.pretty-select-option>span {
   min-width: 0;
   display: grid;
   gap: 3px;
@@ -2212,6 +2219,7 @@ select {
 }
 
 @media (max-width: 900px) {
+
   .race-entry-selectors,
   .race-entry-assignment {
     grid-template-columns: 1fr;
@@ -2399,7 +2407,7 @@ select {
   text-align: left;
 }
 
-.event-schedule-date + .event-schedule-date {
+.event-schedule-date+.event-schedule-date {
   margin-top: 7px;
 }
 
@@ -2471,7 +2479,7 @@ select {
 }
 
 .event-info-cell span,
-.event-capacity-cell > span {
+.event-capacity-cell>span {
   color: var(--slate-500);
   font-size: 0.7rem;
   font-weight: 850;
@@ -2906,5 +2914,121 @@ select {
   .horse-image-preview {
     width: 100%;
     height: 180px;
+  }
+}
+
+/* Jockey licence application form */
+.licence-application-form {
+  gap: 26px;
+}
+
+.jockey-application-section {
+  display: grid;
+  gap: 18px;
+}
+
+.jockey-application-heading h3 {
+  margin: 0;
+  color: var(--brown-900);
+  font-size: 1.25rem;
+  font-weight: 950;
+  letter-spacing: -0.03em;
+}
+
+.jockey-application-heading p {
+  margin: 4px 0 0;
+  color: var(--slate-500);
+  font-size: 0.95rem;
+  line-height: 1.45;
+}
+
+.jockey-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px 20px;
+}
+
+.jockey-form-wide {
+  grid-column: 1 / -1;
+}
+
+.field-help {
+  margin: 7px 0 0;
+  color: var(--slate-500);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.jockey-license-upload-group {
+  display: grid;
+  gap: 8px;
+}
+
+.jockey-license-upload {
+  min-height: 100px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  border: 2px dashed rgba(108, 63, 36, 0.18);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.5);
+  padding: 22px 28px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.jockey-license-upload:hover {
+  border-color: rgba(167, 102, 53, 0.46);
+  background: rgba(255, 255, 255, 0.74);
+  box-shadow: 0 10px 26px rgba(43, 23, 16, 0.08);
+}
+
+.jockey-license-upload.has-error {
+  border-color: rgba(194, 65, 53, 0.58);
+  background: var(--danger-bg);
+}
+
+.jockey-upload-icon {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: rgba(101, 112, 131, 0.14);
+  color: var(--brown-900);
+  font-size: 1.8rem;
+  font-weight: 900;
+}
+
+.jockey-upload-copy {
+  display: grid;
+  gap: 4px;
+}
+
+.jockey-upload-copy strong {
+  color: var(--brown-900);
+  font-size: 1rem;
+  font-weight: 850;
+}
+
+.jockey-upload-copy small {
+  color: var(--slate-500);
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.jockey-hidden-backend-fields {
+  display: none;
+}
+
+@media (max-width: 760px) {
+  .jockey-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .jockey-license-upload {
+    padding: 18px;
+    align-items: flex-start;
   }
 }
