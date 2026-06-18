@@ -5,7 +5,6 @@ import { updateMockUserAccount } from '../../services/mockAuthStore';
 import { getMyOwnerApplication } from '../../services/ownerApplicationService';
 
 const inputClass = 'w-full rounded-lg border border-brown-700/15 bg-white px-4 py-3 text-sm font-bold text-brown-900 outline-none transition placeholder:text-slate-500/65 focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20 disabled:cursor-not-allowed disabled:bg-cream-200 disabled:text-slate-500';
-const emptyPasswordForm = { currentPassword: '', newPassword: '', confirmPassword: '' };
 
 function getAccountValues(user) {
   return {
@@ -56,9 +55,6 @@ export default function OwnerProfile({ user, onUserUpdated }) {
   const [accountValues, setAccountValues] = useState(() => getAccountValues(user));
   const [isLoading, setIsLoading] = useState(true);
   const [isEditingAccount, setIsEditingAccount] = useState(false);
-  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
-  const [passwordValues, setPasswordValues] = useState(emptyPasswordForm);
-  const [passwordError, setPasswordError] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
 
@@ -142,34 +138,6 @@ export default function OwnerProfile({ user, onUserUpdated }) {
     onUserUpdated?.(updatedUser);
   }
 
-  function handlePasswordChange(event) {
-    const { name, value } = event.target;
-    setPasswordValues((current) => ({ ...current, [name]: value }));
-    setPasswordError('');
-  }
-
-  function closePasswordModal() {
-    setIsPasswordModalOpen(false);
-    setPasswordValues(emptyPasswordForm);
-    setPasswordError('');
-  }
-
-  function handleUpdatePassword() {
-    if (!passwordValues.currentPassword || !passwordValues.newPassword || !passwordValues.confirmPassword) {
-      setPasswordError('Vui lòng nhập đầy đủ thông tin mật khẩu.');
-      return;
-    }
-
-    if (passwordValues.newPassword !== passwordValues.confirmPassword) {
-      setPasswordError('Confirm New Password không khớp.');
-      return;
-    }
-
-    closePasswordModal();
-    setMessage('Đã gửi yêu cầu cập nhật mật khẩu.');
-    setError('');
-  }
-
   if (isLoading) {
     return <div className="admin-alert success" role="status">Đang tải Owner Profile...</div>;
   }
@@ -196,21 +164,8 @@ export default function OwnerProfile({ user, onUserUpdated }) {
 
           <div className="grid gap-4 md:grid-cols-2">
             <EditableField label="Username" name="username" value={accountValues.username} disabled onChange={handleAccountChange} />
-            <EditableField
-              label="Email"
-              name="email"
-              type="email"
-              value={accountValues.email}
-              disabled={!isEditingAccount}
-              onChange={handleAccountChange}
-            />
-            <EditableField
-              label="Phone Number"
-              name="phone"
-              value={accountValues.phone}
-              disabled={!isEditingAccount}
-              onChange={handleAccountChange}
-            />
+            <EditableField label="Email" name="email" type="email" value={accountValues.email} disabled={!isEditingAccount} onChange={handleAccountChange} />
+            <EditableField label="Phone Number" name="phone" value={accountValues.phone} disabled={!isEditingAccount} onChange={handleAccountChange} />
             <label className="grid gap-2">
               <span className="text-sm font-extrabold text-brown-900">Role</span>
               <input className={inputClass} value={formatDisplayLabel(accountValues.role)} readOnly disabled />
@@ -272,70 +227,6 @@ export default function OwnerProfile({ user, onUserUpdated }) {
             )}
           </div>
         </section>
-      )}
-
-      <section className="owner-panel">
-        <div className="owner-panel-header">
-          <div>
-            <p className="eyebrow">Security</p>
-            <h2>Security</h2>
-            <p>Manage password separately from profile information.</p>
-          </div>
-          <button className="primary-button compact-button" type="button" onClick={() => setIsPasswordModalOpen(true)}>
-            Change Password
-          </button>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          <ProfileField label="Password" value="************" />
-        </div>
-      </section>
-
-      {isPasswordModalOpen && (
-        <div className="horse-form-overlay" role="presentation" onClick={closePasswordModal}>
-          <section className="horse-form-modal" role="dialog" aria-modal="true" aria-labelledby="owner-password-title" onClick={(event) => event.stopPropagation()}>
-            <div className="owner-panel-header horse-modal-header">
-              <div>
-                <p className="eyebrow">Security</p>
-                <h2 id="owner-password-title">Change Password</h2>
-                <p>Enter a new password without displaying the current password.</p>
-              </div>
-              <button className="outline-button compact-button" type="button" onClick={closePasswordModal}>
-                Cancel
-              </button>
-            </div>
-
-            <div className="owner-form">
-              {passwordError && <div className="admin-alert error modal-alert" role="alert">{passwordError}</div>}
-
-              <div className="grid gap-4">
-                <label className="grid gap-2">
-                  <span className="text-sm font-extrabold text-brown-900">Current Password</span>
-                  <input className={inputClass} name="currentPassword" type="password" value={passwordValues.currentPassword} onChange={handlePasswordChange} />
-                </label>
-
-                <label className="grid gap-2">
-                  <span className="text-sm font-extrabold text-brown-900">New Password</span>
-                  <input className={inputClass} name="newPassword" type="password" value={passwordValues.newPassword} onChange={handlePasswordChange} />
-                </label>
-
-                <label className="grid gap-2">
-                  <span className="text-sm font-extrabold text-brown-900">Confirm New Password</span>
-                  <input className={inputClass} name="confirmPassword" type="password" value={passwordValues.confirmPassword} onChange={handlePasswordChange} />
-                </label>
-              </div>
-
-              <div className="admin-form-actions sticky-modal-actions sm:flex sm:justify-end">
-                <button className="outline-button" type="button" onClick={closePasswordModal}>
-                  Cancel
-                </button>
-                <button className="primary-button sm:w-auto" type="button" onClick={handleUpdatePassword}>
-                  Update Password
-                </button>
-              </div>
-            </div>
-          </section>
-        </div>
       )}
     </section>
   );
