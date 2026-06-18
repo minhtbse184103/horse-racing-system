@@ -97,3 +97,22 @@ export function updateMockUserRole(userId, roleName) {
   const { password: _password, ...safeUser } = users[index];
   return safeUser;
 }
+
+export function updateMockUserAccount(userId, payload) {
+  const users = getMockUsers();
+  const normalizedId = Number(userId);
+  const index = users.findIndex((item) => Number(getUserId(item)) === normalizedId);
+
+  if (index < 0) return null;
+
+  users[index] = {
+    ...users[index],
+    email: String(payload.email || '').trim(),
+    phone: String(payload.phone || '').trim()
+  };
+
+  saveMockUsers(users);
+
+  const { password: _password, ...safeUser } = users[index];
+  return safeUser;
+}

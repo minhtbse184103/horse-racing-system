@@ -56,7 +56,7 @@ export default function App() {
   }
 
   if (userRole === 'OWNER') {
-    return <OwnerDashboard currentUser={user} onLogout={handleLogout} />;
+    return <OwnerDashboard currentUser={user} onLogout={handleLogout} onUserUpdated={setUser} />;
   }
 
   if (userRole === 'JOCKEY') {

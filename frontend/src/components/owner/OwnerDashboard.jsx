@@ -30,7 +30,7 @@ function readImageFile(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result);
-    reader.onerror = () => reject(new Error('Không thể đọc file ảnh.'));
+    reader.onerror = () => reject(new Error('Khong the doc file.'));
     reader.readAsDataURL(file);
   });
 }
@@ -43,8 +43,22 @@ function countHorseImages(values) {
   );
 }
 
+function isAllowedHorseFile(fieldName, file) {
+  const extension = String(file.name || '').split('.').pop()?.toLowerCase();
+  const type = String(file.type || '').toLowerCase();
+  const isJpgOrPng = type === 'image/jpeg' || type === 'image/png' || extension === 'jpg' || extension === 'jpeg' || extension === 'png';
+  const isPdf = type === 'application/pdf' || extension === 'pdf';
 
-export default function OwnerDashboard({ currentUser, onLogout }) {
+  return fieldName === 'horseImages' ? isJpgOrPng : isJpgOrPng || isPdf;
+}
+
+function isPreviewableHorseImage(file) {
+  const source = file?.dataUrl || file?.url || '';
+  return String(file?.type || '').startsWith('image/') || String(source).startsWith('data:image/');
+}
+
+
+export default function OwnerDashboard({ currentUser, onLogout, onUserUpdated }) {
   const [activeSection, setActiveSection] = useState('overview');
   const [isHorseFormOpen, setIsHorseFormOpen] = useState(false);
   const [formValues, setFormValues] = useState(emptyHorseForm());
@@ -145,8 +159,7 @@ export default function OwnerDashboard({ currentUser, onLogout }) {
       color: horse.color || '',
       dayOfBirth: horse.dayOfBirth || '',
       weight: horse.weight ?? '',
-      countryOfBirth: horse.countryOfBirth || '',
-      description: horse.description || '',
+      healthCertificateExpiryDate: horse.healthCertificateExpiryDate || '',
       horsePassportImages: Array.isArray(horse.horsePassportImages) ? horse.horsePassportImages : [],
       horseCertificateImages: Array.isArray(horse.horseCertificateImages) ? horse.horseCertificateImages : [],
       horseImages: Array.isArray(horse.horseImages) ? horse.horseImages : []
@@ -183,11 +196,11 @@ export default function OwnerDashboard({ currentUser, onLogout }) {
     setPageError('');
     setMessage('');
 
-    const invalidFile = files.find((file) => !file.type.startsWith('image/'));
+    const invalidFile = files.find((file) => !isAllowedHorseFile(fieldName, file));
     if (invalidFile) {
       setFormErrors((current) => ({
         ...current,
-        [fieldName]: 'Chỉ được import file ảnh.'
+        [fieldName]: fieldName === 'horseImages' ? 'Horse Image chi ho tro JPG hoac PNG.' : 'Tai lieu chi ho tro PDF, JPG hoac PNG.'
       }));
       return;
     }
@@ -196,7 +209,7 @@ export default function OwnerDashboard({ currentUser, onLogout }) {
     if (currentTotal + files.length > 10) {
       setFormErrors((current) => ({
         ...current,
-        totalImages: 'Tổng số ảnh của Horse Passport, Horse Certificate và Horse Image không được vượt quá 10 ảnh.'
+        totalImages: 'Tong so file cua Horse Passport, Health Certificate va Horse Image khong duoc vuot qua 10 file.'
       }));
       return;
     }
@@ -224,7 +237,7 @@ export default function OwnerDashboard({ currentUser, onLogout }) {
     } catch (err) {
       setFormErrors((current) => ({
         ...current,
-        [fieldName]: getErrorText(err, 'Không thể đọc file ảnh.')
+        [fieldName]: getErrorText(err, 'Khong the doc file.')
       }));
     }
   }
@@ -409,11 +422,8 @@ export default function OwnerDashboard({ currentUser, onLogout }) {
                 <span>Passport Number</span>
                 <strong>{selectedHorse.passportNumber || 'Chưa cập nhật'}</strong>
 
-                <span>Country Of Birth</span>
-                <strong>{selectedHorse.countryOfBirth || 'Chưa cập nhật'}</strong>
-
-                <span>Description</span>
-                <strong>{selectedHorse.description || 'Chưa cập nhật'}</strong>
+                <span>Health Certificate Expiry Date</span>
+                <strong>{selectedHorse.healthCertificateExpiryDate || 'Chưa cập nhật'}</strong>
 
                 <span>Trạng thái</span>
                 <strong>
@@ -439,7 +449,7 @@ export default function OwnerDashboard({ currentUser, onLogout }) {
               <div className="horse-detail-document-grid">
                 {[
                   ['Horse Passport', selectedHorse.horsePassportImages],
-                  ['Horse Certificate', selectedHorse.horseCertificateImages],
+                  ['Health Certificate', selectedHorse.horseCertificateImages],
                   ['Horse Image', selectedHorse.horseImages]
                 ].map(([label, images]) => (
                   <div className="horse-detail-document-card" key={label}>
@@ -447,15 +457,19 @@ export default function OwnerDashboard({ currentUser, onLogout }) {
                     {Array.isArray(images) && images.length > 0 ? (
                       <div className="horse-detail-image-list">
                         {images.map((image, index) => (
-                          <img
-                            key={`${label}-${image.name || index}`}
-                            src={image.dataUrl || image.url}
-                            alt={`${label} ${index + 1}`}
-                          />
+                          isPreviewableHorseImage(image) ? (
+                            <img
+                              key={`${label}-${image.name || index}`}
+                              src={image.dataUrl || image.url}
+                              alt={`${label} ${index + 1}`}
+                            />
+                          ) : (
+                            <p key={`${label}-${image.name || index}`}>{image.name || `${label} ${index + 1}`}</p>
+                          )
                         ))}
                       </div>
                     ) : (
-                      <p>Chưa import ảnh.</p>
+                      <p>Chưa import file.</p>
                     )}
                   </div>
                 ))}
@@ -480,9 +494,7 @@ export default function OwnerDashboard({ currentUser, onLogout }) {
       {activeSection === 'profile' && (
         <OwnerProfile
           user={currentUser}
-          onProfileSaved={() => {
-            setMessage('Đã cập nhật Owner Profile.');
-          }}
+          onUserUpdated={onUserUpdated}
         />
       )}
     </AppShell>

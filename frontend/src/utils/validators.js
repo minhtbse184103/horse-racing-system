@@ -70,6 +70,7 @@ export function validateHorseForm(values) {
   const weight = Number(values.weight);
   const today = todayDateOnly();
   const dayOfBirth = toDateOnly(values.dayOfBirth);
+  const healthCertificateExpiryDate = toDateOnly(values.healthCertificateExpiryDate);
   const passportNumber = String(values.passportNumber ?? '').trim();
   const horsePassportImages = Array.isArray(values.horsePassportImages) ? values.horsePassportImages : [];
   const horseCertificateImages = Array.isArray(values.horseCertificateImages) ? values.horseCertificateImages : [];
@@ -106,6 +107,10 @@ export function validateHorseForm(values) {
     errors.color = 'Màu lông chứa ký tự không hợp lệ.';
   }
 
+  if (!values.gender) {
+    errors.gender = 'Gender is required.';
+  }
+
   if (!values.dayOfBirth) {
     errors.dayOfBirth = 'Ngày sinh là bắt buộc.';
   } else if (!dayOfBirth) {
@@ -120,20 +125,26 @@ export function validateHorseForm(values) {
     errors.weight = 'Cân nặng của ngựa phải từ 200 đến 1000 kg.';
   }
 
+  if (!values.healthCertificateExpiryDate) {
+    errors.healthCertificateExpiryDate = 'Health Certificate Expiry Date is required.';
+  } else if (!healthCertificateExpiryDate) {
+    errors.healthCertificateExpiryDate = 'Health Certificate Expiry Date is invalid.';
+  }
+
   if (horsePassportImages.length === 0) {
-    errors.horsePassportImages = 'Horse Passport là bắt buộc. Hãy import ít nhất 1 ảnh.';
+    errors.horsePassportImages = 'Horse Passport is required. Import at least 1 file.';
   }
 
   if (horseCertificateImages.length === 0) {
-    errors.horseCertificateImages = 'Horse Certificate là bắt buộc. Hãy import ít nhất 1 ảnh.';
+    errors.horseCertificateImages = 'Health Certificate is required. Import at least 1 file.';
   }
 
   if (horseImages.length === 0) {
-    errors.horseImages = 'Horse Image là bắt buộc. Hãy import ít nhất 1 ảnh.';
+    errors.horseImages = 'Horse Image is required. Import at least 1 file.';
   }
 
   if (totalImages > 10) {
-    errors.totalImages = 'Tổng số ảnh của Horse Passport, Horse Certificate và Horse Image không được vượt quá 10 ảnh.';
+    errors.totalImages = 'Total files for Horse Passport, Health Certificate and Horse Image cannot exceed 10 files.';
   }
 
   return errors;
