@@ -5,6 +5,7 @@ import AdminDashboard from './components/admin/AdminDashboard';
 import OwnerDashboard from './components/owner/OwnerDashboard';
 import JockeyDashboard from './components/jockey/JockeyDashboard';
 import UserPanel from './components/user/UserPanel';
+import AccessDenied from './components/common/AccessDenied';
 import LandingPage from './pages/LandingPage';
 import { useAuth } from './hooks/useAuth';
 import { getUserRole } from './lib';
@@ -19,6 +20,7 @@ export default function App() {
   const { user, setUser, clearAuth } = useAuth();
   const [page, setPage] = useState(getInitialPage);
   const userRole = getUserRole(user);
+  const currentPath = window.location.pathname;
 
   useEffect(() => {
     function handlePopState() {
@@ -38,6 +40,15 @@ export default function App() {
   function handleLogout() {
     clearAuth();
     navigateTo('/login');
+  }
+
+
+  if (user && currentPath.startsWith('/owner') && userRole !== 'OWNER') {
+    return <AccessDenied onReturnDashboard={() => navigateTo('/dashboard')} />;
+  }
+
+  if (user && currentPath.startsWith('/admin') && userRole !== 'ADMIN') {
+    return <AccessDenied onReturnDashboard={() => navigateTo('/dashboard')} />;
   }
 
   if (userRole === 'ADMIN') {

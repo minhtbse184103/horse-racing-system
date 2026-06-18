@@ -70,7 +70,17 @@ export function validateHorseForm(values) {
   const weight = Number(values.weight);
   const today = todayDateOnly();
   const dayOfBirth = toDateOnly(values.dayOfBirth);
-  const healthCertExpiry = toDateOnly(values.healthCertExpiry);
+  const passportNumber = String(values.passportNumber ?? '').trim();
+  const horsePassportImages = Array.isArray(values.horsePassportImages) ? values.horsePassportImages : [];
+  const horseCertificateImages = Array.isArray(values.horseCertificateImages) ? values.horseCertificateImages : [];
+  const horseImages = Array.isArray(values.horseImages) ? values.horseImages : [];
+  const totalImages = horsePassportImages.length + horseCertificateImages.length + horseImages.length;
+
+  if (!passportNumber) {
+    errors.passportNumber = 'Passport Number là bắt buộc.';
+  } else if (passportNumber.length < 3 || passportNumber.length > 50) {
+    errors.passportNumber = 'Passport Number phải có từ 3 đến 50 ký tự.';
+  }
 
   if (!values.horseName?.trim()) {
     errors.horseName = 'Tên ngựa là bắt buộc.';
@@ -110,19 +120,20 @@ export function validateHorseForm(values) {
     errors.weight = 'Cân nặng của ngựa phải từ 200 đến 1000 kg.';
   }
 
-  if (!values.healthCertExpiry) {
-    errors.healthCertExpiry = 'Ngày hết hạn chứng nhận sức khỏe là bắt buộc.';
-  } else if (!healthCertExpiry) {
-    errors.healthCertExpiry = 'Ngày hết hạn chứng nhận sức khỏe không hợp lệ.';
-  } else if (healthCertExpiry < today) {
-    errors.healthCertExpiry = 'Ngày hết hạn chứng nhận sức khỏe phải là hôm nay hoặc một ngày trong tương lai.';
+  if (horsePassportImages.length === 0) {
+    errors.horsePassportImages = 'Horse Passport là bắt buộc. Hãy import ít nhất 1 ảnh.';
   }
 
-  const imgUrl = String(values.imgUrl ?? '').trim();
-  if (!imgUrl) {
-    errors.imgUrl = 'URL chứng nhận sức khỏe là bắt buộc.';
-  } else if (!/^https?:\/\/.+/i.test(imgUrl)) {
-    errors.imgUrl = 'URL chứng nhận sức khỏe phải bắt đầu bằng http:// hoặc https://';
+  if (horseCertificateImages.length === 0) {
+    errors.horseCertificateImages = 'Horse Certificate là bắt buộc. Hãy import ít nhất 1 ảnh.';
+  }
+
+  if (horseImages.length === 0) {
+    errors.horseImages = 'Horse Image là bắt buộc. Hãy import ít nhất 1 ảnh.';
+  }
+
+  if (totalImages > 10) {
+    errors.totalImages = 'Tổng số ảnh của Horse Passport, Horse Certificate và Horse Image không được vượt quá 10 ảnh.';
   }
 
   return errors;
