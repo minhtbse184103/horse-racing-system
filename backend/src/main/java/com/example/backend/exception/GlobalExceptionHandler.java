@@ -8,12 +8,14 @@ import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import  com.example.backend.dto.response.ErrorResponse;
+import lombok.extern.slf4j.Slf4j;
 
 @RestControllerAdvice
-
+@Slf4j
 public class GlobalExceptionHandler {
     @ExceptionHandler(ApiException.class)
     public ResponseEntity<ErrorResponse> handleApiException(ApiException ex) {
+        log.warn("API Exception: {}", ex.getMessage());
         ErrorResponse error = new ErrorResponse(ex.getStatus().value(), ex.getMessage());
         return ResponseEntity.status(ex.getStatus()).body(error);
     }
@@ -24,7 +26,8 @@ public class GlobalExceptionHandler {
                 .findFirst()
                 .map(error -> error.getDefaultMessage())
                 .orElse("Dữ liệu yêu cầu không hợp lệ.");
-
+        
+        log.warn("Validation failed: {}", message);
         return ResponseEntity.badRequest().body(new ErrorResponse(400, message));
     }
 
@@ -42,7 +45,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleAllException(Exception ex) {
-        ErrorResponse error = new ErrorResponse(500, "Lỗi máy chủ nội bộ");
+        log.error("Unhandled exception: ", ex);
+        ErrorResponse error = new ErrorResponse(500, "Lỗi máy chủ nội bộ: " + ex.getMessage());
         return ResponseEntity.status(500).body(error);
     }
 }

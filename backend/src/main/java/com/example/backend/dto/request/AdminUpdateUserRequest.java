@@ -24,7 +24,4 @@ public class AdminUpdateUserRequest {
 
     @Pattern(regexp = "(?i)PENDING|UNDER_REVIEW|ACTIVE|REJECTED|INACTIVE|BLOCKED", message = "Trạng thái phải là PENDING, UNDER_REVIEW, ACTIVE, REJECTED, INACTIVE hoặc BLOCKED")
     private String status;
-
-    @Size(max = 500, message = "Lý do từ chối không được vượt quá 500 ký tự")
-    private String rejectionReason;
 }

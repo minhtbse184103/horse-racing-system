@@ -260,12 +260,6 @@ public class AdminRegistrationService {
                     "Tài khoản nài ngựa không hoạt động.");
         }
 
-        if (!ACTIVE.equals(jockeyProfile.getStatus())) {
-            throw new ApiException(
-                    HttpStatus.CONFLICT,
-                    "Hồ sơ nài ngựa không hoạt động.");
-        }
-
         if (jockeyProfile.getWeight() == null
                 || jockeyProfile.getWeight()
                 .compareTo(condition.getMaxJockeyWeight()) > 0) {
