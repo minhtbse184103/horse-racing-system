@@ -2,6 +2,16 @@ import { useEffect, useMemo, useState } from 'react';
 import defaultJockeyAvatar from '../../assets/default-jockey-avatar.svg';
 import AppShell from '../common/AppShell';
 import StatCard from '../common/StatCard';
+import {
+  acceptJockeyInvitation,
+  createJockeyProfile,
+  deactivateJockeyProfile,
+  getJockeyInvitations,
+  getJockeyProfile,
+  rejectJockeyInvitation,
+  toJockeyProfilePayload,
+  updateJockeyProfile
+} from '../../services/jockeyService';
 
 import { formatDate, formatDisplayLabel } from '../../lib';
 
@@ -14,13 +24,7 @@ const jockeyNavItems = [
 const rankingOptions = ['BEGINNER', 'INTERMEDIATE', 'PROFESSIONAL', 'ELITE'];
 const INVITATION_STATUS_OPTIONS = ['ALL', 'PENDING', 'ACCEPTED', 'REJECTED', 'EXPIRED'];
 
-const issuingAuthorityOptions = [
-  { value: '', label: 'Select authority' },
-  { value: 'BHA', label: 'BHA - British Horseracing Authority' },
-  { value: 'IHRB', label: 'IHRB - Irish Horseracing Regulatory Board' },
-  { value: 'FRANCE_GALOP', label: 'FG - France Galop' },
-  { value: 'OTHER', label: 'OTHER' }
-];
+
 function emptyProfileForm(currentUser = {}) {
   return {
     applicantFullName: currentUser?.fullName || '',
@@ -32,9 +36,11 @@ function emptyProfileForm(currentUser = {}) {
     issuingAuthority: '',
     verificationLink: '',
     licenseFileName: '',
-    licenseNo: '',
     weight: '55',
     ranking: 'BEGINNER',
+    biography: '',
+    totalRaces: 0,
+    totalWins: 0,
     imgUrl: ''
   };
 }
@@ -48,25 +54,53 @@ function isJockeySection(section) {
 }
 
 function isMissingProfileError(error) {
-  return error instanceof Error && /profile does not exist|not found/i.test(error.message);
+  return (
+    error instanceof Error &&
+    /profile does not exist|not found|không tồn tại/i.test(error.message)
+  );
 }
 
 function toProfileForm(profile, currentUser = {}) {
   const imgUrl = profile.imgUrl ? String(profile.imgUrl) : '';
 
   return {
-    applicantFullName: String(profile.fullName || currentUser?.fullName || ''),
-    applicantEmail: String(profile.email || currentUser?.email || ''),
+    applicantFullName: String(
+      profile.applicantFullName ||
+      profile.fullName ||
+      currentUser?.fullName ||
+      ''
+    ),
+
+    applicantEmail: String(
+      profile.applicantEmail ||
+      profile.email ||
+      currentUser?.email ||
+      ''
+    ),
+
     phoneNumber: String(profile.phoneNumber || ''),
     trainerName: String(profile.trainerName || ''),
     trainerEmail: String(profile.trainerEmail || ''),
     stableAddress: String(profile.stableAddress || ''),
     issuingAuthority: String(profile.issuingAuthority || ''),
-    verificationLink: /^https?:\/\/.+/i.test(imgUrl) ? imgUrl : '',
-    licenseFileName: '',
+
+    verificationLink: String(
+      profile.verificationLink ||
+      profile.licenseUrl ||
+      profile.imgUrl ||
+      ''
+    ),
+
+    licenseFileName: String(profile.licenseFileName || ''),
     licenseNo: String(profile.licenseNo || ''),
+
     weight: profile.weight == null ? '55' : String(profile.weight),
     ranking: String(profile.ranking || 'BEGINNER').toUpperCase(),
+    biography: String(profile.biography || ''),
+
+    totalRaces: Number(profile.totalRaces ?? 0),
+    totalWins: Number(profile.totalWins ?? 0),
+
     imgUrl
   };
 }
@@ -76,44 +110,8 @@ function validateProfileForm(form) {
   const weight = Number(form.weight || 55);
   const verificationLink = form.verificationLink.trim();
 
-  if (!form.applicantFullName.trim()) {
-    errors.applicantFullName = 'Full name is required.';
-  }
-
-  if (!form.applicantEmail.trim()) {
-    errors.applicantEmail = 'Email is required.';
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.applicantEmail.trim())) {
-    errors.applicantEmail = 'Email is invalid.';
-  }
-
-  if (!form.phoneNumber.trim()) {
-    errors.phoneNumber = 'Phone number is required.';
-  }
-
-  if (!form.trainerName.trim()) {
-    errors.trainerName = 'Trainer name is required.';
-  }
-
-  if (!form.trainerEmail.trim()) {
-    errors.trainerEmail = 'Trainer email is required.';
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.trainerEmail.trim())) {
-    errors.trainerEmail = 'Trainer email is invalid.';
-  }
-
-  if (!form.stableAddress.trim()) {
-    errors.stableAddress = 'Academy or stable address is required.';
-  }
-
-  if (!form.issuingAuthority.trim()) {
-    errors.issuingAuthority = 'Issuing authority is required.';
-  }
-
   if (verificationLink && !/^https?:\/\/.+/i.test(verificationLink)) {
     errors.verificationLink = 'Verification link must start with http:// or https://';
-  }
-
-  if (!form.licenseFileName.trim()) {
-    errors.licenseFileName = 'Jockey licence file is required.';
   }
 
   if (!Number.isFinite(weight) || weight < 35 || weight > 90) {
@@ -125,19 +123,6 @@ function validateProfileForm(form) {
   }
 
   return errors;
-}
-
-function toPayload(form) {
-  const filePlaceholderUrl = form.licenseFileName
-    ? `https://example.com/jockey-licences/${encodeURIComponent(form.licenseFileName)}`
-    : '';
-
-  return {
-    licenseNo: form.licenseNo.trim(),
-    weight: Number(form.weight || 55),
-    ranking: form.ranking || 'BEGINNER',
-    imgUrl: form.verificationLink.trim() || form.imgUrl.trim() || filePlaceholderUrl
-  };
 }
 
 function statusClass(status) {
@@ -312,6 +297,17 @@ function getProfileNotice(profile, isLoadingProfile) {
   return null;
 }
 
+function mergeProfileWithUser(profile, currentUser = {}) {
+  if (!profile) return null;
+
+  return {
+    ...profile,
+    fullName: profile.fullName || currentUser?.fullName || '',
+    email: profile.email || currentUser?.email || '',
+    status: profile.status || currentUser?.status || currentUser?.accountStatus || ''
+  };
+}
+
 export default function JockeyDashboard({ currentUser, onLogout }) {
   const [activeSection, setActiveSection] = useState('overview');
   const [profile, setProfile] = useState(null);
@@ -331,7 +327,7 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
 
   const jockeyName = currentUser?.fullName || currentUser?.email || 'Jockey';
   const isLoading = isLoadingProfile || isLoadingInvitations;
-  const profileStatus = String(profile?.status || '').toUpperCase();
+  const profileStatus = String(profile?.status || currentUser?.status || currentUser?.accountStatus || '').toUpperCase();
   const isProfileActive = Boolean(profile) && profileStatus === 'ACTIVE';
   const profileNotice = getProfileNotice(profile, isLoadingProfile);
 
@@ -344,28 +340,53 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
 
   const latestInvitations = useMemo(() => invitations.slice(0, 5), [invitations]);
 
-  function loadProfile() {
-    setIsLoadingProfile(false);
+  async function loadProfile({ silentMissing = false } = {}) {
+    setIsLoadingProfile(true);
     setPageError('');
+
+    try {
+      const data = await getJockeyProfile();
+      const nextProfile = mergeProfileWithUser(data, currentUser);
+      setProfile(nextProfile);
+      setProfileForm(toProfileForm(nextProfile, currentUser));
+    } catch (error) {
+      if (silentMissing && isMissingProfileError(error)) {
+        setProfile(null);
+        setProfileForm(emptyProfileForm(currentUser));
+        return;
+      }
+
+      setPageError(getErrorText(error, 'Không thể tải hồ sơ jockey.'));
+    } finally {
+      setIsLoadingProfile(false);
+    }
   }
 
-  function loadInvitations() {
-    setIsLoadingInvitations(false);
+  async function loadInvitations() {
+    setIsLoadingInvitations(true);
     setPageError('');
+
+    try {
+      const data = await getJockeyInvitations();
+      setInvitations(Array.isArray(data) ? data : []);
+    } catch (error) {
+      setPageError(getErrorText(error, 'Không thể tải lời mời jockey.'));
+    } finally {
+      setIsLoadingInvitations(false);
+    }
   }
 
   function reloadData() {
     setMessage('');
     setProfileSubmitError('');
     setPageError('');
-    setIsLoadingProfile(false);
-    setIsLoadingInvitations(false);
+    loadProfile({ silentMissing: true });
+    loadInvitations();
   }
 
   useEffect(() => {
-    // Frontend only: không gọi API khi mở dashboard.
-    setIsLoadingProfile(false);
-    setIsLoadingInvitations(false);
+    loadProfile({ silentMissing: true });
+    loadInvitations();
   }, []);
 
   function handleNavigate(section) {
@@ -374,12 +395,20 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
       setPageError('');
       setProfileSubmitError('');
       setMessage('');
+      if (section === 'profile') {
+        setProfileForm((current) => ({
+          ...current,
+          applicantFullName: profile?.fullName || currentUser?.fullName || '',
+          applicantEmail: profile?.email || currentUser?.email || ''
+        }));
+      }
     }
   }
 
 
   function handleProfileChange(event) {
     const { name, value } = event.target;
+
 
     setProfileForm((current) => ({
       ...current,
@@ -411,7 +440,7 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
     setMessage('');
   }
 
-  function handleProfileSubmit(event) {
+  async function handleProfileSubmit(event) {
     event.preventDefault();
 
     const errors = validateProfileForm(profileForm);
@@ -422,40 +451,50 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
 
     if (Object.keys(errors).length > 0) return;
 
-    const mockSavedProfile = {
-      profileId: profile?.profileId || 'LOCAL-PROFILE',
-      fullName: profileForm.applicantFullName,
-      email: profileForm.applicantEmail,
-      phoneNumber: profileForm.phoneNumber,
-      trainerName: profileForm.trainerName,
-      trainerEmail: profileForm.trainerEmail,
-      stableAddress: profileForm.stableAddress,
-      issuingAuthority: profileForm.issuingAuthority,
-      licenseNo: 'LOCAL-LICENCE',
-      weight: Number(profileForm.weight || 55),
-      ranking: profileForm.ranking || 'BEGINNER',
-      imgUrl: profileForm.verificationLink || profileForm.licenseFileName,
-      status: 'UNDER_REVIEW'
-    };
+    setIsSavingProfile(true);
 
-    setProfile(mockSavedProfile);
-    setProfileForm(toProfileForm(mockSavedProfile, currentUser));
-    setMessage('Đã lưu hồ sơ tạm thời trên giao diện. Chưa gọi API backend.');
+    try {
+      const payload = toJockeyProfilePayload(profileForm);
+      const data = profile
+        ? await updateJockeyProfile(payload)
+        : await createJockeyProfile(payload);
+      const nextProfile = mergeProfileWithUser({ ...data, status: data?.status || 'UNDER_REVIEW' }, currentUser);
+      setProfile(nextProfile);
+      setProfileForm(toProfileForm(nextProfile, currentUser));
+      setMessage(profile ? 'Đã cập nhật hồ sơ jockey.' : 'Đã tạo hồ sơ jockey.');
+    } catch (error) {
+      setProfileSubmitError(getErrorText(error, 'Không thể lưu hồ sơ jockey.'));
+    } finally {
+      setIsSavingProfile(false);
+    }
+    return;
+
   }
 
-  function handleDeactivateProfile() {
+  async function handleDeactivateProfile() {
     const confirmed = window.confirm('Bạn có chắc muốn xóa hồ sơ tạm thời hiện tại?');
     if (!confirmed) return;
 
     setProfileSubmitError('');
     setPageError('');
     setMessage('');
-    setProfile(null);
-    setProfileForm(emptyProfileForm(currentUser));
-    setMessage('Đã xóa hồ sơ tạm thời trên giao diện. Chưa gọi API backend.');
+    setIsSavingProfile(true);
+
+    try {
+      const data = await deactivateJockeyProfile();
+      const nextProfile = mergeProfileWithUser({ ...data, status: 'INACTIVE' }, currentUser);
+      setProfile(nextProfile);
+      setProfileForm(toProfileForm(nextProfile, currentUser));
+      setMessage('Đã vô hiệu hóa hồ sơ jockey.');
+    } catch (error) {
+      setProfileSubmitError(getErrorText(error, 'Không thể vô hiệu hóa hồ sơ jockey.'));
+    } finally {
+      setIsSavingProfile(false);
+    }
+    return;
   }
 
-  function handleInvitationAction(invitation, action) {
+  async function handleInvitationAction(invitation, action) {
     const invitationId = getInvitationId(invitation);
 
     if (!invitationId) {
@@ -473,6 +512,26 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
 
     setPageError('');
     setMessage('');
+    setActionId(invitationId);
+
+    try {
+      const updatedInvitation = action === 'accept'
+        ? await acceptJockeyInvitation(invitationId)
+        : await rejectJockeyInvitation(invitationId);
+
+      setInvitations((current) =>
+        current.map((item) =>
+          getInvitationId(item) === invitationId ? updatedInvitation : item
+        )
+      );
+
+      setMessage(action === 'accept' ? 'Đã chấp nhận lời mời.' : 'Đã từ chối lời mời.');
+    } catch (error) {
+      setPageError(getErrorText(error, 'Không thể xử lý lời mời.'));
+    } finally {
+      setActionId(null);
+    }
+    return;
 
     setInvitations((current) =>
       current.map((item) =>
@@ -540,7 +599,7 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
                 placeholder="e.g. Aiden Walsh"
                 value={profileForm.applicantFullName}
                 onChange={handleProfileChange}
-                disabled={isSavingProfile}
+                disabled={false}
               />
               {profileErrors.applicantFullName && (
                 <p className="field-error">{profileErrors.applicantFullName}</p>
@@ -559,7 +618,7 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
                 placeholder="you@example.com"
                 value={profileForm.applicantEmail}
                 onChange={handleProfileChange}
-                disabled={isSavingProfile}
+                disabled={false}
               />
               {profileErrors.applicantEmail && (
                 <p className="field-error">{profileErrors.applicantEmail}</p>
@@ -583,6 +642,105 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
               {profileErrors.phoneNumber && (
                 <p className="field-error">{profileErrors.phoneNumber}</p>
               )}
+            </div>
+          </div>
+        </section>
+
+        <section className="jockey-application-section">
+          <div className="jockey-application-heading">
+            <h3>Racing Profile</h3>
+            <p>Thông tin này được lưu trong hồ sơ jockey hiện có.</p>
+          </div>
+
+          <div className="jockey-form-grid">
+            <div>
+              <label className="field-label" htmlFor="weight">
+                Weight <span className="required">*</span>
+              </label>
+              <input
+                className={profileErrors.weight ? 'input has-error' : 'input'}
+                id="weight"
+                name="weight"
+                type="number"
+                min="35"
+                max="90"
+                step="0.1"
+                value={profileForm.weight}
+                onChange={handleProfileChange}
+                disabled={isSavingProfile}
+              />
+              {profileErrors.weight && (
+                <p className="field-error">{profileErrors.weight}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="field-label" htmlFor="ranking">
+                Ranking <span className="required">*</span>
+              </label>
+              <select
+                className={profileErrors.ranking ? 'input has-error' : 'input'}
+                id="ranking"
+                name="ranking"
+                value={profileForm.ranking}
+                onChange={handleProfileChange}
+                disabled={isSavingProfile}
+              >
+                <option value="BEGINNER">Beginner</option>
+                <option value="INTERMEDIATE">Intermediate</option>
+                <option value="PROFESSIONAL">Professional</option>
+                <option value="ELITE">Elite</option>
+              </select>
+              {profileErrors.ranking && (
+                <p className="field-error">{profileErrors.ranking}</p>
+              )}
+            </div>
+
+            <div>
+              <label className="field-label" htmlFor="totalRaces">
+                Total Races
+              </label>
+              <input
+                className="input"
+                id="totalRaces"
+                name="totalRaces"
+                type="number"
+                value={profileForm.totalRaces}
+                disabled
+                readOnly
+              />
+            </div>
+
+            <div>
+              <label className="field-label" htmlFor="totalWins">
+                Total Wins
+              </label>
+              <input
+                className="input"
+                id="totalWins"
+                name="totalWins"
+                type="number"
+                value={profileForm.totalWins}
+                disabled
+                readOnly
+              />
+            </div>
+
+            <div className="jockey-form-wide">
+              <label className="field-label" htmlFor="biography">
+                Biography
+              </label>
+              <textarea
+                className="input"
+                id="biography"
+                name="biography"
+                rows={4}
+                maxLength={1000}
+                placeholder="Kinh nghiệm thi đấu, thế mạnh hoặc ghi chú hồ sơ..."
+                value={profileForm.biography}
+                onChange={handleProfileChange}
+                disabled={isSavingProfile}
+              />
             </div>
           </div>
         </section>
@@ -664,20 +822,16 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
               <label className="field-label" htmlFor="issuingAuthority">
                 Issuing Authority <span className="required">*</span>
               </label>
-              <select
+              <input
                 className={profileErrors.issuingAuthority ? 'input has-error' : 'input'}
                 id="issuingAuthority"
                 name="issuingAuthority"
+                type="text"
+                placeholder="Nhập cơ quan cấp phép, ví dụ: BHA, IHRB, France Galop..."
                 value={profileForm.issuingAuthority}
                 onChange={handleProfileChange}
                 disabled={isSavingProfile}
-              >
-                {issuingAuthorityOptions.map((authority) => (
-                  <option key={authority.value || 'empty'} value={authority.value}>
-                    {authority.label}
-                  </option>
-                ))}
-              </select>
+              />
               {profileErrors.issuingAuthority && (
                 <p className="field-error">{profileErrors.issuingAuthority}</p>
               )}
@@ -703,10 +857,6 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
               )}
             </div>
 
-            <div className="jockey-hidden-backend-fields" aria-hidden="true">
-              <input name="weight" type="hidden" value={profileForm.weight} readOnly />
-              <input name="ranking" type="hidden" value={profileForm.ranking} readOnly />
-            </div>
           </div>
 
           <div className="jockey-license-upload-group">
@@ -874,6 +1024,8 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
       {activeSection === 'overview' && (
         <section className="owner-stack">
           <section className="owner-stats-grid">
+            <StatCard label="Total races" value={profile?.totalRaces ?? 0} description="Chỉ hiển thị theo dữ liệu backend" />
+            <StatCard label="Total wins" value={profile?.totalWins ?? 0} description="Chỉ hiển thị theo dữ liệu backend" />
             <StatCard label="Trạng thái hồ sơ" value={profile ? formatDisplayLabel(profile.status) : 'Chưa có hồ sơ'} description={profile ? `Giấy phép: ${profile.licenseNo || 'Chưa cập nhật'}` : 'Tạo hồ sơ jockey'} highlight />
             <StatCard label="Xếp hạng" value={formatDisplayLabel(profile?.ranking)} description="Xếp hạng hiện tại trong hồ sơ" />
             <StatCard label="Lời mời đang chờ phản hồi" value={countByStatus(invitations, 'PENDING')} description="Lời mời đang chờ bạn phản hồi" />
