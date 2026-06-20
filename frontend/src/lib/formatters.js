@@ -79,29 +79,51 @@ export function getHorseName(horse) {
 
 export function emptyHorseForm() {
     return {
+        passportNumber: '',
         horseName: '',
         breed: '',
         gender: 'MALE',
         color: '',
         dayOfBirth: '',
         weight: '',
-        healthCertExpiry: '',
-        imgUrl: ''
+        healthCertificateExpiryDate: '',
+        horsePassportImages: [],
+        horseCertificateImages: [],
+        horseImages: []
     };
+}
+
+function cloneImages(images) {
+  return Array.isArray(images)
+    ? images.map((image) => ({
+        name: image.name || '',
+        type: image.type || '',
+        size: image.size || 0,
+        dataUrl: image.dataUrl || image.url || ''
+      }))
+    : [];
 }
 
 export function toHorsePayload(formValues) {
   const horseName = String(formValues.horseName ?? '').trim();
   const weight = Number(formValues.weight);
+  const horsePassportImages = cloneImages(formValues.horsePassportImages);
+  const horseCertificateImages = cloneImages(formValues.horseCertificateImages);
+  const horseImages = cloneImages(formValues.horseImages);
+  const mainHorseImage = horseImages[0]?.dataUrl || horseImages[0]?.url || '';
 
   return {
+    passportNumber: String(formValues.passportNumber ?? '').trim(),
     horseName,
-    breed: formValues.breed.trim() || null,
+    breed: String(formValues.breed ?? '').trim() || null,
     gender: formValues.gender || null,
-    color: formValues.color.trim() || null,
+    color: String(formValues.color ?? '').trim() || null,
     dayOfBirth: formValues.dayOfBirth || null,
     weight,
-    healthCertExpiry: formValues.healthCertExpiry || null,
-    imgUrl: String(formValues.imgUrl ?? '').trim()
+    healthCertificateExpiryDate: formValues.healthCertificateExpiryDate || null,
+    horsePassportImages,
+    horseCertificateImages,
+    horseImages,
+    imgUrl: mainHorseImage
   };
 }

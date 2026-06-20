@@ -1,6 +1,6 @@
 import StatCard from '../common/StatCard';
 
-export default function OwnerOverview({ dashboard, horses, onGoHorses, onGoInvitations }) {
+export default function OwnerOverview({ dashboard, horses, onGoHorses, onGoInvitations, onGoProfile }) {
   const registeredHorses = horses.filter((horse) => Number(horse.registrationCount || 0) > 0).length;
   const participatedHorses = horses.filter((horse) => horse.participated).length;
 
@@ -28,6 +28,9 @@ export default function OwnerOverview({ dashboard, horses, onGoHorses, onGoInvit
             </button>
             <button className="outline-button owner-hero-action" type="button" onClick={onGoInvitations}>
               Invitations / Registrations
+            </button>
+            <button className="outline-button owner-hero-action" type="button" onClick={onGoProfile}>
+              Owner Profile
             </button>
           </div>
         </div>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import {
   ClipboardCheck,
+  FileText,
   Flag,
   Gavel,
   ShieldCheck,
@@ -19,6 +20,7 @@ import JockeyReview from './reviews/JockeyReview';
 import RefereeAssignmentManagement from './refereeAssignments/RefereeAssignmentManagement';
 import HorseReview from './horses/HorseReview';
 import UserManagement from './users/UserManagement';
+import OwnerApplicationManagement from './ownerApplications/OwnerApplicationManagement';
 import { formatDisplayLabel } from '../../lib';
 
 const adminNavItems = [
@@ -26,6 +28,7 @@ const adminNavItems = [
   { key: 'users', label: 'Quản lý người dùng', icon: Users },
   { key: 'events', label: 'Giải đấu', icon: Trophy },
   { key: 'registrations', label: 'Đơn đăng ký', icon: UserCheck },
+  { key: 'ownerApplications', label: 'Owner Applications', icon: FileText },
   { key: 'raceEntries', label: 'Suất tham gia đua', icon: Flag },
   { key: 'jockeyReviews', label: 'Duyệt jockey', icon: ClipboardCheck },
   { key: 'horseReviews', label: 'Duyệt ngựa', icon: ShieldCheck },
@@ -111,6 +114,7 @@ export default function AdminDashboard({ currentUser, onLogout }) {
       {activeSection === 'events' && <EventManagement />}
       {activeSection === 'registrations' && <RegistrationReview />}
       {activeSection === 'raceEntries' && <RaceEntryManagement />}
+      {activeSection === 'ownerApplications' && <OwnerApplicationManagement />}
 
       {activeSection === 'refereeAssignments' && (
         <RefereeAssignmentManagement />

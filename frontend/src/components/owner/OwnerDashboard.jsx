@@ -4,6 +4,7 @@ import OwnerOverview from './OwnerOverview';
 import OwnerHorseForm from './OwnerHorseForm';
 import OwnerHorseTable from './OwnerHorseTable';
 import OwnerRegisterRace from './OwnerRegisterRace';
+import OwnerProfile from './OwnerProfile';
 import { useHorses } from '../../hooks/useHorses';
 import { useOwnerDashboard } from '../../hooks/useOwnerDashboard';
 import { emptyHorseForm, formatDisplayLabel, getHorseId, getHorseName, toHorsePayload } from '../../lib';
@@ -13,7 +14,8 @@ import { getOwnerHorseById } from '../../services/ownerService';
 const ownerNavItems = [
   { key: 'overview', label: 'Tổng quan', icon: '📊' },
   { key: 'horses', label: 'Ngựa của tôi', icon: '🐎' },
-  { key: 'register', label: 'Đăng ký thi đấu', icon: '📝' }
+  { key: 'register', label: 'Đăng ký thi đấu', icon: '📝' },
+  { key: 'profile', label: 'Profile', icon: '👤' }
 ];
 
 function getErrorText(error, fallback) {
@@ -21,10 +23,42 @@ function getErrorText(error, fallback) {
 }
 
 function isOwnerSection(section) {
-  return section === 'overview' || section === 'horses' || section === 'register';
+  return section === 'overview' || section === 'horses' || section === 'register' || section === 'profile';
 }
 
-export default function OwnerDashboard({ currentUser, onLogout }) {
+function readImageFile(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error('Khong the doc file.'));
+    reader.readAsDataURL(file);
+  });
+}
+
+function countHorseImages(values) {
+  return (
+    (values.horsePassportImages?.length || 0) +
+    (values.horseCertificateImages?.length || 0) +
+    (values.horseImages?.length || 0)
+  );
+}
+
+function isAllowedHorseFile(fieldName, file) {
+  const extension = String(file.name || '').split('.').pop()?.toLowerCase();
+  const type = String(file.type || '').toLowerCase();
+  const isJpgOrPng = type === 'image/jpeg' || type === 'image/png' || extension === 'jpg' || extension === 'jpeg' || extension === 'png';
+  const isPdf = type === 'application/pdf' || extension === 'pdf';
+
+  return fieldName === 'horseImages' ? isJpgOrPng : isJpgOrPng || isPdf;
+}
+
+function isPreviewableHorseImage(file) {
+  const source = file?.dataUrl || file?.url || '';
+  return String(file?.type || '').startsWith('image/') || String(source).startsWith('data:image/');
+}
+
+
+export default function OwnerDashboard({ currentUser, onLogout, onUserUpdated }) {
   const [activeSection, setActiveSection] = useState('overview');
   const [isHorseFormOpen, setIsHorseFormOpen] = useState(false);
   const [formValues, setFormValues] = useState(emptyHorseForm());
@@ -118,14 +152,17 @@ export default function OwnerDashboard({ currentUser, onLogout }) {
     setEditingHorse(horse);
 
     setFormValues({
+      passportNumber: horse.passportNumber || '',
       horseName: getHorseName(horse),
       breed: horse.breed || '',
       gender: horse.gender || 'MALE',
       color: horse.color || '',
       dayOfBirth: horse.dayOfBirth || '',
       weight: horse.weight ?? '',
-      healthCertExpiry: horse.healthCertExpiry || '',
-      imgUrl: horse.imgUrl || ''
+      healthCertificateExpiryDate: horse.healthCertificateExpiryDate || '',
+      horsePassportImages: Array.isArray(horse.horsePassportImages) ? horse.horsePassportImages : [],
+      horseCertificateImages: Array.isArray(horse.horseCertificateImages) ? horse.horseCertificateImages : [],
+      horseImages: Array.isArray(horse.horseImages) ? horse.horseImages : []
     });
 
     setActiveSection('horses');
@@ -146,6 +183,78 @@ export default function OwnerDashboard({ currentUser, onLogout }) {
     setPageError('');
     setSelectedHorse(null);
     setHorseDetailError('');
+  }
+
+
+  async function handleHorseFilesChange(fieldName, event) {
+    const files = Array.from(event.target.files || []);
+    event.target.value = '';
+
+    if (files.length === 0) return;
+
+    setHorseFormError('');
+    setPageError('');
+    setMessage('');
+
+    const invalidFile = files.find((file) => !isAllowedHorseFile(fieldName, file));
+    if (invalidFile) {
+      setFormErrors((current) => ({
+        ...current,
+        [fieldName]: fieldName === 'horseImages' ? 'Horse Image chi ho tro JPG hoac PNG.' : 'Tai lieu chi ho tro PDF, JPG hoac PNG.'
+      }));
+      return;
+    }
+
+    const currentTotal = countHorseImages(formValues);
+    if (currentTotal + files.length > 10) {
+      setFormErrors((current) => ({
+        ...current,
+        totalImages: 'Tong so file cua Horse Passport, Health Certificate va Horse Image khong duoc vuot qua 10 file.'
+      }));
+      return;
+    }
+
+    try {
+      const images = await Promise.all(
+        files.map(async (file) => ({
+          name: file.name,
+          size: file.size,
+          type: file.type,
+          dataUrl: await readImageFile(file)
+        }))
+      );
+
+      setFormValues((current) => ({
+        ...current,
+        [fieldName]: [...(current[fieldName] || []), ...images]
+      }));
+
+      setFormErrors((current) => ({
+        ...current,
+        [fieldName]: '',
+        totalImages: ''
+      }));
+    } catch (err) {
+      setFormErrors((current) => ({
+        ...current,
+        [fieldName]: getErrorText(err, 'Khong the doc file.')
+      }));
+    }
+  }
+
+  function handleRemoveHorseImage(fieldName, imageIndex) {
+    setFormValues((current) => ({
+      ...current,
+      [fieldName]: (current[fieldName] || []).filter((_, index) => index !== imageIndex)
+    }));
+
+    setFormErrors((current) => ({
+      ...current,
+      [fieldName]: '',
+      totalImages: ''
+    }));
+
+    setHorseFormError('');
   }
 
   async function handleHorseSubmit(event) {
@@ -245,6 +354,7 @@ export default function OwnerDashboard({ currentUser, onLogout }) {
           horses={horses}
           onGoHorses={() => setActiveSection('horses')}
           onGoInvitations={() => setActiveSection('register')}
+          onGoProfile={() => setActiveSection('profile')}
         />
       )}
 
@@ -270,6 +380,8 @@ export default function OwnerDashboard({ currentUser, onLogout }) {
               onChange={handleHorseChange}
               onSubmit={handleHorseSubmit}
               onCancelEdit={handleCancelHorseEdit}
+              onFilesChange={handleHorseFilesChange}
+              onRemoveImage={handleRemoveHorseImage}
             />
           )}
 
@@ -307,15 +419,11 @@ export default function OwnerDashboard({ currentUser, onLogout }) {
                 <span>Cân nặng</span>
                 <strong>{selectedHorse.weight ? `${selectedHorse.weight} kg` : 'Chưa cập nhật'}</strong>
 
-                <span>Hạn chứng nhận sức khỏe</span>
-                <strong>{selectedHorse.healthCertExpiry || 'Chưa cập nhật'}</strong>
+                <span>Passport Number</span>
+                <strong>{selectedHorse.passportNumber || 'Chưa cập nhật'}</strong>
 
-                <span>Health Certificate URL</span>
-                <strong className="break-anywhere">
-                  {selectedHorse.imgUrl ? (
-                    <a href={selectedHorse.imgUrl} target="_blank" rel="noreferrer">{selectedHorse.imgUrl}</a>
-                  ) : 'Chưa cập nhật'}
-                </strong>
+                <span>Health Certificate Expiry Date</span>
+                <strong>{selectedHorse.healthCertificateExpiryDate || 'Chưa cập nhật'}</strong>
 
                 <span>Trạng thái</span>
                 <strong>
@@ -337,6 +445,35 @@ export default function OwnerDashboard({ currentUser, onLogout }) {
                   </>
                 )}
               </div>
+
+              <div className="horse-detail-document-grid">
+                {[
+                  ['Horse Passport', selectedHorse.horsePassportImages],
+                  ['Health Certificate', selectedHorse.horseCertificateImages],
+                  ['Horse Image', selectedHorse.horseImages]
+                ].map(([label, images]) => (
+                  <div className="horse-detail-document-card" key={label}>
+                    <h3>{label}</h3>
+                    {Array.isArray(images) && images.length > 0 ? (
+                      <div className="horse-detail-image-list">
+                        {images.map((image, index) => (
+                          isPreviewableHorseImage(image) ? (
+                            <img
+                              key={`${label}-${image.name || index}`}
+                              src={image.dataUrl || image.url}
+                              alt={`${label} ${index + 1}`}
+                            />
+                          ) : (
+                            <p key={`${label}-${image.name || index}`}>{image.name || `${label} ${index + 1}`}</p>
+                          )
+                        ))}
+                      </div>
+                    ) : (
+                      <p>Chưa import file.</p>
+                    )}
+                  </div>
+                ))}
+              </div>
             </section>
           )}
 
@@ -352,6 +489,13 @@ export default function OwnerDashboard({ currentUser, onLogout }) {
 
       {activeSection === 'register' && (
         <OwnerRegisterRace horses={horses} onBackToHorses={() => setActiveSection('horses')} />
+      )}
+
+      {activeSection === 'profile' && (
+        <OwnerProfile
+          user={currentUser}
+          onUserUpdated={onUserUpdated}
+        />
       )}
     </AppShell>
   );
