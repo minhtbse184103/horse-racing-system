@@ -18,6 +18,7 @@ import java.io.IOException;
 @RequestMapping("/api/upload")
 @RequiredArgsConstructor
 @Tag(name = "Upload", description = "API upload file lên Cloudinary")
+@org.springframework.web.bind.annotation.CrossOrigin(origins = "*")
 public class UploadController {
 
     private final UploadService uploadService;
@@ -27,13 +28,13 @@ public class UploadController {
     public ResponseEntity<ApiResponse<String>> uploadFile(@RequestParam("file") MultipartFile file) {
         try {
             String url = uploadService.uploadFile(file);
-            return ResponseEntity.ok(ApiResponse.\u003cString\u003ebuilder()
+            return ResponseEntity.ok(ApiResponse.<String>builder()
                     .status(true)
                     .message("Upload thành công")
                     .data(url)
                     .build());
         } catch (IOException e) {
-            return ResponseEntity.internalServerError().body(ApiResponse.\u003cString\u003ebuilder()
+            return ResponseEntity.internalServerError().body(ApiResponse.<String>builder()
                     .status(false)
                     .message("Lỗi upload: " + e.getMessage())
                     .build());

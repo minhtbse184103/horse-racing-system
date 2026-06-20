@@ -1,5 +1,6 @@
 package com.example.backend.dto.response;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -21,6 +22,12 @@ public class JockeyVerificationResponse {
     private String verificationLink;
     private String licenceType;
     private LocalDate expiryDate;
+    
+    // Profile Info
+    private BigDecimal weight;
+    private String ranking;
+    private String biography;
+
     private String verificationStatus;
     private String rejectionReason;
     private Integer resubmitCount;

@@ -1,5 +1,6 @@
 package com.example.backend.entity;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -54,6 +55,16 @@ public class JockeyVerification {
 
     @Column(name = "expiryDate")
     private LocalDate expiryDate;
+
+    // Profile information for approval
+    @Column(name = "weight")
+    private BigDecimal weight;
+
+    @Column(name = "ranking")
+    private String ranking;
+
+    @Column(name = "biography", columnDefinition = "TEXT")
+    private String biography;
 
     @Column(name = "verificationStatus", length = 50)
     private String verificationStatus;
