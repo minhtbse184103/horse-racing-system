@@ -20,7 +20,7 @@ export default function ReviewStep({ draft, prizeTotal }) {
               <WizardSummaryItem icon={Trophy} label="Tournament" value={draft.name || 'Chưa cung cấp'} />
               <WizardSummaryItem icon={MapPin} label="Địa điểm" value={draft.venue || 'Chưa cung cấp'} />
               <WizardSummaryItem icon={CalendarDays} label="Thời gian Tournament" value={`${draft.start || 'Chưa xác định'} - ${draft.end || 'Chưa xác định'}`} />
-              <WizardSummaryItem icon={CircleDollarSign} label="Tổng giải thưởng Race" value={`THB ${prizeTotal.toLocaleString()}`} />
+              <WizardSummaryItem icon={CircleDollarSign} label="Tổng giải thưởng Race" value={`VND ${prizeTotal.toLocaleString()}`} />
               <WizardSummaryItem icon={CheckCircle2} label="Status ban đầu" value={tournamentStatusLabels.OPEN_FOR_REGISTRATION} />
             </div>
 
@@ -31,7 +31,7 @@ export default function ReviewStep({ draft, prizeTotal }) {
                   <div key={race.id} className="grid gap-3 py-3 first:pt-0 last:pb-0 sm:grid-cols-[2rem_minmax(0,1fr)_auto] sm:items-center">
                     <span className="grid size-8 place-items-center rounded-lg bg-brown-900 text-xs font-black text-white">{index + 1}</span>
                     <div><p className="font-black text-brown-900">{race.name}</p><p className="mt-0.5 text-xs font-semibold text-slate-500">{race.track} · {formatRaceSchedule(race)} · {race.distance}m · {race.maxRunners} người tham gia</p><p className="mt-1 text-[0.68rem] font-extrabold uppercase text-emerald-700">{tournamentStatusLabels[race.status] || race.status}</p></div>
-                    <div className="text-left sm:text-right"><p className="text-sm font-black text-brown-900">THB {race.prizes.reduce((sum, prize) => sum + Number(prize.amount || 0), 0).toLocaleString()}</p><p className="text-xs font-semibold text-slate-500">{race.prizes.length} hạng · đã cấu hình tỷ lệ Owner/Jockey</p></div>
+                    <div className="text-left sm:text-right"><p className="text-sm font-black text-brown-900">VND {race.prizes.reduce((sum, prize) => sum + Number(prize.amount || 0), 0).toLocaleString()}</p><p className="text-xs font-semibold text-slate-500">{race.prizes.length} hạng · đã cấu hình tỷ lệ Owner/Jockey</p></div>
                   </div>
                 ))}
                 {draft.races.length === 0 && <p className="py-6 text-center text-sm font-semibold text-slate-500">Chưa cấu hình Race.</p>}

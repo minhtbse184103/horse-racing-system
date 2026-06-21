@@ -27,7 +27,7 @@ export default function PrizeEditorCard({ race, index, error, onChange }) {
         </div>
         <div className="text-right">
           <p className="text-xs font-extrabold uppercase text-slate-500">Tổng giải thưởng</p>
-          <p className="font-black text-brown-900">THB {total.toLocaleString()}</p>
+          <p className="font-black text-brown-900">VND {total.toLocaleString()}</p>
         </div>
       </div>
 
@@ -39,7 +39,7 @@ export default function PrizeEditorCard({ race, index, error, onChange }) {
               <span className={`grid size-9 place-items-center rounded-lg text-xs font-black ${rankIndex === 0 ? 'bg-gold-400 text-brown-900' : 'bg-cream-200 text-brown-700'}`}>#{rankIndex + 1}</span>
               <label className="relative block">
                 <span className="mb-1 block text-[10px] font-black uppercase text-slate-500">Giá trị giải thưởng</span>
-                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs font-extrabold text-slate-500">THB</span>
+                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs font-extrabold text-slate-500">VND</span>
                 <input
                   type="number"
                   min="1"
