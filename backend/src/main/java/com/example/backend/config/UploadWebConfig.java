@@ -31,6 +31,10 @@ public class UploadWebConfig implements WebMvcConfigurer {
                 .toString();
 
         registry.addResourceHandler("/uploads/**")
-                .addResourceLocations(uploadLocation);
+                .addResourceLocations(
+                        uploadLocation.endsWith("/")
+                                ? uploadLocation
+                                : uploadLocation + "/"
+                );
     }
 }
