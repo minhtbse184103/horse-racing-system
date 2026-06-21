@@ -45,8 +45,10 @@ public class RefereeAssignmentService {
 
     @Transactional
     public RefereeAssignmentResponse createAssignment(
-            CreateRefereeAssignmentRequest request
+            CreateRefereeAssignmentRequest request,
+            String adminEmail
     ) {
+        getAdmin(adminEmail);
         Race race = raceRepository
                 .findByIdForUpdate(request.getRaceId())
                 .orElseThrow(() -> new ApiException(
@@ -94,8 +96,10 @@ public class RefereeAssignmentService {
     @Transactional
     public RefereeAssignmentResponse replaceAssignment(
             Integer raceId,
-            Integer refereeUserId
+            Integer refereeUserId,
+            String adminEmail
     ) {
+        getAdmin(adminEmail);
         Race race = raceRepository.findByIdForUpdate(raceId)
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
@@ -136,7 +140,8 @@ public class RefereeAssignmentService {
     }
 
     @Transactional
-    public void removeAssignment(Integer raceId) {
+    public void removeAssignment(Integer raceId, String adminEmail) {
+        getAdmin(adminEmail);
         Race race = raceRepository.findByIdForUpdate(raceId)
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
@@ -187,6 +192,30 @@ public class RefereeAssignmentService {
                 .stream()
                 .map(this::toUserResponse)
                 .toList();
+    }
+
+    private void getAdmin(String adminEmail) {
+        User admin = userRepository.findByEmail(adminEmail)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.UNAUTHORIZED,
+                        "Authenticated administrator does not exist."
+                ));
+
+        if (admin.getRole() == null
+                || !"ADMIN".equalsIgnoreCase(
+                admin.getRole().getRoleName())) {
+            throw new ApiException(
+                    HttpStatus.FORBIDDEN,
+                    "Only administrators can manage referee assignments."
+            );
+        }
+
+        if (!"ACTIVE".equalsIgnoreCase(admin.getStatus())) {
+            throw new ApiException(
+                    HttpStatus.FORBIDDEN,
+                    "Administrator account is not active."
+            );
+        }
     }
 
     private void validateRaceCanReceiveAssignment(Race race) {

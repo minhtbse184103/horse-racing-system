@@ -10,6 +10,7 @@ import com.example.backend.dto.response.RaceResponse;
 import com.example.backend.entity.Race;
 import com.example.backend.entity.RacePrize;
 import com.example.backend.entity.Tournament;
+import com.example.backend.entity.User;
 import com.example.backend.exception.ApiException;
 import com.example.backend.repository.*;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -36,17 +37,20 @@ public class RaceService {
     private final RacePrizeRepository racePrizeRepository;
     private final RaceEntryRepository raceEntryRepository;
     private final TournamentRepository tournamentRepository;
+    private final UserRepository userRepository;
 
     public RaceService(
             RaceRepository raceRepository,
             RacePrizeRepository racePrizeRepository,
             RaceEntryRepository raceEntryRepository,
-            TournamentRepository tournamentRepository
+            TournamentRepository tournamentRepository,
+            UserRepository userRepository
     ) {
         this.raceRepository = raceRepository;
         this.racePrizeRepository = racePrizeRepository;
         this.raceEntryRepository = raceEntryRepository;
         this.tournamentRepository = tournamentRepository;
+        this.userRepository = userRepository;
     }
 
     @Transactional
@@ -82,7 +86,9 @@ public class RaceService {
     }
 
     @Transactional
-    public RaceResponse createRace(CreateRaceRequest request) {
+    public RaceResponse createRace(CreateRaceRequest request, String adminEmail) {
+        getAdmin(adminEmail);
+
         Tournament tournament = tournamentRepository
                 .findByIdForUpdate(request.getTournamentId())
                 .orElseThrow(() -> new ApiException(
@@ -154,8 +160,11 @@ public class RaceService {
     @Transactional
     public RaceResponse updateRace(
             Integer raceId,
-            UpdateRaceRequest request
+            UpdateRaceRequest request,
+            String adminEmail
     ) {
+        getAdmin(adminEmail);
+
         Race race = raceRepository.findByIdForUpdate(raceId)
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
@@ -247,7 +256,9 @@ public class RaceService {
     }
 
     @Transactional
-    public RaceResponse closeRegistration(Integer raceId) {
+    public RaceResponse closeRegistration(Integer raceId, String adminEmail) {
+        getAdmin(adminEmail);
+
         Race race = raceRepository.findByIdForUpdate(raceId)
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
@@ -269,7 +280,9 @@ public class RaceService {
     }
 
     @Transactional
-    public RaceResponse completeRace(Integer raceId) {
+    public RaceResponse completeRace(Integer raceId, String adminEmail) {
+        getAdmin(adminEmail);
+
         Race race = raceRepository.findByIdForUpdate(raceId)
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
@@ -313,7 +326,9 @@ public class RaceService {
     }
 
     @Transactional
-    public RaceResponse cancelRace(Integer raceId) {
+    public RaceResponse cancelRace(Integer raceId, String adminEmail) {
+        getAdmin(adminEmail);
+
         Race race = raceRepository.findByIdForUpdate(raceId)
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
@@ -461,6 +476,30 @@ public class RaceService {
                 .toList();
 
         racePrizeRepository.saveAll(prizes);
+    }
+
+    private void getAdmin(String adminEmail) {
+        User admin = userRepository.findByEmail(adminEmail)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.UNAUTHORIZED,
+                        "Authenticated administrator does not exist."
+                ));
+
+        if (admin.getRole() == null
+                || !"ADMIN".equalsIgnoreCase(
+                admin.getRole().getRoleName())) {
+            throw new ApiException(
+                    HttpStatus.FORBIDDEN,
+                    "Only administrators can manage races."
+            );
+        }
+
+        if (!"ACTIVE".equalsIgnoreCase(admin.getStatus())) {
+            throw new ApiException(
+                    HttpStatus.FORBIDDEN,
+                    "Administrator account is not active."
+            );
+        }
     }
 
     private Race getRace(Integer raceId) {

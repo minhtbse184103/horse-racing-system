@@ -7,6 +7,7 @@ import com.example.backend.service.RaceService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -42,39 +43,44 @@ public class RaceController {
 
     @PostMapping
     public ResponseEntity<RaceResponse> createRace(
-            @Valid @RequestBody CreateRaceRequest request
+            @Valid @RequestBody CreateRaceRequest request,
+            Authentication authentication
     ) {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(raceService.createRace(request));
+                .body(raceService.createRace(request, authentication.getName()));
     }
 
     @PutMapping("/{raceId}")
     public RaceResponse updateRace(
             @PathVariable Integer raceId,
-            @Valid @RequestBody UpdateRaceRequest request
+            @Valid @RequestBody UpdateRaceRequest request,
+            Authentication authentication
     ) {
-        return raceService.updateRace(raceId, request);
+        return raceService.updateRace(raceId, request, authentication.getName());
     }
 
     @PutMapping("/{raceId}/close-registration")
     public RaceResponse closeRegistration(
-            @PathVariable Integer raceId
+            @PathVariable Integer raceId,
+            Authentication authentication
     ) {
-        return raceService.closeRegistration(raceId);
+        return raceService.closeRegistration(raceId, authentication.getName());
     }
 
     @PutMapping("/{raceId}/complete")
     public RaceResponse completeRace(
-            @PathVariable Integer raceId
+            @PathVariable Integer raceId,
+            Authentication authentication
     ) {
-        return raceService.completeRace(raceId);
+        return raceService.completeRace(raceId, authentication.getName());
     }
 
     @DeleteMapping("/{raceId}")
     public RaceResponse cancelRace(
-            @PathVariable Integer raceId
+            @PathVariable Integer raceId,
+            Authentication authentication
     ) {
-        return raceService.cancelRace(raceId);
+        return raceService.cancelRace(raceId, authentication.getName());
     }
 }

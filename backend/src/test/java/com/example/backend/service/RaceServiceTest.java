@@ -7,17 +7,22 @@ import com.example.backend.dto.request.UpdateRaceRequest;
 import com.example.backend.dto.response.RaceResponse;
 import com.example.backend.entity.Race;
 import com.example.backend.entity.RacePrize;
+import com.example.backend.entity.Role;
 import com.example.backend.entity.Tournament;
+import com.example.backend.entity.User;
+import com.example.backend.exception.ApiException;
 import com.example.backend.repository.RaceEntryRepository;
 import com.example.backend.repository.RacePrizeRepository;
 import com.example.backend.repository.RaceRepository;
 import com.example.backend.repository.TournamentRepository;
+import com.example.backend.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -40,6 +45,7 @@ class RaceServiceTest {
     @Mock private TournamentRepository tournamentRepository;
     @Mock private RacePrizeRepository racePrizeRepository;
     @Mock private RaceEntryRepository raceEntryRepository;
+    @Mock private UserRepository userRepository;
 
     private RaceService service;
 
@@ -49,8 +55,25 @@ class RaceServiceTest {
                 raceRepository,
                 racePrizeRepository,
                 raceEntryRepository,
-                tournamentRepository
+                tournamentRepository,
+                userRepository
         );
+    }
+
+    private User activeAdmin() {
+        Role role = new Role();
+        role.setRoleName("ADMIN");
+        User admin = new User();
+        admin.setUserID(99);
+        admin.setEmail("admin@example.com");
+        admin.setRole(role);
+        admin.setStatus("ACTIVE");
+        return admin;
+    }
+
+    private void stubAdmin() {
+        when(userRepository.findByEmail("admin@example.com"))
+                .thenReturn(Optional.of(activeAdmin()));
     }
 
     @Test
@@ -59,6 +82,7 @@ class RaceServiceTest {
         Tournament tournament = tournament();
         UpdateRaceRequest request = updateRequest();
 
+        stubAdmin();
         when(raceRepository.findByIdForUpdate(8)).thenReturn(Optional.of(race));
         when(tournamentRepository.findByIdForUpdate(12))
                 .thenReturn(Optional.of(tournament));
@@ -81,7 +105,7 @@ class RaceServiceTest {
         when(racePrizeRepository.findByRaceIdOrderByRankPositionAsc(8))
                 .thenReturn(List.of(storedPrize));
 
-        RaceResponse response = service.updateRace(8, request);
+        RaceResponse response = service.updateRace(8, request, "admin@example.com");
 
         InOrder order = inOrder(racePrizeRepository);
         order.verify(racePrizeRepository).deleteByRaceId(8);
@@ -98,17 +122,77 @@ class RaceServiceTest {
         UpdateRaceRequest request = updateRequest();
         request.getPrizes().getFirst().setOwnerPercent(new BigDecimal("70"));
         request.getPrizes().getFirst().setJockeyPercent(new BigDecimal("20"));
+
+        stubAdmin();
         when(raceRepository.findByIdForUpdate(8)).thenReturn(Optional.of(race));
         when(tournamentRepository.findByIdForUpdate(12))
                 .thenReturn(Optional.of(tournament));
 
         var exception = assertThrows(
                 com.example.backend.exception.ApiException.class,
-                () -> service.updateRace(8, request)
+                () -> service.updateRace(8, request, "admin@example.com")
         );
 
         assertEquals(org.springframework.http.HttpStatus.BAD_REQUEST, exception.getStatus());
         verify(racePrizeRepository, never()).saveAll(any());
+    }
+
+    @Test
+    void updateRaceRejectsNonAdmin() {
+        UpdateRaceRequest request = updateRequest();
+
+        User nonAdmin = new User();
+        Role ownerRole = new Role();
+        ownerRole.setRoleName("OWNER");
+        nonAdmin.setRole(ownerRole);
+        nonAdmin.setStatus("ACTIVE");
+        when(userRepository.findByEmail("owner@example.com"))
+                .thenReturn(Optional.of(nonAdmin));
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.updateRace(8, request, "owner@example.com")
+        );
+
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
+        verify(raceRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void closeRegistrationRejectsNonAdmin() {
+        User nonAdmin = new User();
+        Role jockeyRole = new Role();
+        jockeyRole.setRoleName("JOCKEY");
+        nonAdmin.setRole(jockeyRole);
+        nonAdmin.setStatus("ACTIVE");
+        when(userRepository.findByEmail("jockey@example.com"))
+                .thenReturn(Optional.of(nonAdmin));
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.closeRegistration(8, "jockey@example.com")
+        );
+
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
+        verify(raceRepository, never()).findByIdForUpdate(any());
+        verify(raceRepository, never()).save(any());
+    }
+
+    @Test
+    void cancelRaceRejectsInactiveAdmin() {
+        User inactiveAdmin = activeAdmin();
+        inactiveAdmin.setStatus("SUSPENDED");
+        when(userRepository.findByEmail("admin@example.com"))
+                .thenReturn(Optional.of(inactiveAdmin));
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.cancelRace(8, "admin@example.com")
+        );
+
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
+        verify(raceRepository, never()).findByIdForUpdate(any());
+        verify(raceRepository, never()).save(any());
     }
 
     private Tournament tournament() {

@@ -178,8 +178,11 @@ public class AdminRegistrationService {
     @Transactional
     public RegistrationResponse updatePaymentStatus(
             Integer registrationId,
-            UpdatePaymentStatusRequest request
+            UpdatePaymentStatusRequest request,
+            String adminEmail
     ) {
+        getAdmin(adminEmail);
+
         Registration registration = registrationRepository
                 .findByIdForUpdate(registrationId)
                 .orElseThrow(() -> new ApiException(

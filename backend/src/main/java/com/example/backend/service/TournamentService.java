@@ -162,7 +162,8 @@ public class TournamentService {
     @Transactional
     public TournamentDetailResponse updateTournament(
             Integer tournamentId,
-            UpdateTournamentRequest request
+            UpdateTournamentRequest request,
+            String adminEmail
     ) {
         Tournament tournament = tournamentRepository
                 .findByIdForUpdate(tournamentId)
@@ -171,6 +172,7 @@ public class TournamentService {
                         "Tournament does not exist."
                 ));
 
+        getAdmin(adminEmail);
         validateTournamentCanBeModified(tournament);
 
         validateTournamentDates(
@@ -209,7 +211,10 @@ public class TournamentService {
     }
 
     @Transactional
-    public TournamentDetailResponse cancelTournament(Integer tournamentId) {
+    public TournamentDetailResponse cancelTournament(
+            Integer tournamentId,
+            String adminEmail
+    ) {
         Tournament tournament = tournamentRepository
                 .findByIdForUpdate(tournamentId)
                 .orElseThrow(() -> new ApiException(
@@ -217,16 +222,33 @@ public class TournamentService {
                         "Tournament does not exist."
                 ));
 
+        getAdmin(adminEmail);
         validateTournamentCanBeModified(tournament);
 
         List<Race> races =
                 raceRepository.findByTournamentIdOrderByRaceOrderAsc(tournamentId);
+
+        List<Integer> raceIds = races.stream()
+                .map(Race::getRaceId)
+                .toList();
 
         for (Race race : races) {
             race.setStatus(EventStatus.CANCELLED);
         }
 
         raceRepository.saveAll(races);
+
+        if (!raceIds.isEmpty()) {
+            LocalDateTime now = LocalDateTime.now();
+            List<RaceEntry> assignedEntries = raceEntryRepository
+                    .findByRaceIdInAndStatus(raceIds, RaceEntryStatus.ASSIGNED);
+            for (RaceEntry entry : assignedEntries) {
+                entry.setStatus(RaceEntryStatus.CANCELLED);
+                entry.setCancelledAt(now);
+                entry.setCancellationReason("Tournament cancelled.");
+            }
+            raceEntryRepository.saveAll(assignedEntries);
+        }
 
         tournament.setStatus(EventStatus.CANCELLED);
 
@@ -581,6 +603,13 @@ public class TournamentService {
             throw new ApiException(
                     HttpStatus.FORBIDDEN,
                     "Only administrators can manage tournaments."
+            );
+        }
+
+        if (!"ACTIVE".equalsIgnoreCase(admin.getStatus())) {
+            throw new ApiException(
+                    HttpStatus.FORBIDDEN,
+                    "Administrator account is not active."
             );
         }
 

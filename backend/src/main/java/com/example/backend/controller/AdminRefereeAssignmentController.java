@@ -7,6 +7,7 @@ import com.example.backend.service.RefereeAssignmentService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,30 +26,37 @@ public class AdminRefereeAssignmentController {
 
     @PostMapping
     public ResponseEntity<RefereeAssignmentResponse> createAssignment(
-            @Valid @RequestBody CreateRefereeAssignmentRequest request
+            @Valid @RequestBody CreateRefereeAssignmentRequest request,
+            Authentication authentication
     ) {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(assignmentService.createAssignment(request));
+                .body(assignmentService.createAssignment(
+                        request,
+                        authentication.getName()
+                ));
     }
 
     @PutMapping("/{raceId}/referee/{refereeUserId}")
     public RefereeAssignmentResponse replaceAssignment(
             @PathVariable Integer raceId,
-            @PathVariable Integer refereeUserId
+            @PathVariable Integer refereeUserId,
+            Authentication authentication
     ) {
         return assignmentService.replaceAssignment(
                 raceId,
-                refereeUserId
+                refereeUserId,
+                authentication.getName()
         );
     }
 
     @DeleteMapping("/{raceId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void removeAssignment(
-            @PathVariable Integer raceId
+            @PathVariable Integer raceId,
+            Authentication authentication
     ) {
-        assignmentService.removeAssignment(raceId);
+        assignmentService.removeAssignment(raceId, authentication.getName());
     }
 
     @GetMapping

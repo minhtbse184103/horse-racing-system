@@ -50,4 +50,9 @@ public interface RaceEntryRepository
     Optional<RaceEntry> findByIdForUpdate(
             @Param("raceEntryId") Integer raceEntryId
     );
+
+    List<RaceEntry> findByRaceIdInAndStatus(
+            List<Integer> raceIds,
+            String status
+    );
 }

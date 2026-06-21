@@ -66,11 +66,13 @@ public class AdminRegistrationController {
     @PutMapping("/{registrationId}/payment-status")
     public RegistrationResponse updatePaymentStatus(
             @PathVariable Integer registrationId,
-            @Valid @RequestBody UpdatePaymentStatusRequest request
+            @Valid @RequestBody UpdatePaymentStatusRequest request,
+            Authentication authentication
     ) {
         return registrationService.updatePaymentStatus(
                 registrationId,
-                request
+                request,
+                authentication.getName()
         );
     }
 }

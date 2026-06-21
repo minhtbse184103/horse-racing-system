@@ -81,11 +81,13 @@ public class TournamentController {
     @PutMapping("/{tournamentId}")
     public TournamentDetailResponse updateTournament(
             @PathVariable Integer tournamentId,
-            @Valid @RequestBody UpdateTournamentRequest request
+            @Valid @RequestBody UpdateTournamentRequest request,
+            Authentication authentication
     ) {
         return tournamentService.updateTournament(
                 tournamentId,
-                request
+                request,
+                authentication.getName()
         );
     }
 
@@ -105,8 +107,12 @@ public class TournamentController {
 
     @DeleteMapping("/{tournamentId}")
     public TournamentDetailResponse cancelTournament(
-            @PathVariable Integer tournamentId
+            @PathVariable Integer tournamentId,
+            Authentication authentication
     ) {
-        return tournamentService.cancelTournament(tournamentId);
+        return tournamentService.cancelTournament(
+                tournamentId,
+                authentication.getName()
+        );
     }
 }

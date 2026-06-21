@@ -32,6 +32,7 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.inOrder;
@@ -121,16 +122,61 @@ class TournamentServiceTest {
         Tournament tournament = tournament(1, EventStatus.OPEN_FOR_REGISTRATION);
         when(tournamentRepository.findByIdForUpdate(1))
                 .thenReturn(Optional.of(tournament));
+        when(userRepository.findByEmail("admin@example.com"))
+                .thenReturn(Optional.of(activeAdmin()));
         when(registrationRepository.existsByTournamentId(1)).thenReturn(false);
         when(tournamentRepository.save(tournament)).thenReturn(tournament);
         stubDetailCollections(1, List.of());
 
-        service.updateTournament(1, request);
+        service.updateTournament(1, request, "admin@example.com");
 
         var order = inOrder(conditionRepository);
         order.verify(conditionRepository).deleteByTournamentId(1);
         order.verify(conditionRepository).flush();
         order.verify(conditionRepository).saveAll(any());
+    }
+
+    @Test
+    void updateTournamentRejectsNonAdmin() {
+        UpdateTournamentRequest request = validUpdateRequest();
+        Tournament tournament = tournament(1, EventStatus.OPEN_FOR_REGISTRATION);
+        when(tournamentRepository.findByIdForUpdate(1))
+                .thenReturn(Optional.of(tournament));
+        User nonAdmin = new User();
+        Role ownerRole = new Role();
+        ownerRole.setRoleName("OWNER");
+        nonAdmin.setRole(ownerRole);
+        nonAdmin.setStatus("ACTIVE");
+        when(userRepository.findByEmail("owner@example.com"))
+                .thenReturn(Optional.of(nonAdmin));
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.updateTournament(1, request, "owner@example.com")
+        );
+
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
+        verify(tournamentRepository, never()).save(any());
+    }
+
+    @Test
+    void updateTournamentRejectsInactiveAdmin() {
+        UpdateTournamentRequest request = validUpdateRequest();
+        Tournament tournament = tournament(1, EventStatus.OPEN_FOR_REGISTRATION);
+        when(tournamentRepository.findByIdForUpdate(1))
+                .thenReturn(Optional.of(tournament));
+        User inactiveAdmin = activeAdmin();
+        inactiveAdmin.setStatus("INACTIVE");
+        when(userRepository.findByEmail("admin@example.com"))
+                .thenReturn(Optional.of(inactiveAdmin));
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.updateTournament(1, request, "admin@example.com")
+        );
+
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
+        verify(tournamentRepository, never()).save(any());
     }
 
     @Test
@@ -211,16 +257,99 @@ class TournamentServiceTest {
         Tournament tournament = tournament(1, EventStatus.OPEN_FOR_REGISTRATION);
         when(tournamentRepository.findByIdForUpdate(1))
                 .thenReturn(Optional.of(tournament));
+        when(userRepository.findByEmail("admin@example.com"))
+                .thenReturn(Optional.of(activeAdmin()));
         when(registrationRepository.existsByTournamentId(1)).thenReturn(true);
 
         ApiException exception = assertThrows(
                 ApiException.class,
-                () -> service.cancelTournament(1)
+                () -> service.cancelTournament(1, "admin@example.com")
         );
 
         assertEquals(HttpStatus.CONFLICT, exception.getStatus());
         verify(tournamentRepository, never()).save(any());
         verify(raceRepository, never()).saveAll(any());
+    }
+
+    @Test
+    void cancelTournamentRejectsNonAdmin() {
+        Tournament tournament = tournament(1, EventStatus.OPEN_FOR_REGISTRATION);
+        when(tournamentRepository.findByIdForUpdate(1))
+                .thenReturn(Optional.of(tournament));
+        User nonAdmin = new User();
+        Role ownerRole = new Role();
+        ownerRole.setRoleName("OWNER");
+        nonAdmin.setRole(ownerRole);
+        nonAdmin.setStatus("ACTIVE");
+        when(userRepository.findByEmail("owner@example.com"))
+                .thenReturn(Optional.of(nonAdmin));
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.cancelTournament(1, "owner@example.com")
+        );
+
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
+        verify(tournamentRepository, never()).save(any());
+    }
+
+    @Test
+    void cancelTournamentCancelsAssignedRaceEntries() {
+        Tournament tournament = tournament(1, EventStatus.OPEN_FOR_REGISTRATION);
+        Race raceA = race(10, EventStatus.OPEN_FOR_REGISTRATION);
+        Race raceB = race(11, EventStatus.REGISTRATION_CLOSED);
+
+        com.example.backend.entity.RaceEntry entryA = new com.example.backend.entity.RaceEntry();
+        entryA.setRaceEntryId(100);
+        entryA.setRaceId(10);
+        entryA.setStatus(com.example.backend.constant.RaceEntryStatus.ASSIGNED);
+
+        com.example.backend.entity.RaceEntry entryB = new com.example.backend.entity.RaceEntry();
+        entryB.setRaceEntryId(101);
+        entryB.setRaceId(11);
+        entryB.setStatus(com.example.backend.constant.RaceEntryStatus.ASSIGNED);
+
+        when(tournamentRepository.findByIdForUpdate(1))
+                .thenReturn(Optional.of(tournament));
+        when(userRepository.findByEmail("admin@example.com"))
+                .thenReturn(Optional.of(activeAdmin()));
+        when(registrationRepository.existsByTournamentId(1)).thenReturn(false);
+        when(raceRepository.findByTournamentIdOrderByRaceOrderAsc(1))
+                .thenReturn(List.of(raceA, raceB));
+        when(raceEntryRepository.findByRaceIdInAndStatus(
+                List.of(10, 11),
+                com.example.backend.constant.RaceEntryStatus.ASSIGNED
+        )).thenReturn(List.of(entryA, entryB));
+        when(tournamentRepository.save(tournament)).thenReturn(tournament);
+        stubDetailCollections(1, List.of(raceA, raceB));
+
+        service.cancelTournament(1, "admin@example.com");
+
+        assertEquals(com.example.backend.constant.RaceEntryStatus.CANCELLED, entryA.getStatus());
+        assertNotNull(entryA.getCancelledAt());
+        assertEquals("Tournament cancelled.", entryA.getCancellationReason());
+        assertEquals(com.example.backend.constant.RaceEntryStatus.CANCELLED, entryB.getStatus());
+        verify(raceEntryRepository).saveAll(List.of(entryA, entryB));
+    }
+
+    @Test
+    void cancelTournamentWithNoRacesSkipsEntryUpdate() {
+        Tournament tournament = tournament(1, EventStatus.OPEN_FOR_REGISTRATION);
+        when(tournamentRepository.findByIdForUpdate(1))
+                .thenReturn(Optional.of(tournament));
+        when(userRepository.findByEmail("admin@example.com"))
+                .thenReturn(Optional.of(activeAdmin()));
+        when(registrationRepository.existsByTournamentId(1)).thenReturn(false);
+        when(raceRepository.findByTournamentIdOrderByRaceOrderAsc(1))
+                .thenReturn(List.of());
+        when(tournamentRepository.save(tournament)).thenReturn(tournament);
+        stubDetailCollections(1, List.of());
+
+        service.cancelTournament(1, "admin@example.com");
+
+        verify(raceEntryRepository, never()).findByRaceIdInAndStatus(any(), any());
+        verify(raceEntryRepository, never()).saveAll(any());
+        assertEquals(EventStatus.CANCELLED, tournament.getStatus());
     }
 
     @Test

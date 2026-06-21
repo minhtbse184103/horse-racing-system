@@ -14,6 +14,7 @@ import com.example.backend.repository.RaceRepository;
 import com.example.backend.repository.RefereeAssignmentRepository;
 import com.example.backend.repository.TournamentRepository;
 import com.example.backend.repository.UserRepository;
+import org.springframework.http.HttpStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -52,12 +53,29 @@ class RefereeAssignmentServiceTest {
         );
     }
 
+    private User activeAdmin() {
+        Role role = new Role();
+        role.setRoleName("ADMIN");
+        User admin = new User();
+        admin.setUserID(99);
+        admin.setEmail("admin@example.com");
+        admin.setRole(role);
+        admin.setStatus("ACTIVE");
+        return admin;
+    }
+
+    private void stubAdmin() {
+        when(userRepository.findByEmail("admin@example.com"))
+                .thenReturn(Optional.of(activeAdmin()));
+    }
+
     @Test
     void createAssignmentUsesDirectTournamentRaceRelationship() {
         Race race = futureRace();
         Tournament tournament = openTournament();
         User referee = activeReferee(22);
         CreateRefereeAssignmentRequest request = request(10, 22);
+        stubAdmin();
         when(raceRepository.findByIdForUpdate(10))
                 .thenReturn(Optional.of(race));
         when(tournamentRepository.findById(40))
@@ -80,7 +98,9 @@ class RefereeAssignmentServiceTest {
                 });
         stubResponseLookups(race, tournament, referee);
 
-        RefereeAssignmentResponse response = service.createAssignment(request);
+        RefereeAssignmentResponse response = service.createAssignment(
+                request, "admin@example.com"
+        );
 
         assertEquals(50, response.getAssignmentId());
         assertEquals(10, response.getRaceId());
@@ -94,6 +114,7 @@ class RefereeAssignmentServiceTest {
     @Test
     void createAssignmentRejectsRaceThatAlreadyHasReferee() {
         Race race = futureRace();
+        stubAdmin();
         when(raceRepository.findByIdForUpdate(10))
                 .thenReturn(Optional.of(race));
         when(tournamentRepository.findById(40))
@@ -102,7 +123,7 @@ class RefereeAssignmentServiceTest {
 
         ApiException exception = assertThrows(
                 ApiException.class,
-                () -> service.createAssignment(request(10, 22))
+                () -> service.createAssignment(request(10, 22), "admin@example.com")
         );
 
         assertEquals(HttpStatus.CONFLICT, exception.getStatus());
@@ -114,6 +135,7 @@ class RefereeAssignmentServiceTest {
     void createAssignmentRejectsOverlappingSchedule() {
         Race race = futureRace();
         User referee = activeReferee(22);
+        stubAdmin();
         when(raceRepository.findByIdForUpdate(10))
                 .thenReturn(Optional.of(race));
         when(tournamentRepository.findById(40))
@@ -131,10 +153,30 @@ class RefereeAssignmentServiceTest {
 
         ApiException exception = assertThrows(
                 ApiException.class,
-                () -> service.createAssignment(request(10, 22))
+                () -> service.createAssignment(request(10, 22), "admin@example.com")
         );
 
         assertEquals(HttpStatus.CONFLICT, exception.getStatus());
+        verify(assignmentRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void createAssignmentRejectsNonAdmin() {
+        User nonAdmin = new User();
+        Role ownerRole = new Role();
+        ownerRole.setRoleName("OWNER");
+        nonAdmin.setRole(ownerRole);
+        nonAdmin.setStatus("ACTIVE");
+        when(userRepository.findByEmail("owner@example.com"))
+                .thenReturn(Optional.of(nonAdmin));
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.createAssignment(request(10, 22), "owner@example.com")
+        );
+
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
+        verify(raceRepository, never()).findByIdForUpdate(any());
         verify(assignmentRepository, never()).saveAndFlush(any());
     }
 
@@ -144,6 +186,7 @@ class RefereeAssignmentServiceTest {
         Tournament tournament = openTournament();
         User referee = activeReferee(22);
         RefereeAssignment assignment = assignment(21);
+        stubAdmin();
         when(raceRepository.findByIdForUpdate(10))
                 .thenReturn(Optional.of(race));
         when(tournamentRepository.findById(40))
@@ -162,7 +205,9 @@ class RefereeAssignmentServiceTest {
         when(assignmentRepository.save(assignment)).thenReturn(assignment);
         stubResponseLookups(race, tournament, referee);
 
-        RefereeAssignmentResponse response = service.replaceAssignment(10, 22);
+        RefereeAssignmentResponse response = service.replaceAssignment(
+                10, 22, "admin@example.com"
+        );
 
         assertEquals(22, assignment.getRefereeUserId());
         assertEquals(22, response.getRefereeUserId());
@@ -170,9 +215,29 @@ class RefereeAssignmentServiceTest {
     }
 
     @Test
+    void replaceAssignmentRejectsNonAdmin() {
+        User nonAdmin = new User();
+        Role jockeyRole = new Role();
+        jockeyRole.setRoleName("JOCKEY");
+        nonAdmin.setRole(jockeyRole);
+        nonAdmin.setStatus("ACTIVE");
+        when(userRepository.findByEmail("jockey@example.com"))
+                .thenReturn(Optional.of(nonAdmin));
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.replaceAssignment(10, 22, "jockey@example.com")
+        );
+
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
+        verify(raceRepository, never()).findByIdForUpdate(any());
+    }
+
+    @Test
     void removeAssignmentDeletesExistingAssignment() {
         Race race = futureRace();
         RefereeAssignment assignment = assignment(21);
+        stubAdmin();
         when(raceRepository.findByIdForUpdate(10))
                 .thenReturn(Optional.of(race));
         when(tournamentRepository.findById(40))
@@ -180,9 +245,26 @@ class RefereeAssignmentServiceTest {
         when(assignmentRepository.findByRaceId(10))
                 .thenReturn(Optional.of(assignment));
 
-        service.removeAssignment(10);
+        service.removeAssignment(10, "admin@example.com");
 
         verify(assignmentRepository).delete(assignment);
+    }
+
+    @Test
+    void removeAssignmentRejectsInactiveAdmin() {
+        User inactiveAdmin = activeAdmin();
+        inactiveAdmin.setStatus("INACTIVE");
+        when(userRepository.findByEmail("admin@example.com"))
+                .thenReturn(Optional.of(inactiveAdmin));
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.removeAssignment(10, "admin@example.com")
+        );
+
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
+        verify(raceRepository, never()).findByIdForUpdate(any());
+        verify(assignmentRepository, never()).delete(any());
     }
 
     private CreateRefereeAssignmentRequest request(Integer raceId, Integer refereeId) {

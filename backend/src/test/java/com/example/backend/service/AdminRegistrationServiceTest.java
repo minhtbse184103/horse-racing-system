@@ -165,12 +165,16 @@ class AdminRegistrationServiceTest {
         Registration registration = pendingRegistration();
         UpdatePaymentStatusRequest request = new UpdatePaymentStatusRequest();
         request.setPaymentStatus(" paid ");
+        when(userRepository.findByEmail("admin@example.com"))
+                .thenReturn(Optional.of(activeAdmin()));
         when(registrationRepository.findByIdForUpdate(1))
                 .thenReturn(Optional.of(registration));
         when(registrationRepository.save(registration)).thenReturn(registration);
         stubResponseLookups(registration);
 
-        RegistrationResponse response = service.updatePaymentStatus(1, request);
+        RegistrationResponse response = service.updatePaymentStatus(
+                1, request, "admin@example.com"
+        );
 
         assertEquals(PaymentStatus.PAID, registration.getPaymentStatus());
         assertEquals(PaymentStatus.PAID, response.getPaymentStatus());
@@ -183,16 +187,57 @@ class AdminRegistrationServiceTest {
         registration.setPaymentStatus(PaymentStatus.PAID);
         UpdatePaymentStatusRequest request = new UpdatePaymentStatusRequest();
         request.setPaymentStatus(PaymentStatus.REFUNDED);
+        when(userRepository.findByEmail("admin@example.com"))
+                .thenReturn(Optional.of(activeAdmin()));
         when(registrationRepository.findByIdForUpdate(1))
                 .thenReturn(Optional.of(registration));
 
         ApiException exception = assertThrows(
                 ApiException.class,
-                () -> service.updatePaymentStatus(1, request)
+                () -> service.updatePaymentStatus(1, request, "admin@example.com")
         );
 
         assertEquals(HttpStatus.CONFLICT, exception.getStatus());
         verify(registrationRepository, never()).save(any());
+    }
+
+    @Test
+    void updatePaymentStatusRejectsNonAdmin() {
+        UpdatePaymentStatusRequest request = new UpdatePaymentStatusRequest();
+        request.setPaymentStatus(PaymentStatus.PAID);
+        User nonAdmin = new User();
+        Role ownerRole = new Role();
+        ownerRole.setRoleName("OWNER");
+        nonAdmin.setRole(ownerRole);
+        nonAdmin.setStatus("ACTIVE");
+        when(userRepository.findByEmail("owner@example.com"))
+                .thenReturn(Optional.of(nonAdmin));
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.updatePaymentStatus(1, request, "owner@example.com")
+        );
+
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
+        verify(registrationRepository, never()).findByIdForUpdate(any());
+    }
+
+    @Test
+    void updatePaymentStatusRejectsInactiveAdmin() {
+        UpdatePaymentStatusRequest request = new UpdatePaymentStatusRequest();
+        request.setPaymentStatus(PaymentStatus.PAID);
+        User inactiveAdmin = activeAdmin();
+        inactiveAdmin.setStatus("INACTIVE");
+        when(userRepository.findByEmail("admin@example.com"))
+                .thenReturn(Optional.of(inactiveAdmin));
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.updatePaymentStatus(1, request, "admin@example.com")
+        );
+
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
+        verify(registrationRepository, never()).findByIdForUpdate(any());
     }
 
     private Registration pendingRegistration() {
