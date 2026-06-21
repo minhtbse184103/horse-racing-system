@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { uploadFile } from '../../services/uploadService.js';
 
 const inputClass = 'w-full rounded-lg border border-brown-700/15 bg-white px-4 py-3 text-sm font-bold text-brown-900 outline-none transition placeholder:text-slate-500/65 focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20 disabled:cursor-not-allowed disabled:bg-cream-200 disabled:text-slate-500';
 
@@ -28,6 +29,7 @@ function readImageFile(file) {
 export default function OwnerApplicationForm({ user, application, onSubmit, onCancel, isSubmitting }) {
   const [values, setValues] = useState(() => makeInitialValues(user, application));
   const [errors, setErrors] = useState({});
+  const [isUploadingIdentity, setIsUploadingIdentity] = useState(false);
 
   const isReady = useMemo(
     () =>
@@ -70,16 +72,20 @@ export default function OwnerApplicationForm({ user, application, onSubmit, onCa
       return;
     }
 
+    setIsUploadingIdentity(true);
+
     try {
-      const imageData = await readImageFile(file);
+      const uploaded = await uploadFile(file, 'owner-identity');
       setValues((current) => ({
         ...current,
-        identityDocumentImage: imageData,
-        identityDocumentFileName: file.name
+        identityDocumentImage: uploaded.url,
+        identityDocumentFileName: uploaded.originalFilename || file.name
       }));
       setErrors((current) => ({ ...current, identityDocumentImage: '' }));
     } catch (error) {
       setErrors((current) => ({ ...current, identityDocumentImage: error.message || 'Không thể đọc file ảnh.' }));
+    } finally {
+      setIsUploadingIdentity(false);
     }
   }
 
@@ -159,12 +165,13 @@ export default function OwnerApplicationForm({ user, application, onSubmit, onCa
                 <div>
                   <strong>Import ảnh giấy tờ</strong>
                   <p>Upload ảnh National ID hoặc Passport. Không nhập số giấy tờ bằng text field.</p>
+                  <small>Supported formats: JPG, JPEG, PNG.</small>
                   {values.identityDocumentFileName && <small>{values.identityDocumentFileName}</small>}
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <label className="outline-button compact-button cursor-pointer">
-                    Choose Image
-                    <input className="sr-only" type="file" accept="image/*" onChange={handleImageChange} disabled={isSubmitting} />
+                    {isUploadingIdentity ? 'Uploading...' : 'Choose Image'}
+                    <input className="sr-only" type="file" accept="image/*" onChange={handleImageChange} disabled={isSubmitting || isUploadingIdentity} />
                   </label>
                   {values.identityDocumentImage && (
                     <button className="outline-button danger-action compact-button" type="button" onClick={handleRemoveImage} disabled={isSubmitting}>
@@ -196,7 +203,7 @@ export default function OwnerApplicationForm({ user, application, onSubmit, onCa
             <button className="outline-button" type="button" onClick={onCancel} disabled={isSubmitting}>
               Cancel
             </button>
-            <button className="primary-button sm:w-auto" type="submit" disabled={!isReady || isSubmitting}>
+            <button className="primary-button sm:w-auto" type="submit" disabled={!isReady || isSubmitting || isUploadingIdentity}>
               {isSubmitting ? 'Submitting...' : 'Submit Application'}
             </button>
           </div>

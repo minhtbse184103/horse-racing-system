@@ -10,6 +10,7 @@ import { useOwnerDashboard } from '../../hooks/useOwnerDashboard';
 import { emptyHorseForm, formatDisplayLabel, getHorseId, getHorseName, toHorsePayload } from '../../lib';
 import { validateHorseForm } from '../../utils/validators';
 import { getOwnerHorseById } from '../../services/ownerService';
+import { uploadFile } from '../../services/uploadService.js';
 
 const ownerNavItems = [
   { key: 'overview', label: 'Tổng quan', icon: '📊' },
@@ -49,7 +50,7 @@ function isAllowedHorseFile(fieldName, file) {
   const isJpgOrPng = type === 'image/jpeg' || type === 'image/png' || extension === 'jpg' || extension === 'jpeg' || extension === 'png';
   const isPdf = type === 'application/pdf' || extension === 'pdf';
 
-  return fieldName === 'horseImages' ? isJpgOrPng : isJpgOrPng || isPdf;
+  return isJpgOrPng || isPdf;
 }
 
 function isPreviewableHorseImage(file) {
@@ -57,6 +58,11 @@ function isPreviewableHorseImage(file) {
   return String(file?.type || '').startsWith('image/') || String(source).startsWith('data:image/');
 }
 
+function getHorseUploadFolder(fieldName) {
+  if (fieldName === 'horsePassportImages') return 'horse-passports';
+  if (fieldName === 'horseCertificateImages') return 'horse-health-certificates';
+  return 'horse-images';
+}
 
 export default function OwnerDashboard({ currentUser, onLogout, onUserUpdated }) {
   const [activeSection, setActiveSection] = useState('overview');
@@ -200,7 +206,7 @@ export default function OwnerDashboard({ currentUser, onLogout, onUserUpdated })
     if (invalidFile) {
       setFormErrors((current) => ({
         ...current,
-        [fieldName]: fieldName === 'horseImages' ? 'Horse Image chi ho tro JPG hoac PNG.' : 'Tai lieu chi ho tro PDF, JPG hoac PNG.'
+        [fieldName]: 'File chi ho tro PDF, JPG hoac PNG.'
       }));
       return;
     }
@@ -216,12 +222,15 @@ export default function OwnerDashboard({ currentUser, onLogout, onUserUpdated })
 
     try {
       const images = await Promise.all(
-        files.map(async (file) => ({
-          name: file.name,
-          size: file.size,
-          type: file.type,
-          dataUrl: await readImageFile(file)
-        }))
+        files.map(async (file) => {
+          const uploaded = await uploadFile(file, getHorseUploadFolder(fieldName));
+          return {
+            name: uploaded.originalFilename || file.name,
+            size: uploaded.size || file.size,
+            type: uploaded.contentType || file.type,
+            url: uploaded.url
+          };
+        })
       );
 
       setFormValues((current) => ({

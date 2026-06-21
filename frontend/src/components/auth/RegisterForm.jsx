@@ -9,11 +9,10 @@ const inputClasses =
 
 export default function RegisterForm({ onGoHome, onGoLogin }) {
   const [values, setValues] = useState({
-    fullName: '',
+    username: '',
     email: '',
     phone: '',
-    password: '',
-    roleName: 'SPECTATOR'
+    password: ''
   });
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
@@ -23,7 +22,7 @@ export default function RegisterForm({ onGoHome, onGoLogin }) {
 
   const isFormReady = useMemo(
     () =>
-      values.fullName.trim() &&
+      values.username.trim() &&
       values.email.trim() &&
       values.phone.trim() &&
       values.password,
@@ -50,19 +49,17 @@ export default function RegisterForm({ onGoHome, onGoLogin }) {
     setIsSubmitting(true);
     try {
       await signup({
-        fullName: values.fullName.trim(),
+        username: values.username.trim(),
         email: values.email.trim(),
         phone: values.phone.trim(),
-        password: values.password,
-        roleName: 'SPECTATOR'
+        password: values.password
       });
       setSuccessMessage('Đã tạo tài khoản thành công. Bạn có thể đăng nhập ngay.');
       setValues({
-        fullName: '',
+        username: '',
         email: '',
         phone: '',
-        password: '',
-        roleName: 'SPECTATOR'
+        password: ''
       });
     } catch (error) {
       setApiError(error.message || 'Đăng ký thất bại. Vui lòng thử lại.');
@@ -131,24 +128,24 @@ export default function RegisterForm({ onGoHome, onGoLogin }) {
 
         <form className="mt-7 grid gap-4" onSubmit={handleSubmit} noValidate>
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className="grid gap-2" htmlFor="fullName">
+            <label className="grid gap-2" htmlFor="username">
               <span className="text-sm font-extrabold text-brown-900">
-                Họ và tên
+                Username
               </span>
               <input
-                className={fieldClasses(errors.fullName)}
-                id="fullName"
-                name="fullName"
+                className={fieldClasses(errors.username)}
+                id="username"
+                name="username"
                 type="text"
-                placeholder="Nhập họ và tên"
-                autoComplete="name"
-                value={values.fullName}
+                placeholder="oanhle"
+                autoComplete="username"
+                value={values.username}
                 onChange={handleChange}
                 disabled={isSubmitting}
               />
-              {errors.fullName && (
+              {errors.username && (
                 <span className="text-xs font-bold text-danger">
-                  {errors.fullName}
+                  {errors.username}
                 </span>
               )}
             </label>

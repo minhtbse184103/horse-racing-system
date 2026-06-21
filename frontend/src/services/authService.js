@@ -1,61 +1,26 @@
 import API_BASE_URL from '../configs/apiConfig';
 import { httpRequest } from '../api/httpClient';
-import { createMockUser, findMockUserByCredentials, getMockUserById } from './mockAuthStore';
-
-const USE_MOCK_AUTH = import.meta.env.VITE_USE_MOCK_AUTH !== 'false';
-const MOCK_TOKEN_PREFIX = 'mock-token-';
-
-function delay(ms = 350) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function makeMockToken(user) {
-  const userId = user?.userID ?? user?.userId ?? user?.id;
-  return `${MOCK_TOKEN_PREFIX}${userId}-${Date.now()}`;
-}
-
-function getMockUserIdFromToken(token) {
-  if (!String(token || '').startsWith(MOCK_TOKEN_PREFIX)) return null;
-
-  const raw = String(token).slice(MOCK_TOKEN_PREFIX.length).split('-')[0];
-  const userId = Number(raw);
-  return Number.isFinite(userId) ? userId : null;
-}
 
 export async function login({ email, password }) {
-  if (USE_MOCK_AUTH) {
-    await delay();
-    const user = findMockUserByCredentials({ email, password });
-    return {
-      token: makeMockToken(user),
-      user
-    };
-  }
-
   return httpRequest('/api/auth/login', {
     method: 'POST',
     auth: false,
     body: { email, password },
-    fallbackError: 'Đăng nhập thất bại. Vui lòng thử lại.'
+    fallbackError: 'Dang nhap that bai. Vui long thu lai.'
   }).then((data) => {
     if (!data?.token || !data?.user) {
-      throw new Error('Đăng nhập thất bại. Hệ thống không trả về đầy đủ thông tin đăng nhập.');
+      throw new Error('Dang nhap that bai. He thong khong tra ve day du thong tin dang nhap.');
     }
     return data;
   });
 }
 
-export async function signup({ email, fullName, phone, password }) {
-  if (USE_MOCK_AUTH) {
-    await delay();
-    return createMockUser({ email, fullName, phone, password, roleName: 'SPECTATOR' });
-  }
-
-  return httpRequest('/api/auth/register', {
+export async function signup({ username, email, phone, password }) {
+  return httpRequest('/api/auth/signup', {
     method: 'POST',
     auth: false,
-    body: { email, fullName, phone, password, roleName: 'SPECTATOR' },
-    fallbackError: 'Đăng ký thất bại. Vui lòng thử lại.'
+    body: { username, email, phone, password },
+    fallbackError: 'Dang ky that bai. Vui long thu lai.'
   });
 }
 
@@ -97,23 +62,16 @@ export function logout() {
 }
 
 export async function getMe() {
-  const token = getToken();
+  return httpRequest('/api/user/me', {
+    fallbackError: 'Khong the lay thong tin nguoi dung hien tai.'
+  });
+}
 
-  if (USE_MOCK_AUTH) {
-    await delay(180);
-    const userId = getMockUserIdFromToken(token);
-    const user = getMockUserById(userId);
-
-    if (!user) {
-      logout();
-      throw new Error('Mock session không còn hợp lệ.');
-    }
-
-    return user;
-  }
-
-  return httpRequest('/api/users/me', {
-    fallbackError: 'Không thể lấy thông tin người dùng hiện tại.'
+export async function updateMyAccount({ email, phone }) {
+  return httpRequest('/api/user/me/account', {
+    method: 'PUT',
+    body: { email, phone },
+    fallbackError: 'Khong the cap nhat thong tin tai khoan.'
   });
 }
 

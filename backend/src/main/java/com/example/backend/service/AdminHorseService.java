@@ -54,7 +54,9 @@ public class AdminHorseService {
                     "Giấy chứng nhận sức khỏe của ngựa phải còn hiệu lực trước khi phê duyệt.");
         }
 
-        if (horse.getImgUrl() == null || horse.getImgUrl().isBlank()) {
+        if (!hasText(horse.getHorsePassportUrl())
+                || !hasText(horse.getHealthCertificateUrl())
+                || !hasText(horse.getHorseImageUrl())) {
             throw new ApiException(HttpStatus.BAD_REQUEST,
                     "Ảnh minh chứng của ngựa là bắt buộc trước khi phê duyệt.");
         }
@@ -83,6 +85,7 @@ public class AdminHorseService {
         return HorseResponse.builder()
                 .horseId(horse.getHorseId())
                 .ownerId(horse.getOwnerId())
+                .passportNumber(horse.getPassportNumber())
                 .horseName(horse.getHorseName())
                 .breed(horse.getBreed())
                 .gender(horse.getGender())
@@ -90,9 +93,11 @@ public class AdminHorseService {
                 .dayOfBirth(horse.getDayOfBirth())
                 .weight(horse.getWeight())
                 .healthCertExpiry(horse.getHealthCertExpiry())
+                .horsePassportUrl(horse.getHorsePassportUrl())
+                .healthCertificateUrl(horse.getHealthCertificateUrl())
+                .horseImageUrl(horse.getHorseImageUrl())
                 .status(horse.getStatus())
                 .rejectionReason(horse.getRejectionReason())
-                .imgUrl(horse.getImgUrl())
                 .registrationCount(registrationIds.size())
                 .participated(hasActiveRegistration(registrationIds))
                 .build();
@@ -103,5 +108,9 @@ public class AdminHorseService {
                 && registrationRepository.countByRegistrationIdInAndStatusIn(
                 registrationIds,
                 List.of(REGISTRATION_ACCEPTED, REGISTRATION_CONFIRMED)) > 0;
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
     }
 }

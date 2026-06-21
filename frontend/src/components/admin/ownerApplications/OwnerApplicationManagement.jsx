@@ -153,7 +153,7 @@ export default function OwnerApplicationManagement() {
       setApplications((current) => current.map((item) => (item.applicationID === updated.applicationID ? updated : item)));
       setSelectedApplication(updated);
       setApproveTarget(null);
-      setMessage('Application approved. User role is now Owner and OwnerProfile is created in mock data.');
+      setMessage('Application approved. User role is now Owner and OwnerProfile has been created.');
     } catch (err) {
       setError(err.message || 'Không thể approve owner application.');
     } finally {

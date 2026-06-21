@@ -19,11 +19,10 @@ function getImageLabel(type) {
 function getImageHelpText(type) {
   if (type === 'horsePassportImages') return 'Upload the horse passport document. Supported: PDF, JPG, PNG. Required.';
   if (type === 'horseCertificateImages') return 'Upload the horse health certificate. Supported: PDF, JPG, PNG. Required.';
-  return 'Upload a clear image of the horse. Supported: JPG, PNG. Required.';
+  return 'Upload a clear image or document of the horse. Supported: PDF, JPG, PNG. Required.';
 }
 
 function getFileAccept(type) {
-  if (type === 'horseImages') return 'image/jpeg,image/png,.jpg,.jpeg,.png';
   return 'application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png';
 }
 

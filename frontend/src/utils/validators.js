@@ -1,6 +1,5 @@
 const EMAIL_REGEX = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
 const PHONE_REGEX = /^\+?[0-9]{9,15}$/;
-const PUBLIC_ROLES = ['OWNER', 'JOCKEY', 'SPECTATOR'];
 
 export function validateLoginForm(values) {
   const errors = {};
@@ -23,10 +22,10 @@ export function validateLoginForm(values) {
 export function validateSignupForm(values) {
   const errors = {};
 
-  if (!values.fullName?.trim()) {
-    errors.fullName = 'Họ và tên là bắt buộc.';
-  } else if (values.fullName.trim().length > 255) {
-    errors.fullName = 'Họ và tên không được vượt quá 255 ký tự.';
+  if (!values.username?.trim()) {
+    errors.username = 'Username la bat buoc.';
+  } else if (values.username.trim().length > 255) {
+    errors.username = 'Username khong duoc vuot qua 255 ky tu.';
   }
 
   if (!values.email?.trim()) {
@@ -45,10 +44,6 @@ export function validateSignupForm(values) {
     errors.password = 'Mật khẩu là bắt buộc.';
   } else if (values.password.length < 6 || values.password.length > 72) {
     errors.password = 'Mật khẩu phải có từ 6 đến 72 ký tự.';
-  }
-
-  if (!values.roleName || !PUBLIC_ROLES.includes(values.roleName)) {
-    errors.roleName = 'Role phải là OWNER, JOCKEY hoặc SPECTATOR.';
   }
 
   return errors;

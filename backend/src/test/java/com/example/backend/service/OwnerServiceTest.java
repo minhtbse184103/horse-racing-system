@@ -37,6 +37,7 @@ import com.example.backend.exception.ApiException;
 import com.example.backend.repository.HorseRepository;
 import com.example.backend.repository.JockeyInvitationRepository;
 import com.example.backend.repository.JockeyProfileRepository;
+import com.example.backend.repository.OwnerProfileRepository;
 import com.example.backend.repository.RegistrationRepository;
 import com.example.backend.repository.UserRepository;
 
@@ -52,6 +53,8 @@ class OwnerServiceTest {
     @Mock
     private JockeyProfileRepository jockeyProfileRepository;
     @Mock
+    private OwnerProfileRepository ownerProfileRepository;
+    @Mock
     private UserRepository userRepository;
     @Mock
     private JdbcTemplate jdbcTemplate;
@@ -65,6 +68,7 @@ class OwnerServiceTest {
                 registrationRepository,
                 jockeyInvitationRepository,
                 jockeyProfileRepository,
+                ownerProfileRepository,
                 userRepository,
                 jdbcTemplate);
 

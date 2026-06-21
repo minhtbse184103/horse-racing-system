@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.backend.dto.request.AdminUpdateUserRequest;
+import com.example.backend.dto.request.UpdateMyAccountRequest;
 import com.example.backend.dto.response.JockeyProfileResponse;
 import com.example.backend.dto.response.UserResponse;
 import com.example.backend.entity.JockeyProfile;
@@ -40,6 +41,31 @@ public class UserService {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy người dùng"));
         return toResponse(user);
+    }
+
+    @Transactional
+    public UserResponse updateCurrentUserAccount(String email, UpdateMyAccountRequest request) {
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy người dùng"));
+
+        if (hasText(request.getEmail()) && !request.getEmail().equalsIgnoreCase(user.getEmail())) {
+            userRepository.findByEmail(request.getEmail())
+                    .ifPresent(existingUser -> {
+                        throw new ApiException(HttpStatus.BAD_REQUEST, "Email đã tồn tại");
+                    });
+            user.setEmail(request.getEmail());
+        }
+
+        if (hasText(request.getPhone()) && !request.getPhone().equals(user.getPhone())) {
+            userRepository.findByPhone(request.getPhone())
+                    .filter(existingUser -> !existingUser.getUserID().equals(user.getUserID()))
+                    .ifPresent(existingUser -> {
+                        throw new ApiException(HttpStatus.BAD_REQUEST, "Số điện thoại đã tồn tại");
+                    });
+            user.setPhone(request.getPhone());
+        }
+
+        return toResponse(userRepository.save(user));
     }
 
     @Transactional(readOnly = true)
@@ -298,8 +324,8 @@ public class UserService {
     private UserResponse toResponse(User user) {
         return new UserResponse(
                 user.getUserID(),
+                user.getUsername(),
                 user.getEmail(),
-                user.getFullName(),
                 user.getPhone(),
                 user.getStatus(),
                 user.getRole().getRoleName());

@@ -11,7 +11,11 @@ import com.example.backend.entity.User;
 public interface UserRepository extends JpaRepository<User, Integer> {
     Optional<User> findByEmail(String email);
 
+    Optional<User> findByUsername(String username);
+
     Optional<User> findByPhone(String phone);
+
+    boolean existsByUsername(String username);
 
     boolean existsByPhone(String phone);
 

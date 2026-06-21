@@ -11,6 +11,7 @@ import lombok.Getter;
 public class HorseResponse {
     private Integer horseId;
     private Integer ownerId;
+    private String passportNumber;
     private String horseName;
     private String breed;
     private String gender;
@@ -18,9 +19,11 @@ public class HorseResponse {
     private LocalDate dayOfBirth;
     private BigDecimal weight;
     private LocalDate healthCertExpiry;
+    private String horsePassportUrl;
+    private String healthCertificateUrl;
+    private String horseImageUrl;
     private String status;
     private String rejectionReason;
-    private String imgUrl;
     private long registrationCount;
     private boolean participated;
 }

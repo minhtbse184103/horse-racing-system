@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { formatDate, formatDisplayLabel, getUserId } from '../../lib';
-import { updateStoredUser } from '../../services/authService';
-import { updateMockUserAccount } from '../../services/mockAuthStore';
-import { getMyOwnerApplication } from '../../services/ownerApplicationService';
+import { formatDate, formatDisplayLabel } from '../../lib';
+import { updateMyAccount, updateStoredUser } from '../../services/authService';
+import { getMyOwnerProfile } from '../../services/ownerApplicationService';
 
 const inputClass = 'w-full rounded-lg border border-brown-700/15 bg-white px-4 py-3 text-sm font-bold text-brown-900 outline-none transition placeholder:text-slate-500/65 focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20 disabled:cursor-not-allowed disabled:bg-cream-200 disabled:text-slate-500';
 
@@ -68,14 +67,14 @@ export default function OwnerProfile({ user, onUserUpdated }) {
     setMessage('');
 
     try {
-      const application = await getMyOwnerApplication(user);
-      if (!application || application.status !== 'APPROVED') {
+      const ownerProfile = await getMyOwnerProfile();
+      if (!ownerProfile || ownerProfile.status !== 'APPROVED') {
         setProfile(null);
         setError('Không tìm thấy OwnerProfile đã được duyệt cho tài khoản này.');
         return;
       }
 
-      setProfile(application);
+      setProfile(ownerProfile);
     } catch (err) {
       setError(err.message || 'Không thể tải OwnerProfile.');
     } finally {
@@ -107,7 +106,7 @@ export default function OwnerProfile({ user, onUserUpdated }) {
     setError('');
   }
 
-  function handleSaveAccount(event) {
+  async function handleSaveAccount(event) {
     event.preventDefault();
 
     const nextEmail = accountValues.email.trim();
@@ -118,24 +117,28 @@ export default function OwnerProfile({ user, onUserUpdated }) {
       return;
     }
 
-    const persistedUser = updateMockUserAccount(getUserId(accountUser), {
-      email: nextEmail,
-      phone: nextPhone
-    });
-    const updatedUser = {
-      ...accountUser,
-      ...persistedUser,
-      email: nextEmail,
-      phone: nextPhone
-    };
+    try {
+      const persistedUser = await updateMyAccount({
+        email: nextEmail,
+        phone: nextPhone
+      });
+      const updatedUser = {
+        ...accountUser,
+        ...persistedUser,
+        email: nextEmail,
+        phone: nextPhone
+      };
 
-    updateStoredUser(updatedUser);
-    setAccountUser(updatedUser);
-    setAccountValues(getAccountValues(updatedUser));
-    setIsEditingAccount(false);
-    setMessage('Đã cập nhật thông tin tài khoản.');
-    setError('');
-    onUserUpdated?.(updatedUser);
+      updateStoredUser(updatedUser);
+      setAccountUser(updatedUser);
+      setAccountValues(getAccountValues(updatedUser));
+      setIsEditingAccount(false);
+      setMessage('Đã cập nhật thông tin tài khoản.');
+      setError('');
+      onUserUpdated?.(updatedUser);
+    } catch (err) {
+      setError(err.message || 'Không thể cập nhật thông tin tài khoản.');
+    }
   }
 
   if (isLoading) {
