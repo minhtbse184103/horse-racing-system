@@ -37,8 +37,8 @@ export default function TournamentInfoStep({
           <WizardField label="Maximum registrations" error={errors.maxRegistration} hint="Minimum capacity is 3" className="xl:col-span-3">
             <input type="number" min="3" className={FIELD_CLASS} value={draft.maxRegistration} onChange={(event) => updateTournamentField('maxRegistration', Number(event.target.value))} />
           </WizardField>
-          <WizardField label="Entry fee" error={errors.entryFee} hint="Amount in Thai baht" className="xl:col-span-3">
-            <div className="relative"><span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs font-extrabold text-slate-500">THB</span><input type="number" min="0" className={`${FIELD_CLASS} pl-12`} value={draft.entryFee} onChange={(event) => updateTournamentField('entryFee', Number(event.target.value))} /></div>
+          <WizardField label="Entry fee" error={errors.entryFee} hint="Vietnamese Dong, adjusted in 1,000,000 VND steps" className="xl:col-span-3">
+            <div className="relative"><span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs font-extrabold text-slate-500">VND</span><input type="number" min="0" step="1000000" className={`${FIELD_CLASS} pl-14`} value={draft.entryFee} onChange={(event) => updateTournamentField('entryFee', Number(event.target.value))} /></div>
           </WizardField>
         </div>
         <VenueImageField

@@ -2,8 +2,10 @@ import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
   AlertCircle,
+  Activity,
   ArrowRight,
   CalendarDays,
+  ChevronRight,
   CheckCircle2,
   ClipboardCheck,
   Flag,
@@ -41,18 +43,43 @@ const STATUS_STYLES = {
   CANCELLED: 'bg-red-100 text-red-700'
 };
 
+const STATUS_LABELS = {
+  OPEN_FOR_REGISTRATION: 'Đang mở đăng ký',
+  REGISTRATION_CLOSED: 'Đã đóng đăng ký',
+  IN_PROGRESS: 'Đang diễn ra',
+  COMPLETED: 'Đã hoàn thành',
+  CANCELLED: 'Đã hủy'
+};
+
 function formatStatus(status) {
-  return formatDisplayLabel(status);
+  return STATUS_LABELS[status] || formatDisplayLabel(status);
 }
 
 function formatDate(value) {
   if (!value) return 'Chưa có ngày';
 
-  return new Date(`${value}T00:00:00`).toLocaleDateString('en-GB', {
+  return new Date(`${value}T00:00:00`).toLocaleDateString('vi-VN', {
     day: '2-digit',
     month: 'short',
     year: 'numeric'
   });
+}
+
+function OverviewLoadingRows() {
+  return (
+    <div className="divide-y divide-brown-700/10" aria-label="Đang tải giải đấu">
+      {[1, 2, 3].map((item) => (
+        <div className="grid grid-cols-[3rem_minmax(0,1fr)_5rem] items-center gap-4 px-5 py-4" key={item}>
+          <span className="size-11 animate-pulse rounded-lg bg-brown-700/10" />
+          <span className="space-y-2">
+            <span className="block h-3 w-2/3 animate-pulse rounded bg-brown-700/10" />
+            <span className="block h-2.5 w-1/3 animate-pulse rounded bg-brown-700/10" />
+          </span>
+          <span className="h-6 animate-pulse rounded-full bg-brown-700/10" />
+        </div>
+      ))}
+    </div>
+  );
 }
 
 function MetricCard({ icon: Icon, label, value, note, tone, onClick, isLoading }) {
@@ -113,7 +140,7 @@ function MetricCard({ icon: Icon, label, value, note, tone, onClick, isLoading }
   );
 }
 
-function WorkQueueCard({ icon: Icon, label, count, note, tone, onClick }) {
+function WorkQueueCard({ icon: Icon, label, count, note, tone, onClick, isLoading }) {
   return (
     <motion.button
       whileHover={{ x: 3, transition: { duration: 0.16 } }}
@@ -127,12 +154,12 @@ function WorkQueueCard({ icon: Icon, label, count, note, tone, onClick }) {
       </span>
       <span className="min-w-0">
         <strong className="block font-extrabold text-brown-900">{label}</strong>
-        <small className="mt-1 block truncate text-xs font-semibold text-slate-500">
+        <small className="mt-1 block text-xs font-semibold leading-5 text-slate-500">
           {note}
         </small>
       </span>
       <span className="grid min-w-9 place-items-center rounded-full border border-brown-700/10 bg-cream-200 px-2 py-1.5 text-sm font-black text-brown-700">
-        {count}
+        {isLoading ? <span className="size-3 animate-pulse rounded-full bg-brown-700/20" /> : count}
       </span>
     </motion.button>
   );
@@ -301,7 +328,7 @@ export default function AdminOverview({ onNavigate }) {
 
   return (
     <motion.section {...pageTransition} className="space-y-5 text-brown-900 lg:space-y-6">
-      <header className="relative overflow-hidden rounded-lg border border-white/80 bg-white/45 px-5 py-5 shadow-[0_12px_36px_rgba(78,44,25,0.07)] backdrop-blur-sm sm:px-6 md:flex md:items-center md:justify-between md:gap-6">
+      <header className="relative overflow-hidden rounded-lg border border-white/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.84),rgba(255,248,238,0.52))] px-5 py-5 shadow-[0_14px_40px_rgba(78,44,25,0.08)] backdrop-blur-sm sm:px-6 sm:py-6 md:flex md:items-center md:justify-between md:gap-6">
         <div>
           <p className="text-xs font-extrabold uppercase text-brown-500">
             Trung tâm điều hành
@@ -313,6 +340,14 @@ export default function AdminOverview({ onNavigate }) {
             Theo dõi hồ sơ, chuẩn bị danh sách thi đấu và điều phối các giải đấu
             từ một màn hình duy nhất.
           </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <span className="inline-flex items-center gap-2 rounded-full border border-emerald-700/10 bg-emerald-50 px-3 py-1.5 text-xs font-extrabold text-emerald-800">
+              <Activity size={14} /> {isLoading ? 'Đang đồng bộ' : `${activeUsers} tài khoản hoạt động`}
+            </span>
+            <span className="inline-flex items-center gap-2 rounded-full border border-brown-700/10 bg-cream-200/70 px-3 py-1.5 text-xs font-extrabold text-brown-700">
+              <Trophy size={14} /> {isLoading ? 'Đang tải giải đấu' : `${data.tournaments.length} giải đấu`}
+            </span>
+          </div>
         </div>
 
         <button
@@ -349,7 +384,7 @@ export default function AdminOverview({ onNavigate }) {
           icon={Trophy}
           label="Giải đấu đang mở"
           value={openTournaments}
-          note={`${data.tournaments.length} tournaments total`}
+          note={`${data.tournaments.length} giải đấu trong hệ thống`}
           tone="brown"
           isLoading={isLoading}
           onClick={() => onNavigate('events')}
@@ -367,7 +402,7 @@ export default function AdminOverview({ onNavigate }) {
           icon={Flag}
           label="Đang chờ xếp cuộc đua"
           value={data.raceEntryQueue.length}
-          note={`${approvedRegistrations} approved registrations`}
+          note={`${approvedRegistrations} đơn đăng ký đã được duyệt`}
           tone="green"
           isLoading={isLoading}
           onClick={() => onNavigate('events')}
@@ -384,7 +419,7 @@ export default function AdminOverview({ onNavigate }) {
       </motion.div>
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.2fr_0.8fr]">
-        <motion.section whileHover={{ y: -2 }} className="rounded-lg border border-white/75 bg-cream-100 p-5 shadow-[0_18px_45px_rgba(78,44,25,0.1),0_1px_2px_rgba(43,23,16,0.08)]">
+        <motion.section whileHover={{ y: -2 }} className="rounded-lg border border-white/75 bg-cream-100 p-4 shadow-[0_18px_45px_rgba(78,44,25,0.1),0_1px_2px_rgba(43,23,16,0.08)] sm:p-5">
           <div className="flex items-start justify-between gap-4">
             <div>
               <span className="text-xs font-extrabold uppercase text-brown-500">
@@ -392,8 +427,8 @@ export default function AdminOverview({ onNavigate }) {
               </span>
               <h2 className="mt-1 text-2xl font-black">Hàng chờ công việc quản trị</h2>
             </div>
-            <span className="rounded-full bg-danger-bg px-3 py-1 text-sm font-black text-danger">
-              {totalReviewQueue + data.raceEntryQueue.length} đang chờ
+            <span className="shrink-0 rounded-full bg-danger-bg px-3 py-1 text-sm font-black text-danger">
+              {isLoading ? '...' : totalReviewQueue + data.raceEntryQueue.length} đang chờ
             </span>
           </div>
 
@@ -402,13 +437,14 @@ export default function AdminOverview({ onNavigate }) {
               <WorkQueueCard
                 key={key}
                 {...queue}
+                isLoading={isLoading}
                 onClick={() => onNavigate(queue.target || key)}
               />
             ))}
           </div>
         </motion.section>
 
-        <motion.section whileHover={{ y: -2 }} className="relative overflow-hidden rounded-lg border border-white/10 bg-[linear-gradient(145deg,#2b1710,#4a2819)] p-5 text-white shadow-[0_22px_52px_rgba(43,23,16,0.25)]">
+        <motion.section whileHover={{ y: -2 }} className="relative overflow-hidden rounded-lg border border-white/10 bg-[linear-gradient(145deg,#2b1710,#4a2819)] p-4 text-white shadow-[0_22px_52px_rgba(43,23,16,0.25)] sm:p-5">
           <span className="text-xs font-extrabold uppercase text-gold-400">
             Thao tác nhanh
           </span>
@@ -445,6 +481,7 @@ export default function AdminOverview({ onNavigate }) {
             })}
           </div>
           <span className="pointer-events-none absolute -right-10 -top-16 size-40 rounded-full border border-white/10" />
+          <span className="pointer-events-none absolute -bottom-14 -left-16 size-36 rounded-full border border-gold-400/10" />
         </motion.section>
       </div>
 
@@ -460,6 +497,9 @@ export default function AdminOverview({ onNavigate }) {
             <CalendarDays size={22} className="text-brown-500" />
           </div>
 
+          {isLoading ? (
+            <OverviewLoadingRows />
+          ) : (
           <div className="divide-y divide-brown-700/10">
             {upcomingTournaments.length === 0 ? (
               <div className="grid min-h-40 place-items-center px-5 py-8 text-center">
@@ -472,13 +512,13 @@ export default function AdminOverview({ onNavigate }) {
             ) : (
               upcomingTournaments.map((tournament) => (
                 <button
-                  className="grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 px-5 py-4 text-left transition hover:bg-cream-200/40"
+                  className="group grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-4 py-4 text-left transition hover:bg-cream-200/40 sm:gap-4 sm:px-5"
                   key={tournament.tournamentId}
                   type="button"
                   onClick={() => onNavigate('events')}
                 >
-                  <span className="grid size-10 place-items-center rounded-lg bg-cream-200 font-black text-brown-700">
-                    {tournament.tournamentName?.charAt(0) || 'T'}
+                  <span className="grid size-11 place-items-center rounded-lg border border-brown-700/10 bg-cream-200 font-black text-brown-700 shadow-sm">
+                    <CalendarDays size={18} />
                   </span>
                   <span className="min-w-0">
                     <strong className="block truncate text-sm font-extrabold">
@@ -488,7 +528,8 @@ export default function AdminOverview({ onNavigate }) {
                       {tournament.venue}
                     </small>
                   </span>
-                  <span className="text-right">
+                  <span className="flex items-center gap-2 text-right">
+                    <span>
                     <time className="block text-xs font-extrabold text-brown-700">
                       {formatDate(tournament.startDate)}
                     </time>
@@ -500,11 +541,14 @@ export default function AdminOverview({ onNavigate }) {
                     >
                       {formatStatus(tournament.status)}
                     </small>
+                    </span>
+                    <ChevronRight className="hidden text-brown-500/50 transition group-hover:translate-x-0.5 group-hover:text-brown-500 sm:block" size={17} />
                   </span>
                 </button>
               ))
             )}
           </div>
+          )}
         </motion.section>
 
         <motion.section whileHover={{ y: -2 }} className="rounded-lg border border-white/75 bg-cream-100 p-5 shadow-[0_18px_45px_rgba(78,44,25,0.1),0_1px_2px_rgba(43,23,16,0.08)]">
@@ -513,7 +557,7 @@ export default function AdminOverview({ onNavigate }) {
           </span>
           <h2 className="mt-1 text-xl font-black">Giải đấu theo trạng thái</h2>
 
-          <div className="mt-5 grid gap-3">
+          <div className="mt-5 grid gap-4">
             {tournamentStatuses.map(({ status, count }) => (
               <div
                 className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3"
@@ -522,7 +566,7 @@ export default function AdminOverview({ onNavigate }) {
                 <span className="min-w-0">
                   <span className="flex items-center justify-between gap-3 text-sm font-extrabold">
                     <span>{formatStatus(status)}</span>
-                    <span>{count}</span>
+                    <span className="rounded-full bg-cream-200 px-2 py-0.5 text-xs">{isLoading ? '...' : count}</span>
                   </span>
                   <span className="mt-2 block h-2 overflow-hidden rounded-full bg-cream-200">
                     <motion.span

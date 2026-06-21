@@ -1,5 +1,5 @@
 import { AlertCircle, CalendarDays, CheckCircle2, CircleDollarSign, ClipboardCheck, Flag, Info, MapPin, Trophy } from 'lucide-react';
-import { formatRaceSchedule, formatTournamentCondition, tournamentStatusLabels } from '../../../../lib/eventFormatters';
+import { formatRaceSchedule, formatTournamentCondition, formatVndCurrency, tournamentStatusLabels } from '../../../../lib/eventFormatters';
 import { WizardSectionHeading, WizardSummaryItem } from './WizardPrimitives';
 
 export default function ReviewStep({ draft, prizeTotal }) {
@@ -54,7 +54,7 @@ export default function ReviewStep({ draft, prizeTotal }) {
                 <div className="flex justify-between gap-4"><dt className="font-semibold text-slate-500">Registration opens</dt><dd className="text-right font-black text-brown-900">{draft.registrationOpen || 'TBD'}</dd></div>
                 <div className="flex justify-between gap-4"><dt className="font-semibold text-slate-500">Registration closes</dt><dd className="text-right font-black text-brown-900">{draft.registrationClose || 'TBD'}</dd></div>
                 <div className="flex justify-between gap-4"><dt className="font-semibold text-slate-500">Capacity</dt><dd className="font-black text-brown-900">{draft.maxRegistration}</dd></div>
-                <div className="flex justify-between gap-4"><dt className="font-semibold text-slate-500">Entry fee</dt><dd className="font-black text-brown-900">THB {Number(draft.entryFee || 0).toLocaleString()}</dd></div>
+                <div className="flex justify-between gap-4"><dt className="font-semibold text-slate-500">Entry fee</dt><dd className="font-black text-brown-900">{formatVndCurrency(draft.entryFee)}</dd></div>
               </dl>
             </section>
 

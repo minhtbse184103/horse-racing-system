@@ -11,7 +11,7 @@ export const emptyTournamentForm = {
   start: '',
   end: '',
   maxRegistration: 80,
-  entryFee: 2000,
+  entryFee: 1000000,
   status: 'OPEN_FOR_REGISTRATION',
   conditions: [],
   races: []
@@ -29,5 +29,6 @@ export {
   conditionTypeLabels,
   formatRaceSchedule,
   formatTournamentCondition,
+  formatVndCurrency,
   tournamentStatusLabels
 } from '../lib/eventFormatters';

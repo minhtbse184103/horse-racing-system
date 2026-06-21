@@ -6,6 +6,15 @@ export const tournamentStatusLabels = {
   CANCELLED: 'Cancelled'
 };
 
+const vndNumberFormatter = new Intl.NumberFormat('vi-VN', {
+  maximumFractionDigits: 0
+});
+
+export function formatVndCurrency(value) {
+  const amount = Number(value);
+  return `${vndNumberFormatter.format(Number.isFinite(amount) ? amount : 0)} ₫`;
+}
+
 export function formatRaceSchedule(race) {
   if (!race?.raceStartTime || !race?.raceEndTime) return 'Schedule not set';
 

@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { formatTournamentCondition } from '../../../../lib/eventFormatters';
+import { formatTournamentCondition, formatVndCurrency } from '../../../../lib/eventFormatters';
 import TournamentOperationsPanel from '../TournamentOperationsPanel';
 import TournamentLifecycle from './TournamentLifecycle';
 import TournamentLifecycleActions from './TournamentLifecycleActions';
@@ -36,7 +36,7 @@ export default function TournamentDetails({
           <dl className="mt-3 grid gap-3 border-t border-brown-700/10 pt-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
             <div><dt className="text-xs font-extrabold text-slate-500">Registration</dt><dd className="mt-1 font-black text-brown-900">{formatTournamentDate(tournament.registrationOpen)} - {formatTournamentDate(tournament.registrationClose)}</dd></div>
             <div><dt className="text-xs font-extrabold text-slate-500">Tournament</dt><dd className="mt-1 font-black text-brown-900">{formatTournamentDate(tournament.start)} - {formatTournamentDate(tournament.end)}</dd></div>
-            <div><dt className="text-xs font-extrabold text-slate-500">Entry fee</dt><dd className="mt-1 font-black text-brown-900">THB {tournament.entryFee.toLocaleString()}</dd></div>
+            <div><dt className="text-xs font-extrabold text-slate-500">Entry fee</dt><dd className="mt-1 font-black text-brown-900">{formatVndCurrency(tournament.entryFee)}</dd></div>
             <div><dt className="text-xs font-extrabold text-slate-500">Prize total</dt><dd className="mt-1 font-black text-brown-900">THB {getTournamentPrizeTotal(tournament).toLocaleString()}</dd></div>
           </dl>
         </section>
