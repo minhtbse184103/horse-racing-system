@@ -5,14 +5,14 @@ export default function VenueImage({ tournament, className = '' }) {
     return (
       <img
         src={tournament.venueImageSrc}
-        alt={`${tournament.venue} venue`}
+        alt={`Địa điểm ${tournament.venue}`}
         className={`object-cover ${className}`}
       />
     );
   }
 
   return (
-    <div className={`grid place-items-center bg-cream-200 text-brown-500 ${className}`} aria-label="No venue image available">
+    <div className={`grid place-items-center bg-cream-200 text-brown-500 ${className}`} aria-label="Chưa có hình địa điểm">
       <ImageIcon size={22} />
     </div>
   );

@@ -54,9 +54,9 @@ export default function EligibilityConditionBuilder({
           <ShieldCheck size={19} />
         </span>
         <div>
-          <h4 className="text-lg font-black text-brown-900">Eligibility rules</h4>
+          <h4 className="text-lg font-black text-brown-900">Điều kiện tham gia</h4>
           <p className="mt-1 text-sm font-semibold leading-6 text-slate-500">
-            Add structured AGE, GENDER, and WEIGHT rules. Multiple rules are combined for tournament eligibility.
+            Thêm điều kiện về tuổi, giới tính và cân nặng. Nhiều điều kiện sẽ được kết hợp để xác định khả năng tham gia Tournament.
           </p>
         </div>
       </div>
@@ -92,7 +92,7 @@ export default function EligibilityConditionBuilder({
 
       <div className="mt-3 rounded-lg border border-brown-700/10 bg-white/75 p-3.5">
         <div className="grid gap-3 md:grid-cols-[minmax(10rem,.7fr)_minmax(0,1.3fr)_auto] md:items-end">
-          <WizardField label="Operator">
+          <WizardField label="Toán tử">
             <select
               className={FIELD_CLASS}
               value={conditionDraft.operator}
@@ -113,20 +113,20 @@ export default function EligibilityConditionBuilder({
           </WizardField>
 
           {conditionDraft.type === 'GENDER' ? (
-            <WizardField label="Eligible gender">
+            <WizardField label="Giới tính hợp lệ">
               <select
                 className={FIELD_CLASS}
                 value={conditionDraft.value}
                 onChange={(event) => setConditionDraft((current) => ({ ...current, value: event.target.value }))}
               >
-                <option value="ANY">Any gender</option>
-                <option value="MALE">Male</option>
-                <option value="FEMALE">Female</option>
+                <option value="ANY">Mọi giới tính</option>
+                <option value="MALE">Đực</option>
+                <option value="FEMALE">Cái</option>
               </select>
             </WizardField>
           ) : usesRange ? (
             <div className="grid gap-3 sm:grid-cols-2">
-              <WizardField label={`Minimum ${selectedType?.label.toLowerCase()}`}>
+              <WizardField label={`${selectedType?.label} tối thiểu`}>
                 <div className="relative">
                   <input
                     type="number"
@@ -134,14 +134,14 @@ export default function EligibilityConditionBuilder({
                     className={`${FIELD_CLASS} pr-14`}
                     value={conditionDraft.minValue}
                     onChange={(event) => setConditionDraft((current) => ({ ...current, minValue: event.target.value }))}
-                    placeholder="Minimum"
+                    placeholder="Tối thiểu"
                   />
                   <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-extrabold text-slate-500">
-                    {conditionDraft.type === 'AGE' ? 'years' : 'kg'}
+                    {conditionDraft.type === 'AGE' ? 'tuổi' : 'kg'}
                   </span>
                 </div>
               </WizardField>
-              <WizardField label={`Maximum ${selectedType?.label.toLowerCase()}`}>
+              <WizardField label={`${selectedType?.label} tối đa`}>
                 <div className="relative">
                   <input
                     type="number"
@@ -149,16 +149,16 @@ export default function EligibilityConditionBuilder({
                     className={`${FIELD_CLASS} pr-14`}
                     value={conditionDraft.maxValue}
                     onChange={(event) => setConditionDraft((current) => ({ ...current, maxValue: event.target.value }))}
-                    placeholder="Maximum"
+                    placeholder="Tối đa"
                   />
                   <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-extrabold text-slate-500">
-                    {conditionDraft.type === 'AGE' ? 'years' : 'kg'}
+                    {conditionDraft.type === 'AGE' ? 'tuổi' : 'kg'}
                   </span>
                 </div>
               </WizardField>
             </div>
           ) : (
-            <WizardField label={`${selectedType?.label} value`}>
+            <WizardField label={`Giá trị ${selectedType?.label}`}>
               <div className="relative">
                 <input
                   type="number"
@@ -166,10 +166,10 @@ export default function EligibilityConditionBuilder({
                   className={`${FIELD_CLASS} pr-14`}
                   value={conditionDraft.value}
                   onChange={(event) => setConditionDraft((current) => ({ ...current, value: event.target.value }))}
-                  placeholder="Value"
+                  placeholder="Giá trị"
                 />
                 <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-extrabold text-slate-500">
-                  {conditionDraft.type === 'AGE' ? 'years' : 'kg'}
+                  {conditionDraft.type === 'AGE' ? 'tuổi' : 'kg'}
                 </span>
               </div>
             </WizardField>
@@ -180,7 +180,7 @@ export default function EligibilityConditionBuilder({
             onClick={addCondition}
             className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-brown-700 px-4 text-sm font-extrabold text-white shadow-md transition hover:bg-brown-900"
           >
-            <Plus size={16} /> Add rule
+            <Plus size={16} /> Thêm điều kiện
           </button>
         </div>
         {error && <WizardValidationBanner message={error} />}
@@ -197,7 +197,7 @@ export default function EligibilityConditionBuilder({
                 {conditionTypeLabels[condition.type]?.slice(0, 1) || 'R'}
               </span>
               <div className="min-w-0">
-                <p className="text-xs font-black uppercase text-brown-500">{conditionTypeLabels[condition.type] || 'Rule'}</p>
+                <p className="text-xs font-black uppercase text-brown-500">{conditionTypeLabels[condition.type] || 'Điều kiện'}</p>
                 <p className="truncate text-sm font-black text-brown-900">{formatTournamentCondition(condition)}</p>
               </div>
             </div>
@@ -208,7 +208,7 @@ export default function EligibilityConditionBuilder({
                 conditions: current.conditions.filter((_, itemIndex) => itemIndex !== index)
               }))}
               className="grid size-9 shrink-0 place-items-center rounded-lg text-slate-500 transition hover:bg-red-50 hover:text-danger"
-              aria-label="Remove eligibility rule"
+              aria-label="Xóa điều kiện tham gia"
             >
               <Trash2 size={15} />
             </button>
@@ -219,8 +219,8 @@ export default function EligibilityConditionBuilder({
           <div className="grid min-h-36 place-items-center rounded-lg border border-dashed border-brown-700/20 bg-white/40 p-6 text-center">
             <div>
               <ShieldCheck className="mx-auto text-brown-500" size={22} />
-              <p className="mt-3 text-sm font-black text-brown-900">No eligibility rules configured</p>
-              <p className="mt-1 text-xs font-semibold text-slate-500">The tournament will not restrict age, gender, or weight.</p>
+              <p className="mt-3 text-sm font-black text-brown-900">Chưa cấu hình điều kiện tham gia</p>
+              <p className="mt-1 text-xs font-semibold text-slate-500">Tournament sẽ không giới hạn tuổi, giới tính hoặc cân nặng.</p>
             </div>
           </div>
         )}

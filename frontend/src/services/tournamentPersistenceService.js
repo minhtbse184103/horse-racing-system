@@ -30,7 +30,7 @@ export async function createTournamentProgramme(draft) {
       await createRace(toCreateRaceRequest(race, tournamentId, index + 1));
     } catch (error) {
       throw persistenceError(
-        `${draft.name} was created as tournament #${tournamentId}, but race ${index + 1} (${race.name}) could not be created. The saved tournament has been reloaded; edit it to finish the race programme.`,
+        `Đã tạo ${draft.name} với mã Tournament #${tournamentId}, nhưng không thể tạo Race ${index + 1} (${race.name}). Tournament đã lưu được tải lại; hãy chỉnh sửa để hoàn tất chương trình Race.`,
         error,
         tournamentId
       );
@@ -42,7 +42,7 @@ export async function createTournamentProgramme(draft) {
       await uploadTournamentVenueImage(tournamentId, draft.venueImageFile);
     } catch (error) {
       throw persistenceError(
-        `${draft.name} and its races were created, but the venue image could not be uploaded. Edit the saved tournament to retry the image upload.`,
+        `Đã tạo ${draft.name} và các Race, nhưng không thể tải hình địa điểm lên. Hãy chỉnh sửa Tournament đã lưu để thử tải hình lại.`,
         error,
         tournamentId
       );
@@ -76,7 +76,7 @@ export async function updateTournamentProgramme(original, draft) {
       }
     } catch (error) {
       throw persistenceError(
-        `${draft.name} was updated, but race ${race.name} could not be synchronized. Reload the tournament before retrying.`,
+        `Đã cập nhật ${draft.name}, nhưng không thể đồng bộ Race ${race.name}. Hãy tải lại Tournament trước khi thử lại.`,
         error
       );
     }
@@ -88,7 +88,7 @@ export async function updateTournamentProgramme(original, draft) {
         await cancelRace(race.id);
       } catch (error) {
         throw persistenceError(
-          `${draft.name} was updated, but removed race ${race.name} could not be cancelled. Reload the tournament before retrying.`,
+          `Đã cập nhật ${draft.name}, nhưng không thể hủy Race ${race.name} đã bị xóa. Hãy tải lại Tournament trước khi thử lại.`,
           error
         );
       }
@@ -103,7 +103,7 @@ export async function updateTournamentProgramme(original, draft) {
     }
   } catch (error) {
     throw persistenceError(
-      `${draft.name} and its races were saved, but the venue image change could not be completed. Reload the tournament before retrying.`,
+      `Đã lưu ${draft.name} và các Race, nhưng không thể hoàn tất thay đổi hình địa điểm. Hãy tải lại Tournament trước khi thử lại.`,
       error
     );
   }

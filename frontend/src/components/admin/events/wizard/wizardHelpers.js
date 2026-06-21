@@ -46,13 +46,13 @@ export function validateConditionDraft(conditionDraft) {
     const min = Number(conditionDraft.minValue);
     const max = Number(conditionDraft.maxValue);
     if (conditionDraft.minValue === '' || conditionDraft.maxValue === '') {
-      return 'Enter both minimum and maximum values.';
+      return 'Nhập đầy đủ giá trị tối thiểu và tối đa.';
     }
     if (min < 0 || max < 0 || min > max) {
-      return 'The minimum value must be zero or greater and cannot exceed the maximum.';
+      return 'Giá trị tối thiểu phải từ 0 trở lên và không được vượt quá giá trị tối đa.';
     }
   } else if (conditionDraft.value === '') {
-    return 'Enter a value for this condition.';
+    return 'Nhập giá trị cho điều kiện này.';
   }
 
   return '';

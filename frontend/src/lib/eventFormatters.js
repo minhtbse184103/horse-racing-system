@@ -1,8 +1,8 @@
 export const tournamentStatusLabels = {
-  OPEN_FOR_REGISTRATION: 'Open',
-  REGISTRATION_CLOSED: 'Registration closed',
-  IN_PROGRESS: 'Running',
-  COMPLETED: 'Completed',
+  OPEN_FOR_REGISTRATION: 'Open Registration',
+  REGISTRATION_CLOSED: 'Registration Closed',
+  IN_PROGRESS: 'Ongoing',
+  COMPLETED: 'Finished',
   CANCELLED: 'Cancelled'
 };
 
@@ -16,9 +16,9 @@ export function formatVndCurrency(value) {
 }
 
 export function formatRaceSchedule(race) {
-  if (!race?.raceStartTime || !race?.raceEndTime) return 'Schedule not set';
+  if (!race?.raceStartTime || !race?.raceEndTime) return 'Chưa thiết lập lịch';
 
-  const formatter = new Intl.DateTimeFormat('en-GB', {
+  const formatter = new Intl.DateTimeFormat('vi-VN', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
@@ -30,26 +30,26 @@ export function formatRaceSchedule(race) {
 }
 
 export const conditionTypeLabels = {
-  AGE: 'Age',
-  GENDER: 'Gender',
-  WEIGHT: 'Weight'
+  AGE: 'Tuổi',
+  GENDER: 'Giới tính',
+  WEIGHT: 'Cân nặng'
 };
 
 export const conditionOperatorLabels = {
-  EQ: 'Equals',
-  GTE: 'At least',
-  LTE: 'At most',
-  BETWEEN: 'Between'
+  EQ: 'Bằng',
+  GTE: 'Tối thiểu',
+  LTE: 'Tối đa',
+  BETWEEN: 'Trong khoảng'
 };
 
 export function formatTournamentCondition(condition) {
   if (typeof condition === 'string') return condition;
 
   const type = conditionTypeLabels[condition.type] || condition.type;
-  const unit = condition.type === 'AGE' ? ' years' : condition.type === 'WEIGHT' ? ' kg' : '';
+  const unit = condition.type === 'AGE' ? ' tuổi' : condition.type === 'WEIGHT' ? ' kg' : '';
 
   if (condition.type === 'GENDER') {
-    const genders = { ANY: 'Any gender', MALE: 'Male', FEMALE: 'Female' };
+    const genders = { ANY: 'Mọi giới tính', MALE: 'Đực', FEMALE: 'Cái' };
     return genders[condition.value] || `${type}: ${condition.value}`;
   }
 

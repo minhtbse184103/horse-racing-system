@@ -1,7 +1,7 @@
-export function formatOperationDateTime(value, fallback = 'Not reviewed') {
+export function formatOperationDateTime(value, fallback = 'Chưa có thông tin') {
   if (!value) return fallback;
 
-  return new Intl.DateTimeFormat('en-GB', {
+  return new Intl.DateTimeFormat('vi-VN', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',

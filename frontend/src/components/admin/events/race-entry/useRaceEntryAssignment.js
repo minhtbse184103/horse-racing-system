@@ -37,7 +37,7 @@ export default function useRaceEntryAssignment(
       );
       if (sequence === queueSequence.current) setCandidates(adapted);
     } catch (error) {
-      if (sequence === queueSequence.current) setQueueError(error.message || 'Unable to load assignment candidates.');
+      if (sequence === queueSequence.current) setQueueError(error.message || 'Không thể tải danh sách Registration có thể phân công.');
     } finally {
       if (sequence === queueSequence.current) setQueueLoading(false);
     }
@@ -60,7 +60,7 @@ export default function useRaceEntryAssignment(
         onEntryCountChange?.(raceId, adapted.length);
       }
     } catch (error) {
-      if (sequence === entriesSequence.current) setEntriesError(error.message || 'Unable to load assigned entries.');
+      if (sequence === entriesSequence.current) setEntriesError(error.message || 'Không thể tải RaceEntry đã phân công.');
     } finally {
       if (sequence === entriesSequence.current) setEntriesLoading(false);
     }

@@ -34,8 +34,8 @@ const adminNavItems = [
   },
   {
     key: 'events',
-    label: 'Giải đấu',
-    description: 'Sự kiện và đăng ký',
+    label: 'Tournament',
+    description: 'Sự kiện và Registration',
     icon: Trophy
   },
   {
@@ -52,8 +52,8 @@ const adminNavItems = [
   },
   {
     key: 'refereeAssignments',
-    label: 'Phân công referee',
-    description: 'Lịch làm việc trọng tài',
+    label: 'Phân công Referee',
+    description: 'Lịch làm việc Referee',
     icon: Gavel
   }
 ];

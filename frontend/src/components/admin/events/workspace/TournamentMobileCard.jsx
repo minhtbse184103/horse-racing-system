@@ -33,7 +33,7 @@ export default function TournamentMobileCard({
             type="button"
             onClick={onToggle}
             className="grid size-9 shrink-0 place-items-center rounded-lg bg-cream-200 text-brown-700"
-            aria-label={expanded ? 'Collapse tournament details' : 'Expand tournament details'}
+            aria-label={expanded ? 'Thu gọn thông tin Tournament' : 'Mở rộng thông tin Tournament'}
           >
             {expanded ? <ChevronDown size={17} /> : <ChevronRight size={17} />}
           </button>

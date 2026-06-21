@@ -7,8 +7,8 @@ export default function TournamentActions({ tournament, onEdit, onClone, onDelet
   const lockedStatus = ['IN_PROGRESS', 'COMPLETED', 'CANCELLED'].includes(tournament.status);
   const canModify = !hasRegistrations && !lockedStatus;
   const disabledReason = hasRegistrations
-    ? 'Unavailable after registrations have been submitted'
-    : `Unavailable while tournament status is ${tournament.status}`;
+    ? 'Không khả dụng sau khi đã có Registration được gửi'
+    : `Không khả dụng khi Status của Tournament là ${tournament.status}`;
   const baseClass = compact
     ? 'inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-lg border px-3 text-xs font-extrabold transition'
     : 'grid size-9 place-items-center rounded-lg border transition';
@@ -23,11 +23,11 @@ export default function TournamentActions({ tournament, onEdit, onClone, onDelet
         onClick={() => onEdit(tournament)}
         disabled={!canModify}
         className={`${baseClass} ${disabledClass} border-brown-700/15 bg-white text-brown-700 enabled:hover:border-brown-500 enabled:hover:bg-cream-200`}
-        title={canModify ? 'Edit tournament' : `Edit unavailable: ${disabledReason}`}
-        aria-label={canModify ? 'Edit tournament' : `Edit tournament unavailable: ${disabledReason}`}
+        title={canModify ? 'Chỉnh sửa Tournament' : `Không thể chỉnh sửa: ${disabledReason}`}
+        aria-label={canModify ? 'Chỉnh sửa Tournament' : `Không thể chỉnh sửa Tournament: ${disabledReason}`}
       >
         <Pencil size={15} />
-        {compact && 'Edit'}
+        {compact && 'Chỉnh sửa'}
       </motion.button>
       <motion.button
         whileHover={{ y: -1 }}
@@ -35,10 +35,10 @@ export default function TournamentActions({ tournament, onEdit, onClone, onDelet
         type="button"
         onClick={() => onClone(tournament)}
         className={`${baseClass} border-brown-700/15 bg-white text-brown-700 hover:border-brown-500 hover:bg-cream-200`}
-        title="Clone tournament"
+        title="Nhân bản Tournament"
       >
         <Copy size={15} />
-        {compact && 'Clone'}
+        {compact && 'Nhân bản'}
       </motion.button>
       <motion.button
         whileHover={canModify ? { y: -1 } : undefined}
@@ -47,11 +47,11 @@ export default function TournamentActions({ tournament, onEdit, onClone, onDelet
         onClick={() => onDelete(tournament)}
         disabled={!canModify}
         className={`${baseClass} ${disabledClass} border-red-200 bg-red-50 text-danger enabled:hover:border-red-300 enabled:hover:bg-red-100`}
-        title={canModify ? 'Cancel tournament' : `Cancel unavailable: ${disabledReason}`}
-        aria-label={canModify ? 'Cancel tournament' : `Cancel tournament unavailable: ${disabledReason}`}
+        title={canModify ? 'Hủy Tournament' : `Không thể hủy: ${disabledReason}`}
+        aria-label={canModify ? 'Hủy Tournament' : `Không thể hủy Tournament: ${disabledReason}`}
       >
         <Trash2 size={15} />
-        {compact && 'Cancel'}
+        {compact && 'Hủy'}
       </motion.button>
     </div>
   );

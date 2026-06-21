@@ -22,7 +22,7 @@ export default function TournamentStatusBadge({ status }) {
         statusClasses[status] ||
         'border-brown-700/10 bg-cream-200 text-brown-700 before:bg-brown-500'
       }`}
-      aria-label={`Tournament status: ${tournamentStatusLabels[status] || status}`}
+      aria-label={`Status Tournament: ${tournamentStatusLabels[status] || status}`}
     >
       {tournamentStatusLabels[status] || status}
     </motion.span>

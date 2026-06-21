@@ -27,7 +27,7 @@ import {
 function formatDateTime(value) {
   if (!value) return 'Chưa lên lịch';
 
-  return new Date(value).toLocaleString('en-GB', {
+  return new Date(value).toLocaleString('vi-VN', {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
@@ -37,19 +37,16 @@ function formatDateTime(value) {
 }
 
 function formatTime(value) {
-  if (!value) return 'Not scheduled';
+  if (!value) return 'Chưa lên lịch';
 
-  return new Date(value).toLocaleTimeString('en-GB', {
+  return new Date(value).toLocaleTimeString('vi-VN', {
     hour: '2-digit',
     minute: '2-digit'
   });
 }
 
 function formatStatus(status) {
-  return normalizeStatus(status)
-    .toLowerCase()
-    .replaceAll('_', ' ')
-    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+  return normalizeStatus(status);
 }
 
 function refereeId(referee) {
@@ -115,13 +112,13 @@ function AssignmentModal({
       >
         <header className="border-b border-brown-700/10 bg-cream-200/45 px-6 py-5">
           <p className="text-xs font-extrabold uppercase tracking-widest text-brown-500">
-            Referee Assignment
+            Phân công Referee
           </p>
           <h2 className="mt-2 text-2xl font-black text-brown-900">
-            {replacing ? 'Replace assigned referee' : 'Assign referee to race'}
+            {replacing ? 'Thay Referee đã phân công' : 'Phân công Referee cho Race'}
           </h2>
           <p className="mt-2 text-sm font-semibold text-slate-500">
-            Select an eligible race and an active referee. Schedule validation is performed when you save.
+            Chọn Race hợp lệ và Referee ACTIVE. Lịch làm việc sẽ được kiểm tra khi lưu.
           </p>
         </header>
 
@@ -129,7 +126,7 @@ function AssignmentModal({
           {replacing && (
             <div className="rounded-lg border border-gold-400/35 bg-gold-400/10 p-4">
               <p className="text-xs font-extrabold uppercase tracking-wider text-brown-500">
-                Current referee
+                Referee hiện tại
               </p>
               <p className="mt-1 font-black text-brown-900">
                 {action.assignment.refereeName}
@@ -149,7 +146,7 @@ function AssignmentModal({
               disabled={replacing}
               onChange={(event) => setRaceId(event.target.value)}
             >
-              <option value="">Select an eligible race</option>
+              <option value="">Chọn Race hợp lệ</option>
 
               {races.map((race) => (
                 <option key={race.raceId} value={race.raceId}>
@@ -179,7 +176,7 @@ function AssignmentModal({
               <div className="flex items-start gap-2 text-sm">
                 <MapPin className="mt-0.5 shrink-0 text-brown-500" size={17} />
                 <span className="font-bold text-slate-600">
-                  {selectedRace.trackName || selectedRace.venue || 'Track not specified'}
+                  {selectedRace.trackName || selectedRace.venue || 'Chưa xác định đường đua'}
                 </span>
               </div>
               <div className="sm:col-span-2">
@@ -200,7 +197,7 @@ function AssignmentModal({
               value={selectedRefereeId}
               onChange={(event) => setSelectedRefereeId(event.target.value)}
             >
-              <option value="">Select an active referee</option>
+              <option value="">Chọn Referee ACTIVE</option>
 
               {availableReferees.map((referee) => (
                 <option
@@ -231,7 +228,7 @@ function AssignmentModal({
           {availableReferees.length === 0 && (
             <div className="flex gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-900">
               <AlertTriangle className="mt-0.5 shrink-0" size={19} />
-              <p className="text-sm font-bold">No other active referees are available for this assignment.</p>
+              <p className="text-sm font-bold">Không còn Referee ACTIVE nào khác cho phân công này.</p>
             </div>
           )}
 
@@ -239,7 +236,7 @@ function AssignmentModal({
             <div className="flex gap-3 rounded-lg border border-danger/25 bg-danger-bg p-4 text-danger" role="alert">
               <AlertTriangle className="mt-0.5 shrink-0" size={19} />
               <div>
-                <p className="font-extrabold">Assignment could not be saved</p>
+                <p className="font-extrabold">Không thể lưu phân công</p>
                 <p className="mt-1 text-sm font-semibold">{error}</p>
               </div>
             </div>
@@ -248,7 +245,7 @@ function AssignmentModal({
           <div className="flex gap-3 rounded-lg border border-blue-200 bg-blue-50 p-4 text-blue-900">
             <Clock3 className="mt-0.5 shrink-0" size={19} />
             <p className="text-sm font-semibold">
-              The backend prevents overlapping schedules and assignments after a race starts.
+              Backend ngăn lịch làm việc bị trùng và không cho phép phân công sau khi Race bắt đầu.
             </p>
           </div>
         </div>
@@ -260,7 +257,7 @@ function AssignmentModal({
             disabled={isProcessing}
             onClick={onClose}
           >
-            Close
+            Đóng
           </button>
 
           <button
@@ -272,8 +269,8 @@ function AssignmentModal({
             {isProcessing
               ? 'Đang lưu...'
               : replacing
-                ? 'Replace referee'
-                : 'Confirm assignment'}
+                ? 'Thay Referee'
+                : 'Xác nhận phân công'}
           </button>
         </footer>
       </section>
@@ -293,18 +290,18 @@ function RemoveModal({ assignment, isProcessing, error, onClose, onConfirm }) {
         className="w-full max-w-md rounded-xl border border-brown-700/15 bg-cream-100 p-6 shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
-        <p className="text-xs font-extrabold uppercase tracking-widest text-danger">Remove assignment</p>
-        <h2 className="mt-2 text-2xl font-black text-brown-900">Remove referee?</h2>
+        <p className="text-xs font-extrabold uppercase tracking-widest text-danger">Gỡ phân công</p>
+        <h2 className="mt-2 text-2xl font-black text-brown-900">Gỡ Referee?</h2>
 
         <p className="mt-3 font-semibold text-slate-500">
-          Remove <strong className="text-brown-900">{assignment.refereeName}</strong> from{' '}
+          Gỡ <strong className="text-brown-900">{assignment.refereeName}</strong> khỏi{' '}
           <strong className="text-brown-900">{assignment.raceName}</strong>?
         </p>
 
         <div className="mt-4 rounded-lg border border-brown-700/10 bg-white p-4 text-sm">
           <p className="font-extrabold text-brown-900">{assignment.tournamentName}</p>
           <p className="mt-1 font-semibold text-slate-500">
-            {formatDateTime(assignment.raceStartTime)} · {assignment.trackName || 'Track not specified'}
+            {formatDateTime(assignment.raceStartTime)} · {assignment.trackName || 'Chưa xác định đường đua'}
           </p>
         </div>
 
@@ -312,7 +309,7 @@ function RemoveModal({ assignment, isProcessing, error, onClose, onConfirm }) {
           <div className="mt-4 flex gap-3 rounded-lg border border-danger/25 bg-danger-bg p-4 text-danger" role="alert">
             <AlertTriangle className="mt-0.5 shrink-0" size={19} />
             <div>
-              <p className="font-extrabold">Assignment could not be removed</p>
+              <p className="font-extrabold">Không thể gỡ phân công</p>
               <p className="mt-1 text-sm font-semibold">{error}</p>
             </div>
           </div>
@@ -325,7 +322,7 @@ function RemoveModal({ assignment, isProcessing, error, onClose, onConfirm }) {
             disabled={isProcessing}
             onClick={onClose}
           >
-            Cancel
+            Hủy
           </button>
 
           <button
@@ -448,7 +445,7 @@ export default function RefereeAssignmentManagement() {
       setAction(null);
       await loadData();
     } catch (err) {
-      setActionError(err.message || 'Unable to save this referee assignment.');
+      setActionError(err.message || 'Không thể lưu phân công Referee này.');
     } finally {
       setIsProcessing(false);
     }
@@ -465,7 +462,7 @@ export default function RefereeAssignmentManagement() {
       setRemoveTarget(null);
       await loadData();
     } catch (err) {
-      setActionError(err.message || 'Unable to remove this referee assignment.');
+      setActionError(err.message || 'Không thể gỡ phân công Referee này.');
     } finally {
       setIsProcessing(false);
     }
@@ -480,11 +477,11 @@ export default function RefereeAssignmentManagement() {
           </p>
 
           <h1 className="mt-2 text-4xl font-black md:text-5xl">
-            Referee Assignments
+            Phân công Referee
           </h1>
 
           <p className="mt-3 font-semibold text-slate-500">
-            Assign active referees to eligible races and keep schedule coverage clear.
+            Phân công Referee ACTIVE cho Race hợp lệ và theo dõi lịch làm việc rõ ràng.
           </p>
         </div>
 
@@ -496,7 +493,7 @@ export default function RefereeAssignmentManagement() {
             onClick={loadData}
           >
             <RefreshCw size={18} />
-            Refresh
+            Làm mới
           </button>
 
           <button
@@ -509,7 +506,7 @@ export default function RefereeAssignmentManagement() {
             }}
           >
             <ShieldCheck size={18} />
-            Assign Referee
+            Phân công Referee
           </button>
         </div>
       </header>
@@ -529,9 +526,9 @@ export default function RefereeAssignmentManagement() {
 
       <section className="grid gap-4 sm:grid-cols-3">
         {[
-          { icon: ShieldCheck, label: 'Assigned races', value: assignments.length },
-          { icon: CalendarDays, label: 'Eligible races', value: eligibleRaces.length },
-          { icon: Users, label: 'Active referees', value: referees.length }
+          { icon: ShieldCheck, label: 'Race đã phân công', value: assignments.length },
+          { icon: CalendarDays, label: 'Race hợp lệ', value: eligibleRaces.length },
+          { icon: Users, label: 'Referee ACTIVE', value: referees.length }
         ].map(({ icon: Icon, label, value }) => (
           <article className="rounded-xl border border-brown-700/10 bg-cream-100 p-5 shadow-lg" key={label}>
             <div className="flex items-center justify-between gap-3">
@@ -550,9 +547,9 @@ export default function RefereeAssignmentManagement() {
       <section className="overflow-hidden rounded-xl border border-brown-700/10 bg-cream-100 shadow-xl">
         <div className="flex items-center justify-between gap-4 border-b border-brown-700/10 bg-cream-200/50 px-6 py-5 max-sm:grid">
           <div>
-            <h2 className="text-2xl font-black">Current assignments</h2>
+            <h2 className="text-2xl font-black">Phân công hiện tại</h2>
             <p className="mt-2 font-semibold text-slate-500">
-              {assignments.length} races currently have referee coverage
+              {assignments.length} Race hiện đã có Referee phụ trách
             </p>
           </div>
 
@@ -564,7 +561,7 @@ export default function RefereeAssignmentManagement() {
 
             <input
               className="w-full rounded-xl border border-brown-700/15 bg-white py-3 pl-10 pr-4 font-bold outline-none focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
-              placeholder="Search race, tournament, or referee"
+              placeholder="Tìm Race, Tournament hoặc Referee"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
             />
@@ -572,7 +569,7 @@ export default function RefereeAssignmentManagement() {
         </div>
 
         {isLoading ? (
-          <div className="grid gap-3 px-6 py-8" aria-label="Loading referee assignments">
+          <div className="grid gap-3 px-6 py-8" aria-label="Đang tải phân công Referee">
             {[1, 2, 3].map((item) => (
               <div className="h-16 animate-pulse rounded-lg bg-cream-200/70" key={item} />
             ))}
@@ -583,14 +580,14 @@ export default function RefereeAssignmentManagement() {
               <ShieldCheck size={23} />
             </span>
             <p className="mt-4 font-black text-brown-900">
-              {search ? 'No assignments match your search' : 'No referee assignments yet'}
+              {search ? 'Không có phân công phù hợp' : 'Chưa có phân công Referee'}
             </p>
             <p className="mt-1 max-w-md text-sm font-semibold text-slate-500">
               {search
-                ? 'Try a different tournament, race, or referee name.'
+                ? 'Hãy thử tên Tournament, Race hoặc Referee khác.'
                 : eligibleRaces.length > 0
-                  ? 'Assign an active referee to an eligible upcoming race.'
-                  : 'There are currently no eligible races available for assignment.'}
+                  ? 'Phân công Referee ACTIVE cho Race sắp diễn ra và hợp lệ.'
+                  : 'Hiện không có Race hợp lệ để phân công.'}
             </p>
           </div>
         ) : (
@@ -600,11 +597,11 @@ export default function RefereeAssignmentManagement() {
               <thead className="bg-cream-200/60">
                 <tr>
                   {[
-                    'Tournament & race',
-                    'Schedule & track',
+                    'Tournament & Race',
+                    'Lịch trình & đường đua',
                     'Referee',
                     'Status',
-                    'Actions'
+                    'Thao tác'
                   ].map((heading) => (
                     <th
                       className="border-b border-brown-700/10 px-4 py-4 text-left text-xs font-extrabold uppercase text-brown-700"
@@ -629,7 +626,7 @@ export default function RefereeAssignmentManagement() {
 
                     <td className="w-[25%] border-b border-brown-700/10 px-4 py-4 text-sm">
                       <p className="flex items-center gap-2 font-bold text-brown-900"><CalendarDays size={15} />{formatDateTime(assignment.raceStartTime)}</p>
-                      <p className="mt-1 flex items-center gap-2 font-semibold text-slate-500"><MapPin size={15} />{assignment.trackName || 'Track not specified'}</p>
+                      <p className="mt-1 flex items-center gap-2 font-semibold text-slate-500"><MapPin size={15} />{assignment.trackName || 'Chưa xác định đường đua'}</p>
                     </td>
 
                     <td className="w-[20%] border-b border-brown-700/10 px-4 py-4">
@@ -656,7 +653,7 @@ export default function RefereeAssignmentManagement() {
                           }}
                         >
                           <UserRoundCog size={16} />
-                          Replace
+                          Thay thế
                         </button>
 
                         <button
@@ -668,7 +665,7 @@ export default function RefereeAssignmentManagement() {
                           }}
                         >
                           <Trash2 size={16} />
-                          Remove
+                          Gỡ
                         </button>
                       </div>
                     </td>
@@ -689,12 +686,12 @@ export default function RefereeAssignmentManagement() {
                 </div>
                 <div className="mt-4 grid gap-2 text-sm font-semibold text-slate-600">
                   <p className="flex items-center gap-2"><CalendarDays size={16} className="text-brown-500" />{formatDateTime(assignment.raceStartTime)}</p>
-                  <p className="flex items-center gap-2"><MapPin size={16} className="text-brown-500" />{assignment.trackName || 'Track not specified'}</p>
+                  <p className="flex items-center gap-2"><MapPin size={16} className="text-brown-500" />{assignment.trackName || 'Chưa xác định đường đua'}</p>
                   <p className="flex items-center gap-2"><Users size={16} className="text-brown-500" />{assignment.refereeName} · {assignment.refereeEmail}</p>
                 </div>
                 <div className="mt-4 grid grid-cols-2 gap-2">
-                  <button className="flex items-center justify-center gap-2 rounded-lg border border-brown-700/20 bg-white px-3 py-2 text-sm font-extrabold text-brown-700" type="button" onClick={() => { setActionError(''); setAction({ type: 'replace', assignment }); }}><UserRoundCog size={16} />Replace</button>
-                  <button className="flex items-center justify-center gap-2 rounded-lg border border-danger/20 bg-red-50 px-3 py-2 text-sm font-extrabold text-danger" type="button" onClick={() => { setActionError(''); setRemoveTarget(assignment); }}><Trash2 size={16} />Remove</button>
+                  <button className="flex items-center justify-center gap-2 rounded-lg border border-brown-700/20 bg-white px-3 py-2 text-sm font-extrabold text-brown-700" type="button" onClick={() => { setActionError(''); setAction({ type: 'replace', assignment }); }}><UserRoundCog size={16} />Thay thế</button>
+                  <button className="flex items-center justify-center gap-2 rounded-lg border border-danger/20 bg-red-50 px-3 py-2 text-sm font-extrabold text-danger" type="button" onClick={() => { setActionError(''); setRemoveTarget(assignment); }}><Trash2 size={16} />Gỡ</button>
                 </div>
               </article>
             ))}

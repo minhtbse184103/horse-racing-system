@@ -1,16 +1,16 @@
 import { CalendarDays, ClipboardCheck, Flag, Medal, Scale, Trophy, Users } from 'lucide-react';
 
 export const WIZARD_STEPS = [
-  { id: 1, label: 'Tournament', shortLabel: 'Information', icon: Trophy },
-  { id: 2, label: 'Races', shortLabel: 'Configuration', icon: Flag },
-  { id: 3, label: 'Prizes', shortLabel: 'By race rank', icon: Medal },
-  { id: 4, label: 'Review', shortLabel: 'Confirmation', icon: ClipboardCheck }
+  { id: 1, label: 'Tournament', shortLabel: 'Thông tin', icon: Trophy },
+  { id: 2, label: 'Race', shortLabel: 'Cấu hình', icon: Flag },
+  { id: 3, label: 'Giải thưởng', shortLabel: 'Theo hạng Race', icon: Medal },
+  { id: 4, label: 'Xem lại', shortLabel: 'Xác nhận', icon: ClipboardCheck }
 ];
 
 export const CONDITION_TYPES = [
-  { value: 'AGE', label: 'Age', description: 'Horse age in years', icon: CalendarDays },
-  { value: 'GENDER', label: 'Gender', description: 'Eligible horse gender', icon: Users },
-  { value: 'WEIGHT', label: 'Weight', description: 'Horse weight in kg', icon: Scale }
+  { value: 'AGE', label: 'Tuổi', description: 'Tuổi ngựa theo năm', icon: CalendarDays },
+  { value: 'GENDER', label: 'Giới tính', description: 'Giới tính ngựa hợp lệ', icon: Users },
+  { value: 'WEIGHT', label: 'Cân nặng', description: 'Cân nặng ngựa theo kg', icon: Scale }
 ];
 
 export const CONDITION_OPERATORS_BY_TYPE = {

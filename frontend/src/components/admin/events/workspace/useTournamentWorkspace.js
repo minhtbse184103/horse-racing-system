@@ -47,7 +47,7 @@ export default function useTournamentWorkspace() {
     try {
       const summaries = await getTournaments();
       if (!Array.isArray(summaries)) {
-        throw new Error('The tournament service returned an invalid response.');
+        throw new Error('Dịch vụ Tournament trả về dữ liệu không hợp lệ.');
       }
 
       const adaptedTournaments = await Promise.all(
@@ -70,7 +70,7 @@ export default function useTournamentWorkspace() {
       }
     } catch (error) {
       if (sequence === loadSequence.current) {
-        setLoadError(error.message || 'Unable to load tournaments.');
+        setLoadError(error.message || 'Không thể tải Tournament.');
       }
     } finally {
       if (sequence === loadSequence.current) {
@@ -93,7 +93,7 @@ export default function useTournamentWorkspace() {
       }
     } catch (error) {
       if (sequence === registrationLoadSequence.current) {
-        setRegistrationsError(error.message || 'Unable to load registrations.');
+        setRegistrationsError(error.message || 'Không thể tải Registration.');
       }
     } finally {
       if (sequence === registrationLoadSequence.current) {
@@ -192,7 +192,7 @@ export default function useTournamentWorkspace() {
     setWizardTournament({
       ...tournament,
       id: undefined,
-      name: `${tournament.name} Copy`,
+      name: `${tournament.name} - Bản sao`,
       status: 'OPEN_FOR_REGISTRATION',
       venueImageUrl: '',
       venueImageSrc: '',
@@ -219,11 +219,11 @@ export default function useTournamentWorkspace() {
       await loadTournaments();
       setExpandedId(tournamentId);
       setWizardOpen(false);
-      setNotice(`${tournament.name} saved successfully.`);
+      setNotice(`Đã lưu ${tournament.name} thành công.`);
       return tournamentId;
     } catch (error) {
       await loadTournaments();
-      setMutationError(error.message || 'Unable to save this tournament.');
+      setMutationError(error.message || 'Không thể lưu Tournament này.');
       if (error.partialTournamentId) {
         setExpandedId(error.partialTournamentId);
         setWizardOpen(false);
@@ -240,9 +240,9 @@ export default function useTournamentWorkspace() {
       await cancelTournament(target.id);
       await loadTournaments();
       setDeleteTarget(null);
-      setNotice(`${target.name} was cancelled successfully.`);
+      setNotice(`Đã hủy ${target.name} thành công.`);
     } catch (error) {
-      setMutationError(error.message || 'Unable to cancel this tournament.');
+      setMutationError(error.message || 'Không thể hủy Tournament này.');
       throw error;
     }
   }
@@ -257,9 +257,9 @@ export default function useTournamentWorkspace() {
         await completeTournament(tournament.id);
       }
       await loadTournaments();
-      setNotice(`${tournament.name} status updated successfully.`);
+      setNotice(`Đã cập nhật Status của ${tournament.name} thành công.`);
     } catch (error) {
-      setMutationError(error.message || 'Unable to update tournament status.');
+      setMutationError(error.message || 'Không thể cập nhật Status của Tournament.');
     } finally {
       setLifecycleProcessingId(null);
     }

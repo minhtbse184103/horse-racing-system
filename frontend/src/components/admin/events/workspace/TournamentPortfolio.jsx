@@ -40,9 +40,9 @@ export default function TournamentPortfolio({
       <div className="border-b border-brown-700/10 bg-white/65 p-4 md:p-5">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div>
-            <h2 className="text-xl font-black text-brown-900 md:text-2xl">Tournament portfolio</h2>
+            <h2 className="text-xl font-black text-brown-900 md:text-2xl">Danh sách Tournament</h2>
             <p className="mt-1 text-sm font-semibold text-slate-500">
-              Browse the complete event programme and operational status.
+              Theo dõi toàn bộ chương trình sự kiện và Status vận hành.
             </p>
           </div>
 
@@ -53,14 +53,14 @@ export default function TournamentPortfolio({
                 value={search}
                 onChange={(event) => onSearchChange(event.target.value)}
                 className="min-h-11 w-full rounded-lg border border-brown-700/15 bg-white py-2.5 pl-10 pr-9 text-sm font-bold text-brown-900 outline-none transition placeholder:text-slate-500/70 focus:border-brown-500 focus:ring-4 focus:ring-gold-400/15"
-                placeholder="Search name or venue"
+                placeholder="Tìm theo tên hoặc địa điểm"
               />
               {search && (
                 <button
                   type="button"
                   onClick={() => onSearchChange('')}
                   className="absolute right-2 top-1/2 grid size-7 -translate-y-1/2 place-items-center rounded-md text-slate-500 hover:bg-cream-200 hover:text-brown-900"
-                  aria-label="Clear search"
+                  aria-label="Xóa nội dung tìm kiếm"
                 >
                   <X size={14} />
                 </button>
@@ -74,7 +74,7 @@ export default function TournamentPortfolio({
                 onChange={(event) => onStatusFilterChange(event.target.value)}
                 className="min-h-11 w-full appearance-none rounded-lg border border-brown-700/15 bg-white py-2.5 pl-9 pr-8 text-sm font-extrabold text-brown-900 outline-none transition focus:border-brown-500 focus:ring-4 focus:ring-gold-400/15"
               >
-                <option value="ALL">All statuses</option>
+                <option value="ALL">Tất cả Status</option>
                 {Object.entries(tournamentStatusLabels).map(([value, label]) => (
                   <option key={value} value={value}>{label}</option>
                 ))}
@@ -88,7 +88,7 @@ export default function TournamentPortfolio({
                 onClick={onClearFilters}
                 className="min-h-11 rounded-lg border border-brown-700/15 bg-cream-200 px-3 text-xs font-extrabold text-brown-700 hover:border-brown-500 hover:bg-white"
               >
-                Clear
+                Xóa lọc
               </button>
             )}
           </div>
@@ -96,7 +96,7 @@ export default function TournamentPortfolio({
 
         <div className="mt-3 flex items-center justify-between gap-3 border-t border-brown-700/10 pt-3">
           <p className="text-xs font-bold text-slate-500">
-            Showing <strong className="text-brown-900">{filteredTournaments.length}</strong> of {tournaments.length} tournaments
+            Hiển thị <strong className="text-brown-900">{filteredTournaments.length}</strong> trên {tournaments.length} Tournament
           </p>
           {statusFilter !== 'ALL' && <TournamentStatusBadge status={statusFilter} />}
         </div>
@@ -131,11 +131,11 @@ export default function TournamentPortfolio({
           <thead className="bg-cream-200/60 text-left text-[11px] font-black uppercase text-brown-700">
             <tr>
               <th className="px-5 py-4">Tournament</th>
-              <th className="px-4 py-4">Venue</th>
-              <th className="px-4 py-4">Schedule</th>
-              <th className="px-4 py-4">Capacity</th>
+              <th className="px-4 py-4">Địa điểm</th>
+              <th className="px-4 py-4">Lịch trình</th>
+              <th className="px-4 py-4">Sức chứa</th>
               <th className="px-4 py-4">Status</th>
-              <th className="px-4 py-4 text-right">Actions</th>
+              <th className="px-4 py-4 text-right">Thao tác</th>
             </tr>
           </thead>
           <tbody>
@@ -169,7 +169,7 @@ export default function TournamentPortfolio({
                     </td>
                     <td className="px-3 py-4">
                       <p className="font-black text-brown-900">{formatTournamentDate(tournament.start)}</p>
-                      <p className="mt-1 text-xs font-semibold text-slate-500">to {formatTournamentDate(tournament.end)}</p>
+                      <p className="mt-1 text-xs font-semibold text-slate-500">đến {formatTournamentDate(tournament.end)}</p>
                     </td>
                     <td className="px-3 py-4">
                       <RegistrationCapacity value={registrationCounts.get(tournament.id) || 0} max={tournament.maxRegistration} />
@@ -199,18 +199,18 @@ export default function TournamentPortfolio({
             <span className="mx-auto grid size-12 place-items-center rounded-lg bg-cream-200 text-brown-700">
               <Search size={22} />
             </span>
-            <h3 className="mt-4 text-lg font-black text-brown-900">No tournaments found</h3>
+            <h3 className="mt-4 text-lg font-black text-brown-900">Không tìm thấy Tournament</h3>
             <p className="mx-auto mt-1 max-w-sm text-sm font-semibold leading-6 text-slate-500">
-              No event matches the current search and lifecycle filter.
+              Không có sự kiện nào phù hợp với nội dung tìm kiếm và bộ lọc hiện tại.
             </p>
             <div className="mt-5 flex flex-wrap justify-center gap-2">
               {hasFilters && (
                 <button type="button" onClick={onClearFilters} className="rounded-lg border border-brown-700/15 bg-white px-4 py-2.5 text-sm font-extrabold text-brown-700 hover:bg-cream-200">
-                  Clear filters
+                  Xóa bộ lọc
                 </button>
               )}
               <button type="button" onClick={onCreate} className="rounded-lg bg-brown-700 px-4 py-2.5 text-sm font-extrabold text-white hover:bg-brown-900">
-                Create tournament
+                Tạo Tournament
               </button>
             </div>
           </div>
