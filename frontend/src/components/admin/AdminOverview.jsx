@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import {
+  AlertCircle,
   ArrowRight,
   CalendarDays,
   CheckCircle2,
@@ -54,25 +55,38 @@ function formatDate(value) {
   });
 }
 
-function MetricCard({ icon: Icon, label, value, note, tone, onClick }) {
+function MetricCard({ icon: Icon, label, value, note, tone, onClick, isLoading }) {
   const tones = {
-    brown: 'bg-brown-700 text-white',
-    green: 'bg-green-700 text-white',
-    gold: 'bg-gold-400 text-brown-900',
-    cream: 'bg-cream-200 text-brown-700'
+    brown: {
+      icon: 'bg-brown-700 text-white',
+      accent: 'from-brown-700 to-brown-500'
+    },
+    green: {
+      icon: 'bg-emerald-700 text-white',
+      accent: 'from-emerald-700 to-emerald-500'
+    },
+    gold: {
+      icon: 'bg-gold-400 text-brown-900',
+      accent: 'from-gold-400 to-amber-500'
+    },
+    cream: {
+      icon: 'bg-cream-200 text-brown-700',
+      accent: 'from-brown-500 to-gold-400'
+    }
   };
+  const selectedTone = tones[tone] || tones.brown;
 
   return (
     <motion.button
       variants={fadeSlideItem}
       whileHover={hoverLift}
       whileTap={tapPress}
-      className="group relative overflow-hidden rounded-lg border border-white/80 bg-[linear-gradient(145deg,rgba(255,255,255,0.96),rgba(255,248,238,0.9))] p-5 text-left shadow-[0_12px_32px_rgba(78,44,25,0.09),0_1px_2px_rgba(43,23,16,0.08)] transition-colors hover:border-gold-400/45 hover:shadow-[0_20px_46px_rgba(78,44,25,0.14)]"
+      className="group relative min-h-44 overflow-hidden rounded-lg border border-white/90 bg-[linear-gradient(145deg,rgba(255,255,255,0.98),rgba(255,248,238,0.92))] p-5 text-left shadow-[0_12px_32px_rgba(78,44,25,0.08),0_1px_2px_rgba(43,23,16,0.08)] transition-colors hover:border-gold-400/45 hover:shadow-[0_20px_46px_rgba(78,44,25,0.14)]"
       type="button"
       onClick={onClick}
     >
       <div className="flex items-start justify-between gap-4">
-        <span className={`grid size-11 place-items-center rounded-lg ${tones[tone]}`}>
+        <span className={`grid size-11 place-items-center rounded-lg shadow-sm ${selectedTone.icon}`}>
           <Icon size={21} strokeWidth={2.4} />
         </span>
         <ArrowRight
@@ -84,13 +98,17 @@ function MetricCard({ icon: Icon, label, value, note, tone, onClick }) {
       <p className="mt-5 text-xs font-extrabold uppercase text-slate-500">
         {label}
       </p>
-      <strong className="mt-1 block text-3xl font-black text-brown-900">
-        {value}
-      </strong>
+      {isLoading ? (
+        <span className="mt-2 block h-9 w-16 animate-pulse rounded-md bg-brown-700/10" />
+      ) : (
+        <strong className="mt-1 block text-3xl font-black text-brown-900">
+          {value}
+        </strong>
+      )}
       <span className="mt-2 block text-xs font-semibold text-slate-500">
         {note}
       </span>
-      <span className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 origin-left scale-x-0 bg-gold-400 transition-transform duration-300 group-hover:scale-x-100" />
+      <span className={`pointer-events-none absolute inset-x-0 bottom-0 h-1 origin-left scale-x-75 bg-gradient-to-r ${selectedTone.accent} transition-transform duration-300 group-hover:scale-x-100`} />
     </motion.button>
   );
 }
@@ -100,7 +118,7 @@ function WorkQueueCard({ icon: Icon, label, count, note, tone, onClick }) {
     <motion.button
       whileHover={{ x: 3, transition: { duration: 0.16 } }}
       whileTap={tapPress}
-      className="group grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 rounded-lg border border-brown-700/10 bg-white/80 p-4 text-left shadow-[0_5px_16px_rgba(78,44,25,0.05)] transition-colors hover:border-gold-400/45 hover:bg-white hover:shadow-[0_12px_28px_rgba(78,44,25,0.1)]"
+      className="group grid min-h-[5.4rem] grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-lg border border-brown-700/10 bg-white/75 p-3.5 text-left shadow-[0_5px_16px_rgba(78,44,25,0.05)] transition-colors hover:border-gold-400/45 hover:bg-white hover:shadow-[0_12px_28px_rgba(78,44,25,0.1)] sm:gap-4 sm:p-4"
       type="button"
       onClick={onClick}
     >
@@ -113,7 +131,7 @@ function WorkQueueCard({ icon: Icon, label, count, note, tone, onClick }) {
           {note}
         </small>
       </span>
-      <span className="grid size-9 place-items-center rounded-full bg-cream-200 text-sm font-black text-brown-700">
+      <span className="grid min-w-9 place-items-center rounded-full border border-brown-700/10 bg-cream-200 px-2 py-1.5 text-sm font-black text-brown-700">
         {count}
       </span>
     </motion.button>
@@ -270,47 +288,54 @@ export default function AdminOverview({ onNavigate }) {
     {
       key: 'refereeAssignments',
       label: 'Phân công referee',
-      note: `${data.refereeAssignments.length} races currently covered`,
+      note: `${data.refereeAssignments.length} cuộc đua đã có người phụ trách`,
       icon: Gavel
     },
     {
       key: 'users',
       label: 'Quản lý người dùng',
-      note: `${activeUsers} active accounts`,
+      note: `${activeUsers} tài khoản đang hoạt động`,
       icon: Users
     }
   ];
 
   return (
-    <motion.section {...pageTransition} className="space-y-6 text-brown-900">
-      <header className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+    <motion.section {...pageTransition} className="space-y-5 text-brown-900 lg:space-y-6">
+      <header className="relative overflow-hidden rounded-lg border border-white/80 bg-white/45 px-5 py-5 shadow-[0_12px_36px_rgba(78,44,25,0.07)] backdrop-blur-sm sm:px-6 md:flex md:items-center md:justify-between md:gap-6">
         <div>
-          <p className="text-sm font-extrabold uppercase tracking-widest text-brown-500">
-            Admin Command Center
+          <p className="text-xs font-extrabold uppercase text-brown-500">
+            Trung tâm điều hành
           </p>
-          <h1 className="mt-2 text-4xl font-black md:text-5xl">
-            Pre-Race Operations
+          <h1 className="mt-2 text-3xl font-black sm:text-4xl">
+            Tổng quan vận hành
           </h1>
-          <p className="mt-3 max-w-2xl font-medium text-slate-500">
-            Review participants, prepare race fields, and make sure every event
-            is ready before tournament operations begin.
+          <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-slate-500 sm:text-base">
+            Theo dõi hồ sơ, chuẩn bị danh sách thi đấu và điều phối các giải đấu
+            từ một màn hình duy nhất.
           </p>
         </div>
 
         <button
-          className="inline-flex items-center justify-center gap-2 rounded-lg border border-brown-700/15 bg-white px-4 py-3 font-extrabold text-brown-700 shadow-sm transition hover:bg-cream-100 disabled:opacity-60"
+          className="mt-4 inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-brown-700/15 bg-white px-4 py-2.5 text-sm font-extrabold text-brown-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-cream-100 disabled:translate-y-0 disabled:opacity-60 md:mt-0"
           type="button"
           onClick={loadOverview}
           disabled={isLoading}
         >
           <RefreshCw size={17} className={isLoading ? 'animate-spin' : ''} />
-          Refresh
+          Làm mới
         </button>
+        <span className="pointer-events-none absolute -right-10 -top-12 size-36 rounded-full border border-gold-400/15" />
       </header>
 
       {error && (
-        <div className="rounded-lg border border-danger/20 bg-danger-bg px-4 py-3 font-bold text-danger">
-          {error}
+        <div className="flex flex-col gap-3 rounded-lg border border-danger/20 bg-danger-bg px-4 py-3 text-danger sm:flex-row sm:items-center sm:justify-between">
+          <span className="flex items-center gap-2 text-sm font-bold">
+            <AlertCircle size={18} className="shrink-0" />
+            {error}
+          </span>
+          <button className="rounded-md border border-danger/20 bg-white px-3 py-2 text-xs font-extrabold transition hover:bg-danger-bg" type="button" onClick={loadOverview}>
+            Thử lại
+          </button>
         </div>
       )}
 
@@ -326,6 +351,7 @@ export default function AdminOverview({ onNavigate }) {
           value={openTournaments}
           note={`${data.tournaments.length} tournaments total`}
           tone="brown"
+          isLoading={isLoading}
           onClick={() => onNavigate('events')}
         />
         <MetricCard
@@ -334,6 +360,7 @@ export default function AdminOverview({ onNavigate }) {
           value={totalReviewQueue}
           note="Tổng hợp đơn đăng ký, ngựa và jockey"
           tone="gold"
+          isLoading={isLoading}
           onClick={() => onNavigate('events')}
         />
         <MetricCard
@@ -342,6 +369,7 @@ export default function AdminOverview({ onNavigate }) {
           value={data.raceEntryQueue.length}
           note={`${approvedRegistrations} approved registrations`}
           tone="green"
+          isLoading={isLoading}
           onClick={() => onNavigate('events')}
         />
         <MetricCard
@@ -350,21 +378,22 @@ export default function AdminOverview({ onNavigate }) {
           value={data.refereeAssignments.length}
           note="Cuộc đua đã có referee phụ trách"
           tone="cream"
+          isLoading={isLoading}
           onClick={() => onNavigate('refereeAssignments')}
         />
       </motion.div>
 
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.15fr_0.85fr]">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.2fr_0.8fr]">
         <motion.section whileHover={{ y: -2 }} className="rounded-lg border border-white/75 bg-cream-100 p-5 shadow-[0_18px_45px_rgba(78,44,25,0.1),0_1px_2px_rgba(43,23,16,0.08)]">
           <div className="flex items-start justify-between gap-4">
             <div>
               <span className="text-xs font-extrabold uppercase text-brown-500">
-                Action Required
+                Cần xử lý
               </span>
               <h2 className="mt-1 text-2xl font-black">Hàng chờ công việc quản trị</h2>
             </div>
             <span className="rounded-full bg-danger-bg px-3 py-1 text-sm font-black text-danger">
-              {totalReviewQueue + data.raceEntryQueue.length} waiting
+              {totalReviewQueue + data.raceEntryQueue.length} đang chờ
             </span>
           </div>
 
@@ -381,7 +410,7 @@ export default function AdminOverview({ onNavigate }) {
 
         <motion.section whileHover={{ y: -2 }} className="relative overflow-hidden rounded-lg border border-white/10 bg-[linear-gradient(145deg,#2b1710,#4a2819)] p-5 text-white shadow-[0_22px_52px_rgba(43,23,16,0.25)]">
           <span className="text-xs font-extrabold uppercase text-gold-400">
-            Quick Operations
+            Thao tác nhanh
           </span>
           <h2 className="mt-1 text-2xl font-black">Tiếp tục thiết lập</h2>
 
@@ -419,12 +448,12 @@ export default function AdminOverview({ onNavigate }) {
         </motion.section>
       </div>
 
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_0.82fr]">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.08fr_0.72fr]">
         <motion.section whileHover={{ y: -2 }} className="overflow-hidden rounded-lg border border-white/75 bg-cream-100 shadow-[0_18px_45px_rgba(78,44,25,0.1),0_1px_2px_rgba(43,23,16,0.08)]">
           <div className="flex items-center justify-between gap-4 border-b border-brown-700/10 bg-cream-200/45 px-5 py-4">
             <div>
               <span className="text-xs font-extrabold uppercase text-brown-500">
-                Calendar
+                Lịch sự kiện
               </span>
               <h2 className="mt-1 text-xl font-black">Giải đấu sắp diễn ra</h2>
             </div>
@@ -480,7 +509,7 @@ export default function AdminOverview({ onNavigate }) {
 
         <motion.section whileHover={{ y: -2 }} className="rounded-lg border border-white/75 bg-cream-100 p-5 shadow-[0_18px_45px_rgba(78,44,25,0.1),0_1px_2px_rgba(43,23,16,0.08)]">
           <span className="text-xs font-extrabold uppercase text-brown-500">
-            Tournament Lifecycle
+            Vòng đời giải đấu
           </span>
           <h2 className="mt-1 text-xl font-black">Giải đấu theo trạng thái</h2>
 
