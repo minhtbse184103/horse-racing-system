@@ -8,6 +8,10 @@ export function getTournaments() {
   return httpRequest('/api/tournaments');
 }
 
+export function getTournamentById(tournamentId) {
+  return httpRequest(`/api/tournaments/${tournamentId}`);
+}
+
 export function getPublicTournaments() {
   return httpRequest('/api/tournaments', { auth: false });
 }
@@ -30,8 +34,30 @@ export function updateTournament(tournamentId, payload) {
   });
 }
 
-export function openTournamentRegistration(tournamentId) {
-  return httpRequest(`/api/tournaments/${tournamentId}/open-registration`, {
+export function uploadTournamentVenueImage(tournamentId, file) {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  return httpRequest(`/api/tournaments/${tournamentId}/venue-image`, {
+    method: 'POST',
+    body: formData
+  });
+}
+
+export function removeTournamentVenueImage(tournamentId) {
+  return httpRequest(`/api/tournaments/${tournamentId}/venue-image`, {
+    method: 'DELETE'
+  });
+}
+
+export function closeTournamentRegistration(tournamentId) {
+  return httpRequest(`/api/tournaments/${tournamentId}/close-registration`, {
+    method: 'PUT'
+  });
+}
+
+export function completeTournament(tournamentId) {
+  return httpRequest(`/api/tournaments/${tournamentId}/complete`, {
     method: 'PUT'
   });
 }
@@ -42,12 +68,8 @@ export function cancelTournament(tournamentId) {
   });
 }
 
-export function getTournamentRounds(tournamentId) {
-  return httpRequest(`/api/tournament-rounds/by-tournament/${tournamentId}`);
-}
-
-export function getRacesByRound(roundId) {
-  return httpRequest(`/api/races/by-round/${roundId}`);
+export function getRacesByTournament(tournamentId) {
+  return httpRequest(`/api/races/by-tournament/${tournamentId}`);
 }
 
 export function createRace(payload) {

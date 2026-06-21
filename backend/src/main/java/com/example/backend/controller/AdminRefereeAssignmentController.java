@@ -3,7 +3,6 @@ package com.example.backend.controller;
 import com.example.backend.dto.request.CreateRefereeAssignmentRequest;
 import com.example.backend.dto.response.RefereeAssignmentResponse;
 import com.example.backend.dto.response.UserResponse;
-import com.example.backend.entity.RefereeAssignment;
 import com.example.backend.service.RefereeAssignmentService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -25,24 +24,30 @@ public class AdminRefereeAssignmentController {
     }
 
     @PostMapping
-    public ResponseEntity<RefereeAssignment> createAssignment(
+    public ResponseEntity<RefereeAssignmentResponse> createAssignment(
             @Valid @RequestBody CreateRefereeAssignmentRequest request
     ) {
-        return ResponseEntity.status(HttpStatus.CREATED)
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
                 .body(assignmentService.createAssignment(request));
     }
 
     @PutMapping("/{raceId}/referee/{refereeUserId}")
-    public RefereeAssignment replaceAssignment(
+    public RefereeAssignmentResponse replaceAssignment(
             @PathVariable Integer raceId,
             @PathVariable Integer refereeUserId
     ) {
-        return assignmentService.replaceAssignment(raceId, refereeUserId);
+        return assignmentService.replaceAssignment(
+                raceId,
+                refereeUserId
+        );
     }
 
     @DeleteMapping("/{raceId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void removeAssignment(@PathVariable Integer raceId) {
+    public void removeAssignment(
+            @PathVariable Integer raceId
+    ) {
         assignmentService.removeAssignment(raceId);
     }
 
@@ -52,7 +57,9 @@ public class AdminRefereeAssignmentController {
     }
 
     @GetMapping("/by-race/{raceId}")
-    public RefereeAssignmentResponse getByRaceId(@PathVariable Integer raceId) {
+    public RefereeAssignmentResponse getByRaceId(
+            @PathVariable Integer raceId
+    ) {
         return assignmentService.getByRaceId(raceId);
     }
 

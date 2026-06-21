@@ -1,17 +1,20 @@
 package com.example.backend.service;
 
-import com.example.backend.constant.EventStatus;
-import com.example.backend.entity.Horse;
-import com.example.backend.entity.JockeyProfile;
+import com.example.backend.constant.PaymentStatus;
+import com.example.backend.constant.RaceEntryStatus;
+import com.example.backend.constant.RegistrationStatus;
+import com.example.backend.dto.request.RejectRegistrationRequest;
+import com.example.backend.dto.request.UpdatePaymentStatusRequest;
+import com.example.backend.dto.response.RegistrationResponse;
 import com.example.backend.entity.Registration;
+import com.example.backend.entity.Role;
 import com.example.backend.entity.Tournament;
-import com.example.backend.entity.TournamentCondition;
 import com.example.backend.entity.User;
 import com.example.backend.exception.ApiException;
 import com.example.backend.repository.HorseRepository;
-import com.example.backend.repository.JockeyProfileRepository;
+import com.example.backend.repository.RaceEntryRepository;
+import com.example.backend.repository.RaceRepository;
 import com.example.backend.repository.RegistrationRepository;
-import com.example.backend.repository.TournamentConditionRepository;
 import com.example.backend.repository.TournamentRepository;
 import com.example.backend.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,18 +23,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
-import org.springframework.jdbc.core.JdbcTemplate;
 
-import java.math.BigDecimal;
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -39,20 +38,13 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class AdminRegistrationServiceTest {
 
-    @Mock
-    private RegistrationRepository registrationRepository;
-    @Mock
-    private HorseRepository horseRepository;
-    @Mock
-    private UserRepository userRepository;
-    @Mock
-    private TournamentRepository tournamentRepository;
-    @Mock
-    private TournamentConditionRepository tournamentConditionRepository;
-    @Mock
-    private JockeyProfileRepository jockeyProfileRepository;
-    @Mock
-    private JdbcTemplate jdbcTemplate;
+    @Mock private RegistrationRepository registrationRepository;
+    @Mock private TournamentRepository tournamentRepository;
+    @Mock private HorseRepository horseRepository;
+    @Mock private UserRepository userRepository;
+    @Mock private RaceEntryRepository raceEntryRepository;
+    @Mock private RaceRepository raceRepository;
+    @Mock private RegistrationEligibilityService eligibilityService;
 
     private AdminRegistrationService service;
 
@@ -60,283 +52,193 @@ class AdminRegistrationServiceTest {
     void setUp() {
         service = new AdminRegistrationService(
                 registrationRepository,
+                tournamentRepository,
                 horseRepository,
                 userRepository,
-                tournamentRepository,
-                tournamentConditionRepository,
-                jockeyProfileRepository,
-                jdbcTemplate);
+                raceEntryRepository,
+                raceRepository,
+                eligibilityService
+        );
     }
 
     @Test
-    void confirmRegistrationChangesAcceptedRegistrationToConfirmed() {
-        Registration registration = validRegistration();
-        mockValidConfirmationData(registration);
+    void getPendingRegistrationsUsesPendingApprovalStatus() {
+        Registration registration = pendingRegistration();
+        when(registrationRepository.findByApprovalStatusOrderBySubmittedAtAsc(
+                RegistrationStatus.PENDING
+        )).thenReturn(List.of(registration));
+        stubResponseLookups(registration);
+
+        List<RegistrationResponse> result = service.getPendingRegistrations();
+
+        assertEquals(1, result.size());
+        assertEquals(RegistrationStatus.PENDING,
+                result.getFirst().getApprovalStatus());
+    }
+
+    @Test
+    void getRegistrationsRejectsUnsupportedStatus() {
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.getRegistrations("CONFIRMED")
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        verify(registrationRepository, never())
+                .findByApprovalStatusOrderBySubmittedAtDesc(any());
+    }
+
+    @Test
+    void approveRegistrationSetsApprovalAuditFields() {
+        Registration registration = pendingRegistration();
+        Tournament tournament = tournament();
+        User admin = activeAdmin();
+        when(registrationRepository.findByIdForUpdate(1))
+                .thenReturn(Optional.of(registration));
+        when(tournamentRepository.findByIdForUpdate(10))
+                .thenReturn(Optional.of(tournament));
+        when(userRepository.findByEmail("admin@example.com"))
+                .thenReturn(Optional.of(admin));
         when(registrationRepository.save(registration)).thenReturn(registration);
-        when(jdbcTemplate.queryForObject(any(String.class), eq(String.class), eq(1)))
-                .thenReturn("Registration Test");
+        stubResponseLookups(registration);
 
-        var response = service.confirmRegistration(1);
+        RegistrationResponse response = service.approveRegistration(
+                1,
+                "admin@example.com"
+        );
 
-        assertEquals("CONFIRMED", response.getStatus());
-        verify(registrationRepository).save(registration);
+        assertEquals(RegistrationStatus.APPROVED,
+                registration.getApprovalStatus());
+        assertEquals(99, registration.getReviewedBy());
+        assertNotNull(registration.getReviewedAt());
+        assertEquals(RegistrationStatus.APPROVED,
+                response.getApprovalStatus());
+        verify(eligibilityService).validateForApproval(registration, tournament);
     }
 
     @Test
-    void confirmRegistrationRejectsNonAcceptedStatus() {
-        Registration registration = validRegistration();
-        registration.setStatus("CONFIRMED");
-        when(registrationRepository.findByIdForUpdate(1)).thenReturn(Optional.of(registration));
+    void approveRegistrationRejectsNonPendingRegistration() {
+        Registration registration = pendingRegistration();
+        registration.setApprovalStatus(RegistrationStatus.APPROVED);
+        when(registrationRepository.findByIdForUpdate(1))
+                .thenReturn(Optional.of(registration));
 
-        ApiException exception = assertThrows(ApiException.class,
-                () -> service.confirmRegistration(1));
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.approveRegistration(1, "admin@example.com")
+        );
 
         assertEquals(HttpStatus.CONFLICT, exception.getStatus());
         verify(registrationRepository, never()).save(any());
     }
 
     @Test
-    void confirmRegistrationRejectsInvalidTournamentStatus() {
-        Registration registration = validRegistration();
-        Tournament tournament = validTournament();
-        tournament.setStatus(EventStatus.READY);
-        mockEntityLookups(registration, tournament, validHorse(), validOwner(), validJockey(),
-                validJockeyProfile(), validCondition());
-
-        assertConflict(() -> service.confirmRegistration(1),
-                "Giải đấu phải đang mở hoặc đã đóng đăng ký.");
-    }
-
-    @Test
-    void confirmRegistrationRejectsInactiveHorse() {
-        Registration registration = validRegistration();
-        Horse horse = validHorse();
-        horse.setStatus("INACTIVE");
-        mockEntityLookups(registration, validTournament(), horse, validOwner(), validJockey(),
-                validJockeyProfile(), validCondition());
-
-        assertConflict(() -> service.confirmRegistration(1), "Ngựa không ở trạng thái ACTIVE.");
-    }
-
-    @Test
-    void confirmRegistrationRejectsExpiredHorseCertificate() {
-        Registration registration = validRegistration();
-        Horse horse = validHorse();
-        horse.setHealthCertExpiry(LocalDate.now().plusDays(5));
-        mockEntityLookups(registration, validTournament(), horse, validOwner(), validJockey(),
-                validJockeyProfile(), validCondition());
-
-        assertConflict(() -> service.confirmRegistration(1),
-                "Giấy chứng nhận sức khỏe của ngựa hết hạn trước khi giải đấu bắt đầu.");
-    }
-
-    @Test
-    void confirmRegistrationRejectsOverweightHorse() {
-        Registration registration = validRegistration();
-        Horse horse = validHorse();
-        horse.setWeight(new BigDecimal("451.00"));
-        mockEntityLookups(registration, validTournament(), horse, validOwner(), validJockey(),
-                validJockeyProfile(), validCondition());
-
-        assertConflict(() -> service.confirmRegistration(1),
-                "Cân nặng của ngựa vượt quá giới hạn của giải đấu.");
-    }
-
-    @Test
-    void confirmRegistrationRejectsInactiveJockeyProfile() {
-        Registration registration = validRegistration();
-        JockeyProfile profile = validJockeyProfile();
-        profile.setStatus("INACTIVE");
-        mockEntityLookups(registration, validTournament(), validHorse(), validOwner(), validJockey(),
-                profile, validCondition());
-
-        assertConflict(() -> service.confirmRegistration(1),
-                "Hồ sơ nài ngựa không hoạt động.");
-    }
-
-    @Test
-    void confirmRegistrationRejectsOverweightJockey() {
-        Registration registration = validRegistration();
-        JockeyProfile profile = validJockeyProfile();
-        profile.setWeight(new BigDecimal("56.00"));
-        mockEntityLookups(registration, validTournament(), validHorse(), validOwner(), validJockey(),
-                profile, validCondition());
-
-        assertConflict(() -> service.confirmRegistration(1),
-                "Nài ngựa vượt quá giới hạn cân nặng của giải đấu.");
-    }
-
-    @Test
-    void confirmRegistrationRejectsFullTournament() {
-        Registration registration = validRegistration();
-        mockEntityLookups(registration, validTournament(), validHorse(), validOwner(), validJockey(),
-                validJockeyProfile(), validCondition());
-        when(registrationRepository.countByTournamentIdAndStatusIn(1, List.of("CONFIRMED")))
-                .thenReturn(12L);
-
-        assertConflict(() -> service.confirmRegistration(1),
-                "Giải đấu đã đạt số người tham gia tối đa.");
-    }
-
-    @Test
-    void confirmRegistrationRejectsDuplicateConfirmedJockey() {
-        Registration registration = validRegistration();
-        mockEntityLookups(registration, validTournament(), validHorse(), validOwner(), validJockey(),
-                validJockeyProfile(), validCondition());
-        when(registrationRepository.countByTournamentIdAndHorseIdAndStatusInExcludingRegistration(
-                1, 1, List.of("CONFIRMED"), 1)).thenReturn(0L);
-        when(registrationRepository.countByTournamentIdAndJockeyIdAndStatusInExcludingRegistration(
-                1, 3, List.of("CONFIRMED"), 1)).thenReturn(1L);
-
-        assertConflict(() -> service.confirmRegistration(1),
-                "Nài ngựa đã có đơn đăng ký được xác nhận trong giải đấu này.");
-        verify(registrationRepository, never()).countByTournamentIdAndStatusIn(any(), any());
-    }
-
-    @Test
-    void rejectRegistrationDoesNotRunConfirmationValidations() {
-        Registration registration = validRegistration();
-        when(registrationRepository.findByIdForUpdate(1)).thenReturn(Optional.of(registration));
+    void rejectRegistrationTrimsReasonAndSetsAuditFields() {
+        Registration registration = pendingRegistration();
+        User admin = activeAdmin();
+        RejectRegistrationRequest request = new RejectRegistrationRequest();
+        request.setRejectionReason("  Invalid health certificate  ");
+        when(registrationRepository.findByIdForUpdate(1))
+                .thenReturn(Optional.of(registration));
+        when(userRepository.findByEmail("admin@example.com"))
+                .thenReturn(Optional.of(admin));
         when(registrationRepository.save(registration)).thenReturn(registration);
-        when(horseRepository.findById(1)).thenReturn(Optional.of(validHorse()));
-        when(userRepository.findById(2)).thenReturn(Optional.of(validOwner()));
-        when(userRepository.findById(3)).thenReturn(Optional.of(validJockey()));
-        when(jdbcTemplate.queryForObject(any(String.class), eq(String.class), eq(1)))
-                .thenReturn("Registration Test");
+        stubResponseLookups(registration);
 
-        var response = service.rejectRegistration(1);
+        RegistrationResponse response = service.rejectRegistration(
+                1,
+                request,
+                "admin@example.com"
+        );
 
-        assertEquals("REJECTED", response.getStatus());
-        verify(tournamentRepository, never()).findById(any());
+        assertEquals(RegistrationStatus.REJECTED,
+                registration.getApprovalStatus());
+        assertEquals("Invalid health certificate",
+                registration.getRejectionReason());
+        assertEquals(99, registration.getReviewedBy());
+        assertEquals(RegistrationStatus.REJECTED,
+                response.getApprovalStatus());
     }
 
-    private void mockValidConfirmationData(Registration registration) {
-        mockEntityLookups(registration, validTournament(), validHorse(), validOwner(), validJockey(),
-                validJockeyProfile(), validCondition());
-        when(registrationRepository.countByTournamentIdAndStatusIn(1, List.of("CONFIRMED")))
-                .thenReturn(0L);
-        when(registrationRepository.countByTournamentIdAndHorseIdAndStatusInExcludingRegistration(
-                1, 1, List.of("CONFIRMED"), 1)).thenReturn(0L);
-        when(registrationRepository.countByTournamentIdAndJockeyIdAndStatusInExcludingRegistration(
-                1, 3, List.of("CONFIRMED"), 1)).thenReturn(0L);
+    @Test
+    void updatePaymentStatusNormalizesAndSavesStatus() {
+        Registration registration = pendingRegistration();
+        UpdatePaymentStatusRequest request = new UpdatePaymentStatusRequest();
+        request.setPaymentStatus(" paid ");
+        when(registrationRepository.findByIdForUpdate(1))
+                .thenReturn(Optional.of(registration));
+        when(registrationRepository.save(registration)).thenReturn(registration);
+        stubResponseLookups(registration);
+
+        RegistrationResponse response = service.updatePaymentStatus(1, request);
+
+        assertEquals(PaymentStatus.PAID, registration.getPaymentStatus());
+        assertEquals(PaymentStatus.PAID, response.getPaymentStatus());
     }
 
-    private void mockEntityLookups(
-            Registration registration,
-            Tournament tournament,
-            Horse horse,
-            User owner,
-            User jockey,
-            JockeyProfile jockeyProfile,
-            TournamentCondition condition) {
-        when(registrationRepository.findByIdForUpdate(1)).thenReturn(Optional.of(registration));
-        when(tournamentRepository.findByIdForUpdate(1)).thenReturn(Optional.of(tournament));
-        lenient().when(tournamentConditionRepository.findById(1)).thenReturn(Optional.of(condition));
-        lenient().when(userRepository.findById(2)).thenReturn(Optional.of(owner));
-        lenient().when(horseRepository.findById(1)).thenReturn(Optional.of(horse));
-        lenient().when(userRepository.findById(3)).thenReturn(Optional.of(jockey));
-        lenient().when(jockeyProfileRepository.findById(3)).thenReturn(Optional.of(jockeyProfile));
-    }
+    @Test
+    void approvedRegistrationMustRemainPaid() {
+        Registration registration = pendingRegistration();
+        registration.setApprovalStatus(RegistrationStatus.APPROVED);
+        registration.setPaymentStatus(PaymentStatus.PAID);
+        UpdatePaymentStatusRequest request = new UpdatePaymentStatusRequest();
+        request.setPaymentStatus(PaymentStatus.REFUNDED);
+        when(registrationRepository.findByIdForUpdate(1))
+                .thenReturn(Optional.of(registration));
 
-    private void assertConflict(Runnable action, String message) {
-        ApiException exception = assertThrows(ApiException.class, action::run);
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.updatePaymentStatus(1, request)
+        );
+
         assertEquals(HttpStatus.CONFLICT, exception.getStatus());
-        assertEquals(message, exception.getMessage());
         verify(registrationRepository, never()).save(any());
     }
 
-    private Registration validRegistration() {
-        return Registration.builder()
-                .registrationId(1)
-                .tournamentId(1)
-                .horseId(1)
-                .ownerId(2)
-                .jockeyId(3)
-                .status("ACCEPTED")
-                .build();
+    private Registration pendingRegistration() {
+        Registration registration = new Registration();
+        registration.setRegistrationId(1);
+        registration.setRegistrationNo("REG-001");
+        registration.setTournamentId(10);
+        registration.setHorseId(20);
+        registration.setOwnerId(30);
+        registration.setPaymentStatus(PaymentStatus.UNPAID);
+        registration.setApprovalStatus(RegistrationStatus.PENDING);
+        return registration;
     }
 
-    private Tournament validTournament() {
+    private Tournament tournament() {
         Tournament tournament = new Tournament();
-        tournament.setTournamentId(1);
-        tournament.setTournamentName("Registration Test");
-        tournament.setStatus(EventStatus.OPEN_FOR_REGISTRATION);
-        tournament.setStartDate(LocalDate.now().plusDays(10));
-        tournament.setMaxParticipants(12);
-        tournament.setConditionId(1);
+        tournament.setTournamentId(10);
+        tournament.setTournamentName("Summer Championship");
         return tournament;
     }
 
-    private TournamentCondition validCondition() {
-        TournamentCondition condition = new TournamentCondition();
-        condition.setConditionId(1);
-        condition.setMaxHorseWeight(new BigDecimal("450.00"));
-        condition.setMaxJockeyWeight(new BigDecimal("55.00"));
-        return condition;
+    private User activeAdmin() {
+        Role role = new Role();
+        role.setRoleName("ADMIN");
+        User admin = new User();
+        admin.setUserID(99);
+        admin.setRole(role);
+        admin.setStatus("ACTIVE");
+        admin.setFullName("Admin User");
+        return admin;
     }
 
-    private Horse validHorse() {
-        return Horse.builder()
-                .horseId(1)
-                .ownerId(2)
-                .horseName("Thunder Test")
-                .weight(new BigDecimal("430.00"))
-                .healthCertExpiry(LocalDate.now().plusDays(30))
-                .status("ACTIVE")
-                .build();
-    }
-
-    private User validOwner() {
-        User owner = new User();
-        owner.setUserID(2);
-        owner.setFullName("Test Owner");
-        owner.setStatus("ACTIVE");
-        return owner;
-    }
-
-    private User validJockey() {
-        User jockey = new User();
-        jockey.setUserID(3);
-        jockey.setFullName("Test Jockey");
-        jockey.setStatus("ACTIVE");
-        return jockey;
-    }
-
-    private JockeyProfile validJockeyProfile() {
-        return JockeyProfile.builder()
-                .jockeyId(3)
-                .weight(new BigDecimal("52.00"))
-                .status("ACTIVE")
-                .build();
-    }
-
-    @Test
-    void getRegistrationHistoryReturnsConfirmedAndRejectedRegistrations() {
-        Registration confirmed = validRegistration();
-        confirmed.setRegistrationId(1);
-        confirmed.setStatus("CONFIRMED");
-
-        Registration rejected = validRegistration();
-        rejected.setRegistrationId(2);
-        rejected.setStatus("REJECTED");
-
-        when(registrationRepository.findByStatusInOrderByUpdatedAtDesc(
-                List.of("CONFIRMED", "REJECTED")))
-                .thenReturn(List.of(confirmed, rejected));
-
-        when(horseRepository.findById(1)).thenReturn(Optional.of(validHorse()));
-        when(userRepository.findById(2)).thenReturn(Optional.of(validOwner()));
-        when(userRepository.findById(3)).thenReturn(Optional.of(validJockey()));
-        when(jdbcTemplate.queryForObject(any(String.class), eq(String.class), eq(1)))
-                .thenReturn("Registration Test");
-
-        var history = service.getRegistrationHistory();
-
-        assertEquals(2, history.size());
-        assertEquals("CONFIRMED", history.get(0).getStatus());
-        assertEquals("REJECTED", history.get(1).getStatus());
-
-        verify(registrationRepository).findByStatusInOrderByUpdatedAtDesc(
-                List.of("CONFIRMED", "REJECTED"));
+    private void stubResponseLookups(Registration registration) {
+        when(tournamentRepository.findById(registration.getTournamentId()))
+                .thenReturn(Optional.of(tournament()));
+        when(horseRepository.findById(registration.getHorseId()))
+                .thenReturn(Optional.empty());
+        when(userRepository.findById(registration.getOwnerId()))
+                .thenReturn(Optional.empty());
+        if (registration.getReviewedBy() != null) {
+            when(userRepository.findById(registration.getReviewedBy()))
+                    .thenReturn(Optional.of(activeAdmin()));
+        }
+        when(raceEntryRepository.findByRegistrationIdAndStatus(
+                registration.getRegistrationId(),
+                RaceEntryStatus.ASSIGNED
+        )).thenReturn(Optional.empty());
     }
 }

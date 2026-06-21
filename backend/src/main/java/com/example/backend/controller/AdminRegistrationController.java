@@ -1,46 +1,76 @@
 package com.example.backend.controller;
 
-import java.util.List;
-
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import com.example.backend.dto.response.AdminRegistrationResponse;
+import com.example.backend.dto.request.RejectRegistrationRequest;
+import com.example.backend.dto.request.UpdatePaymentStatusRequest;
+import com.example.backend.dto.response.RegistrationResponse;
 import com.example.backend.service.AdminRegistrationService;
+import jakarta.validation.Valid;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin/registrations")
 public class AdminRegistrationController {
 
-    private final AdminRegistrationService adminRegistrationService;
+    private final AdminRegistrationService registrationService;
 
     public AdminRegistrationController(
-            AdminRegistrationService adminRegistrationService) {
-        this.adminRegistrationService = adminRegistrationService;
+            AdminRegistrationService registrationService
+    ) {
+        this.registrationService = registrationService;
     }
 
-    @GetMapping("/accepted")
-    public List<AdminRegistrationResponse> getAcceptedRegistrations() {
-        return adminRegistrationService.getAcceptedRegistrations();
+    @GetMapping
+    public List<RegistrationResponse> getRegistrations(
+            @RequestParam(required = false) String status
+    ) {
+        return registrationService.getRegistrations(status);
     }
 
-    @PutMapping("/{registrationId}/confirm")
-    public AdminRegistrationResponse confirmRegistration(
-            @PathVariable Integer registrationId) {
-        return adminRegistrationService.confirmRegistration(registrationId);
-    }
-
-    @PutMapping("/{registrationId}/reject")
-    public AdminRegistrationResponse rejectRegistration(
-            @PathVariable Integer registrationId) {
-        return adminRegistrationService.rejectRegistration(registrationId);
+    @GetMapping("/pending")
+    public List<RegistrationResponse> getPendingRegistrations() {
+        return registrationService.getPendingRegistrations();
     }
 
     @GetMapping("/history")
-    public List<AdminRegistrationResponse> getRegistrationHistory() {
-        return adminRegistrationService.getRegistrationHistory();
+    public List<RegistrationResponse> getRegistrationHistory() {
+        return registrationService.getRegistrationHistory();
+    }
+
+    @PutMapping("/{registrationId}/approve")
+    public RegistrationResponse approveRegistration(
+            @PathVariable Integer registrationId,
+            Authentication authentication
+    ) {
+        return registrationService.approveRegistration(
+                registrationId,
+                authentication.getName()
+        );
+    }
+
+    @PutMapping("/{registrationId}/reject")
+    public RegistrationResponse rejectRegistration(
+            @PathVariable Integer registrationId,
+            @Valid @RequestBody RejectRegistrationRequest request,
+            Authentication authentication
+    ) {
+        return registrationService.rejectRegistration(
+                registrationId,
+                request,
+                authentication.getName()
+        );
+    }
+
+    @PutMapping("/{registrationId}/payment-status")
+    public RegistrationResponse updatePaymentStatus(
+            @PathVariable Integer registrationId,
+            @Valid @RequestBody UpdatePaymentStatusRequest request
+    ) {
+        return registrationService.updatePaymentStatus(
+                registrationId,
+                request
+        );
     }
 }

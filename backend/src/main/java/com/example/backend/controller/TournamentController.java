@@ -1,19 +1,17 @@
 package com.example.backend.controller;
 
-
-import com.example.backend.dto.request.*;
-import com.example.backend.entity.*;
-import com.example.backend.service.*;
+import com.example.backend.dto.request.CreateTournamentRequest;
+import com.example.backend.dto.request.UpdateTournamentRequest;
+import com.example.backend.dto.response.TournamentDetailResponse;
+import com.example.backend.dto.response.TournamentResponse;
+import com.example.backend.service.TournamentService;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
 import java.util.List;
 
 @RestController
@@ -22,40 +20,93 @@ public class TournamentController {
 
     private final TournamentService tournamentService;
 
-    public TournamentController(TournamentService tournamentService) {
+    public TournamentController(
+            TournamentService tournamentService
+    ) {
         this.tournamentService = tournamentService;
     }
 
-    @GetMapping("/{id}")
-    public Tournament getTournamentById(@PathVariable Integer id) {
-        return tournamentService.getTournamentById(id);
-    }
-
     @GetMapping
-    public List<Tournament> getAllTournaments() {
+    public List<TournamentResponse> getAllTournaments() {
         return tournamentService.getAllTournaments();
     }
 
-    @PostMapping
-    public Tournament createTournament(
-            @Valid @RequestBody CreateTournamentRequest request,
-            Authentication authentication) {
-        return tournamentService.createTournament(request, authentication.getName());
+    @GetMapping("/{tournamentId}")
+    public TournamentDetailResponse getTournamentById(
+            @PathVariable Integer tournamentId
+    ) {
+        return tournamentService.getTournamentById(tournamentId);
     }
 
-    @PutMapping("/{id}")
-public Tournament updateTournament(
-        @PathVariable Integer id,
-        @Valid @RequestBody UpdateTournamentRequest request
-) {
-    return tournamentService.updateTournament(id, request);
-}
-@PutMapping("/{id}/open-registration")
-public Tournament openRegistration(@PathVariable Integer id) {
-    return tournamentService.openRegistration(id);
-}
-@DeleteMapping("/{id}")
-public Tournament cancelTournament(@PathVariable Integer id) {
-    return tournamentService.cancelTournament(id);
-}
+    @PostMapping(value = "/{tournamentId}/venue-image", consumes = "multipart/form-data")
+    public TournamentDetailResponse uploadVenueImage(
+            @PathVariable Integer tournamentId,
+            @RequestPart("file") MultipartFile file,
+            Authentication authentication
+    ) {
+        return tournamentService.uploadVenueImage(
+                tournamentId,
+                file,
+                authentication.getName()
+        );
+    }
+
+    @DeleteMapping("/{tournamentId}/venue-image")
+    public TournamentDetailResponse removeVenueImage(
+            @PathVariable Integer tournamentId,
+            Authentication authentication
+    ) {
+        return tournamentService.removeVenueImage(
+                tournamentId,
+                authentication.getName()
+        );
+    }
+
+    @PostMapping
+    public ResponseEntity<TournamentDetailResponse> createTournament(
+            @Valid @RequestBody CreateTournamentRequest request,
+            Authentication authentication
+    ) {
+        TournamentDetailResponse response =
+                tournamentService.createTournament(
+                        request,
+                        authentication.getName()
+                );
+
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(response);
+    }
+
+    @PutMapping("/{tournamentId}")
+    public TournamentDetailResponse updateTournament(
+            @PathVariable Integer tournamentId,
+            @Valid @RequestBody UpdateTournamentRequest request
+    ) {
+        return tournamentService.updateTournament(
+                tournamentId,
+                request
+        );
+    }
+
+    @PutMapping("/{tournamentId}/close-registration")
+    public TournamentDetailResponse closeRegistration(
+            @PathVariable Integer tournamentId
+    ) {
+        return tournamentService.closeRegistration(tournamentId);
+    }
+
+    @PutMapping("/{tournamentId}/complete")
+    public TournamentDetailResponse completeTournament(
+            @PathVariable Integer tournamentId
+    ) {
+        return tournamentService.completeTournament(tournamentId);
+    }
+
+    @DeleteMapping("/{tournamentId}")
+    public TournamentDetailResponse cancelTournament(
+            @PathVariable Integer tournamentId
+    ) {
+        return tournamentService.cancelTournament(tournamentId);
+    }
 }

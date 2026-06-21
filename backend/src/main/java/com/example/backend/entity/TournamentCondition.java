@@ -9,7 +9,15 @@ import java.math.BigDecimal;
 @Getter
 @Setter
 @Entity
-@Table(name = "TournamentCondition")
+@Table(
+        name = "TournamentCondition",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "TournamentCondition_index_3",
+                        columnNames = {"tournamentID", "conditionType"}
+                )
+        }
+)
 public class TournamentCondition {
 
     @Id
@@ -17,15 +25,21 @@ public class TournamentCondition {
     @Column(name = "conditionID")
     private Integer conditionId;
 
-    @Column(name = "conditionName")
-    private String conditionName;
+    @Column(name = "tournamentID", nullable = false)
+    private Integer tournamentId;
 
-    @Column(name = "maxHorseWeight")
-    private BigDecimal maxHorseWeight;
+    @Column(name = "conditionType", nullable = false, length = 50)
+    private String conditionType;
 
-    @Column(name = "maxJockeyWeight")
-    private BigDecimal maxJockeyWeight;
+    @Column(name = "`operator`", nullable = false, length = 20)
+    private String operator;
 
-    @Column(name = "description")
-    private String description;
+    @Column(name = "minValue", precision = 10, scale = 2)
+    private BigDecimal minValue;
+
+    @Column(name = "`maxValue`", precision = 10, scale = 2)
+    private BigDecimal maxValue;
+
+    @Column(name = "`value`", length = 50)
+    private String value;
 }

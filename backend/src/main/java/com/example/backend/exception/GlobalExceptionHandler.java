@@ -5,6 +5,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import  com.example.backend.dto.response.ErrorResponse;
@@ -38,6 +39,14 @@ public class GlobalExceptionHandler {
             HttpRequestMethodNotSupportedException ex) {
         return ResponseEntity.status(405)
                 .body(new ErrorResponse(405, "Phương thức HTTP không được hỗ trợ cho tài nguyên này."));
+    }
+
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErrorResponse> handleMaxUploadSizeExceededException(
+            MaxUploadSizeExceededException ex
+    ) {
+        return ResponseEntity.status(413)
+                .body(new ErrorResponse(413, "Venue image must not exceed 5MB."));
     }
 
     @ExceptionHandler(Exception.class)

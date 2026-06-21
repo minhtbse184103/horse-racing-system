@@ -91,6 +91,42 @@ export function getStoredToken() {
   return localStorage.getItem('token') || sessionStorage.getItem('token');
 }
 
+function decodeTokenPayload(token) {
+  try {
+    const encodedPayload = token.split('.')[1];
+    if (!encodedPayload || typeof atob !== 'function') return null;
+
+    const normalized = encodedPayload
+      .replace(/-/g, '+')
+      .replace(/_/g, '/')
+      .padEnd(Math.ceil(encodedPayload.length / 4) * 4, '=');
+
+    return JSON.parse(atob(normalized));
+  } catch {
+    return null;
+  }
+}
+
+function isExpiredToken(token) {
+  const payload = decodeTokenPayload(token);
+  return !payload || !Number.isFinite(payload.exp) || payload.exp <= Math.floor(Date.now() / 1000);
+}
+
+function expireStoredSession() {
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+  sessionStorage.removeItem('token');
+  sessionStorage.removeItem('user');
+  window.dispatchEvent(new CustomEvent('auth:expired'));
+}
+
+function requestError(message, status = null, data = null) {
+  const error = new Error(message);
+  error.status = status;
+  error.data = data;
+  return error;
+}
+
 function translateMessage(message) {
   return MESSAGE_TRANSLATIONS[message] || message;
 }
@@ -140,7 +176,11 @@ export async function httpRequest(path, options = {}) {
   if (auth) {
     const token = getStoredToken();
     if (!token) {
-      throw new Error('Bạn chưa đăng nhập hoặc phiên đăng nhập đã hết hạn.');
+      throw requestError('Bạn chưa đăng nhập hoặc phiên đăng nhập đã hết hạn.', 401);
+    }
+    if (isExpiredToken(token)) {
+      expireStoredSession();
+      throw requestError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.', 401);
     }
     requestHeaders.Authorization = `Bearer ${token}`;
   }
@@ -155,7 +195,10 @@ export async function httpRequest(path, options = {}) {
   const data = parseResponseBody(text);
 
   if (!response.ok) {
-    throw new Error(getErrorMessage(data, fallbackError));
+    if (response.status === 401) {
+      expireStoredSession();
+    }
+    throw requestError(getErrorMessage(data, fallbackError), response.status, data);
   }
 
   return data;

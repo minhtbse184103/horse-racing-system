@@ -2,7 +2,6 @@ import { ChevronRight, XCircle } from "lucide-react";
 import StatusBadge from "./StatusBadge";
 
 const LIFECYCLE_STAGES = [
-  { key: "draft", description: "Admin chuẩn bị lịch trình, quy tắc và hạng cân." },
   { key: "openforregistration", description: "Owner đăng ký ngựa và mời jockey." },
   { key: "closedregistration", description: "Khóa đơn đăng ký để admin xét duyệt danh sách tham gia." },
   { key: "ongoing", description: "Các cuộc đua diễn ra và referee ghi nhận kết quả." },
@@ -15,7 +14,7 @@ export default function Lifecycle() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brown-500">Vòng đời giải đấu</p>
-          <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-brown-900 sm:text-4xl">Từ bản nháp đến vạch đích</h2>
+          <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-brown-900 sm:text-4xl">Từ mở đăng ký đến vạch đích</h2>
           <p className="mt-3 text-base text-brown-900/70">Mỗi giải đấu tiến triển qua các giai đoạn rõ ràng, có thể kiểm tra.</p>
         </div>
 

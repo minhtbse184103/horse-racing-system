@@ -1,14 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
+  AlertTriangle,
+  CalendarDays,
+  CheckCircle2,
+  Clock3,
+  MapPin,
   RefreshCw,
   Search,
   ShieldCheck,
   Trash2,
-  UserRoundCog
+  UserRoundCog,
+  Users
 } from 'lucide-react';
 import {
-  getRacesByRound,
-  getTournamentRounds,
+  getRacesByTournament,
   getTournaments
 } from '../../../services/eventService';
 import {
@@ -31,8 +36,36 @@ function formatDateTime(value) {
   });
 }
 
+function formatTime(value) {
+  if (!value) return 'Not scheduled';
+
+  return new Date(value).toLocaleTimeString('en-GB', {
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
+function formatStatus(status) {
+  return normalizeStatus(status)
+    .toLowerCase()
+    .replaceAll('_', ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
 function refereeId(referee) {
   return referee.id ?? referee.Id;
+}
+
+const ASSIGNABLE_RACE_STATUSES = new Set([
+  'OPEN_FOR_REGISTRATION',
+  'REGISTRATION_CLOSED'
+]);
+
+function normalizeStatus(status) {
+  return String(status || '')
+    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+    .replace(/[\s-]+/g, '_')
+    .toUpperCase();
 }
 
 function AssignmentModal({
@@ -40,6 +73,7 @@ function AssignmentModal({
   races,
   referees,
   isProcessing,
+  error,
   onClose,
   onConfirm
 }) {
@@ -63,26 +97,51 @@ function AssignmentModal({
       )
     : referees;
 
+  const selectedRace = races.find(
+    (race) => String(race.raceId) === String(raceId)
+  );
+  const selectedReferee = availableReferees.find(
+    (referee) => String(refereeId(referee)) === String(selectedRefereeId)
+  );
+
   return (
     <div
       className="fixed inset-0 z-[1000] grid place-items-center bg-brown-900/60 p-4 backdrop-blur-sm"
       onClick={onClose}
     >
       <section
-        className="w-full max-w-xl rounded-xl border border-brown-700/15 bg-cream-100 p-6 shadow-2xl"
+        className="max-h-[calc(100vh-2rem)] w-full max-w-2xl overflow-y-auto rounded-xl border border-brown-700/15 bg-cream-100 shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
-        <p className="text-xs font-extrabold uppercase tracking-widest text-brown-500">
-          Referee Assignment
-        </p>
+        <header className="border-b border-brown-700/10 bg-cream-200/45 px-6 py-5">
+          <p className="text-xs font-extrabold uppercase tracking-widest text-brown-500">
+            Referee Assignment
+          </p>
+          <h2 className="mt-2 text-2xl font-black text-brown-900">
+            {replacing ? 'Replace assigned referee' : 'Assign referee to race'}
+          </h2>
+          <p className="mt-2 text-sm font-semibold text-slate-500">
+            Select an eligible race and an active referee. Schedule validation is performed when you save.
+          </p>
+        </header>
 
-        <h2 className="mt-2 text-2xl font-black text-brown-900">
-          {replacing ? 'Thay referee' : 'Phân công referee'}
-        </h2>
+        <div className="grid gap-5 px-6 py-5">
+          {replacing && (
+            <div className="rounded-lg border border-gold-400/35 bg-gold-400/10 p-4">
+              <p className="text-xs font-extrabold uppercase tracking-wider text-brown-500">
+                Current referee
+              </p>
+              <p className="mt-1 font-black text-brown-900">
+                {action.assignment.refereeName}
+              </p>
+              <p className="mt-0.5 text-sm font-semibold text-slate-500">
+                {action.assignment.refereeEmail}
+              </p>
+            </div>
+          )}
 
-        <div className="mt-6 grid gap-4">
           <label className="grid gap-2">
-            <span className="text-sm font-extrabold text-brown-900">Cuộc đua</span>
+            <span className="text-sm font-extrabold text-brown-900">Race</span>
 
             <select
               className="rounded-lg border border-brown-700/20 bg-white px-4 py-3 font-bold text-brown-900 outline-none focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20 disabled:opacity-60"
@@ -90,15 +149,46 @@ function AssignmentModal({
               disabled={replacing}
               onChange={(event) => setRaceId(event.target.value)}
             >
-              <option value="">Chọn cuộc đua đủ điều kiện</option>
+              <option value="">Select an eligible race</option>
 
               {races.map((race) => (
                 <option key={race.raceId} value={race.raceId}>
-                  {race.tournamentName} · {race.roundName} · {race.raceName}
+                  {race.tournamentName} · {race.raceName} · {formatDateTime(race.raceStartTime)}
                 </option>
               ))}
             </select>
           </label>
+
+          {selectedRace && (
+            <div className="grid gap-3 rounded-lg border border-brown-700/10 bg-white p-4 sm:grid-cols-2">
+              <div className="sm:col-span-2">
+                <p className="text-xs font-extrabold uppercase tracking-wider text-slate-500">
+                  {selectedRace.tournamentName}
+                </p>
+                <p className="mt-1 text-lg font-black text-brown-900">
+                  {selectedRace.raceName}
+                </p>
+              </div>
+              <div className="flex items-start gap-2 text-sm">
+                <CalendarDays className="mt-0.5 shrink-0 text-brown-500" size={17} />
+                <span className="font-bold text-slate-600">
+                  {formatDateTime(selectedRace.raceStartTime)}
+                  {selectedRace.raceEndTime && ` – ${formatTime(selectedRace.raceEndTime)}`}
+                </span>
+              </div>
+              <div className="flex items-start gap-2 text-sm">
+                <MapPin className="mt-0.5 shrink-0 text-brown-500" size={17} />
+                <span className="font-bold text-slate-600">
+                  {selectedRace.trackName || selectedRace.venue || 'Track not specified'}
+                </span>
+              </div>
+              <div className="sm:col-span-2">
+                <span className="inline-flex rounded-full border border-green-700/15 bg-green-50 px-3 py-1 text-xs font-extrabold text-green-800">
+                  {formatStatus(selectedRace.raceStatus || selectedRace.status)}
+                </span>
+              </div>
+            </div>
+          )}
 
           <label className="grid gap-2">
             <span className="text-sm font-extrabold text-brown-900">
@@ -110,7 +200,7 @@ function AssignmentModal({
               value={selectedRefereeId}
               onChange={(event) => setSelectedRefereeId(event.target.value)}
             >
-              <option value="">Chọn referee đang hoạt động</option>
+              <option value="">Select an active referee</option>
 
               {availableReferees.map((referee) => (
                 <option
@@ -122,20 +212,55 @@ function AssignmentModal({
               ))}
             </select>
           </label>
+
+          {selectedReferee && (
+            <div className="flex items-center gap-3 rounded-lg border border-brown-700/10 bg-white p-4">
+              <span className="grid size-11 shrink-0 place-items-center rounded-full bg-brown-700 text-sm font-black text-white">
+                {(selectedReferee.fullName || 'R').charAt(0).toUpperCase()}
+              </span>
+              <div className="min-w-0">
+                <p className="truncate font-black text-brown-900">{selectedReferee.fullName}</p>
+                <p className="truncate text-sm font-semibold text-slate-500">{selectedReferee.email}</p>
+              </div>
+              <span className="ml-auto rounded-full bg-green-50 px-3 py-1 text-xs font-extrabold text-green-800">
+                ACTIVE
+              </span>
+            </div>
+          )}
+
+          {availableReferees.length === 0 && (
+            <div className="flex gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-amber-900">
+              <AlertTriangle className="mt-0.5 shrink-0" size={19} />
+              <p className="text-sm font-bold">No other active referees are available for this assignment.</p>
+            </div>
+          )}
+
+          {error && (
+            <div className="flex gap-3 rounded-lg border border-danger/25 bg-danger-bg p-4 text-danger" role="alert">
+              <AlertTriangle className="mt-0.5 shrink-0" size={19} />
+              <div>
+                <p className="font-extrabold">Assignment could not be saved</p>
+                <p className="mt-1 text-sm font-semibold">{error}</p>
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-3 rounded-lg border border-blue-200 bg-blue-50 p-4 text-blue-900">
+            <Clock3 className="mt-0.5 shrink-0" size={19} />
+            <p className="text-sm font-semibold">
+              The backend prevents overlapping schedules and assignments after a race starts.
+            </p>
+          </div>
         </div>
 
-        <p className="mt-4 text-sm font-semibold text-slate-500">
-          The backend will reject referees assigned to overlapping races.
-        </p>
-
-        <div className="mt-6 grid grid-cols-2 gap-3">
+        <footer className="grid grid-cols-2 gap-3 border-t border-brown-700/10 bg-white/60 px-6 py-4">
           <button
             className="rounded-lg border border-brown-700/20 bg-white px-4 py-3 font-extrabold text-brown-700"
             type="button"
             disabled={isProcessing}
             onClick={onClose}
           >
-            Cancel
+            Close
           </button>
 
           <button
@@ -147,16 +272,16 @@ function AssignmentModal({
             {isProcessing
               ? 'Đang lưu...'
               : replacing
-                ? 'Thay referee'
-                : 'Phân công referee'}
+                ? 'Replace referee'
+                : 'Confirm assignment'}
           </button>
-        </div>
+        </footer>
       </section>
     </div>
   );
 }
 
-function RemoveModal({ assignment, isProcessing, onClose, onConfirm }) {
+function RemoveModal({ assignment, isProcessing, error, onClose, onConfirm }) {
   if (!assignment) return null;
 
   return (
@@ -168,13 +293,30 @@ function RemoveModal({ assignment, isProcessing, onClose, onConfirm }) {
         className="w-full max-w-md rounded-xl border border-brown-700/15 bg-cream-100 p-6 shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
-        <h2 className="text-2xl font-black text-brown-900">
-          Remove Referee?
-        </h2>
+        <p className="text-xs font-extrabold uppercase tracking-widest text-danger">Remove assignment</p>
+        <h2 className="mt-2 text-2xl font-black text-brown-900">Remove referee?</h2>
 
         <p className="mt-3 font-semibold text-slate-500">
-          Remove {assignment.refereeName} from {assignment.raceName}?
+          Remove <strong className="text-brown-900">{assignment.refereeName}</strong> from{' '}
+          <strong className="text-brown-900">{assignment.raceName}</strong>?
         </p>
+
+        <div className="mt-4 rounded-lg border border-brown-700/10 bg-white p-4 text-sm">
+          <p className="font-extrabold text-brown-900">{assignment.tournamentName}</p>
+          <p className="mt-1 font-semibold text-slate-500">
+            {formatDateTime(assignment.raceStartTime)} · {assignment.trackName || 'Track not specified'}
+          </p>
+        </div>
+
+        {error && (
+          <div className="mt-4 flex gap-3 rounded-lg border border-danger/25 bg-danger-bg p-4 text-danger" role="alert">
+            <AlertTriangle className="mt-0.5 shrink-0" size={19} />
+            <div>
+              <p className="font-extrabold">Assignment could not be removed</p>
+              <p className="mt-1 text-sm font-semibold">{error}</p>
+            </div>
+          </div>
+        )}
 
         <div className="mt-6 grid grid-cols-2 gap-3">
           <button
@@ -210,6 +352,7 @@ export default function RefereeAssignmentManagement() {
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState('');
+  const [actionError, setActionError] = useState('');
   const [message, setMessage] = useState('');
 
   useEffect(() => {
@@ -219,28 +362,10 @@ export default function RefereeAssignmentManagement() {
   async function loadEligibleRaces(currentAssignments) {
     const tournaments = await getTournaments();
 
-    const openTournaments = (Array.isArray(tournaments) ? tournaments : [])
-      .filter((tournament) => tournament.status === 'OpenForRegistration');
-
-    const roundsByTournament = await Promise.all(
-      openTournaments.map(async (tournament) => ({
+    const racesByTournament = await Promise.all(
+      (Array.isArray(tournaments) ? tournaments : []).map(async (tournament) => ({
         tournament,
-        rounds: await getTournamentRounds(tournament.tournamentId)
-      }))
-    );
-
-    const roundRecords = roundsByTournament.flatMap(({ tournament, rounds }) =>
-      (Array.isArray(rounds) ? rounds : []).map((round) => ({
-        tournament,
-        round
-      }))
-    );
-
-    const racesByRound = await Promise.all(
-      roundRecords.map(async ({ tournament, round }) => ({
-        tournament,
-        round,
-        races: await getRacesByRound(round.roundId)
+        races: await getRacesByTournament(tournament.tournamentId)
       }))
     );
 
@@ -248,17 +373,16 @@ export default function RefereeAssignmentManagement() {
       currentAssignments.map((assignment) => String(assignment.raceId))
     );
 
-    return racesByRound.flatMap(({ tournament, round, races }) =>
+    return racesByTournament.flatMap(({ tournament, races }) =>
       (Array.isArray(races) ? races : [])
         .filter(
           (race) =>
-            race.status === 'Draft' &&
+            ASSIGNABLE_RACE_STATUSES.has(normalizeStatus(race.status)) &&
             !assignedRaceIds.has(String(race.raceId))
         )
         .map((race) => ({
           ...race,
-          tournamentName: tournament.tournamentName,
-          roundName: round.roundName
+          tournamentName: tournament.tournamentName
         }))
     );
   }
@@ -295,7 +419,6 @@ export default function RefereeAssignmentManagement() {
     return assignments.filter((assignment) =>
       [
         assignment.tournamentName,
-        assignment.roundName,
         assignment.raceName,
         assignment.refereeName,
         assignment.refereeEmail
@@ -307,7 +430,7 @@ export default function RefereeAssignmentManagement() {
 
   async function confirmAssignment(raceId, selectedRefereeId) {
     setIsProcessing(true);
-    setError('');
+    setActionError('');
     setMessage('');
 
     try {
@@ -325,7 +448,7 @@ export default function RefereeAssignmentManagement() {
       setAction(null);
       await loadData();
     } catch (err) {
-      setError(err.message || 'Không thể lưu phân công referee.');
+      setActionError(err.message || 'Unable to save this referee assignment.');
     } finally {
       setIsProcessing(false);
     }
@@ -333,7 +456,7 @@ export default function RefereeAssignmentManagement() {
 
   async function confirmRemove() {
     setIsProcessing(true);
-    setError('');
+    setActionError('');
     setMessage('');
 
     try {
@@ -342,7 +465,7 @@ export default function RefereeAssignmentManagement() {
       setRemoveTarget(null);
       await loadData();
     } catch (err) {
-      setError(err.message || 'Không thể gỡ phân công referee.');
+      setActionError(err.message || 'Unable to remove this referee assignment.');
     } finally {
       setIsProcessing(false);
     }
@@ -361,7 +484,7 @@ export default function RefereeAssignmentManagement() {
           </h1>
 
           <p className="mt-3 font-semibold text-slate-500">
-            Assign active referees to draft races.
+            Assign active referees to eligible races and keep schedule coverage clear.
           </p>
         </div>
 
@@ -369,6 +492,7 @@ export default function RefereeAssignmentManagement() {
           <button
             className="flex items-center gap-2 rounded-xl border border-brown-700/20 bg-white px-4 py-3 font-extrabold text-brown-700"
             type="button"
+            disabled={isLoading}
             onClick={loadData}
           >
             <RefreshCw size={18} />
@@ -378,8 +502,11 @@ export default function RefereeAssignmentManagement() {
           <button
             className="flex items-center gap-2 rounded-xl bg-brown-700 px-4 py-3 font-extrabold text-white shadow-lg transition hover:bg-brown-900 disabled:opacity-50"
             type="button"
-            disabled={eligibleRaces.length === 0}
-            onClick={() => setAction({ type: 'assign' })}
+            disabled={eligibleRaces.length === 0 || referees.length === 0}
+            onClick={() => {
+              setActionError('');
+              setAction({ type: 'assign' });
+            }}
           >
             <ShieldCheck size={18} />
             Assign Referee
@@ -394,17 +521,38 @@ export default function RefereeAssignmentManagement() {
       )}
 
       {message && (
-        <div className="rounded-lg border border-green-700/20 bg-green-50 px-4 py-3 font-bold text-green-700">
-          {message}
+        <div className="flex items-center gap-3 rounded-lg border border-green-700/20 bg-green-50 px-4 py-3 font-bold text-green-700">
+          <CheckCircle2 size={19} />
+          <span>{message}</span>
         </div>
       )}
+
+      <section className="grid gap-4 sm:grid-cols-3">
+        {[
+          { icon: ShieldCheck, label: 'Assigned races', value: assignments.length },
+          { icon: CalendarDays, label: 'Eligible races', value: eligibleRaces.length },
+          { icon: Users, label: 'Active referees', value: referees.length }
+        ].map(({ icon: Icon, label, value }) => (
+          <article className="rounded-xl border border-brown-700/10 bg-cream-100 p-5 shadow-lg" key={label}>
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs font-extrabold uppercase tracking-wider text-slate-500">{label}</p>
+                <p className="mt-2 text-3xl font-black text-brown-900">{isLoading ? '—' : value}</p>
+              </div>
+              <span className="grid size-11 place-items-center rounded-lg bg-cream-200 text-brown-700">
+                <Icon size={21} />
+              </span>
+            </div>
+          </article>
+        ))}
+      </section>
 
       <section className="overflow-hidden rounded-xl border border-brown-700/10 bg-cream-100 shadow-xl">
         <div className="flex items-center justify-between gap-4 border-b border-brown-700/10 bg-cream-200/50 px-6 py-5 max-sm:grid">
           <div>
-            <h2 className="text-2xl font-black">Phân công hiện tại</h2>
+            <h2 className="text-2xl font-black">Current assignments</h2>
             <p className="mt-2 font-semibold text-slate-500">
-              {assignments.length} races currently have referees
+              {assignments.length} races currently have referee coverage
             </p>
           </div>
 
@@ -416,7 +564,7 @@ export default function RefereeAssignmentManagement() {
 
             <input
               className="w-full rounded-xl border border-brown-700/15 bg-white py-3 pl-10 pr-4 font-bold outline-none focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
-              placeholder="Tìm kiếm phân công"
+              placeholder="Search race, tournament, or referee"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
             />
@@ -424,24 +572,39 @@ export default function RefereeAssignmentManagement() {
         </div>
 
         {isLoading ? (
-          <p className="px-6 py-10 text-slate-500">Đang tải phân công...</p>
+          <div className="grid gap-3 px-6 py-8" aria-label="Loading referee assignments">
+            {[1, 2, 3].map((item) => (
+              <div className="h-16 animate-pulse rounded-lg bg-cream-200/70" key={item} />
+            ))}
+          </div>
         ) : filteredAssignments.length === 0 ? (
-          <p className="px-6 py-10 text-slate-500">
-            No referee assignments found.
-          </p>
+          <div className="grid place-items-center px-6 py-12 text-center">
+            <span className="grid size-12 place-items-center rounded-full bg-cream-200 text-brown-700">
+              <ShieldCheck size={23} />
+            </span>
+            <p className="mt-4 font-black text-brown-900">
+              {search ? 'No assignments match your search' : 'No referee assignments yet'}
+            </p>
+            <p className="mt-1 max-w-md text-sm font-semibold text-slate-500">
+              {search
+                ? 'Try a different tournament, race, or referee name.'
+                : eligibleRaces.length > 0
+                  ? 'Assign an active referee to an eligible upcoming race.'
+                  : 'There are currently no eligible races available for assignment.'}
+            </p>
+          </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-[950px] w-full border-collapse">
+          <>
+          <div className="hidden overflow-x-auto lg:block">
+            <table className="w-full table-fixed border-collapse">
               <thead className="bg-cream-200/60">
                 <tr>
                   {[
-                    'Giải đấu',
-                    'Vòng đấu',
-                    'Cuộc đua',
-                    'Lịch trình',
+                    'Tournament & race',
+                    'Schedule & track',
                     'Referee',
-                    'Trạng thái',
-                    'Thao tác'
+                    'Status',
+                    'Actions'
                   ].map((heading) => (
                     <th
                       className="border-b border-brown-700/10 px-4 py-4 text-left text-xs font-extrabold uppercase text-brown-700"
@@ -459,43 +622,38 @@ export default function RefereeAssignmentManagement() {
                     className="transition hover:bg-cream-200/40"
                     key={assignment.assignmentId}
                   >
-                    <td className="border-b border-brown-700/10 px-4 py-4 font-extrabold">
-                      {assignment.tournamentName}
+                    <td className="w-[27%] border-b border-brown-700/10 px-4 py-4">
+                      <p className="truncate text-xs font-extrabold uppercase tracking-wide text-slate-500">{assignment.tournamentName}</p>
+                      <p className="mt-1 truncate font-black text-brown-900">{assignment.raceName}</p>
                     </td>
 
-                    <td className="border-b border-brown-700/10 px-4 py-4 font-bold">
-                      {assignment.roundName}
+                    <td className="w-[25%] border-b border-brown-700/10 px-4 py-4 text-sm">
+                      <p className="flex items-center gap-2 font-bold text-brown-900"><CalendarDays size={15} />{formatDateTime(assignment.raceStartTime)}</p>
+                      <p className="mt-1 flex items-center gap-2 font-semibold text-slate-500"><MapPin size={15} />{assignment.trackName || 'Track not specified'}</p>
                     </td>
 
-                    <td className="border-b border-brown-700/10 px-4 py-4 font-extrabold">
-                      {assignment.raceName}
-                    </td>
-
-                    <td className="border-b border-brown-700/10 px-4 py-4 text-sm font-bold">
-                      {formatDateTime(assignment.startTime)}
-                    </td>
-
-                    <td className="border-b border-brown-700/10 px-4 py-4">
-                      <strong>{assignment.refereeName}</strong>
+                    <td className="w-[20%] border-b border-brown-700/10 px-4 py-4">
+                      <strong className="block truncate">{assignment.refereeName}</strong>
                       <small className="mt-1 block text-slate-500">
                         {assignment.refereeEmail}
                       </small>
                     </td>
 
-                    <td className="border-b border-brown-700/10 px-4 py-4">
+                    <td className="w-[11%] border-b border-brown-700/10 px-4 py-4">
                       <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-extrabold text-green-800">
-                        {assignment.assignmentStatus}
+                        {formatStatus(assignment.assignmentStatus)}
                       </span>
                     </td>
 
-                    <td className="border-b border-brown-700/10 px-4 py-4">
-                      <div className="flex gap-2">
+                    <td className="w-[17%] border-b border-brown-700/10 px-4 py-4">
+                      <div className="flex flex-wrap gap-2">
                         <button
                           className="flex items-center gap-2 rounded-lg border border-brown-700/20 bg-white px-3 py-2 text-sm font-extrabold text-brown-700"
                           type="button"
-                          onClick={() =>
-                            setAction({ type: 'replace', assignment })
-                          }
+                          onClick={() => {
+                            setActionError('');
+                            setAction({ type: 'replace', assignment });
+                          }}
                         >
                           <UserRoundCog size={16} />
                           Replace
@@ -504,7 +662,10 @@ export default function RefereeAssignmentManagement() {
                         <button
                           className="flex items-center gap-2 rounded-lg border border-danger/20 bg-red-50 px-3 py-2 text-sm font-extrabold text-danger"
                           type="button"
-                          onClick={() => setRemoveTarget(assignment)}
+                          onClick={() => {
+                            setActionError('');
+                            setRemoveTarget(assignment);
+                          }}
                         >
                           <Trash2 size={16} />
                           Remove
@@ -516,6 +677,29 @@ export default function RefereeAssignmentManagement() {
               </tbody>
             </table>
           </div>
+          <div className="grid gap-3 p-4 lg:hidden">
+            {filteredAssignments.map((assignment) => (
+              <article className="rounded-xl border border-brown-700/10 bg-white p-4 shadow-sm" key={assignment.assignmentId}>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate text-xs font-extrabold uppercase tracking-wide text-slate-500">{assignment.tournamentName}</p>
+                    <h3 className="mt-1 truncate text-lg font-black text-brown-900">{assignment.raceName}</h3>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-green-100 px-3 py-1 text-xs font-extrabold text-green-800">{formatStatus(assignment.assignmentStatus)}</span>
+                </div>
+                <div className="mt-4 grid gap-2 text-sm font-semibold text-slate-600">
+                  <p className="flex items-center gap-2"><CalendarDays size={16} className="text-brown-500" />{formatDateTime(assignment.raceStartTime)}</p>
+                  <p className="flex items-center gap-2"><MapPin size={16} className="text-brown-500" />{assignment.trackName || 'Track not specified'}</p>
+                  <p className="flex items-center gap-2"><Users size={16} className="text-brown-500" />{assignment.refereeName} · {assignment.refereeEmail}</p>
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  <button className="flex items-center justify-center gap-2 rounded-lg border border-brown-700/20 bg-white px-3 py-2 text-sm font-extrabold text-brown-700" type="button" onClick={() => { setActionError(''); setAction({ type: 'replace', assignment }); }}><UserRoundCog size={16} />Replace</button>
+                  <button className="flex items-center justify-center gap-2 rounded-lg border border-danger/20 bg-red-50 px-3 py-2 text-sm font-extrabold text-danger" type="button" onClick={() => { setActionError(''); setRemoveTarget(assignment); }}><Trash2 size={16} />Remove</button>
+                </div>
+              </article>
+            ))}
+          </div>
+          </>
         )}
       </section>
 
@@ -528,14 +712,26 @@ export default function RefereeAssignmentManagement() {
         }
         referees={referees}
         isProcessing={isProcessing}
-        onClose={() => !isProcessing && setAction(null)}
+        error={actionError}
+        onClose={() => {
+          if (!isProcessing) {
+            setAction(null);
+            setActionError('');
+          }
+        }}
         onConfirm={confirmAssignment}
       />
 
       <RemoveModal
         assignment={removeTarget}
         isProcessing={isProcessing}
-        onClose={() => !isProcessing && setRemoveTarget(null)}
+        error={actionError}
+        onClose={() => {
+          if (!isProcessing) {
+            setRemoveTarget(null);
+            setActionError('');
+          }
+        }}
         onConfirm={confirmRemove}
       />
     </section>

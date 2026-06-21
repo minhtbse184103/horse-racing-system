@@ -8,9 +8,9 @@ import lombok.Setter;
 @Setter
 public class CreateRefereeAssignmentRequest {
 
-    @NotNull(message = "Mã cuộc đua là bắt buộc")
+    @NotNull(message = "Race ID is required.")
     private Integer raceId;
 
-    @NotNull(message = "Mã người dùng trọng tài là bắt buộc")
+    @NotNull(message = "Referee user ID is required.")
     private Integer refereeUserId;
 }

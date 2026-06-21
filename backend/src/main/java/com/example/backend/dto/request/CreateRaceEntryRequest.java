@@ -8,9 +8,9 @@ import lombok.Setter;
 @Setter
 public class CreateRaceEntryRequest {
 
-    @NotNull(message = "Mã cuộc đua là bắt buộc")
+    @NotNull(message = "Race ID is required.")
     private Integer raceId;
 
-    @NotNull(message = "Mã đơn đăng ký là bắt buộc")
+    @NotNull(message = "Registration ID is required.")
     private Integer registrationId;
 }

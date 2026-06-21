@@ -1,13 +1,12 @@
 package com.example.backend.constant;
 
 public final class EventStatus {
-    public static final String DRAFT = "Draft";
-    public static final String OPEN_FOR_REGISTRATION = "OpenForRegistration";
-    public static final String CLOSED_REGISTRATION = "ClosedRegistration";
-    public static final String READY = "Ready";
-    public static final String ONGOING = "Ongoing";
-    public static final String FINISHED = "Finished";
-    public static final String CANCELLED = "Cancelled";
+
+    public static final String OPEN_FOR_REGISTRATION = "OPEN_FOR_REGISTRATION";
+    public static final String REGISTRATION_CLOSED = "REGISTRATION_CLOSED";
+    public static final String IN_PROGRESS = "IN_PROGRESS";
+    public static final String COMPLETED = "COMPLETED";
+    public static final String CANCELLED = "CANCELLED";
 
     private EventStatus() {
     }

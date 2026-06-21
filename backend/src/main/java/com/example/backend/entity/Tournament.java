@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -18,34 +19,40 @@ public class Tournament {
     @Column(name = "tournamentID")
     private Integer tournamentId;
 
-    @Column(name = "tournamentName")
+    @Column(name = "tournamentName", nullable = false)
     private String tournamentName;
 
-    @Column(name = "location")
-    private String location;
+    @Column(name = "description", columnDefinition = "TEXT")
+    private String description;
 
-    @Column(name = "startDate")
+    @Column(name = "venue", nullable = false)
+    private String venue;
+
+    @Column(name = "venueImageUrl", length = 500)
+    private String venueImageUrl;
+
+    @Column(name = "registrationOpenAt", nullable = false)
+    private LocalDateTime registrationOpenAt;
+
+    @Column(name = "registrationCloseAt", nullable = false)
+    private LocalDateTime registrationCloseAt;
+
+    @Column(name = "startDate", nullable = false)
     private LocalDate startDate;
 
-    @Column(name = "endDate")
+    @Column(name = "endDate", nullable = false)
     private LocalDate endDate;
 
-    @Column(name = "registrationDeadline")
-    private LocalDateTime registrationDeadline;
+    @Column(name = "maxRegistrations", nullable = false)
+    private Integer maxRegistrations;
 
-    @Column(name = "minParticipants")
-    private Integer minParticipants;
+    @Column(name = "entryFee", nullable = false, precision = 12, scale = 2)
+    private BigDecimal entryFee;
 
-    @Column(name = "maxParticipants")
-    private Integer maxParticipants;
-
-    @Column(name = "conditionID")
-    private Integer conditionId;
-
-    @Column(name = "status")
+    @Column(name = "status", nullable = false, length = 50)
     private String status;
 
-    @Column(name = "createdBy")
+    @Column(name = "createdBy", nullable = false)
     private Integer createdBy;
 
     @Column(name = "createdAt")
@@ -57,7 +64,11 @@ public class Tournament {
     @PrePersist
     void prePersist() {
         LocalDateTime now = LocalDateTime.now();
-        createdAt = now;
+
+        if (createdAt == null) {
+            createdAt = now;
+        }
+
         updatedAt = now;
     }
 

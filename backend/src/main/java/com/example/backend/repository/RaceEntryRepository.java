@@ -1,37 +1,53 @@
 package com.example.backend.repository;
 
-import java.util.List;
-
 import com.example.backend.entity.RaceEntry;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
+import jakarta.persistence.LockModeType;
+import org.springframework.data.jpa.repository.Lock;
+import java.util.List;
+import java.util.Optional;
 
-public interface RaceEntryRepository extends JpaRepository<RaceEntry, Integer> {
+@Repository
+public interface RaceEntryRepository
+        extends JpaRepository<RaceEntry, Integer> {
 
-    List<RaceEntry> findByRaceIdOrderByLaneNumberAsc(Integer raceId);
-
-    boolean existsByRaceIdAndRegistrationId(
+    List<RaceEntry> findByRaceIdAndStatusOrderByStartingStallAsc(
             Integer raceId,
-            Integer registrationId);
-
+            String status
+    );
+    Optional<RaceEntry> findByRegistrationIdAndStatus(
+            Integer registrationId,
+            String status
+    );
+    boolean existsByRegistrationIdAndStatus(
+            Integer registrationId,
+            String status
+    );
+    long countByRaceIdAndStatus(
+            Integer raceId,
+            String status
+    );
     @Query("""
-            select coalesce(max(e.laneNumber), 0)
-            from RaceEntry e
-            where e.raceId = :raceId
-            """)
-    int findMaxLaneNumber(@Param("raceId") Integer raceId);
-
+        select entry.startingStall
+        from RaceEntry entry
+        where entry.raceId = :raceId
+          and entry.status = :status
+        order by entry.startingStall asc
+        """)
+    List<Integer> findOccupiedStartingStalls(
+            @Param("raceId") Integer raceId,
+            @Param("status") String status
+    );
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
-            select count(e) > 0
-            from RaceEntry e
-            join Race r on r.raceId = e.raceId
-            where r.roundId = :roundId
-              and e.registrationId = :registrationId
-              and e.status <> :withdrawnStatus
-            """)
-    boolean existsActiveEntryByRoundAndRegistration(
-            @Param("roundId") Integer roundId,
-            @Param("registrationId") Integer registrationId,
-            @Param("withdrawnStatus") String withdrawnStatus);
+        select entry
+        from RaceEntry entry
+        where entry.raceEntryId = :raceEntryId
+        """)
+    Optional<RaceEntry> findByIdForUpdate(
+            @Param("raceEntryId") Integer raceEntryId
+    );
 }

@@ -43,11 +43,11 @@ public class SecurityConfig {
 
                         .requestMatchers(SWAGGER_WHITELIST).permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
                         .requestMatchers(HttpMethod.GET,
                                 "/api/tournaments/**",
                                 "/api/races/**",
-                                "/api/tournament-conditions/**",
-                                "/api/tournament-rounds/**").permitAll()
+                                "/api/tournament-conditions/**").permitAll()
                         .requestMatchers(HttpMethod.POST,
                                 "/api/tournaments/**",
                                 "/api/races/**").hasRole("ADMIN")

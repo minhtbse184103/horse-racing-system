@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { motion } from 'framer-motion';
 import {
   ArrowRight,
   CalendarDays,
@@ -16,21 +17,27 @@ import { formatDisplayLabel } from '../../lib';
 import { getPendingHorses } from '../../services/adminHorseReviewService';
 import { getJockeyProfilesUnderReview } from '../../services/adminProfileReviewService';
 import {
-  getAcceptedRegistrations,
+  getPendingRegistrations,
   getRegistrationHistory
 } from '../../services/adminRegistrationService';
 import { getTournaments } from '../../services/eventService';
-import { getRaceEntryAssignmentQueue } from '../../services/raceEntryService';
+import { getAssignmentQueue } from '../../services/raceEntryService';
 import { getRefereeAssignments } from '../../services/refereeAssignmentService';
 import { getUsers } from '../../services/userService';
+import {
+  fadeSlideItem,
+  hoverLift,
+  pageTransition,
+  staggerContainer,
+  tapPress
+} from './ui/motion';
 
 const STATUS_STYLES = {
-  Draft: 'bg-amber-100 text-amber-800',
-  OpenForRegistration: 'bg-green-100 text-green-800',
-  ClosedRegistration: 'bg-stone-200 text-stone-700',
-  Ongoing: 'bg-blue-100 text-blue-800',
-  Finished: 'bg-emerald-100 text-emerald-800',
-  Cancelled: 'bg-red-100 text-red-700'
+  OPEN_FOR_REGISTRATION: 'bg-green-100 text-green-800',
+  REGISTRATION_CLOSED: 'bg-stone-200 text-stone-700',
+  IN_PROGRESS: 'bg-blue-100 text-blue-800',
+  COMPLETED: 'bg-emerald-100 text-emerald-800',
+  CANCELLED: 'bg-red-100 text-red-700'
 };
 
 function formatStatus(status) {
@@ -56,8 +63,11 @@ function MetricCard({ icon: Icon, label, value, note, tone, onClick }) {
   };
 
   return (
-    <button
-      className="group rounded-lg border border-brown-700/10 bg-cream-100 p-5 text-left shadow-[0_14px_35px_rgba(78,44,25,0.1)] transition hover:-translate-y-0.5 hover:border-brown-700/25 hover:shadow-lg"
+    <motion.button
+      variants={fadeSlideItem}
+      whileHover={hoverLift}
+      whileTap={tapPress}
+      className="group relative overflow-hidden rounded-lg border border-white/80 bg-[linear-gradient(145deg,rgba(255,255,255,0.96),rgba(255,248,238,0.9))] p-5 text-left shadow-[0_12px_32px_rgba(78,44,25,0.09),0_1px_2px_rgba(43,23,16,0.08)] transition-colors hover:border-gold-400/45 hover:shadow-[0_20px_46px_rgba(78,44,25,0.14)]"
       type="button"
       onClick={onClick}
     >
@@ -80,14 +90,17 @@ function MetricCard({ icon: Icon, label, value, note, tone, onClick }) {
       <span className="mt-2 block text-xs font-semibold text-slate-500">
         {note}
       </span>
-    </button>
+      <span className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 origin-left scale-x-0 bg-gold-400 transition-transform duration-300 group-hover:scale-x-100" />
+    </motion.button>
   );
 }
 
 function WorkQueueCard({ icon: Icon, label, count, note, tone, onClick }) {
   return (
-    <button
-      className="group grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 rounded-lg border border-brown-700/10 bg-white/75 p-4 text-left transition hover:border-brown-700/25 hover:bg-white hover:shadow-md"
+    <motion.button
+      whileHover={{ x: 3, transition: { duration: 0.16 } }}
+      whileTap={tapPress}
+      className="group grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-4 rounded-lg border border-brown-700/10 bg-white/80 p-4 text-left shadow-[0_5px_16px_rgba(78,44,25,0.05)] transition-colors hover:border-gold-400/45 hover:bg-white hover:shadow-[0_12px_28px_rgba(78,44,25,0.1)]"
       type="button"
       onClick={onClick}
     >
@@ -103,7 +116,7 @@ function WorkQueueCard({ icon: Icon, label, count, note, tone, onClick }) {
       <span className="grid size-9 place-items-center rounded-full bg-cream-200 text-sm font-black text-brown-700">
         {count}
       </span>
-    </button>
+    </motion.button>
   );
 }
 
@@ -142,11 +155,11 @@ export default function AdminOverview({ onNavigate }) {
       ] = await Promise.all([
         getUsers(),
         getTournaments(),
-        getAcceptedRegistrations(),
+        getPendingRegistrations(),
         getRegistrationHistory(),
         getPendingHorses(),
         getJockeyProfilesUnderReview(),
-        getRaceEntryAssignmentQueue(),
+        getAssignmentQueue(),
         getRefereeAssignments()
       ]);
 
@@ -173,12 +186,12 @@ export default function AdminOverview({ onNavigate }) {
     }
   }
 
-  const confirmedRegistrations = data.registrationHistory.filter(
-    (registration) => registration.status === 'CONFIRMED'
+  const approvedRegistrations = data.registrationHistory.filter(
+    (registration) => registration.approvalStatus === 'APPROVED'
   ).length;
   const activeUsers = data.users.filter((user) => user.status === 'ACTIVE').length;
   const openTournaments = data.tournaments.filter(
-    (tournament) => tournament.status === 'OpenForRegistration'
+    (tournament) => tournament.status === 'OPEN_FOR_REGISTRATION'
   ).length;
   const totalReviewQueue =
     data.pendingRegistrations.length +
@@ -188,7 +201,7 @@ export default function AdminOverview({ onNavigate }) {
   const upcomingTournaments = useMemo(
     () =>
       [...data.tournaments]
-        .filter((tournament) => tournament.status !== 'Cancelled')
+        .filter((tournament) => tournament.status !== 'CANCELLED')
         .sort((a, b) => String(a.startDate).localeCompare(String(b.startDate)))
         .slice(0, 5),
     [data.tournaments]
@@ -196,12 +209,11 @@ export default function AdminOverview({ onNavigate }) {
 
   const tournamentStatuses = useMemo(() => {
     const statuses = [
-      'Draft',
-      'OpenForRegistration',
-      'ClosedRegistration',
-      'Ongoing',
-      'Finished',
-      'Cancelled'
+      'OPEN_FOR_REGISTRATION',
+      'REGISTRATION_CLOSED',
+      'IN_PROGRESS',
+      'COMPLETED',
+      'CANCELLED'
     ];
 
     return statuses.map((status) => ({
@@ -214,6 +226,7 @@ export default function AdminOverview({ onNavigate }) {
   const workQueues = [
     {
       key: 'registrations',
+      target: 'events',
       label: 'Duyệt đơn đăng ký',
       count: data.pendingRegistrations.length,
       note: 'Lời mời jockey đã chấp nhận đang chờ admin quyết định',
@@ -238,6 +251,7 @@ export default function AdminOverview({ onNavigate }) {
     },
     {
       key: 'raceEntries',
+      target: 'events',
       label: 'Hàng chờ xếp cuộc đua',
       count: data.raceEntryQueue.length,
       note: 'Đơn đăng ký đã xác nhận đang chờ xếp cuộc đua',
@@ -250,7 +264,7 @@ export default function AdminOverview({ onNavigate }) {
     {
       key: 'events',
       label: 'Thiết lập giải đấu',
-      note: 'Tạo giải đấu, vòng đấu và cuộc đua',
+      note: 'Tạo giải đấu và các cuộc đua trực thuộc',
       icon: Trophy
     },
     {
@@ -268,7 +282,7 @@ export default function AdminOverview({ onNavigate }) {
   ];
 
   return (
-    <section className="space-y-6 text-brown-900">
+    <motion.section {...pageTransition} className="space-y-6 text-brown-900">
       <header className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
           <p className="text-sm font-extrabold uppercase tracking-widest text-brown-500">
@@ -300,7 +314,12 @@ export default function AdminOverview({ onNavigate }) {
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <motion.div
+        variants={staggerContainer}
+        initial="hidden"
+        animate="visible"
+        className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
+      >
         <MetricCard
           icon={Trophy}
           label="Giải đấu đang mở"
@@ -315,15 +334,15 @@ export default function AdminOverview({ onNavigate }) {
           value={totalReviewQueue}
           note="Tổng hợp đơn đăng ký, ngựa và jockey"
           tone="gold"
-          onClick={() => onNavigate('registrations')}
+          onClick={() => onNavigate('events')}
         />
         <MetricCard
           icon={Flag}
           label="Đang chờ xếp cuộc đua"
           value={data.raceEntryQueue.length}
-          note={`${confirmedRegistrations} confirmed registrations`}
+          note={`${approvedRegistrations} approved registrations`}
           tone="green"
-          onClick={() => onNavigate('raceEntries')}
+          onClick={() => onNavigate('events')}
         />
         <MetricCard
           icon={Gavel}
@@ -333,10 +352,10 @@ export default function AdminOverview({ onNavigate }) {
           tone="cream"
           onClick={() => onNavigate('refereeAssignments')}
         />
-      </div>
+      </motion.div>
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1.15fr_0.85fr]">
-        <section className="rounded-lg border border-brown-700/10 bg-cream-100 p-5 shadow-[0_18px_45px_rgba(78,44,25,0.1)]">
+        <motion.section whileHover={{ y: -2 }} className="rounded-lg border border-white/75 bg-cream-100 p-5 shadow-[0_18px_45px_rgba(78,44,25,0.1),0_1px_2px_rgba(43,23,16,0.08)]">
           <div className="flex items-start justify-between gap-4">
             <div>
               <span className="text-xs font-extrabold uppercase text-brown-500">
@@ -350,21 +369,17 @@ export default function AdminOverview({ onNavigate }) {
           </div>
 
           <div className="mt-5 grid gap-3 sm:grid-cols-2">
-            {workQueues.map((queue) => {
-              const { key, ...queueProps } = queue;
-
-              return (
-                <WorkQueueCard
-                  key={key}
-                  {...queueProps}
-                  onClick={() => onNavigate(key)}
-                />
-              );
-            })}
+            {workQueues.map(({ key, ...queue }) => (
+              <WorkQueueCard
+                key={key}
+                {...queue}
+                onClick={() => onNavigate(queue.target || key)}
+              />
+            ))}
           </div>
-        </section>
+        </motion.section>
 
-        <section className="rounded-lg border border-brown-700/10 bg-brown-900 p-5 text-white shadow-[0_18px_45px_rgba(43,23,16,0.22)]">
+        <motion.section whileHover={{ y: -2 }} className="relative overflow-hidden rounded-lg border border-white/10 bg-[linear-gradient(145deg,#2b1710,#4a2819)] p-5 text-white shadow-[0_22px_52px_rgba(43,23,16,0.25)]">
           <span className="text-xs font-extrabold uppercase text-gold-400">
             Quick Operations
           </span>
@@ -375,8 +390,10 @@ export default function AdminOverview({ onNavigate }) {
               const Icon = action.icon;
 
               return (
-                <button
-                  className="group grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-lg border border-white/10 bg-white/10 px-4 py-3 text-left transition hover:bg-white/15"
+                <motion.button
+                  whileHover={{ x: 3 }}
+                  whileTap={tapPress}
+                  className="group grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 rounded-lg border border-white/10 bg-white/[0.08] px-4 py-3 text-left shadow-sm transition-colors hover:border-gold-400/35 hover:bg-white/[0.14]"
                   key={action.key}
                   type="button"
                   onClick={() => onNavigate(action.key)}
@@ -394,15 +411,16 @@ export default function AdminOverview({ onNavigate }) {
                     className="text-white/60 transition group-hover:translate-x-0.5"
                     size={18}
                   />
-                </button>
+                </motion.button>
               );
             })}
           </div>
-        </section>
+          <span className="pointer-events-none absolute -right-10 -top-16 size-40 rounded-full border border-white/10" />
+        </motion.section>
       </div>
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_0.82fr]">
-        <section className="overflow-hidden rounded-lg border border-brown-700/10 bg-cream-100 shadow-[0_18px_45px_rgba(78,44,25,0.1)]">
+        <motion.section whileHover={{ y: -2 }} className="overflow-hidden rounded-lg border border-white/75 bg-cream-100 shadow-[0_18px_45px_rgba(78,44,25,0.1),0_1px_2px_rgba(43,23,16,0.08)]">
           <div className="flex items-center justify-between gap-4 border-b border-brown-700/10 bg-cream-200/45 px-5 py-4">
             <div>
               <span className="text-xs font-extrabold uppercase text-brown-500">
@@ -415,7 +433,13 @@ export default function AdminOverview({ onNavigate }) {
 
           <div className="divide-y divide-brown-700/10">
             {upcomingTournaments.length === 0 ? (
-              <p className="px-5 py-8 text-slate-500">Không có giải đấu sắp diễn ra.</p>
+              <div className="grid min-h-40 place-items-center px-5 py-8 text-center">
+                <div>
+                  <span className="mx-auto grid size-11 place-items-center rounded-lg bg-cream-200 text-brown-500"><CalendarDays size={20} /></span>
+                  <p className="mt-3 font-extrabold text-brown-900">Chưa có giải đấu sắp diễn ra</p>
+                  <p className="mt-1 text-xs font-semibold text-slate-500">Các giải đấu sắp tới sẽ xuất hiện tại đây.</p>
+                </div>
+              </div>
             ) : (
               upcomingTournaments.map((tournament) => (
                 <button
@@ -432,7 +456,7 @@ export default function AdminOverview({ onNavigate }) {
                       {tournament.tournamentName}
                     </strong>
                     <small className="mt-1 block truncate font-semibold text-slate-500">
-                      {tournament.location}
+                      {tournament.venue}
                     </small>
                   </span>
                   <span className="text-right">
@@ -452,9 +476,9 @@ export default function AdminOverview({ onNavigate }) {
               ))
             )}
           </div>
-        </section>
+        </motion.section>
 
-        <section className="rounded-lg border border-brown-700/10 bg-cream-100 p-5 shadow-[0_18px_45px_rgba(78,44,25,0.1)]">
+        <motion.section whileHover={{ y: -2 }} className="rounded-lg border border-white/75 bg-cream-100 p-5 shadow-[0_18px_45px_rgba(78,44,25,0.1),0_1px_2px_rgba(43,23,16,0.08)]">
           <span className="text-xs font-extrabold uppercase text-brown-500">
             Tournament Lifecycle
           </span>
@@ -472,15 +496,17 @@ export default function AdminOverview({ onNavigate }) {
                     <span>{count}</span>
                   </span>
                   <span className="mt-2 block h-2 overflow-hidden rounded-full bg-cream-200">
-                    <span
-                      className="block h-full rounded-full bg-brown-700"
-                      style={{
+                    <motion.span
+                      initial={{ width: 0 }}
+                      animate={{
                         width: `${
                           data.tournaments.length
                             ? Math.max((count / data.tournaments.length) * 100, count ? 8 : 0)
                             : 0
                         }%`
                       }}
+                      transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+                      className="block h-full rounded-full bg-brown-700"
                     />
                   </span>
                 </span>
@@ -492,8 +518,8 @@ export default function AdminOverview({ onNavigate }) {
               </div>
             ))}
           </div>
-        </section>
+        </motion.section>
       </div>
-    </section>
+    </motion.section>
   );
 }

@@ -1,21 +1,27 @@
 import { httpRequest } from '../api/httpClient';
 
-export function getAcceptedRegistrations() {
-  return httpRequest('/api/admin/registrations/accepted');
+export function getRegistrations(status) {
+  const query = status ? `?status=${encodeURIComponent(status)}` : '';
+  return httpRequest(`/api/admin/registrations${query}`);
+}
+
+export function getPendingRegistrations() {
+  return httpRequest('/api/admin/registrations/pending');
 }
 
 export function getRegistrationHistory() {
   return httpRequest('/api/admin/registrations/history');
 }
 
-export function confirmRegistration(registrationId) {
-  return httpRequest(`/api/admin/registrations/${registrationId}/confirm`, {
+export function approveRegistration(registrationId) {
+  return httpRequest(`/api/admin/registrations/${registrationId}/approve`, {
     method: 'PUT'
   });
 }
 
-export function rejectRegistration(registrationId) {
+export function rejectRegistration(registrationId, rejectionReason) {
   return httpRequest(`/api/admin/registrations/${registrationId}/reject`, {
-    method: 'PUT'
+    method: 'PUT',
+    body: { rejectionReason }
   });
 }
