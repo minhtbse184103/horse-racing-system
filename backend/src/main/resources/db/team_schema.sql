@@ -454,3 +454,9 @@ ALTER TABLE `JockeyInvitation` ADD FOREIGN KEY (`horseID`) REFERENCES `Horse` (`
 ALTER TABLE `JockeyInvitation` ADD FOREIGN KEY (`ownerID`) REFERENCES `OwnerProfile` (`ownerID`);
 
 ALTER TABLE `JockeyInvitation` ADD FOREIGN KEY (`jockeyID`) REFERENCES `Users` (`userID`);
+INSERT INTO `Roles` (`roleID`, `roleName`) VALUES
+(1, 'ADMIN'),
+(2, 'OWNER'),
+(3, 'JOCKEY'),
+(4, 'REFEREE'),
+(5, 'SPECTATOR');
