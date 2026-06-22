@@ -36,6 +36,13 @@ public class AdminJockeyVerificationController {
         return ResponseEntity.ok(verificationService.getPendingVerifications());
     }
 
+    @GetMapping("/approved")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Lấy danh sách yêu cầu xác minh jockey đã được phê duyệt")
+    public ResponseEntity<ApiResponse<List<JockeyVerificationResponse>>> getApprovedVerifications() {
+        return ResponseEntity.ok(verificationService.getApprovedVerifications());
+    }
+
     @GetMapping("/{id}")
     @PreAuthorize("hasRole('ADMIN')")
     @Operation(summary = "Xem chi tiết một yêu cầu xác minh")

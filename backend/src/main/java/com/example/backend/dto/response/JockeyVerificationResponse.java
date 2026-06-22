@@ -34,5 +34,6 @@ public class JockeyVerificationResponse {
     private LocalDateTime submittedAt;
     private LocalDateTime reviewedAt;
     private Integer reviewedBy;
+    private String reviewedByName;
     private List<JockeyVerificationFileResponse> files;
 }

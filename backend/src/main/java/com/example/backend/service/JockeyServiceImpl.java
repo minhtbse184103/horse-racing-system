@@ -16,16 +16,21 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.example.backend.dto.request.JockeyProfileRequest;
 import com.example.backend.dto.response.JockeyInvitationResponse;
+import com.example.backend.dto.response.JockeyVerificationFileResponse;
 import com.example.backend.dto.response.JockeyProfileResponse;
 import com.example.backend.entity.Horse;
 import com.example.backend.entity.JockeyInvitation;
 import com.example.backend.entity.JockeyProfile;
+import com.example.backend.entity.JockeyVerification;
+import com.example.backend.entity.JockeyVerificationFile;
 import com.example.backend.entity.Registration;
 import com.example.backend.entity.User;
 import com.example.backend.exception.ApiException;
 import com.example.backend.repository.HorseRepository;
 import com.example.backend.repository.JockeyInvitationRepository;
 import com.example.backend.repository.JockeyProfileRepository;
+import com.example.backend.repository.JockeyVerificationFileRepository;
+import com.example.backend.repository.JockeyVerificationRepository;
 import com.example.backend.repository.RegistrationRepository;
 import com.example.backend.repository.UserRepository;
 
@@ -46,6 +51,8 @@ public class JockeyServiceImpl implements JockeyService {
 
     private final JockeyProfileRepository jockeyProfileRepository;
     private final JockeyInvitationRepository jockeyInvitationRepository;
+    private final JockeyVerificationRepository jockeyVerificationRepository;
+    private final JockeyVerificationFileRepository jockeyVerificationFileRepository;
     private final RegistrationRepository registrationRepository;
     private final HorseRepository horseRepository;
     private final UserRepository userRepository;
@@ -54,12 +61,16 @@ public class JockeyServiceImpl implements JockeyService {
     public JockeyServiceImpl(
             JockeyProfileRepository jockeyProfileRepository,
             JockeyInvitationRepository jockeyInvitationRepository,
+            JockeyVerificationRepository jockeyVerificationRepository,
+            JockeyVerificationFileRepository jockeyVerificationFileRepository,
             RegistrationRepository registrationRepository,
             HorseRepository horseRepository,
             UserRepository userRepository,
             JdbcTemplate jdbcTemplate) {
         this.jockeyProfileRepository = jockeyProfileRepository;
         this.jockeyInvitationRepository = jockeyInvitationRepository;
+        this.jockeyVerificationRepository = jockeyVerificationRepository;
+        this.jockeyVerificationFileRepository = jockeyVerificationFileRepository;
         this.registrationRepository = registrationRepository;
         this.horseRepository = horseRepository;
         this.userRepository = userRepository;
@@ -96,6 +107,7 @@ public class JockeyServiceImpl implements JockeyService {
                 .totalWins(request.getTotalWins() != null ? request.getTotalWins() : 0)
                 .build();
 
+        updatePhoneNumber(jockey, request.getPhoneNumber());
         JockeyProfile savedProfile = jockeyProfileRepository.save(profile);
         markProfileUnderReview(jockey);
         return mapProfileToResponse(savedProfile, jockey);
@@ -110,19 +122,8 @@ public class JockeyServiceImpl implements JockeyService {
         JockeyProfile profile = jockeyProfileRepository.findById(jockeyId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Hồ sơ nài ngựa không tồn tại."));
 
-        profile.setWeight(request.getWeight());
-        profile.setRanking(normalizeUppercase(request.getRanking()));
-        profile.setBiography(normalizeText(request.getBiography()));
-        if (request.getTotalRaces() != null) {
-            profile.setTotalRaces(request.getTotalRaces());
-        }
-        if (request.getTotalWins() != null) {
-            profile.setTotalWins(request.getTotalWins());
-        }
-
-        JockeyProfile savedProfile = jockeyProfileRepository.save(profile);
-        markProfileUnderReview(jockey);
-        return mapProfileToResponse(savedProfile, jockey);
+        updatePhoneNumber(jockey, request.getPhoneNumber());
+        return mapProfileToResponse(profile, jockey);
     }
 
     // Chuyển tài khoản user sang INACTIVE.
@@ -337,15 +338,49 @@ public class JockeyServiceImpl implements JockeyService {
 
     // Chuyển entity JockeyProfile sang DTO.
     private JockeyProfileResponse mapProfileToResponse(JockeyProfile profile, User jockey) {
+        JockeyVerification verification = jockeyVerificationRepository
+                .findFirstByJockeyIdOrderByCreatedAtDesc(profile.getJockeyId())
+                .orElse(null);
+        List<JockeyVerificationFileResponse> files = verification == null
+                ? List.of()
+                : jockeyVerificationFileRepository.findByVerificationId(verification.getVerificationId())
+                        .stream()
+                        .map(this::mapVerificationFileToResponse)
+                        .toList();
+
         return JockeyProfileResponse.builder()
                 .jockeyId(profile.getJockeyId())
                 .fullName(jockey.getFullName())
                 .email(jockey.getEmail())
+                .phoneNumber(jockey.getPhone())
                 .weight(profile.getWeight())
                 .ranking(profile.getRanking())
                 .biography(profile.getBiography())
                 .totalRaces(profile.getTotalRaces())
                 .totalWins(profile.getTotalWins())
+                .trainerName(verification != null ? verification.getTrainerName() : null)
+                .trainerEmail(verification != null ? verification.getTrainerEmail() : null)
+                .academyStableAddress(verification != null ? verification.getAcademyStableAddress() : null)
+                .issuingAuthority(verification != null ? verification.getIssuingAuthority() : null)
+                .verificationLink(verification != null ? verification.getVerificationLink() : null)
+                .licenceType(verification != null ? verification.getLicenceType() : null)
+                .expiryDate(verification != null ? verification.getExpiryDate() : null)
+                .verificationStatus(verification != null ? verification.getVerificationStatus() : null)
+                .rejectionReason(verification != null ? verification.getRejectionReason() : null)
+                .resubmitCount(verification != null ? verification.getResubmitCount() : null)
+                .submittedAt(verification != null ? verification.getSubmittedAt() : null)
+                .reviewedAt(verification != null ? verification.getReviewedAt() : null)
+                .reviewedBy(verification != null ? verification.getReviewedBy() : null)
+                .files(files)
+                .build();
+    }
+
+    private JockeyVerificationFileResponse mapVerificationFileToResponse(JockeyVerificationFile file) {
+        return JockeyVerificationFileResponse.builder()
+                .fileId(file.getFileId())
+                .fileUrl(file.getFileUrl())
+                .fileType(file.getFileType())
+                .uploadedAt(file.getUploadedAt())
                 .build();
     }
 
@@ -400,6 +435,17 @@ public class JockeyServiceImpl implements JockeyService {
 
     private String normalizeText(String value) { return value == null ? null : value.trim(); }
     private String normalizeUppercase(String value) { String normalizedValue = normalizeText(value); return normalizedValue == null ? null : normalizedValue.toUpperCase(Locale.ROOT); }
+
+    private void updatePhoneNumber(User jockey, String phoneNumber) {
+        String normalizedPhone = normalizeText(phoneNumber);
+        if (normalizedPhone == null || normalizedPhone.isBlank()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Phone number is required.");
+        }
+        if (!Objects.equals(jockey.getPhone(), normalizedPhone)) {
+            jockey.setPhone(normalizedPhone);
+            userRepository.save(jockey);
+        }
+    }
 
     private void markProfileUnderReview(User jockey) {
         jockey.setStatus(STATUS_UNDER_REVIEW);

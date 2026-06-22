@@ -21,6 +21,8 @@ public class JockeyProfileRequest {
 
     private String biography;
 
+    private String phoneNumber;
+
     private Integer totalRaces;
 
     private Integer totalWins;

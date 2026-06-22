@@ -36,6 +36,7 @@ function emptyProfileForm(currentUser = {}) {
     issuingAuthority: '',
     verificationLink: '',
     licenseFileName: '',
+    licenseFiles: [],
     weight: '55',
     ranking: 'BEGINNER',
     biography: '',
@@ -61,7 +62,9 @@ function isMissingProfileError(error) {
 }
 
 function toProfileForm(profile, currentUser = {}) {
-  const imgUrl = profile.imgUrl ? String(profile.imgUrl) : '';
+  const licenseFiles = Array.isArray(profile.files) ? profile.files : [];
+  const firstFile = licenseFiles[0] || null;
+  const imgUrl = profile.imgUrl || firstFile?.fileUrl ? String(profile.imgUrl || firstFile.fileUrl) : '';
 
   return {
     applicantFullName: String(
@@ -78,10 +81,10 @@ function toProfileForm(profile, currentUser = {}) {
       ''
     ),
 
-    phoneNumber: String(profile.phoneNumber || ''),
+    phoneNumber: String(profile.phoneNumber || profile.phone || ''),
     trainerName: String(profile.trainerName || ''),
     trainerEmail: String(profile.trainerEmail || ''),
-    stableAddress: String(profile.stableAddress || ''),
+    stableAddress: String(profile.stableAddress || profile.academyStableAddress || ''),
     issuingAuthority: String(profile.issuingAuthority || ''),
 
     verificationLink: String(
@@ -91,8 +94,13 @@ function toProfileForm(profile, currentUser = {}) {
       ''
     ),
 
-    licenseFileName: String(profile.licenseFileName || ''),
-    licenseNo: String(profile.licenseNo || ''),
+    licenseFileName: String(
+      profile.licenseFileName ||
+      licenseFiles.map((file) => file.fileUrl?.split('/').pop()).filter(Boolean).join(', ') ||
+      ''
+    ),
+    licenseFiles,
+    licenseNo: String(profile.licenseNo || profile.licenceType || ''),
 
     weight: profile.weight == null ? '55' : String(profile.weight),
     ranking: String(profile.ranking || 'BEGINNER').toUpperCase(),
@@ -108,10 +116,19 @@ function toProfileForm(profile, currentUser = {}) {
 function validateProfileForm(form) {
   const errors = {};
   const weight = Number(form.weight || 55);
-  const verificationLink = form.verificationLink.trim();
+  const phoneNumber = String(form.phoneNumber || '').trim();
+  const verificationLinks = form.verificationLink
+    .split(/\r?\n/)
+    .map((link) => link.trim())
+    .filter(Boolean);
+  const invalidVerificationLink = verificationLinks.find((link) => !/^https?:\/\/.+/i.test(link));
 
-  if (verificationLink && !/^https?:\/\/.+/i.test(verificationLink)) {
-    errors.verificationLink = 'Verification link must start with http:// or https://';
+  if (invalidVerificationLink) {
+    errors.verificationLink = 'Every verification link must start with http:// or https://';
+  }
+
+  if (!phoneNumber) {
+    errors.phoneNumber = 'Phone number is required.';
   }
 
   if (!Number.isFinite(weight) || weight < 35 || weight > 90) {
@@ -328,6 +345,8 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
   const jockeyName = currentUser?.fullName || currentUser?.email || 'Jockey';
   const isLoading = isLoadingProfile || isLoadingInvitations;
   const profileStatus = String(profile?.status || currentUser?.status || currentUser?.accountStatus || '').toUpperCase();
+  const verificationStatus = String(profile?.verificationStatus || '').toUpperCase();
+  const isApprovedProfile = verificationStatus === 'APPROVED' || profileStatus === 'ACTIVE';
   const isProfileActive = Boolean(profile) && profileStatus === 'ACTIVE';
   const profileNotice = getProfileNotice(profile, isLoadingProfile);
 
@@ -599,7 +618,7 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
                 placeholder="e.g. Aiden Walsh"
                 value={profileForm.applicantFullName}
                 onChange={handleProfileChange}
-                disabled={false}
+                disabled={isApprovedProfile || isSavingProfile}
               />
               {profileErrors.applicantFullName && (
                 <p className="field-error">{profileErrors.applicantFullName}</p>
@@ -618,7 +637,7 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
                 placeholder="you@example.com"
                 value={profileForm.applicantEmail}
                 onChange={handleProfileChange}
-                disabled={false}
+                disabled={isApprovedProfile || isSavingProfile}
               />
               {profileErrors.applicantEmail && (
                 <p className="field-error">{profileErrors.applicantEmail}</p>
@@ -667,7 +686,7 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
                 step="0.1"
                 value={profileForm.weight}
                 onChange={handleProfileChange}
-                disabled={isSavingProfile}
+                disabled={isApprovedProfile || isSavingProfile}
               />
               {profileErrors.weight && (
                 <p className="field-error">{profileErrors.weight}</p>
@@ -684,7 +703,7 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
                 name="ranking"
                 value={profileForm.ranking}
                 onChange={handleProfileChange}
-                disabled={isSavingProfile}
+                disabled={isApprovedProfile || isSavingProfile}
               >
                 <option value="BEGINNER">Beginner</option>
                 <option value="INTERMEDIATE">Intermediate</option>
@@ -739,7 +758,7 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
                 placeholder="Kinh nghiệm thi đấu, thế mạnh hoặc ghi chú hồ sơ..."
                 value={profileForm.biography}
                 onChange={handleProfileChange}
-                disabled={isSavingProfile}
+                disabled={isApprovedProfile || isSavingProfile}
               />
             </div>
           </div>
@@ -764,7 +783,7 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
                 placeholder="e.g. Henrietta Crane"
                 value={profileForm.trainerName}
                 onChange={handleProfileChange}
-                disabled={isSavingProfile}
+                disabled={isApprovedProfile || isSavingProfile}
               />
               {profileErrors.trainerName && (
                 <p className="field-error">{profileErrors.trainerName}</p>
@@ -783,7 +802,7 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
                 placeholder="trainer@stable.com"
                 value={profileForm.trainerEmail}
                 onChange={handleProfileChange}
-                disabled={isSavingProfile}
+                disabled={isApprovedProfile || isSavingProfile}
               />
               {profileErrors.trainerEmail && (
                 <p className="field-error">{profileErrors.trainerEmail}</p>
@@ -802,7 +821,7 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
                 placeholder="Stable name, town, country"
                 value={profileForm.stableAddress}
                 onChange={handleProfileChange}
-                disabled={isSavingProfile}
+                disabled={isApprovedProfile || isSavingProfile}
               />
               {profileErrors.stableAddress && (
                 <p className="field-error">{profileErrors.stableAddress}</p>
@@ -830,7 +849,7 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
                 placeholder="Nhập cơ quan cấp phép, ví dụ: BHA, IHRB, France Galop..."
                 value={profileForm.issuingAuthority}
                 onChange={handleProfileChange}
-                disabled={isSavingProfile}
+                disabled={isApprovedProfile || isSavingProfile}
               />
               {profileErrors.issuingAuthority && (
                 <p className="field-error">{profileErrors.issuingAuthority}</p>
@@ -841,20 +860,35 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
               <label className="field-label" htmlFor="verificationLink">
                 Verification Link
               </label>
-              <input
+              <textarea
                 className={profileErrors.verificationLink ? 'input has-error' : 'input'}
                 id="verificationLink"
                 name="verificationLink"
-                type="url"
                 placeholder="https://authority.org/jockeys/your-id"
+                rows={3}
                 value={profileForm.verificationLink}
                 onChange={handleProfileChange}
-                disabled={isSavingProfile}
+                disabled={isApprovedProfile || isSavingProfile}
               />
-              <p className="field-help">Optional — public licence or profile page.</p>
+              <p className="field-help">Optional - one public licence or profile page per line.</p>
               {profileErrors.verificationLink && (
                 <p className="field-error">{profileErrors.verificationLink}</p>
               )}
+            </div>
+
+            <div>
+              <label className="field-label" htmlFor="licenseNo">
+                Licence Type
+              </label>
+              <input
+                className="input"
+                id="licenseNo"
+                name="licenseNo"
+                type="text"
+                value={profileForm.licenseNo}
+                disabled
+                readOnly
+              />
             </div>
 
           </div>
@@ -891,13 +925,42 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
               type="file"
               accept=".jpg,.jpeg,.png,.pdf,image/jpeg,image/png,application/pdf"
               onChange={handleLicenceFileChange}
-              disabled={isSavingProfile}
+              disabled={isApprovedProfile || isSavingProfile}
             />
 
             <p className="field-help">JPG, PNG, or PDF (max 10MB).</p>
 
             {profileErrors.licenseFileName && (
               <p className="field-error">{profileErrors.licenseFileName}</p>
+            )}
+
+            {profileForm.licenseFiles.length > 0 && (
+              <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {profileForm.licenseFiles.map((file, index) => {
+                  const fileUrl = file.fileUrl || file.url || '';
+                  const fileType = String(file.fileType || '').toUpperCase();
+                  const isImage = /^https?:\/\/.+/i.test(fileUrl) && fileType !== 'PDF';
+
+                  return (
+                    <div className="identity-preview-card flex min-h-[17rem] flex-col" key={file.fileId || fileUrl || index}>
+                      {isImage ? (
+                        <img
+                          className="h-48 w-full rounded-lg bg-white object-contain"
+                          src={fileUrl}
+                          alt={`Jockey licence ${index + 1}`}
+                        />
+                      ) : (
+                        <div className="grid h-48 place-items-center rounded-lg bg-white text-sm font-extrabold text-slate-500">
+                          Licence file {index + 1}
+                        </div>
+                      )}
+                      <a className="mt-auto min-w-0 truncate pt-3 font-bold text-green-700 underline" href={fileUrl} target="_blank" rel="noreferrer">
+                        {fileUrl.split('/').pop() || `Licence file ${index + 1}`}
+                      </a>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
         </section>

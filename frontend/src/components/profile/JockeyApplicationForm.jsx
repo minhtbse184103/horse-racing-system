@@ -4,7 +4,11 @@ import { uploadFile } from '../../services/uploadService.js';
 const inputClass = 'w-full rounded-lg border border-brown-700/15 bg-white px-4 py-3 text-sm font-bold text-brown-900 outline-none transition placeholder:text-slate-500/65 focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20 disabled:cursor-not-allowed disabled:bg-cream-200 disabled:text-slate-500';
 
 function makeInitialValues(user, application) {
-  const firstFile = application?.files?.[0] || {};
+  const files = Array.isArray(application?.files) ? application.files : [];
+  const verificationLinks = String(application?.verificationLink || '')
+    .split(/\r?\n/)
+    .map((link) => link.trim())
+    .filter(Boolean);
 
   return {
     applicantFullName: user?.fullName || user?.username || '',
@@ -13,23 +17,19 @@ function makeInitialValues(user, application) {
     trainerEmail: application?.trainerEmail || '',
     academyStableAddress: application?.academyStableAddress || '',
     issuingAuthority: application?.issuingAuthority || '',
-    verificationLink: application?.verificationLink || firstFile.fileUrl || '',
+    verificationLinks: verificationLinks.length > 0 ? verificationLinks : [''],
     licenceType: application?.licenceType || 'PRO',
     expiryDate: application?.expiryDate || '',
     weight: application?.weight == null ? '55' : String(application.weight),
     ranking: application?.ranking || 'BEGINNER',
     biography: application?.biography || '',
-    licenseFileUrl: firstFile.fileUrl || '',
-    licenseFileName: firstFile.fileUrl ? firstFile.fileUrl.split('/').pop() : '',
-    licenseFileType: firstFile.fileType || 'IMAGE'
+    licenseFiles: files.map((file) => ({
+      url: file.fileUrl || '',
+      name: file.fileUrl ? file.fileUrl.split('/').pop() : 'Licence image',
+      fileType: file.fileType || 'IMAGE',
+      previewUrl: file.fileUrl || ''
+    })).filter((file) => file.url)
   };
-}
-
-function toFileType(file) {
-  if (!file) return 'IMAGE';
-  if (file.type === 'application/pdf') return 'PDF';
-  if (file.type.startsWith('image/')) return 'IMAGE';
-  return 'DOCUMENT';
 }
 
 export default function JockeyApplicationForm({ user, application, mode = 'submit', onSubmit, onCancel, isSubmitting }) {
@@ -50,7 +50,8 @@ export default function JockeyApplicationForm({ user, application, mode = 'submi
       weight >= 35 &&
       weight <= 90 &&
       values.ranking.trim() &&
-      values.licenseFileUrl
+      values.licenseFiles.length > 0 &&
+      values.licenseFiles.length <= 5
     );
   }, [values]);
 
@@ -70,10 +71,13 @@ export default function JockeyApplicationForm({ user, application, mode = 'submi
       nextErrors.weight = 'Jockey weight must be between 35 and 90 kg.';
     }
     if (!values.ranking.trim()) nextErrors.ranking = 'Ranking is required.';
-    if (values.verificationLink && !/^https?:\/\/.+/i.test(values.verificationLink)) {
-      nextErrors.verificationLink = 'Verification link must start with http:// or https://.';
+    const links = values.verificationLinks.map((link) => link.trim()).filter(Boolean);
+    const invalidLink = links.find((link) => !/^https?:\/\/.+/i.test(link));
+    if (invalidLink) {
+      nextErrors.verificationLinks = 'Every verification link must start with http:// or https://.';
     }
-    if (!values.licenseFileUrl) nextErrors.licenseFileUrl = 'Jockey licence file is required.';
+    if (values.licenseFiles.length === 0) nextErrors.licenseFiles = 'At least one jockey licence image is required.';
+    if (values.licenseFiles.length > 5) nextErrors.licenseFiles = 'You can upload at most 5 licence images.';
 
     setErrors(nextErrors);
     return nextErrors;
@@ -85,43 +89,84 @@ export default function JockeyApplicationForm({ user, application, mode = 'submi
     setErrors((current) => ({ ...current, [name]: '' }));
   }
 
+  function handleVerificationLinkChange(index, nextValue) {
+    setValues((current) => ({
+      ...current,
+      verificationLinks: current.verificationLinks.map((link, linkIndex) =>
+        linkIndex === index ? nextValue : link
+      )
+    }));
+    setErrors((current) => ({ ...current, verificationLinks: '' }));
+  }
+
+  function handleAddVerificationLink() {
+    setValues((current) => ({
+      ...current,
+      verificationLinks: [...current.verificationLinks, '']
+    }));
+  }
+
+  function handleRemoveVerificationLink(index) {
+    setValues((current) => ({
+      ...current,
+      verificationLinks: current.verificationLinks.length === 1
+        ? ['']
+        : current.verificationLinks.filter((_, linkIndex) => linkIndex !== index)
+    }));
+    setErrors((current) => ({ ...current, verificationLinks: '' }));
+  }
+
   async function handleLicenseFileChange(event) {
-    const file = event.target.files?.[0];
+    const files = Array.from(event.target.files || []);
+    event.target.value = '';
 
-    if (!file) return;
+    if (files.length === 0) return;
 
-    if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
-      setErrors((current) => ({ ...current, licenseFileUrl: 'Only image or PDF files are supported.' }));
+    if (values.licenseFiles.length + files.length > 5) {
+      setErrors((current) => ({ ...current, licenseFiles: 'You can upload at most 5 licence images.' }));
+      return;
+    }
+
+    const invalidFile = files.find((file) => !file.type.startsWith('image/'));
+    if (invalidFile) {
+      setErrors((current) => ({ ...current, licenseFiles: 'Only image files are supported.' }));
       return;
     }
 
     setIsUploadingLicense(true);
 
     try {
-      const uploaded = await uploadFile(file, 'jockey-license');
+      const uploadedFiles = await Promise.all(
+        files.map(async (file) => {
+          const uploaded = await uploadFile(file, 'jockey-license');
+          const uploadedUrl = uploaded.url || '';
+          return {
+            url: uploadedUrl,
+            name: uploaded.originalFilename || file.name,
+            fileType: 'IMAGE',
+            previewUrl: uploadedUrl
+          };
+        })
+      );
+
       setValues((current) => ({
         ...current,
-        licenseFileUrl: uploaded.url,
-        licenseFileName: uploaded.originalFilename || file.name,
-        licenseFileType: toFileType(file),
-        verificationLink: current.verificationLink || uploaded.url
+        licenseFiles: [...current.licenseFiles, ...uploadedFiles].slice(0, 5)
       }));
-      setErrors((current) => ({ ...current, licenseFileUrl: '', verificationLink: '' }));
+      setErrors((current) => ({ ...current, licenseFiles: '' }));
     } catch (error) {
-      setErrors((current) => ({ ...current, licenseFileUrl: error.message || 'Cannot upload licence file.' }));
+      setErrors((current) => ({ ...current, licenseFiles: error.message || 'Cannot upload licence images.' }));
     } finally {
       setIsUploadingLicense(false);
     }
   }
 
-  function handleRemoveLicense() {
+  function handleRemoveLicense(index) {
     setValues((current) => ({
       ...current,
-      licenseFileUrl: '',
-      licenseFileName: '',
-      licenseFileType: 'IMAGE'
+      licenseFiles: current.licenseFiles.filter((_, fileIndex) => fileIndex !== index)
     }));
-    setErrors((current) => ({ ...current, licenseFileUrl: 'Jockey licence file is required.' }));
+    setErrors((current) => ({ ...current, licenseFiles: '' }));
   }
 
   function handleSubmit(event) {
@@ -135,18 +180,16 @@ export default function JockeyApplicationForm({ user, application, mode = 'submi
       trainerEmail: values.trainerEmail.trim(),
       academyStableAddress: values.academyStableAddress.trim(),
       issuingAuthority: values.issuingAuthority.trim(),
-      verificationLink: values.verificationLink.trim(),
+      verificationLink: values.verificationLinks.map((link) => link.trim()).filter(Boolean).join('\n'),
       licenceType: values.licenceType.trim(),
       expiryDate: values.expiryDate,
       weight: Number(values.weight),
       ranking: values.ranking.trim(),
       biography: values.biography.trim(),
-      files: [
-        {
-          fileUrl: values.licenseFileUrl,
-          fileType: values.licenseFileType
-        }
-      ]
+      files: values.licenseFiles.map((file) => ({
+        fileUrl: file.url,
+        fileType: file.fileType
+      }))
     });
   }
 
@@ -241,11 +284,35 @@ export default function JockeyApplicationForm({ user, application, mode = 'submi
               {renderError('ranking')}
             </label>
 
-            <label className="grid gap-2 md:col-span-2">
+            <div className="grid gap-2 md:col-span-2">
               <span className="text-sm font-extrabold text-brown-900">Verification Link</span>
-              <input className={inputClass} name="verificationLink" placeholder="https://authority.example/verify/your-license" value={values.verificationLink} onChange={handleChange} disabled={isSubmitting} />
-              {renderError('verificationLink')}
-            </label>
+              <div className="grid gap-2">
+                {values.verificationLinks.map((link, index) => (
+                  <div className="flex gap-2 max-sm:flex-col" key={`verification-link-${index}`}>
+                    <input
+                      className={inputClass}
+                      placeholder="https://authority.example/verify/your-license"
+                      value={link}
+                      onChange={(event) => handleVerificationLinkChange(index, event.target.value)}
+                      disabled={isSubmitting}
+                    />
+                    <button
+                      className="outline-button compact-button"
+                      type="button"
+                      onClick={() => handleRemoveVerificationLink(index)}
+                      disabled={isSubmitting}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <button className="outline-button compact-button justify-self-start" type="button" onClick={handleAddVerificationLink} disabled={isSubmitting}>
+                Add Link
+              </button>
+              <span className="text-xs font-semibold text-slate-500">Enter verification links manually. Uploaded licence images will not be copied here automatically.</span>
+              {renderError('verificationLinks')}
+            </div>
 
             <label className="grid gap-2 md:col-span-2">
               <span className="text-sm font-extrabold text-brown-900">Biography</span>
@@ -257,30 +324,38 @@ export default function JockeyApplicationForm({ user, application, mode = 'submi
               <div className="identity-upload-box">
                 <div>
                   <strong>Upload licence proof</strong>
-                  <p>Upload an image or PDF of your jockey licence for admin review.</p>
-                  <small>Supported formats: JPG, PNG, PDF.</small>
-                  {values.licenseFileName && <small>{values.licenseFileName}</small>}
+                  <p>Upload up to 5 images of your jockey licence for admin review.</p>
+                  <small>Supported formats: JPG, PNG, WebP. {values.licenseFiles.length}/5 uploaded.</small>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <label className="outline-button compact-button cursor-pointer">
-                    {isUploadingLicense ? 'Uploading...' : 'Choose File'}
-                    <input className="sr-only" type="file" accept="image/*,application/pdf" onChange={handleLicenseFileChange} disabled={isSubmitting || isUploadingLicense} />
+                    {isUploadingLicense ? 'Uploading...' : 'Choose Images'}
+                    <input className="sr-only" type="file" accept="image/*" multiple onChange={handleLicenseFileChange} disabled={isSubmitting || isUploadingLicense || values.licenseFiles.length >= 5} />
                   </label>
-                  {values.licenseFileUrl && (
-                    <button className="outline-button danger-action compact-button" type="button" onClick={handleRemoveLicense} disabled={isSubmitting}>
-                      Remove
-                    </button>
-                  )}
                 </div>
               </div>
-              {values.licenseFileUrl && (
-                <div className="identity-preview-card">
-                  <a className="font-bold text-green-700 underline" href={values.licenseFileUrl} target="_blank" rel="noreferrer">
-                    View uploaded licence
-                  </a>
+              {values.licenseFiles.length > 0 && (
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {values.licenseFiles.map((file, index) => (
+                    <div className="identity-preview-card flex h-full min-h-[19rem] flex-col" key={file.url || index}>
+                      <img
+                        className="h-56 w-full rounded-lg bg-white object-contain"
+                        src={file.previewUrl || file.url}
+                        alt={`Jockey licence preview ${index + 1}`}
+                      />
+                      <div className="mt-auto flex min-h-12 items-center justify-between gap-2 pt-3">
+                        <a className="min-w-0 flex-1 truncate font-bold text-green-700 underline" href={file.url} target="_blank" rel="noreferrer">
+                          {file.name || `Licence image ${index + 1}`}
+                        </a>
+                        <button className="outline-button danger-action compact-button w-24 shrink-0" type="button" onClick={() => handleRemoveLicense(index)} disabled={isSubmitting}>
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
-              {renderError('licenseFileUrl')}
+              {renderError('licenseFiles')}
             </div>
           </div>
 

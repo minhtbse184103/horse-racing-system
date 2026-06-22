@@ -80,14 +80,12 @@ public class JockeyVerificationServiceImpl implements JockeyVerificationService 
                 .verificationLink(normalizeText(request.getVerificationLink()))
                 .licenceType(normalizeUppercase(request.getLicenceType()))
                 .expiryDate(request.getExpiryDate())
-                .weight(request.getWeight())
-                .ranking(normalizeUppercase(request.getRanking()))
-                .biography(normalizeText(request.getBiography()))
                 .verificationStatus(STATUS_PENDING)
                 .resubmitCount(0)
                 .build();
 
         JockeyVerification saved = verificationRepository.save(verification);
+        saveProfileSnapshot(user.getUserID(), request);
         List<JockeyVerificationFile> files = saveVerificationFiles(saved.getVerificationId(), request.getFiles());
 
         // Tài khoản vẫn giữ trạng thái ACTIVE, không thay đổi status của User
@@ -123,9 +121,6 @@ public class JockeyVerificationServiceImpl implements JockeyVerificationService 
         verification.setVerificationLink(normalizeText(request.getVerificationLink()));
         verification.setLicenceType(normalizeUppercase(request.getLicenceType()));
         verification.setExpiryDate(request.getExpiryDate());
-        verification.setWeight(request.getWeight());
-        verification.setRanking(normalizeUppercase(request.getRanking()));
-        verification.setBiography(normalizeText(request.getBiography()));
         verification.setVerificationStatus(STATUS_PENDING);
         verification.setRejectionReason(null);
         verification.setResubmitCount(verification.getResubmitCount() + 1);
@@ -134,6 +129,7 @@ public class JockeyVerificationServiceImpl implements JockeyVerificationService 
         verification.setReviewedBy(null);
 
         JockeyVerification saved = verificationRepository.save(verification);
+        saveProfileSnapshot(user.getUserID(), request);
 
         verificationFileRepository.deleteByVerificationId(verificationId);
         List<JockeyVerificationFile> files = saveVerificationFiles(verificationId, request.getFiles());
@@ -205,6 +201,26 @@ public class JockeyVerificationServiceImpl implements JockeyVerificationService 
 
     @Transactional(readOnly = true)
     @Override
+    public ApiResponse<List<JockeyVerificationResponse>> getApprovedVerifications() {
+        List<JockeyVerification> verifications = verificationRepository
+                .findByVerificationStatusOrderByReviewedAtDesc(STATUS_APPROVED);
+        List<JockeyVerificationResponse> approved = verifications.stream()
+                .map(v -> {
+                    User applicant = userRepository.findById(v.getJockeyId()).orElse(null);
+                    List<JockeyVerificationFile> files = verificationFileRepository
+                            .findByVerificationId(v.getVerificationId());
+                    return mapToResponse(v, applicant, files);
+                })
+                .toList();
+        return ApiResponse.<List<JockeyVerificationResponse>>builder()
+                .status(true)
+                .message("Lấy danh sách yêu cầu xác minh đã phê duyệt thành công")
+                .data(approved)
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    @Override
     public ApiResponse<JockeyVerificationResponse> getVerificationById(Integer verificationId) {
         JockeyVerification verification = verificationRepository.findById(verificationId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Yêu cầu xác minh không tồn tại."));
@@ -243,15 +259,6 @@ public class JockeyVerificationServiceImpl implements JockeyVerificationService 
         
         user.setRole(jockeyRole);
         userRepository.save(user);
-
-        // Tự động tạo hoặc cập nhật JockeyProfile
-        JockeyProfile profile = jockeyProfileRepository.findById(user.getUserID())
-                .orElse(new JockeyProfile());
-        profile.setJockeyId(user.getUserID());
-        profile.setWeight(verification.getWeight());
-        profile.setRanking(verification.getRanking());
-        profile.setBiography(verification.getBiography());
-        jockeyProfileRepository.save(profile);
 
         List<JockeyVerificationFile> files = verificationFileRepository
                 .findByVerificationId(verificationId);
@@ -341,8 +348,25 @@ public class JockeyVerificationServiceImpl implements JockeyVerificationService 
         return verificationFileRepository.saveAll(files);
     }
 
+    private void saveProfileSnapshot(Integer jockeyId, JockeyVerificationRequest request) {
+        JockeyProfile profile = jockeyProfileRepository.findById(jockeyId)
+                .orElseGet(() -> {
+                    JockeyProfile newProfile = new JockeyProfile();
+                    newProfile.setJockeyId(jockeyId);
+                    return newProfile;
+                });
+        profile.setWeight(request.getWeight());
+        profile.setRanking(normalizeUppercase(request.getRanking()));
+        profile.setBiography(normalizeText(request.getBiography()));
+        jockeyProfileRepository.save(profile);
+    }
+
     private JockeyVerificationResponse mapToResponse(JockeyVerification verification, User user, List<JockeyVerificationFile> files) {
         List<JockeyVerificationFileResponse> fileResponses = files != null ? files.stream().map(this::mapFileToResponse).toList() : Collections.emptyList();
+        JockeyProfile profile = jockeyProfileRepository.findById(verification.getJockeyId()).orElse(null);
+        User reviewer = verification.getReviewedBy() != null
+                ? userRepository.findById(verification.getReviewedBy()).orElse(null)
+                : null;
         return JockeyVerificationResponse.builder()
                 .verificationId(verification.getVerificationId())
                 .jockeyId(verification.getJockeyId())
@@ -355,15 +379,16 @@ public class JockeyVerificationServiceImpl implements JockeyVerificationService 
                 .verificationLink(verification.getVerificationLink())
                 .licenceType(verification.getLicenceType())
                 .expiryDate(verification.getExpiryDate())
-                .weight(verification.getWeight())
-                .ranking(verification.getRanking())
-                .biography(verification.getBiography())
+                .weight(profile != null ? profile.getWeight() : null)
+                .ranking(profile != null ? profile.getRanking() : null)
+                .biography(profile != null ? profile.getBiography() : null)
                 .verificationStatus(verification.getVerificationStatus())
                 .rejectionReason(verification.getRejectionReason())
                 .resubmitCount(verification.getResubmitCount())
                 .submittedAt(verification.getSubmittedAt())
                 .reviewedAt(verification.getReviewedAt())
                 .reviewedBy(verification.getReviewedBy())
+                .reviewedByName(reviewer != null ? reviewer.getFullName() : null)
                 .files(fileResponses)
                 .build();
     }

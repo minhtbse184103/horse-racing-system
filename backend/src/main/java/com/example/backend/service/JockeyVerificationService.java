@@ -23,6 +23,8 @@ public interface JockeyVerificationService {
     // Admin lấy danh sách yêu cầu xác minh đang chờ duyệt.
     ApiResponse<List<JockeyVerificationResponse>> getPendingVerifications();
 
+    ApiResponse<List<JockeyVerificationResponse>> getApprovedVerifications();
+
     // Admin xem chi tiết một yêu cầu xác minh.
     ApiResponse<JockeyVerificationResponse> getVerificationById(Integer verificationId);
 

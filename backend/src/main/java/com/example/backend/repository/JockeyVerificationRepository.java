@@ -20,6 +20,8 @@ public interface JockeyVerificationRepository extends JpaRepository<JockeyVerifi
     // Lấy tất cả verification đang PENDING để admin xét duyệt.
     List<JockeyVerification> findByVerificationStatusOrderBySubmittedAtAsc(String verificationStatus);
 
+    List<JockeyVerification> findByVerificationStatusOrderByReviewedAtDesc(String verificationStatus);
+
     // Kiểm tra jockey có verification đang PENDING không.
     boolean existsByJockeyIdAndVerificationStatus(Integer jockeyId, String verificationStatus);
 }

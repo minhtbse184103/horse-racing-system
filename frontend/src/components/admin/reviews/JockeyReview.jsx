@@ -18,6 +18,34 @@ function isHttpUrl(value) {
   return /^https?:\/\/.+/i.test(String(value || '').trim());
 }
 
+function getValidImageUrls(profile) {
+  return Array.isArray(profile?.imageUrls)
+    ? profile.imageUrls.filter(isHttpUrl)
+    : [];
+}
+
+function getVerificationLinks(profile) {
+  return String(profile?.verificationLink || '')
+    .split(/\r?\n/)
+    .map((link) => link.trim())
+    .filter(Boolean);
+}
+
+function displayValue(value) {
+  return value === null || value === undefined || value === '' ? 'Chưa cập nhật' : String(value);
+}
+
+function DetailItem({ label, value, children }) {
+  return (
+    <div>
+      <dt className="text-xs font-extrabold uppercase text-slate-500">{label}</dt>
+      <dd className="mt-1 break-words text-sm font-extrabold text-brown-900">
+        {children || displayValue(value)}
+      </dd>
+    </div>
+  );
+}
+
 function ReviewModal({ review, onClose, onConfirm, isProcessing }) {
   const [feedback, setFeedback] = useState('');
   const isRejecting = review?.action === 'reject';
@@ -28,8 +56,7 @@ function ReviewModal({ review, onClose, onConfirm, isProcessing }) {
 
   if (!review) return null;
 
-  const licenseImageUrl = String(review.profile.imgUrl || '').trim();
-  const licenseImageMissing = !isHttpUrl(licenseImageUrl);
+  const licenseImageMissing = getValidImageUrls(review.profile).length === 0;
   const approvalBlocked = !isRejecting && licenseImageMissing;
 
   return (
@@ -224,7 +251,7 @@ export default function JockeyReview() {
           <div>
             <h2 className="text-xl font-extrabold">Đang chờ xét duyệt</h2>
             <p className="mt-1 text-sm text-slate-500">
-              {filteredProfiles.length} of {profiles.length} profiles
+              {filteredProfiles.length} of {profiles.length} profiles, including approved records
             </p>
           </div>
 
@@ -258,7 +285,7 @@ export default function JockeyReview() {
                 <div className="flex items-start gap-4">
                   <img
                     className="size-20 rounded-lg border border-brown-700/10 object-cover"
-                    src={defaultJockeyAvatar}
+                    src={getValidImageUrls(profile)[0] || defaultJockeyAvatar}
                     alt={`${profile.fullName} proof`}
                   />
                   <div className="min-w-0 flex-1">
@@ -301,12 +328,12 @@ export default function JockeyReview() {
                   </div>
                   <div className="col-span-3">
                     <dt className="text-xs font-extrabold uppercase text-slate-500">
-                      Jockey License Image URL
+                      Jockey License Images
                     </dt>
                     <dd className="mt-1 break-words text-sm font-extrabold">
-                      {isHttpUrl(profile.imgUrl) ? (
-                        <a className="text-green-700 underline" href={profile.imgUrl} target="_blank" rel="noreferrer">{profile.imgUrl}</a>
-                      ) : 'Chưa gửi URL hợp lệ'}
+                      {getValidImageUrls(profile).length > 0
+                        ? `${getValidImageUrls(profile).length} image(s) uploaded`
+                        : 'Chưa gửi URL hợp lệ'}
                     </dd>
                   </div>
                 </dl>
@@ -323,8 +350,8 @@ export default function JockeyReview() {
                   <button
                     className="inline-flex items-center justify-center gap-2 rounded-lg border border-green-700/20 bg-green-50 px-3 py-2.5 text-sm font-extrabold text-green-700 disabled:cursor-not-allowed disabled:border-brown-700/10 disabled:bg-stone-100 disabled:text-slate-500 disabled:opacity-60"
                     type="button"
-                    disabled={!isHttpUrl(profile.imgUrl)}
-                    title={!isHttpUrl(profile.imgUrl) ? 'Cần có URL ảnh giấy phép jockey hợp lệ trước khi phê duyệt.' : 'Phê duyệt hồ sơ jockey'}
+                    disabled={getValidImageUrls(profile).length === 0 || String(profile.status || '').toUpperCase() !== 'PENDING'}
+                    title={String(profile.status || '').toUpperCase() !== 'PENDING' ? 'Hồ sơ này đã được xử lý.' : getValidImageUrls(profile).length === 0 ? 'Cần có URL ảnh giấy phép jockey hợp lệ trước khi phê duyệt.' : 'Phê duyệt hồ sơ jockey'}
                     onClick={() => setReview({ action: 'approve', profile })}
                   >
                     <BadgeCheck size={16} />
@@ -333,6 +360,7 @@ export default function JockeyReview() {
                   <button
                     className="inline-flex items-center justify-center gap-2 rounded-lg border border-danger/20 bg-danger-bg px-3 py-2.5 text-sm font-extrabold text-danger"
                     type="button"
+                    disabled={String(profile.status || '').toUpperCase() !== 'PENDING'}
                     onClick={() => setReview({ action: 'reject', profile })}
                   >
                     <XCircle size={16} />
@@ -351,19 +379,80 @@ export default function JockeyReview() {
           onClick={() => setSelectedProfile(null)}
         >
           <section
-            className="w-full max-w-2xl rounded-lg bg-cream-100 p-6 shadow-2xl"
+            className="max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-lg bg-cream-100 p-6 shadow-2xl"
             onClick={(event) => event.stopPropagation()}
           >
-            <p className="break-words text-sm font-semibold text-slate-500">
-              URL: {isHttpUrl(selectedProfile.imgUrl) ? (
-                <a className="text-green-700 underline" href={selectedProfile.imgUrl} target="_blank" rel="noreferrer">{selectedProfile.imgUrl}</a>
-              ) : 'Chưa gửi URL hợp lệ'}
+            <div className="flex items-start justify-between gap-4 max-sm:grid">
+              <div>
+                <p className="text-xs font-extrabold uppercase tracking-widest text-brown-500">
+                  Jockey Application Detail
+                </p>
+                <h2 className="mt-2 text-2xl font-black text-brown-900">
+                  {selectedProfile.fullName}
+                </h2>
+                <p className="mt-1 break-words text-sm font-semibold text-slate-500">
+                  {selectedProfile.email}
+                </p>
+              </div>
+              <span className="rounded-full bg-gold-400/20 px-3 py-1 text-xs font-extrabold text-brown-700">
+                {selectedProfile.status}
+              </span>
+            </div>
+
+            <dl className="mt-5 grid gap-4 rounded-lg border border-brown-700/10 bg-white p-4 sm:grid-cols-2 lg:grid-cols-3">
+              <DetailItem label="Jockey ID" value={selectedProfile.jockeyId} />
+              <DetailItem label="Licence Type" value={selectedProfile.licenceType || selectedProfile.licenseNo} />
+              <DetailItem label="Expiry Date" value={selectedProfile.expiryDate} />
+              <DetailItem label="Weight" value={selectedProfile.weight ? `${selectedProfile.weight} kg` : ''} />
+              <DetailItem label="Ranking" value={selectedProfile.ranking} />
+              <DetailItem label="Trainer Name" value={selectedProfile.trainerName} />
+              <DetailItem label="Trainer Email" value={selectedProfile.trainerEmail} />
+              <DetailItem label="Academy / Stable Address" value={selectedProfile.academyStableAddress} />
+              <DetailItem label="Issuing Authority" value={selectedProfile.issuingAuthority} />
+              <DetailItem label="Submitted At" value={selectedProfile.submittedAt} />
+              <DetailItem label="Reviewed At" value={selectedProfile.reviewedAt} />
+              <DetailItem label="Reviewed By" value={selectedProfile.reviewedByName || selectedProfile.reviewedBy} />
+              <div className="sm:col-span-2 lg:col-span-3">
+                <DetailItem label="Biography" value={selectedProfile.biography} />
+              </div>
+              <div className="sm:col-span-2 lg:col-span-3">
+                <DetailItem label="Verification Links">
+                  {getVerificationLinks(selectedProfile).length > 0 ? (
+                    <div className="grid gap-1">
+                      {getVerificationLinks(selectedProfile).map((link, index) => (
+                        <a className="break-all text-green-700 underline" href={link} target="_blank" rel="noreferrer" key={`${link}-${index}`}>
+                          {link}
+                        </a>
+                      ))}
+                    </div>
+                  ) : 'Chưa cập nhật'}
+                </DetailItem>
+              </div>
+            </dl>
+
+            <p className="mt-5 break-words text-sm font-semibold text-slate-500">
+              {getValidImageUrls(selectedProfile).length} licence image(s)
             </p>
-            <UrlImagePreview
-              url={selectedProfile.imgUrl}
-              alt={`${selectedProfile.fullName} proof`}
-              className="mt-4 max-h-[60vh] w-full rounded-lg object-contain"
-            />
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              {getValidImageUrls(selectedProfile).length > 0 ? (
+                getValidImageUrls(selectedProfile).map((url, index) => (
+                  <div className="rounded-lg border border-brown-700/10 bg-white p-3" key={url}>
+                    <UrlImagePreview
+                      url={url}
+                      alt={`${selectedProfile.fullName} proof ${index + 1}`}
+                      className="max-h-[42vh] w-full rounded-lg object-contain"
+                    />
+                    <a className="mt-3 inline-flex max-w-full break-all text-sm font-bold text-green-700 underline" href={url} target="_blank" rel="noreferrer">
+                      Open image {index + 1}
+                    </a>
+                  </div>
+                ))
+              ) : (
+                <p className="rounded-lg border border-danger/20 bg-danger-bg px-4 py-6 text-center text-sm font-bold text-danger sm:col-span-2">
+                  Chưa gửi URL hợp lệ
+                </p>
+              )}
+            </div>
             <button
               className="mt-4 w-full rounded-lg border border-brown-700/15 bg-white px-4 py-3 font-extrabold text-brown-700"
               type="button"
