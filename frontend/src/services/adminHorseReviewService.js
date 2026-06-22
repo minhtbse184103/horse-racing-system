@@ -1,22 +1,56 @@
 import { httpRequest } from '../api/httpClient';
 
-export function getPendingHorses() {
-  return httpRequest('/api/admin/horses/pending', {
-    fallbackError: 'Không thể tải hồ sơ ngựa đang chờ duyệt.'
-  });
+function makeFilePreview(name, url) {
+  if (!url) return [];
+  return [{ id: url, name, url }];
 }
 
-export function approveHorse(horseId) {
-  return httpRequest(`/api/admin/horses/${horseId}/approve`, {
+function normalizeHorse(horse) {
+  if (!horse) return horse;
+
+  const horseImageUrl = horse.horseImageUrl || horse.imgUrl || '';
+
+  return {
+    ...horse,
+    id: horse.id ?? horse.horseId ?? horse.horseID,
+    horseId: horse.horseId ?? horse.horseID ?? horse.id,
+    healthCertificateExpiryDate: horse.healthCertificateExpiryDate || horse.healthCertExpiry || '',
+    horsePassportImages: Array.isArray(horse.horsePassportImages)
+      ? horse.horsePassportImages
+      : makeFilePreview('Horse Passport', horse.horsePassportUrl),
+    horseCertificateImages: Array.isArray(horse.horseCertificateImages)
+      ? horse.horseCertificateImages
+      : makeFilePreview('Health Certificate', horse.healthCertificateUrl),
+    horseImages: Array.isArray(horse.horseImages)
+      ? horse.horseImages
+      : makeFilePreview('Horse Image', horseImageUrl),
+    imgUrl: horseImageUrl
+  };
+}
+
+export async function getPendingHorses() {
+  const horses = await httpRequest('/api/admin/horses/pending', {
+    fallbackError: 'Khong the tai ho so ngua dang cho duyet.'
+  });
+
+  return Array.isArray(horses) ? horses.map(normalizeHorse) : [];
+}
+
+export async function approveHorse(horseId) {
+  const horse = await httpRequest(`/api/admin/horses/${horseId}/approve`, {
     method: 'PUT',
-    fallbackError: 'Không thể phê duyệt hồ sơ ngựa.'
+    fallbackError: 'Khong the phe duyet ho so ngua.'
   });
+
+  return normalizeHorse(horse);
 }
 
-export function rejectHorse(horseId, feedback) {
-  return httpRequest(`/api/admin/horses/${horseId}/reject`, {
+export async function rejectHorse(horseId, feedback) {
+  const horse = await httpRequest(`/api/admin/horses/${horseId}/reject`, {
     method: 'PUT',
     body: { feedback },
-    fallbackError: 'Không thể từ chối hồ sơ ngựa.'
+    fallbackError: 'Khong the tu choi ho so ngua.'
   });
+
+  return normalizeHorse(horse);
 }

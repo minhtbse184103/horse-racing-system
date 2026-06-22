@@ -35,35 +35,44 @@ public class Horse {
     @Column(name = "ownerID", nullable = false)
     private Integer ownerId;
 
+    @Column(name = "passportNumber", nullable = false, unique = true)
+    private String passportNumber;
+
     @Column(name = "horseName", nullable = false, unique = true)
     private String horseName;
 
-    @Column(name = "breed")
+    @Column(name = "breed", nullable = false)
     private String breed;
 
-    @Column(name = "gender")
+    @Column(name = "gender", nullable = false)
     private String gender;
 
-    @Column(name = "color")
+    @Column(name = "color", nullable = false)
     private String color;
 
-    @Column(name = "dayOfBirth")
+    @Column(name = "dayOfBirth", nullable = false)
     private LocalDate dayOfBirth;
 
     @Column(name = "weight", nullable = false)
     private BigDecimal weight;
 
-    @Column(name = "healthCertExpiry")
+    @Column(name = "healthCertExpiry", nullable = false)
     private LocalDate healthCertExpiry;
+
+    @Column(name = "horsePassportUrl", nullable = false, columnDefinition = "TEXT")
+    private String horsePassportUrl;
+
+    @Column(name = "healthCertificateUrl", nullable = false, columnDefinition = "TEXT")
+    private String healthCertificateUrl;
+
+    @Column(name = "horseImageUrl", nullable = false, columnDefinition = "TEXT")
+    private String horseImageUrl;
 
     @Column(name = "status")
     private String status;
 
     @Column(name = "rejectionReason", length = 500)
     private String rejectionReason;
-
-    @Column(name = "img_url", columnDefinition = "TEXT")
-    private String imgUrl;
 
     @Column(name = "createdAt")
     private LocalDateTime createdAt;

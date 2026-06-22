@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   ClipboardCheck,
   Flag,
+  FileText,
   Gavel,
   RefreshCw,
   ShieldCheck,
@@ -27,6 +28,7 @@ import { getTournaments } from '../../services/eventService';
 import { getAssignmentQueue } from '../../services/raceEntryService';
 import { getRefereeAssignments } from '../../services/refereeAssignmentService';
 import { getUsers } from '../../services/userService';
+import { getAllOwnerApplications } from '../../services/ownerApplicationService';
 import {
   fadeSlideItem,
   hoverLift,
@@ -173,6 +175,7 @@ export default function AdminOverview({ onNavigate }) {
     registrationHistory: [],
     pendingHorses: [],
     pendingJockeys: [],
+    ownerApplications: [],
     raceEntryQueue: [],
     refereeAssignments: []
   });
@@ -195,6 +198,7 @@ export default function AdminOverview({ onNavigate }) {
         registrationHistory,
         pendingHorses,
         pendingJockeys,
+        ownerApplications,
         raceEntryQueue,
         refereeAssignments
       ] = await Promise.all([
@@ -204,6 +208,7 @@ export default function AdminOverview({ onNavigate }) {
         getRegistrationHistory(),
         getPendingHorses(),
         getJockeyProfilesUnderReview(),
+        getAllOwnerApplications(),
         getAssignmentQueue(),
         getRefereeAssignments()
       ]);
@@ -219,6 +224,9 @@ export default function AdminOverview({ onNavigate }) {
           : [],
         pendingHorses: Array.isArray(pendingHorses) ? pendingHorses : [],
         pendingJockeys: Array.isArray(pendingJockeys) ? pendingJockeys : [],
+        ownerApplications: Array.isArray(ownerApplications)
+          ? ownerApplications
+          : [],
         raceEntryQueue: Array.isArray(raceEntryQueue) ? raceEntryQueue : [],
         refereeAssignments: Array.isArray(refereeAssignments)
           ? refereeAssignments
@@ -238,10 +246,14 @@ export default function AdminOverview({ onNavigate }) {
   const openTournaments = data.tournaments.filter(
     (tournament) => tournament.status === 'OPEN_FOR_REGISTRATION'
   ).length;
+  const pendingOwnerApplications = data.ownerApplications.filter(
+    (application) => application.status === 'PENDING'
+  ).length;
   const totalReviewQueue =
     data.pendingRegistrations.length +
     data.pendingHorses.length +
-    data.pendingJockeys.length;
+    data.pendingJockeys.length +
+    pendingOwnerApplications;
 
   const upcomingTournaments = useMemo(
     () =>
@@ -269,6 +281,14 @@ export default function AdminOverview({ onNavigate }) {
   }, [data.tournaments]);
 
   const workQueues = [
+    {
+      key: 'ownerApplications',
+      label: 'Duyệt Owner',
+      count: pendingOwnerApplications,
+      note: 'Tài khoản đang chờ xét duyệt để trở thành Owner',
+      icon: FileText,
+      tone: 'bg-rose-100 text-rose-700'
+    },
     {
       key: 'registrations',
       target: 'events',
@@ -311,6 +331,12 @@ export default function AdminOverview({ onNavigate }) {
       label: 'Thiết lập giải đấu',
       note: 'Tạo giải đấu và các cuộc đua trực thuộc',
       icon: Trophy
+    },
+    {
+      key: 'ownerApplications',
+      label: 'Duyệt Owner',
+      note: `${pendingOwnerApplications} hồ sơ đang chờ xử lý`,
+      icon: FileText
     },
     {
       key: 'refereeAssignments',

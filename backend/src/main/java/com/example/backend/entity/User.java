@@ -29,8 +29,8 @@ public class User {
     @Column(nullable = false)
     private String password;
 
-    @Column(name = "fullName", nullable = false)
-    private String fullName;
+    @Column(name = "username", nullable = false, unique = true)
+    private String username;
 
     @Column(name = "phone", unique = true)
     private String phone;
@@ -61,5 +61,13 @@ public class User {
     @PreUpdate
     void preUpdate() {
         updatedAt = LocalDateTime.now();
+    }
+
+    public String getFullName() {
+        return username;
+    }
+
+    public void setFullName(String fullName) {
+        this.username = fullName;
     }
 }

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   ClipboardCheck,
+  FileText,
   Gavel,
   LayoutDashboard,
   LogOut,
@@ -15,6 +16,7 @@ import TournamentWorkspace from './events/TournamentWorkspace';
 import HorseReview from './horses/HorseReview';
 import JockeyReview from './reviews/JockeyReview';
 import RefereeAssignmentManagement from './refereeAssignments/RefereeAssignmentManagement';
+import OwnerApplicationManagement from './ownerApplications/OwnerApplicationManagement';
 import UserManagement from './users/UserManagement';
 import { formatDisplayLabel } from '../../lib';
 import { tapPress } from './ui/motion';
@@ -31,6 +33,12 @@ const adminNavItems = [
     label: 'Người dùng',
     description: 'Tài khoản và vai trò',
     icon: Users
+  },
+  {
+    key: 'ownerApplications',
+    label: 'Duyệt Owner',
+    description: 'Đơn đăng ký Owner',
+    icon: FileText
   },
   {
     key: 'events',
@@ -60,13 +68,15 @@ const adminNavItems = [
 
 export default function AdminDashboard({ currentUser, onLogout }) {
   const [activeSection, setActiveSection] = useState('overview');
-  const adminName = currentUser?.fullName || currentUser?.email || 'Admin';
+  const adminName =
+    currentUser?.username || currentUser?.fullName || currentUser?.email || 'Admin';
   const activeNavItem =
     adminNavItems.find((item) => item.key === activeSection) || adminNavItems[0];
 
   const activeContent = {
     overview: <AdminOverview onNavigate={setActiveSection} />,
     users: <UserManagement />,
+    ownerApplications: <OwnerApplicationManagement />,
     events: <TournamentWorkspace adminName={adminName} />,
     refereeAssignments: <RefereeAssignmentManagement />,
     jockeyReviews: <JockeyReview />,

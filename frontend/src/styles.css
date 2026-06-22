@@ -2908,3 +2908,332 @@ select {
     height: 180px;
   }
 }
+
+.status-badge.approved {
+  background: rgba(46, 125, 50, 0.14);
+  color: #276a2b;
+}
+
+.status-badge.not-registered,
+.status-badge.notregistered {
+  background: rgba(101, 112, 131, 0.12);
+  color: var(--slate-500);
+}
+
+.break-anywhere {
+  overflow-wrap: anywhere;
+}
+
+.identity-upload-box {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border: 1px dashed rgba(108, 63, 36, 0.28);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.68);
+  padding: 18px;
+}
+
+.identity-upload-box strong,
+.identity-upload-box small {
+  display: block;
+  color: var(--brown-900);
+}
+
+.identity-upload-box p {
+  margin: 6px 0 0;
+  color: var(--slate-500);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.identity-upload-box small {
+  margin-top: 8px;
+  color: var(--brown-500);
+  font-weight: 850;
+}
+
+.identity-preview-card {
+  width: min(100%, 420px);
+  border: 1px solid rgba(108, 63, 36, 0.14);
+  border-radius: 20px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 16px 38px rgba(43, 23, 16, 0.1);
+}
+
+.identity-preview-card.large {
+  width: min(100%, 640px);
+}
+
+.identity-preview-card img {
+  display: block;
+  width: 100%;
+  max-height: 360px;
+  object-fit: contain;
+  background: #fff;
+}
+
+.owner-profile-window {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border-radius: 26px;
+  background: linear-gradient(135deg, rgba(43, 23, 16, 0.96), rgba(108, 63, 36, 0.86));
+  color: #fff;
+  padding: 20px;
+  box-shadow: 0 18px 48px rgba(43, 23, 16, 0.14);
+}
+
+.owner-profile-window h3 {
+  margin: 0;
+  font-size: 1.5rem;
+  letter-spacing: -0.03em;
+}
+
+.owner-profile-window p {
+  margin: 6px 0 0;
+  color: rgba(255, 255, 255, 0.72);
+  font-weight: 750;
+}
+
+.owner-profile-avatar {
+  width: 68px;
+  height: 68px;
+  display: grid;
+  place-items: center;
+  border-radius: 24px;
+  background: rgba(217, 164, 65, 0.18);
+  color: var(--gold-400);
+  font-size: 2rem;
+  font-weight: 950;
+}
+
+@media (max-width: 760px) {
+  .identity-upload-box,
+  .owner-profile-window {
+    align-items: stretch;
+    flex-direction: column;
+  }
+}
+
+.horse-form-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: grid;
+  place-items: center;
+  padding: 22px;
+  background: rgba(43, 23, 16, 0.58);
+  backdrop-filter: blur(10px);
+}
+
+.horse-form-modal {
+  width: min(960px, 100%);
+  max-height: min(92vh, 940px);
+  overflow: hidden;
+  display: grid;
+  background: var(--cream-100);
+  border: 1px solid rgba(108, 63, 36, 0.16);
+  border-radius: 30px;
+  box-shadow: 0 30px 90px rgba(43, 23, 16, 0.34);
+}
+
+.horse-modal-header {
+  margin: 0;
+  padding: 24px 26px;
+  border-bottom: 1px solid rgba(108, 63, 36, 0.1);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(255, 248, 238, 0.82));
+}
+
+.horse-form-modal .owner-form {
+  overflow-y: auto;
+  max-height: calc(92vh - 124px);
+  padding: 24px 26px 26px;
+}
+
+.horse-passport-check-form {
+  gap: 12px;
+}
+
+.horse-passport-note,
+.horse-upload-summary {
+  border-radius: 18px;
+  border: 1px solid rgba(108, 63, 36, 0.1);
+  background: rgba(255, 255, 255, 0.62);
+  color: var(--slate-500);
+  font-size: 0.92rem;
+  font-weight: 760;
+  line-height: 1.45;
+  padding: 14px 16px;
+}
+
+.horse-description-input {
+  min-height: 94px;
+  resize: vertical;
+}
+
+.horse-upload-group {
+  display: grid;
+  gap: 13px;
+  margin-top: 16px;
+  border: 1px dashed rgba(108, 63, 36, 0.26);
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.58);
+  padding: 18px;
+}
+
+.horse-upload-group.has-error {
+  border-color: rgba(194, 65, 53, 0.52);
+  background: rgba(255, 241, 241, 0.6);
+}
+
+.horse-upload-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.horse-upload-header .field-label {
+  margin-top: 0;
+}
+
+.horse-upload-header p,
+.horse-upload-header small {
+  margin: 5px 0 0;
+  display: block;
+  color: var(--slate-500);
+  font-size: 0.88rem;
+  font-weight: 740;
+  line-height: 1.42;
+}
+
+.horse-upload-preview-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(164px, 1fr));
+  gap: 12px;
+}
+
+.horse-upload-preview-card {
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid rgba(108, 63, 36, 0.12);
+  background: #fff;
+  box-shadow: 0 12px 32px rgba(43, 23, 16, 0.08);
+}
+
+.horse-upload-preview-card img {
+  display: block;
+  width: 100%;
+  height: 128px;
+  object-fit: cover;
+  background: var(--cream-200);
+}
+
+.horse-upload-preview-card div {
+  display: grid;
+  gap: 8px;
+  padding: 11px;
+}
+
+.horse-upload-preview-card strong {
+  overflow: hidden;
+  color: var(--brown-900);
+  font-size: 0.82rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.horse-upload-empty {
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--slate-500);
+  font-weight: 760;
+  padding: 14px;
+  text-align: center;
+}
+
+.sticky-modal-actions {
+  position: sticky;
+  bottom: -26px;
+  margin: 20px -26px -26px;
+  padding: 16px 26px;
+  border-top: 1px solid rgba(108, 63, 36, 0.1);
+  background: rgba(255, 248, 238, 0.96);
+  backdrop-filter: blur(10px);
+}
+
+.horse-detail-document-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 18px;
+}
+
+.horse-detail-document-card {
+  border-radius: 22px;
+  border: 1px solid rgba(108, 63, 36, 0.1);
+  background: rgba(255, 255, 255, 0.66);
+  padding: 14px;
+}
+
+.horse-detail-document-card h3 {
+  margin: 0 0 10px;
+  color: var(--brown-900);
+  font-size: 1rem;
+  font-weight: 920;
+}
+
+.horse-detail-document-card p {
+  margin: 0;
+  color: var(--slate-500);
+  font-weight: 760;
+}
+
+.horse-detail-image-list {
+  display: grid;
+  gap: 8px;
+}
+
+.horse-detail-image-list img {
+  width: 100%;
+  max-height: 170px;
+  object-fit: cover;
+  border-radius: 16px;
+  border: 1px solid rgba(108, 63, 36, 0.1);
+  background: var(--cream-200);
+}
+
+@media (max-width: 760px) {
+  .horse-form-overlay {
+    align-items: stretch;
+    padding: 12px;
+  }
+
+  .horse-form-modal {
+    max-height: 96vh;
+    border-radius: 22px;
+  }
+
+  .horse-modal-header,
+  .horse-upload-header {
+    flex-direction: column;
+  }
+
+  .horse-form-modal .owner-form {
+    max-height: calc(96vh - 166px);
+    padding: 18px;
+  }
+
+  .sticky-modal-actions {
+    bottom: -18px;
+    margin: 18px -18px -18px;
+    padding: 14px 18px;
+  }
+
+  .horse-detail-document-grid {
+    grid-template-columns: 1fr;
+  }
+}

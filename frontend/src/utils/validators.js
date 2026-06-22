@@ -1,6 +1,5 @@
 const EMAIL_REGEX = /^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/;
 const PHONE_REGEX = /^\+?[0-9]{9,15}$/;
-const PUBLIC_ROLES = ['OWNER', 'JOCKEY', 'SPECTATOR'];
 
 export function validateLoginForm(values) {
   const errors = {};
@@ -23,10 +22,10 @@ export function validateLoginForm(values) {
 export function validateSignupForm(values) {
   const errors = {};
 
-  if (!values.fullName?.trim()) {
-    errors.fullName = 'Họ và tên là bắt buộc.';
-  } else if (values.fullName.trim().length > 255) {
-    errors.fullName = 'Họ và tên không được vượt quá 255 ký tự.';
+  if (!values.username?.trim()) {
+    errors.username = 'Username la bat buoc.';
+  } else if (values.username.trim().length > 255) {
+    errors.username = 'Username khong duoc vuot qua 255 ky tu.';
   }
 
   if (!values.email?.trim()) {
@@ -45,10 +44,6 @@ export function validateSignupForm(values) {
     errors.password = 'Mật khẩu là bắt buộc.';
   } else if (values.password.length < 6 || values.password.length > 72) {
     errors.password = 'Mật khẩu phải có từ 6 đến 72 ký tự.';
-  }
-
-  if (!values.roleName || !PUBLIC_ROLES.includes(values.roleName)) {
-    errors.roleName = 'Role phải là OWNER, JOCKEY hoặc SPECTATOR.';
   }
 
   return errors;
@@ -70,7 +65,18 @@ export function validateHorseForm(values) {
   const weight = Number(values.weight);
   const today = todayDateOnly();
   const dayOfBirth = toDateOnly(values.dayOfBirth);
-  const healthCertExpiry = toDateOnly(values.healthCertExpiry);
+  const healthCertificateExpiryDate = toDateOnly(values.healthCertificateExpiryDate);
+  const passportNumber = String(values.passportNumber ?? '').trim();
+  const horsePassportImages = Array.isArray(values.horsePassportImages) ? values.horsePassportImages : [];
+  const horseCertificateImages = Array.isArray(values.horseCertificateImages) ? values.horseCertificateImages : [];
+  const horseImages = Array.isArray(values.horseImages) ? values.horseImages : [];
+  const totalImages = horsePassportImages.length + horseCertificateImages.length + horseImages.length;
+
+  if (!passportNumber) {
+    errors.passportNumber = 'Passport Number là bắt buộc.';
+  } else if (passportNumber.length < 3 || passportNumber.length > 50) {
+    errors.passportNumber = 'Passport Number phải có từ 3 đến 50 ký tự.';
+  }
 
   if (!values.horseName?.trim()) {
     errors.horseName = 'Tên ngựa là bắt buộc.';
@@ -96,6 +102,10 @@ export function validateHorseForm(values) {
     errors.color = 'Màu lông chứa ký tự không hợp lệ.';
   }
 
+  if (!values.gender) {
+    errors.gender = 'Gender is required.';
+  }
+
   if (!values.dayOfBirth) {
     errors.dayOfBirth = 'Ngày sinh là bắt buộc.';
   } else if (!dayOfBirth) {
@@ -110,19 +120,26 @@ export function validateHorseForm(values) {
     errors.weight = 'Cân nặng của ngựa phải từ 200 đến 1000 kg.';
   }
 
-  if (!values.healthCertExpiry) {
-    errors.healthCertExpiry = 'Ngày hết hạn chứng nhận sức khỏe là bắt buộc.';
-  } else if (!healthCertExpiry) {
-    errors.healthCertExpiry = 'Ngày hết hạn chứng nhận sức khỏe không hợp lệ.';
-  } else if (healthCertExpiry < today) {
-    errors.healthCertExpiry = 'Ngày hết hạn chứng nhận sức khỏe phải là hôm nay hoặc một ngày trong tương lai.';
+  if (!values.healthCertificateExpiryDate) {
+    errors.healthCertificateExpiryDate = 'Health Certificate Expiry Date is required.';
+  } else if (!healthCertificateExpiryDate) {
+    errors.healthCertificateExpiryDate = 'Health Certificate Expiry Date is invalid.';
   }
 
-  const imgUrl = String(values.imgUrl ?? '').trim();
-  if (!imgUrl) {
-    errors.imgUrl = 'URL chứng nhận sức khỏe là bắt buộc.';
-  } else if (!/^https?:\/\/.+/i.test(imgUrl)) {
-    errors.imgUrl = 'URL chứng nhận sức khỏe phải bắt đầu bằng http:// hoặc https://';
+  if (horsePassportImages.length === 0) {
+    errors.horsePassportImages = 'Horse Passport is required. Import at least 1 file.';
+  }
+
+  if (horseCertificateImages.length === 0) {
+    errors.horseCertificateImages = 'Health Certificate is required. Import at least 1 file.';
+  }
+
+  if (horseImages.length === 0) {
+    errors.horseImages = 'Horse Image is required. Import at least 1 file.';
+  }
+
+  if (totalImages > 10) {
+    errors.totalImages = 'Total files for Horse Passport, Health Certificate and Horse Image cannot exceed 10 files.';
   }
 
   return errors;

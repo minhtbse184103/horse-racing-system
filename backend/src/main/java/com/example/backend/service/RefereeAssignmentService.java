@@ -360,8 +360,8 @@ public class RefereeAssignmentService {
     private UserResponse toUserResponse(User user) {
         return new UserResponse(
                 user.getUserID(),
+                user.getUsername(),
                 user.getEmail(),
-                user.getFullName(),
                 user.getPhone(),
                 user.getStatus(),
                 user.getRole().getRoleName()

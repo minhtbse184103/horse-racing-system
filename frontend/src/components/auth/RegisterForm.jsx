@@ -9,11 +9,10 @@ const inputClasses =
 
 export default function RegisterForm({ onGoHome, onGoLogin }) {
   const [values, setValues] = useState({
-    fullName: '',
+    username: '',
     email: '',
     phone: '',
-    password: '',
-    roleName: 'OWNER'
+    password: ''
   });
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
@@ -23,11 +22,10 @@ export default function RegisterForm({ onGoHome, onGoLogin }) {
 
   const isFormReady = useMemo(
     () =>
-      values.fullName.trim() &&
+      values.username.trim() &&
       values.email.trim() &&
       values.phone.trim() &&
-      values.password &&
-      values.roleName,
+      values.password,
     [values]
   );
 
@@ -51,19 +49,17 @@ export default function RegisterForm({ onGoHome, onGoLogin }) {
     setIsSubmitting(true);
     try {
       await signup({
-        fullName: values.fullName.trim(),
+        username: values.username.trim(),
         email: values.email.trim(),
         phone: values.phone.trim(),
-        password: values.password,
-        roleName: values.roleName
+        password: values.password
       });
       setSuccessMessage('Đã tạo tài khoản thành công. Bạn có thể đăng nhập ngay.');
       setValues({
-        fullName: '',
+        username: '',
         email: '',
         phone: '',
-        password: '',
-        roleName: 'OWNER'
+        password: ''
       });
     } catch (error) {
       setApiError(error.message || 'Đăng ký thất bại. Vui lòng thử lại.');
@@ -110,7 +106,7 @@ export default function RegisterForm({ onGoHome, onGoLogin }) {
           Tạo tài khoản
         </h2>
         <p className="mt-3 font-medium text-slate-500">
-          Tạo tài khoản để tham gia hệ thống đua ngựa.
+          Tài khoản mới mặc định là Spectator. Bạn có thể đăng ký trở thành Owner trong Profile sau khi đăng nhập.
         </p>
 
         {apiError && (
@@ -132,24 +128,24 @@ export default function RegisterForm({ onGoHome, onGoLogin }) {
 
         <form className="mt-7 grid gap-4" onSubmit={handleSubmit} noValidate>
           <div className="grid gap-4 sm:grid-cols-2">
-            <label className="grid gap-2" htmlFor="fullName">
+            <label className="grid gap-2" htmlFor="username">
               <span className="text-sm font-extrabold text-brown-900">
-                Họ và tên
+                Username
               </span>
               <input
-                className={fieldClasses(errors.fullName)}
-                id="fullName"
-                name="fullName"
+                className={fieldClasses(errors.username)}
+                id="username"
+                name="username"
                 type="text"
-                placeholder="Nhập họ và tên"
-                autoComplete="name"
-                value={values.fullName}
+                placeholder="oanhle"
+                autoComplete="username"
+                value={values.username}
                 onChange={handleChange}
                 disabled={isSubmitting}
               />
-              {errors.fullName && (
+              {errors.username && (
                 <span className="text-xs font-bold text-danger">
-                  {errors.fullName}
+                  {errors.username}
                 </span>
               )}
             </label>
@@ -192,27 +188,6 @@ export default function RegisterForm({ onGoHome, onGoLogin }) {
             />
             {errors.email && (
               <span className="text-xs font-bold text-danger">{errors.email}</span>
-            )}
-          </label>
-
-          <label className="grid gap-2" htmlFor="roleName">
-            <span className="text-sm font-extrabold text-brown-900">Role</span>
-            <select
-              className={fieldClasses(errors.roleName)}
-              id="roleName"
-              name="roleName"
-              value={values.roleName}
-              onChange={handleChange}
-              disabled={isSubmitting}
-            >
-              <option value="OWNER">Owner</option>
-              <option value="JOCKEY">Jockey</option>
-              <option value="SPECTATOR">Spectator</option>
-            </select>
-            {errors.roleName && (
-              <span className="text-xs font-bold text-danger">
-                {errors.roleName}
-              </span>
             )}
           </label>
 
