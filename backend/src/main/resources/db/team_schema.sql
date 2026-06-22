@@ -14,11 +14,35 @@ CREATE TABLE `Roles` (
 CREATE TABLE `Users` (
   `userID` int PRIMARY KEY AUTO_INCREMENT,
   `roleID` int NOT NULL,
-  `fullName` varchar(255) NOT NULL,
+  `username` varchar(255) UNIQUE NOT NULL,
   `email` varchar(255) UNIQUE NOT NULL,
   `password` varchar(255) NOT NULL,
   `phone` varchar(255) UNIQUE,
-  `status` varchar(50),
+  `status` varchar(50) NOT NULL DEFAULT 'ACTIVE',
+  `createdAt` datetime,
+  `updatedAt` datetime
+);
+
+CREATE TABLE `OwnerApplication` (
+  `applicationID` int PRIMARY KEY AUTO_INCREMENT,
+  `userID` int NOT NULL,
+  `fullName` varchar(255) NOT NULL,
+  `dateOfBirth` date NOT NULL,
+  `gender` varchar(50) NOT NULL,
+  `nationality` varchar(255) NOT NULL,
+  `address` varchar(500) NOT NULL,
+  `status` varchar(50) NOT NULL DEFAULT 'PENDING',
+  `rejectReason` varchar(500),
+  `submittedAt` datetime,
+  `reviewedAt` datetime,
+  `reviewedBy` int,
+  `createdAt` datetime,
+  `updatedAt` datetime
+);
+
+CREATE TABLE `OwnerProfile` (
+  `ownerID` int PRIMARY KEY,
+  `applicationID` int UNIQUE NOT NULL,
   `createdAt` datetime,
   `updatedAt` datetime
 );
@@ -26,30 +50,60 @@ CREATE TABLE `Users` (
 CREATE TABLE `Horse` (
   `horseID` int PRIMARY KEY AUTO_INCREMENT,
   `ownerID` int NOT NULL,
+  `passportNumber` varchar(255) UNIQUE NOT NULL,
   `horseName` varchar(255) UNIQUE NOT NULL,
-  `breed` varchar(255),
-  `gender` varchar(50),
-  `color` varchar(255),
-  `dayOfBirth` date,
+  `breed` varchar(255) NOT NULL,
+  `gender` varchar(50) NOT NULL,
+  `color` varchar(255) NOT NULL,
+  `dayOfBirth` date NOT NULL,
   `weight` decimal(10,2) NOT NULL,
-  `healthCertExpiry` date,
-  `status` varchar(50),
+  `healthCertExpiry` date NOT NULL,
+  `horsePassportUrl` text NOT NULL,
+  `healthCertificateUrl` text NOT NULL,
+  `horseImageUrl` text NOT NULL,
+  `status` varchar(50) NOT NULL DEFAULT 'PENDING',
   `rejectionReason` varchar(500),
-  `img_url` text,
   `createdAt` datetime,
   `updatedAt` datetime
 );
 
 CREATE TABLE `JockeyProfile` (
   `jockeyID` int PRIMARY KEY,
-  `licenseNo` varchar(255) UNIQUE NOT NULL,
   `weight` decimal(10,2) NOT NULL,
   `ranking` varchar(255),
-  `status` varchar(50),
-  `rejectionReason` varchar(500),
-  `img_url` text,
+  `biography` text,
+  `totalRaces` int DEFAULT 0,
+  `totalWins` int DEFAULT 0,
   `createdAt` datetime,
   `updatedAt` datetime
+);
+
+CREATE TABLE `JockeyVerification` (
+  `verificationID` int PRIMARY KEY AUTO_INCREMENT,
+  `jockeyID` int NOT NULL,
+  `trainerName` varchar(255) NOT NULL,
+  `trainerEmail` varchar(255) NOT NULL,
+  `academyStableAddress` varchar(500),
+  `issuingAuthority` varchar(255) NOT NULL,
+  `verificationLink` text,
+  `licenceType` varchar(50),
+  `expiryDate` date,
+  `verificationStatus` varchar(50) NOT NULL DEFAULT 'PENDING',
+  `rejectionReason` varchar(500),
+  `resubmitCount` int DEFAULT 0,
+  `submittedAt` datetime,
+  `reviewedAt` datetime,
+  `reviewedBy` int,
+  `createdAt` datetime,
+  `updatedAt` datetime
+);
+
+CREATE TABLE `JockeyVerificationFile` (
+  `fileID` int PRIMARY KEY AUTO_INCREMENT,
+  `verificationID` int NOT NULL,
+  `fileUrl` text NOT NULL,
+  `fileType` varchar(50),
+  `uploadedAt` datetime
 );
 
 CREATE TABLE `Tournament` (
@@ -246,6 +300,17 @@ CREATE TABLE `RaceEntry` (
     )
 );
 
+CREATE TABLE `RaceResult` (
+  `resultID` int PRIMARY KEY AUTO_INCREMENT,
+  `raceEntryID` int UNIQUE NOT NULL,
+  `finishPosition` int NOT NULL,
+  `finishTime` varchar(50),
+  `points` int DEFAULT 0,
+  `prizeMoney` decimal(12,2) DEFAULT 0,
+  `recordedAt` datetime,
+  `recordedBy` int NOT NULL
+);
+
 CREATE TABLE `RefereeAssignment` (
   `assignmentID` int PRIMARY KEY AUTO_INCREMENT,
   `raceID` int UNIQUE NOT NULL,
@@ -261,7 +326,7 @@ CREATE TABLE `JockeyInvitation` (
   `horseID` int NOT NULL,
   `ownerID` int NOT NULL,
   `jockeyID` int NOT NULL,
-  `status` varchar(50),
+  `status` varchar(50) NOT NULL DEFAULT 'PENDING',
   `message` varchar(255),
   `createdAt` datetime,
   `expiredAt` datetime,
@@ -295,11 +360,56 @@ ON `Registration` (`tournamentID`, `horseID`, `approvalStatus`);
 CREATE INDEX `Race_index_7`
 ON `Race` (`tournamentID`, `status`, `raceStartTime`);
 
+ALTER TABLE `Tournament` ADD FOREIGN KEY (`createdBy`) REFERENCES `Users` (`userID`);
+
+ALTER TABLE `TournamentCondition` ADD FOREIGN KEY (`tournamentID`) REFERENCES `Tournament` (`tournamentID`);
+
+ALTER TABLE `Race` ADD FOREIGN KEY (`tournamentID`) REFERENCES `Tournament` (`tournamentID`);
+
+ALTER TABLE `RacePrize` ADD FOREIGN KEY (`raceID`) REFERENCES `Race` (`raceID`);
+
+ALTER TABLE `Registration` ADD FOREIGN KEY (`tournamentID`) REFERENCES `Tournament` (`tournamentID`);
+
+ALTER TABLE `Registration` ADD FOREIGN KEY (`horseID`) REFERENCES `Horse` (`horseID`);
+
+ALTER TABLE `Registration` ADD FOREIGN KEY (`ownerID`) REFERENCES `Users` (`userID`);
+
+ALTER TABLE `Registration` ADD FOREIGN KEY (`jockeyID`) REFERENCES `Users` (`userID`);
+
+ALTER TABLE `Registration` ADD FOREIGN KEY (`reviewedBy`) REFERENCES `Users` (`userID`);
+
+ALTER TABLE `RaceEntry` ADD FOREIGN KEY (`raceID`) REFERENCES `Race` (`raceID`);
+
+ALTER TABLE `RaceEntry` ADD FOREIGN KEY (`registrationID`) REFERENCES `Registration` (`registrationID`);
+
+ALTER TABLE `RaceEntry` ADD FOREIGN KEY (`assignedBy`) REFERENCES `Users` (`userID`);
+
+ALTER TABLE `RaceEntry`
+ADD FOREIGN KEY (`cancelledBy`) REFERENCES `Users` (`userID`);
+
+ALTER TABLE `RefereeAssignment` ADD FOREIGN KEY (`raceID`) REFERENCES `Race` (`raceID`);
+
+ALTER TABLE `RefereeAssignment` ADD FOREIGN KEY (`refereeUserID`) REFERENCES `Users` (`userID`);
+
 ALTER TABLE `Users` ADD FOREIGN KEY (`roleID`) REFERENCES `Roles` (`roleID`);
 
-ALTER TABLE `Horse` ADD FOREIGN KEY (`ownerID`) REFERENCES `Users` (`userID`);
+ALTER TABLE `OwnerApplication` ADD FOREIGN KEY (`userID`) REFERENCES `Users` (`userID`);
+
+ALTER TABLE `OwnerApplication` ADD FOREIGN KEY (`reviewedBy`) REFERENCES `Users` (`userID`);
+
+ALTER TABLE `OwnerProfile` ADD FOREIGN KEY (`ownerID`) REFERENCES `Users` (`userID`);
+
+ALTER TABLE `OwnerProfile` ADD FOREIGN KEY (`applicationID`) REFERENCES `OwnerApplication` (`applicationID`);
+
+ALTER TABLE `Horse` ADD FOREIGN KEY (`ownerID`) REFERENCES `OwnerProfile` (`ownerID`);
 
 ALTER TABLE `JockeyProfile` ADD FOREIGN KEY (`jockeyID`) REFERENCES `Users` (`userID`);
+
+ALTER TABLE `JockeyVerification` ADD FOREIGN KEY (`jockeyID`) REFERENCES `Users` (`userID`);
+
+ALTER TABLE `JockeyVerification` ADD FOREIGN KEY (`reviewedBy`) REFERENCES `Users` (`userID`);
+
+ALTER TABLE `JockeyVerificationFile` ADD FOREIGN KEY (`verificationID`) REFERENCES `JockeyVerification` (`verificationID`);
 
 ALTER TABLE `Tournament` ADD FOREIGN KEY (`createdBy`) REFERENCES `Users` (`userID`);
 
@@ -324,18 +434,12 @@ ALTER TABLE `RaceEntry` ADD FOREIGN KEY (`raceID`) REFERENCES `Race` (`raceID`);
 ALTER TABLE `RaceEntry` ADD FOREIGN KEY (`registrationID`) REFERENCES `Registration` (`registrationID`);
 
 ALTER TABLE `RaceEntry` ADD FOREIGN KEY (`assignedBy`) REFERENCES `Users` (`userID`);
-ALTER TABLE `RaceEntry`
-ADD FOREIGN KEY (`raceID`) REFERENCES `Race` (`raceID`);
 
-ALTER TABLE `RaceEntry`
-ADD FOREIGN KEY (`registrationID`)
-REFERENCES `Registration` (`registrationID`);
+ALTER TABLE `RaceEntry` ADD FOREIGN KEY (`cancelledBy`) REFERENCES `Users` (`userID`);
 
-ALTER TABLE `RaceEntry`
-ADD FOREIGN KEY (`assignedBy`) REFERENCES `Users` (`userID`);
+ALTER TABLE `RaceResult` ADD FOREIGN KEY (`raceEntryID`) REFERENCES `RaceEntry` (`raceEntryID`);
 
-ALTER TABLE `RaceEntry`
-ADD FOREIGN KEY (`cancelledBy`) REFERENCES `Users` (`userID`);
+ALTER TABLE `RaceResult` ADD FOREIGN KEY (`recordedBy`) REFERENCES `Users` (`userID`);
 
 ALTER TABLE `RefereeAssignment` ADD FOREIGN KEY (`raceID`) REFERENCES `Race` (`raceID`);
 
@@ -347,13 +451,6 @@ ALTER TABLE `JockeyInvitation` ADD FOREIGN KEY (`tournamentID`) REFERENCES `Tour
 
 ALTER TABLE `JockeyInvitation` ADD FOREIGN KEY (`horseID`) REFERENCES `Horse` (`horseID`);
 
-ALTER TABLE `JockeyInvitation` ADD FOREIGN KEY (`ownerID`) REFERENCES `Users` (`userID`);
+ALTER TABLE `JockeyInvitation` ADD FOREIGN KEY (`ownerID`) REFERENCES `OwnerProfile` (`ownerID`);
 
 ALTER TABLE `JockeyInvitation` ADD FOREIGN KEY (`jockeyID`) REFERENCES `Users` (`userID`);
-
-INSERT INTO `Roles` (`roleID`, `roleName`) VALUES
-(1, 'ADMIN'),
-(2, 'OWNER'),
-(3, 'JOCKEY'),
-(4, 'REFEREE'),
-(5, 'SPECTATOR');
