@@ -15,18 +15,17 @@ public class RefereeAssignmentResponse {
 
     private Integer raceId;
     private String raceName;
+    private String trackName;
     private Integer raceOrder;
     private Integer distance;
-    private LocalDateTime startTime;
-    private LocalDateTime endTime;
+    private Integer maxRunners;
+    private LocalDateTime raceStartTime;
+    private LocalDateTime raceEndTime;
     private String raceStatus;
-
-    private Integer roundId;
-    private String roundName;
-    private Integer roundOrder;
 
     private Integer tournamentId;
     private String tournamentName;
+    private String venue;
     private String tournamentStatus;
 
     private Integer refereeUserId;

@@ -1,18 +1,15 @@
 package com.example.backend.controller;
 
-
-import com.example.backend.dto.request.*;
-import com.example.backend.entity.*;
-import com.example.backend.service.*;
+import com.example.backend.dto.request.CreateRaceRequest;
+import com.example.backend.dto.request.UpdateRaceRequest;
+import com.example.backend.dto.response.RaceResponse;
+import com.example.backend.service.RaceService;
 import jakarta.validation.Valid;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
+
 import java.util.List;
 
 @RestController
@@ -25,40 +22,65 @@ public class RaceController {
         this.raceService = raceService;
     }
 
-    @GetMapping("/by-tournament/{tournamentId}")
-    public List<Race> getRacesByTournamentId(@PathVariable Integer tournamentId) {
-        return raceService.getRacesByTournamentId(tournamentId);
-    }
-    @GetMapping("/by-round/{roundId}")
-    public List<Race> getRacesByRoundId(@PathVariable Integer roundId) {
-        return raceService.getRacesByRoundId(roundId);
-    }
-
     @GetMapping
-    public List<Race> getAllRaces() {
+    public List<RaceResponse> getAllRaces() {
         return raceService.getAllRaces();
     }
 
-    @GetMapping("/{id}")
-    public Race getRaceById(@PathVariable Integer id) {
-        return raceService.getRaceById(id);
+    @GetMapping("/{raceId}")
+    public RaceResponse getRaceById(
+            @PathVariable Integer raceId
+    ) {
+        return raceService.getRaceById(raceId);
+    }
+
+    @GetMapping("/by-tournament/{tournamentId}")
+    public List<RaceResponse> getRacesByTournamentId(
+            @PathVariable Integer tournamentId
+    ) {
+        return raceService.getRacesByTournamentId(tournamentId);
     }
 
     @PostMapping
-    public Race createRace(@Valid @RequestBody CreateRaceRequest request) {
-        return raceService.createRace(request);
+    public ResponseEntity<RaceResponse> createRace(
+            @Valid @RequestBody CreateRaceRequest request,
+            Authentication authentication
+    ) {
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(raceService.createRace(request, authentication.getName()));
     }
 
-    @PutMapping("/{id}")
-public Race updateRace(
-        @PathVariable Integer id,
-        @Valid @RequestBody UpdateRaceRequest request
-) {
-    return raceService.updateRace(id, request);
-}
+    @PutMapping("/{raceId}")
+    public RaceResponse updateRace(
+            @PathVariable Integer raceId,
+            @Valid @RequestBody UpdateRaceRequest request,
+            Authentication authentication
+    ) {
+        return raceService.updateRace(raceId, request, authentication.getName());
+    }
 
-@DeleteMapping("/{id}")
-public Race cancelRace(@PathVariable Integer id) {
-    return raceService.cancelRace(id);
-}
+    @PutMapping("/{raceId}/close-registration")
+    public RaceResponse closeRegistration(
+            @PathVariable Integer raceId,
+            Authentication authentication
+    ) {
+        return raceService.closeRegistration(raceId, authentication.getName());
+    }
+
+    @PutMapping("/{raceId}/complete")
+    public RaceResponse completeRace(
+            @PathVariable Integer raceId,
+            Authentication authentication
+    ) {
+        return raceService.completeRace(raceId, authentication.getName());
+    }
+
+    @DeleteMapping("/{raceId}")
+    public RaceResponse cancelRace(
+            @PathVariable Integer raceId,
+            Authentication authentication
+    ) {
+        return raceService.cancelRace(raceId, authentication.getName());
+    }
 }

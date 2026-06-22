@@ -18,9 +18,9 @@ export function useAuth() {
                 updateStoredUser(freshUser);
                 setUser(freshUser);
             }
-            catch {
-                if (!cancelled && !getToken()) {
-                    setUser(null);
+            catch (error) {
+                if (!cancelled && (error?.status === 401 || error?.status === 403 || !getToken())) {
+                    clearAuth();
                 }
             }
         }

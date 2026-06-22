@@ -5,6 +5,7 @@ frontend/node_modules/
 frontend/dist/
 frontend/build/
 frontend/.next/
+backend/uploads/
 .mvn/wrapper/maven-wrapper.jar
 .m2/
 !**/src/main/**/target/

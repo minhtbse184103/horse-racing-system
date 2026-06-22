@@ -1,26 +1,13 @@
 package com.example.backend.entity;
 
-import java.time.LocalDateTime;
-
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.PreUpdate;
-import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
+import jakarta.persistence.*;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
 @Entity
 @Table(name = "Registration")
 public class Registration {
@@ -42,8 +29,26 @@ public class Registration {
     @Column(name = "jockeyID")
     private Integer jockeyId;
 
-    @Column(name = "status")
-    private String status;
+    @Column(name = "registrationNo", nullable = false, unique = true, length = 100)
+    private String registrationNo;
+
+    @Column(name = "paymentStatus", nullable = false, length = 50)
+    private String paymentStatus;
+
+    @Column(name = "approvalStatus", nullable = false, length = 50)
+    private String approvalStatus;
+
+    @Column(name = "rejectionReason", length = 500)
+    private String rejectionReason;
+
+    @Column(name = "submittedAt", nullable = false)
+    private LocalDateTime submittedAt;
+
+    @Column(name = "reviewedAt")
+    private LocalDateTime reviewedAt;
+
+    @Column(name = "reviewedBy")
+    private Integer reviewedBy;
 
     @Column(name = "createdAt")
     private LocalDateTime createdAt;
@@ -54,12 +59,34 @@ public class Registration {
     @PrePersist
     void prePersist() {
         LocalDateTime now = LocalDateTime.now();
-        createdAt = now;
+
+        if (submittedAt == null) {
+            submittedAt = now;
+        }
+
+        if (createdAt == null) {
+            createdAt = now;
+        }
+
         updatedAt = now;
     }
 
     @PreUpdate
     void preUpdate() {
         updatedAt = LocalDateTime.now();
+    }
+
+    /**
+     * Temporary compatibility methods for legacy Owner/Jockey code.
+     * Do not use these methods in the new registration flow.
+     */
+    @Deprecated
+    public String getStatus() {
+        return approvalStatus;
+    }
+
+    @Deprecated
+    public void setStatus(String status) {
+        this.approvalStatus = status;
     }
 }

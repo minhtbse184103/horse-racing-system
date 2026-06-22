@@ -1,59 +1,64 @@
 package com.example.backend.repository;
 
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
-
 import com.example.backend.entity.Race;
-
 import jakarta.persistence.LockModeType;
-
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
+@Repository
 public interface RaceRepository extends JpaRepository<Race, Integer> {
 
-    List<Race> findByRoundIdOrderByRaceOrderAsc(Integer roundId);
+    List<Race> findByTournamentIdOrderByRaceOrderAsc(Integer tournamentId);
 
-    long countByRoundId(Integer roundId);
-    boolean existsByRoundIdAndRaceOrder(Integer roundId, Integer raceOrder);
+    long countByTournamentId(Integer tournamentId);
 
-    List<Race> findByRoundIdIn(List<Integer> roundIds);
-    @Query("""
-        SELECT COUNT(r) > 0
-        FROM Race r
-        WHERE r.roundId IN :roundIds
-        AND r.status <> :cancelledStatus
-        AND r.startTime < :endTime
-        AND r.endTime > :startTime
-        """)
-    boolean existsOverlappingRace(
-            @Param("roundIds") List<Integer> roundIds,
-            @Param("startTime") LocalDateTime startTime,
-            @Param("endTime") LocalDateTime endTime,
-            @Param("cancelledStatus") String cancelledStatus
+    boolean existsByTournamentIdAndRaceNameIgnoreCase(
+            Integer tournamentId,
+            String raceName
     );
 
-    @Query("""
-        SELECT COUNT(r) > 0
-        FROM Race r
-        WHERE r.roundId IN :roundIds
-        AND r.raceId <> :raceId
-        AND r.status <> :cancelledStatus
-        AND r.startTime < :endTime
-        AND r.endTime > :startTime
-        """)
-    boolean existsOverlappingRaceExcludingCurrent(
-            @Param("roundIds") List<Integer> roundIds,
-            @Param("raceId") Integer raceId,
-            @Param("startTime") LocalDateTime startTime,
-            @Param("endTime") LocalDateTime endTime,
-            @Param("cancelledStatus") String cancelledStatus
+    boolean existsByTournamentIdAndRaceOrder(
+            Integer tournamentId,
+            Integer raceOrder
     );
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
-    @Query("select r from Race r where r.raceId = :raceId")
-    Optional<Race> findByIdForUpdate(@Param("raceId") Integer raceId);
+    @Query("""
+            select race
+            from Race race
+            where race.raceId = :raceId
+            """)
+    Optional<Race> findByIdForUpdate(
+            @Param("raceId") Integer raceId
+    );
+    List<Race> findAllByOrderByRaceStartTimeAsc();
+
+    boolean existsByTournamentIdAndRaceNameIgnoreCaseAndRaceIdNot(
+            Integer tournamentId,
+            String raceName,
+            Integer raceId
+    );
+
+    boolean existsByTournamentIdAndRaceOrderAndRaceIdNot(
+            Integer tournamentId,
+            Integer raceOrder,
+            Integer raceId
+    );
+
+    @Query("""
+        select coalesce(max(race.raceOrder), 0)
+        from Race race
+        where race.tournamentId = :tournamentId
+        """)
+    int findMaximumRaceOrder(
+            @Param("tournamentId") Integer tournamentId
+    );
+
 }

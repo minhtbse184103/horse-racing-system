@@ -3,11 +3,11 @@ package com.example.backend.controller;
 import com.example.backend.dto.request.CreateRefereeAssignmentRequest;
 import com.example.backend.dto.response.RefereeAssignmentResponse;
 import com.example.backend.dto.response.UserResponse;
-import com.example.backend.entity.RefereeAssignment;
 import com.example.backend.service.RefereeAssignmentService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -25,25 +25,38 @@ public class AdminRefereeAssignmentController {
     }
 
     @PostMapping
-    public ResponseEntity<RefereeAssignment> createAssignment(
-            @Valid @RequestBody CreateRefereeAssignmentRequest request
+    public ResponseEntity<RefereeAssignmentResponse> createAssignment(
+            @Valid @RequestBody CreateRefereeAssignmentRequest request,
+            Authentication authentication
     ) {
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(assignmentService.createAssignment(request));
+        return ResponseEntity
+                .status(HttpStatus.CREATED)
+                .body(assignmentService.createAssignment(
+                        request,
+                        authentication.getName()
+                ));
     }
 
     @PutMapping("/{raceId}/referee/{refereeUserId}")
-    public RefereeAssignment replaceAssignment(
+    public RefereeAssignmentResponse replaceAssignment(
             @PathVariable Integer raceId,
-            @PathVariable Integer refereeUserId
+            @PathVariable Integer refereeUserId,
+            Authentication authentication
     ) {
-        return assignmentService.replaceAssignment(raceId, refereeUserId);
+        return assignmentService.replaceAssignment(
+                raceId,
+                refereeUserId,
+                authentication.getName()
+        );
     }
 
     @DeleteMapping("/{raceId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void removeAssignment(@PathVariable Integer raceId) {
-        assignmentService.removeAssignment(raceId);
+    public void removeAssignment(
+            @PathVariable Integer raceId,
+            Authentication authentication
+    ) {
+        assignmentService.removeAssignment(raceId, authentication.getName());
     }
 
     @GetMapping
@@ -52,7 +65,9 @@ public class AdminRefereeAssignmentController {
     }
 
     @GetMapping("/by-race/{raceId}")
-    public RefereeAssignmentResponse getByRaceId(@PathVariable Integer raceId) {
+    public RefereeAssignmentResponse getByRaceId(
+            @PathVariable Integer raceId
+    ) {
         return assignmentService.getByRaceId(raceId);
     }
 

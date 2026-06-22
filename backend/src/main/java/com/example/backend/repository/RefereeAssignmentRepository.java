@@ -4,11 +4,12 @@ import com.example.backend.entity.RefereeAssignment;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Optional;
 
+@Repository
 public interface RefereeAssignmentRepository
         extends JpaRepository<RefereeAssignment, Integer> {
 
@@ -16,21 +17,24 @@ public interface RefereeAssignmentRepository
 
     Optional<RefereeAssignment> findByRaceId(Integer raceId);
 
-    List<RefereeAssignment> findByRefereeUserId(Integer refereeUserId);
-
     @Query("""
-        SELECT COUNT(assignment) > 0
-        FROM RefereeAssignment assignment
-        JOIN Race race ON race.raceId = assignment.raceId
-        WHERE assignment.refereeUserId = :refereeUserId
-          AND assignment.status = 'Assigned'
-          AND race.status <> 'Cancelled'
-          AND race.startTime < :endTime
-          AND race.endTime > :startTime
-        """)
+            select count(assignment) > 0
+            from RefereeAssignment assignment
+            join Race race
+              on race.raceId = assignment.raceId
+            where assignment.refereeUserId = :refereeUserId
+              and assignment.status = :assignedStatus
+              and race.status <> :cancelledRaceStatus
+              and race.raceId <> :excludedRaceId
+              and race.raceStartTime < :targetEndTime
+              and race.raceEndTime > :targetStartTime
+            """)
     boolean existsOverlappingAssignment(
             @Param("refereeUserId") Integer refereeUserId,
-            @Param("startTime") LocalDateTime startTime,
-            @Param("endTime") LocalDateTime endTime
+            @Param("excludedRaceId") Integer excludedRaceId,
+            @Param("targetStartTime") LocalDateTime targetStartTime,
+            @Param("targetEndTime") LocalDateTime targetEndTime,
+            @Param("assignedStatus") String assignedStatus,
+            @Param("cancelledRaceStatus") String cancelledRaceStatus
     );
 }

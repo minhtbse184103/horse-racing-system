@@ -1,14 +1,11 @@
 package com.example.backend.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-
+import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import com.example.backend.constant.RaceEntryStatus;
+
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -27,9 +24,34 @@ public class RaceEntry {
     @Column(name = "registrationID", nullable = false)
     private Integer registrationId;
 
-    @Column(name = "laneNumber")
-    private Integer laneNumber;
+    @Column(name = "startingStall", nullable = false)
+    private Integer startingStall;
 
-    @Column(name = "status")
+    @Column(name = "status", nullable = false, length = 50)
     private String status;
+
+    @Column(name = "assignedBy", nullable = false)
+    private Integer assignedBy;
+
+    @Column(name = "assignedAt", nullable = false)
+    private LocalDateTime assignedAt;
+
+    @Column(name = "cancelledAt")
+    private LocalDateTime cancelledAt;
+
+    @Column(name = "cancelledBy")
+    private Integer cancelledBy;
+
+    @Column(name = "cancellationReason", length = 500)
+    private String cancellationReason;
+
+    @PrePersist
+    void prePersist() {
+        if (status == null) {
+            status = RaceEntryStatus.ASSIGNED;
+        }
+        if (assignedAt == null) {
+            assignedAt = LocalDateTime.now();
+        }
+    }
 }

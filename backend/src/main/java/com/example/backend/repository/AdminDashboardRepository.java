@@ -43,7 +43,7 @@ public class AdminDashboardRepository {
     }
 
     public long countDraftTournaments() {
-        return countTournamentsByStatus(EventStatus.DRAFT);
+        return countTournamentsByStatus(EventStatus.OPEN_FOR_REGISTRATION);
     }
 
     public long countCancelledTournaments() {
@@ -55,7 +55,7 @@ public class AdminDashboardRepository {
     }
 
     public long countDraftRaces() {
-        return countRacesByStatus(EventStatus.DRAFT);
+        return countRacesByStatus(EventStatus.OPEN_FOR_REGISTRATION);
     }
 
     public long countCancelledRaces() {

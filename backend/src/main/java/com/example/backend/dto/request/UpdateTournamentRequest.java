@@ -1,66 +1,56 @@
 package com.example.backend.dto.request;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.*;
+import lombok.Getter;
+import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
+@Getter
+@Setter
 public class UpdateTournamentRequest {
 
-    @NotBlank(message = "Tên giải đấu là bắt buộc")
+    @NotBlank(message = "Tournament name is required.")
+    @Size(max = 255, message = "Tournament name must not exceed 255 characters.")
     private String tournamentName;
 
-    @NotBlank(message = "Địa điểm là bắt buộc")
-    private String location;
+    @Size(max = 5000, message = "Description is too long.")
+    private String description;
 
-    @NotNull(message = "Ngày bắt đầu là bắt buộc")
+    @NotBlank(message = "Venue is required.")
+    @Size(max = 255, message = "Venue must not exceed 255 characters.")
+    private String venue;
+
+    @NotNull(message = "Registration opening time is required.")
+    private LocalDateTime registrationOpenAt;
+
+    @NotNull(message = "Registration closing time is required.")
+    private LocalDateTime registrationCloseAt;
+
+    @NotNull(message = "Tournament start date is required.")
     private LocalDate startDate;
 
-    @NotNull(message = "Ngày kết thúc là bắt buộc")
+    @NotNull(message = "Tournament end date is required.")
     private LocalDate endDate;
 
-    @NotNull(message = "Hạn đăng ký là bắt buộc")
-    private LocalDate registrationDeadline;
+    @NotNull(message = "Maximum registrations is required.")
+    @Min(value = 1, message = "Maximum registrations must be greater than zero.")
+    private Integer maxRegistrations;
 
-    @NotNull(message = "Số người tham gia tối thiểu là bắt buộc")
-    @Positive(message = "Số người tham gia tối thiểu phải lớn hơn 0")
-    private Integer minParticipants;
+    @NotNull(message = "Entry fee is required.")
+    @DecimalMin(
+            value = "0.0",
+            inclusive = true,
+            message = "Entry fee cannot be negative."
+    )
+    private BigDecimal entryFee;
 
-    @NotNull(message = "Số người tham gia tối đa là bắt buộc")
-    @Positive(message = "Số người tham gia tối đa phải lớn hơn 0")
-    private Integer maxParticipants;
-
-    @NotNull(message = "Điều kiện giải đấu là bắt buộc")
-    private Integer conditionId;
-    public String getTournamentName() {
-        return tournamentName;
-    }
-
-    public String getLocation() {
-        return location;
-    }
-
-    public LocalDate getStartDate() {
-        return startDate;
-    }
-
-    public LocalDate getEndDate() {
-        return endDate;
-    }
-
-    public LocalDate getRegistrationDeadline() {
-        return registrationDeadline;
-    }
-    public Integer getMinParticipants() {
-        return minParticipants;
-    }
-
-    public Integer getMaxParticipants() {
-        return maxParticipants;
-    }
-
-    public Integer getConditionId() {
-        return conditionId;
-    }
+    @NotNull(message = "Tournament conditions cannot be null.")
+    @Valid
+    private List<TournamentConditionRequest> conditions = new ArrayList<>();
 }

@@ -1,38 +1,47 @@
 package com.example.backend.dto.request;
 
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.*;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
+@Getter
+@Setter
 public class CreateRaceRequest {
 
-    @NotNull(message = "Vòng đấu là bắt buộc")
-    private Integer roundId;
+    @NotNull(message = "Tournament ID is required.")
+    private Integer tournamentId;
 
-    @NotNull(message = "Thời gian bắt đầu là bắt buộc")
-    private LocalDateTime startTime;
+    @NotBlank(message = "Race name is required.")
+    @Size(max = 255, message = "Race name must not exceed 255 characters.")
+    private String raceName;
 
-    @NotNull(message = "Thời gian kết thúc là bắt buộc")
-    private LocalDateTime endTime;
+    @NotBlank(message = "Track name is required.")
+    @Size(max = 255, message = "Track name must not exceed 255 characters.")
+    private String trackName;
 
-    @NotNull(message = "Cự ly là bắt buộc")
-    @Positive(message = "Cự ly phải lớn hơn 0")
+    @NotNull(message = "Race start time is required.")
+    private LocalDateTime raceStartTime;
+
+    @NotNull(message = "Race end time is required.")
+    private LocalDateTime raceEndTime;
+
+    @NotNull(message = "Race distance is required.")
+    @Min(value = 1, message = "Race distance must be greater than zero.")
     private Integer distance;
 
-    public Integer getRoundId() {
-        return roundId;
-    }
+    @NotNull(message = "Maximum runners is required.")
+    @Min(value = 1, message = "Maximum runners must be greater than zero.")
+    private Integer maxRunners;
 
-    public LocalDateTime getStartTime() {
-        return startTime;
-    }
+    @Min(value = 1, message = "Race order must be greater than zero.")
+    private Integer raceOrder;
 
-    public LocalDateTime getEndTime() {
-        return endTime;
-    }
-
-    public Integer getDistance() {
-        return distance;
-    }
+    @NotNull(message = "Race prizes cannot be null.")
+    @Valid
+    private List<RacePrizeRequest> prizes = new ArrayList<>();
 }

@@ -1,260 +1,557 @@
 package com.example.backend.service;
 
 import com.example.backend.constant.EventStatus;
+import com.example.backend.constant.RaceEntryStatus;
 import com.example.backend.dto.request.CreateRaceRequest;
+import com.example.backend.dto.request.RacePrizeRequest;
 import com.example.backend.dto.request.UpdateRaceRequest;
+import com.example.backend.dto.response.RacePrizeResponse;
+import com.example.backend.dto.response.RaceResponse;
 import com.example.backend.entity.Race;
+import com.example.backend.entity.RacePrize;
 import com.example.backend.entity.Tournament;
-import com.example.backend.entity.TournamentRound;
+import com.example.backend.entity.User;
 import com.example.backend.exception.ApiException;
-import com.example.backend.repository.RaceRepository;
-import com.example.backend.repository.TournamentRepository;
-import com.example.backend.repository.TournamentRoundRepository;
+import com.example.backend.repository.*;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 @Service
 public class RaceService {
-    private static final Set<String> RACE_SETUP_TOURNAMENT_STATUSES = Set.of(
-            EventStatus.DRAFT,
-            EventStatus.OPEN_FOR_REGISTRATION,
-            EventStatus.CLOSED_REGISTRATION
-    );
+
+    private static final Set<String> RACE_SETUP_TOURNAMENT_STATUSES =
+            Set.of(
+                    EventStatus.OPEN_FOR_REGISTRATION,
+                    EventStatus.REGISTRATION_CLOSED
+            );
 
     private final RaceRepository raceRepository;
-    private final TournamentRoundRepository tournamentRoundRepository;
+    private final RacePrizeRepository racePrizeRepository;
+    private final RaceEntryRepository raceEntryRepository;
     private final TournamentRepository tournamentRepository;
+    private final UserRepository userRepository;
 
     public RaceService(
             RaceRepository raceRepository,
-            TournamentRoundRepository tournamentRoundRepository,
-            TournamentRepository tournamentRepository
+            RacePrizeRepository racePrizeRepository,
+            RaceEntryRepository raceEntryRepository,
+            TournamentRepository tournamentRepository,
+            UserRepository userRepository
     ) {
         this.raceRepository = raceRepository;
-        this.tournamentRoundRepository = tournamentRoundRepository;
+        this.racePrizeRepository = racePrizeRepository;
+        this.raceEntryRepository = raceEntryRepository;
         this.tournamentRepository = tournamentRepository;
+        this.userRepository = userRepository;
     }
 
-    public List<Race> getAllRaces() {
-        return raceRepository.findAll();
+    @Transactional
+    public List<RaceResponse> getAllRaces() {
+        return raceRepository.findAllByOrderByRaceStartTimeAsc()
+                .stream()
+                .map(this::refreshAndMap)
+                .toList();
     }
 
-    public Race getRaceById(Integer id) {
-        return raceRepository.findById(id)
-                .orElseThrow(() -> new ApiException(
-                        HttpStatus.NOT_FOUND,
-                        "Cuộc đua không tồn tại."
-                ));
+    @Transactional
+    public RaceResponse getRaceById(Integer raceId) {
+        Race race = getRace(raceId);
+        return refreshAndMap(race);
     }
 
-    public List<Race> getRacesByRoundId(Integer roundId) {
-        if (!tournamentRoundRepository.existsById(roundId)) {
-            throw new ApiException(
-                    HttpStatus.NOT_FOUND,
-                    "Vòng đấu không tồn tại."
-            );
-        }
-
-        return raceRepository.findByRoundIdOrderByRaceOrderAsc(roundId);
-    }
-
-    public List<Race> getRacesByTournamentId(Integer tournamentId) {
+    @Transactional
+    public List<RaceResponse> getRacesByTournamentId(
+            Integer tournamentId
+    ) {
         if (!tournamentRepository.existsById(tournamentId)) {
             throw new ApiException(
                     HttpStatus.NOT_FOUND,
-                    "Giải đấu không tồn tại."
+                    "Tournament does not exist."
             );
         }
 
-        List<Integer> roundIds = tournamentRoundRepository
-                .findByTournamentIdOrderByRoundOrderAsc(tournamentId)
+        return raceRepository
+                .findByTournamentIdOrderByRaceOrderAsc(tournamentId)
                 .stream()
-                .map(TournamentRound::getRoundId)
+                .map(this::refreshAndMap)
                 .toList();
-
-        if (roundIds.isEmpty()) {
-            return List.of();
-        }
-
-        return raceRepository.findByRoundIdIn(roundIds);
     }
 
     @Transactional
-    public Race createRace(CreateRaceRequest request) {
-        TournamentRound round = getRound(request.getRoundId());
-        Tournament tournament = getTournamentForUpdate(round.getTournamentId());
+    public RaceResponse createRace(CreateRaceRequest request, String adminEmail) {
+        getAdmin(adminEmail);
+
+        Tournament tournament = tournamentRepository
+                .findByIdForUpdate(request.getTournamentId())
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "Tournament does not exist."
+                ));
 
         validateTournamentAllowsRaceSetup(tournament);
-        validateRaceTime(request.getStartTime(), request.getEndTime(), tournament);
-        List<Integer> tournamentRoundIds =
-                getTournamentRoundIds(tournament.getTournamentId());
 
-        if (raceRepository.existsOverlappingRace(
-                tournamentRoundIds,
-                request.getStartTime(),
-                request.getEndTime(),
-                EventStatus.CANCELLED
+        validateRaceTime(
+                request.getRaceStartTime(),
+                request.getRaceEndTime(),
+                tournament
+        );
+
+        validatePrizes(request.getPrizes());
+
+        String raceName = request.getRaceName().trim();
+
+        if (raceRepository.existsByTournamentIdAndRaceNameIgnoreCase(
+                tournament.getTournamentId(),
+                raceName
         )) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
-                    "Một cuộc đua đang hoạt động khác bị trùng thời gian với cuộc đua này."
+                    "Race name already exists in this tournament."
             );
         }
-        long existingRaceCount = raceRepository.countByRoundId(round.getRoundId());
 
-        if ("Final".equalsIgnoreCase(round.getRoundName()) && existingRaceCount >= 1) {
+        int raceOrder = request.getRaceOrder() != null
+                ? request.getRaceOrder()
+                : raceRepository.findMaximumRaceOrder(
+                tournament.getTournamentId()) + 1;
+
+        if (raceRepository.existsByTournamentIdAndRaceOrder(
+                tournament.getTournamentId(),
+                raceOrder
+        )) {
             throw new ApiException(
-                    HttpStatus.BAD_REQUEST,
-                    "Vòng chung kết chỉ được có một cuộc đua."
+                    HttpStatus.CONFLICT,
+                    "Race order already exists in this tournament."
             );
         }
-
-        int raceOrder = Math.toIntExact(existingRaceCount + 1);
 
         Race race = new Race();
-        race.setRoundId(round.getRoundId());
-        race.setRaceOrder(raceOrder);
-        race.setRaceName(generateRaceName(round, raceOrder));
-        race.setStartTime(request.getStartTime());
-        race.setEndTime(request.getEndTime());
+        race.setTournamentId(tournament.getTournamentId());
+        race.setRaceName(raceName);
+        race.setTrackName(request.getTrackName().trim());
+        race.setRaceStartTime(request.getRaceStartTime());
+        race.setRaceEndTime(request.getRaceEndTime());
         race.setDistance(request.getDistance());
-        race.setStatus(EventStatus.DRAFT);
+        race.setMaxRunners(request.getMaxRunners());
+        race.setRaceOrder(raceOrder);
+        race.setStatus(EventStatus.OPEN_FOR_REGISTRATION);
 
-        return saveRace(race);
-    }
+        try {
+            Race savedRace = raceRepository.saveAndFlush(race);
+            savePrizes(savedRace.getRaceId(), request.getPrizes());
 
-    @Transactional
-    public Race updateRace(Integer id, UpdateRaceRequest request) {
-        Race race = getRaceById(id);
-        TournamentRound round = getRound(race.getRoundId());
-        Tournament tournament = getTournamentForUpdate(round.getTournamentId());
-
-        validateTournamentAllowsRaceSetup(tournament);
-
-        if (!EventStatus.DRAFT.equals(race.getStatus())) {
-            throw new ApiException(
-                    HttpStatus.BAD_REQUEST,
-                    "Chỉ có thể cập nhật cuộc đua đang ở trạng thái DRAFT."
-            );
-        }
-
-        validateRaceTime(request.getStartTime(), request.getEndTime(), tournament);
-        List<Integer> tournamentRoundIds =
-                getTournamentRoundIds(tournament.getTournamentId());
-
-        if (raceRepository.existsOverlappingRaceExcludingCurrent(
-                tournamentRoundIds,
-                race.getRaceId(),
-                request.getStartTime(),
-                request.getEndTime(),
-                EventStatus.CANCELLED
-        )) {
+            return toResponse(savedRace);
+        } catch (DataIntegrityViolationException exception) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
-                    "Một cuộc đua đang hoạt động khác bị trùng thời gian với cuộc đua này."
+                    "Race name or order conflicts with another race."
             );
         }
-        race.setStartTime(request.getStartTime());
-        race.setEndTime(request.getEndTime());
-        race.setDistance(request.getDistance());
-
-        return saveRace(race);
     }
 
     @Transactional
-    public Race cancelRace(Integer id) {
-        Race race = getRaceById(id);
-        TournamentRound round = getRound(race.getRoundId());
-        Tournament tournament = getTournamentForUpdate(round.getTournamentId());
+    public RaceResponse updateRace(
+            Integer raceId,
+            UpdateRaceRequest request,
+            String adminEmail
+    ) {
+        getAdmin(adminEmail);
+
+        Race race = raceRepository.findByIdForUpdate(raceId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "Race does not exist."
+                ));
+
+        refreshRaceStatus(race);
+
+        validateRaceCanBeModified(race);
+
+        Tournament tournament = tournamentRepository
+                .findByIdForUpdate(race.getTournamentId())
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "Tournament does not exist."
+                ));
 
         validateTournamentAllowsRaceSetup(tournament);
 
-        if (!EventStatus.DRAFT.equals(race.getStatus())) {
+        validateRaceTime(
+                request.getRaceStartTime(),
+                request.getRaceEndTime(),
+                tournament
+        );
+
+        validatePrizes(request.getPrizes());
+
+        String raceName = request.getRaceName().trim();
+
+        if (raceRepository
+                .existsByTournamentIdAndRaceNameIgnoreCaseAndRaceIdNot(
+                        tournament.getTournamentId(),
+                        raceName,
+                        raceId
+                )) {
             throw new ApiException(
-                    HttpStatus.BAD_REQUEST,
-                    "Chỉ có thể hủy cuộc đua đang ở trạng thái DRAFT."
+                    HttpStatus.CONFLICT,
+                    "Race name already exists in this tournament."
+            );
+        }
+
+        int raceOrder = request.getRaceOrder() != null
+                ? request.getRaceOrder()
+                : race.getRaceOrder();
+
+        if (raceRepository
+                .existsByTournamentIdAndRaceOrderAndRaceIdNot(
+                        tournament.getTournamentId(),
+                        raceOrder,
+                        raceId
+                )) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "Race order already exists in this tournament."
+            );
+        }
+
+        long entryCount = raceEntryRepository.countByRaceIdAndStatus(raceId, RaceEntryStatus.ASSIGNED);
+
+        if (request.getMaxRunners() < entryCount) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "Maximum runners cannot be lower than existing entries."
+            );
+        }
+
+        race.setRaceName(raceName);
+        race.setTrackName(request.getTrackName().trim());
+        race.setRaceStartTime(request.getRaceStartTime());
+        race.setRaceEndTime(request.getRaceEndTime());
+        race.setDistance(request.getDistance());
+        race.setMaxRunners(request.getMaxRunners());
+        race.setRaceOrder(raceOrder);
+
+        try {
+            Race savedRace = raceRepository.saveAndFlush(race);
+
+            racePrizeRepository.deleteByRaceId(raceId);
+            racePrizeRepository.flush();
+            savePrizes(raceId, request.getPrizes());
+
+            return toResponse(savedRace);
+        } catch (DataIntegrityViolationException exception) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "Race name, order, or prize rank conflicts."
+            );
+        }
+    }
+
+    @Transactional
+    public RaceResponse closeRegistration(Integer raceId, String adminEmail) {
+        getAdmin(adminEmail);
+
+        Race race = raceRepository.findByIdForUpdate(raceId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "Race does not exist."
+                ));
+
+        refreshRaceStatus(race);
+
+        if (!EventStatus.OPEN_FOR_REGISTRATION.equals(race.getStatus())) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "Only a race open for registration can be closed."
+            );
+        }
+
+        race.setStatus(EventStatus.REGISTRATION_CLOSED);
+
+        return toResponse(raceRepository.save(race));
+    }
+
+    @Transactional
+    public RaceResponse completeRace(Integer raceId, String adminEmail) {
+        getAdmin(adminEmail);
+
+        Race race = raceRepository.findByIdForUpdate(raceId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "Race does not exist."
+                ));
+
+        refreshRaceStatus(race);
+
+        if (EventStatus.CANCELLED.equals(race.getStatus())) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "A cancelled race cannot be completed."
+            );
+        }
+
+        if (EventStatus.COMPLETED.equals(race.getStatus())) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "Race is already completed."
+            );
+        }
+
+        if (!EventStatus.IN_PROGRESS.equals(race.getStatus())) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "Race must be in progress before it can be completed."
+            );
+        }
+
+        if (race.getRaceEndTime() != null
+                && LocalDateTime.now().isBefore(race.getRaceEndTime())) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "Race cannot be completed before its scheduled end time."
+            );
+        }
+
+        race.setStatus(EventStatus.COMPLETED);
+
+        return toResponse(raceRepository.save(race));
+    }
+
+    @Transactional
+    public RaceResponse cancelRace(Integer raceId, String adminEmail) {
+        getAdmin(adminEmail);
+
+        Race race = raceRepository.findByIdForUpdate(raceId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "Race does not exist."
+                ));
+
+        refreshRaceStatus(race);
+
+        if (EventStatus.IN_PROGRESS.equals(race.getStatus())
+                || EventStatus.COMPLETED.equals(race.getStatus())
+                || EventStatus.CANCELLED.equals(race.getStatus())) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "Race can no longer be cancelled."
+            );
+        }
+
+        if (raceEntryRepository.countByRaceIdAndStatus(raceId, RaceEntryStatus.ASSIGNED) > 0) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "Race cannot be cancelled after entries are assigned."
             );
         }
 
         race.setStatus(EventStatus.CANCELLED);
-        return saveRace(race);
+
+        return toResponse(raceRepository.save(race));
     }
 
-    private TournamentRound getRound(Integer roundId) {
-        return tournamentRoundRepository.findById(roundId)
+    private void refreshRaceStatus(Race race) {
+        if ((EventStatus.OPEN_FOR_REGISTRATION.equals(race.getStatus())
+                || EventStatus.REGISTRATION_CLOSED.equals(race.getStatus()))
+                && !LocalDateTime.now().isBefore(race.getRaceStartTime())) {
+
+            race.setStatus(EventStatus.IN_PROGRESS);
+            raceRepository.save(race);
+
+            updateTournamentToInProgress(race.getTournamentId());
+        }
+    }
+
+    private void updateTournamentToInProgress(Integer tournamentId) {
+        Tournament tournament = tournamentRepository.findById(tournamentId)
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
-                        "Vòng đấu không tồn tại."
+                        "Tournament does not exist."
                 ));
+
+        if (!EventStatus.CANCELLED.equals(tournament.getStatus())
+                && !EventStatus.COMPLETED.equals(tournament.getStatus())
+                && !EventStatus.IN_PROGRESS.equals(tournament.getStatus())) {
+
+            tournament.setStatus(EventStatus.IN_PROGRESS);
+            tournamentRepository.save(tournament);
+        }
     }
 
-    private void validateTournamentAllowsRaceSetup(Tournament tournament) {
-        if (!RACE_SETUP_TOURNAMENT_STATUSES.contains(tournament.getStatus())) {
+    private void validateRaceCanBeModified(Race race) {
+        if (EventStatus.IN_PROGRESS.equals(race.getStatus())
+                || EventStatus.COMPLETED.equals(race.getStatus())
+                || EventStatus.CANCELLED.equals(race.getStatus())) {
             throw new ApiException(
-                    HttpStatus.BAD_REQUEST,
-                    "Chỉ có thể cấu hình cuộc đua khi giải đấu chưa bắt đầu hoặc chưa kết thúc."
+                    HttpStatus.CONFLICT,
+                    "Race can no longer be modified."
+            );
+        }
+    }
+
+    private void validateTournamentAllowsRaceSetup(
+            Tournament tournament
+    ) {
+        if (!RACE_SETUP_TOURNAMENT_STATUSES.contains(
+                tournament.getStatus())) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "Tournament does not allow race setup."
             );
         }
     }
 
     private void validateRaceTime(
-            java.time.LocalDateTime startTime,
-            java.time.LocalDateTime endTime,
+            LocalDateTime startTime,
+            LocalDateTime endTime,
             Tournament tournament
     ) {
         if (!startTime.isBefore(endTime)) {
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
-                    "Thời gian bắt đầu cuộc đua phải trước thời gian kết thúc."
+                    "Race start time must be before end time."
             );
         }
 
-        if (startTime.toLocalDate().isBefore(tournament.getStartDate())
-                || endTime.toLocalDate().isAfter(tournament.getEndDate())) {
+        LocalDateTime tournamentStart =
+                tournament.getStartDate().atStartOfDay();
+
+        LocalDateTime tournamentEndExclusive =
+                tournament.getEndDate().plusDays(1).atStartOfDay();
+
+        if (startTime.isBefore(tournamentStart)
+                || !endTime.isBefore(tournamentEndExclusive)) {
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
-                    "Thời gian cuộc đua phải nằm trong khoảng thời gian của giải đấu."
+                    "Race schedule must be inside the tournament date range."
             );
         }
     }
 
-    private String generateRaceName(TournamentRound round, int raceOrder) {
-        if ("Final".equalsIgnoreCase(round.getRoundName())) {
-            return "Final";
+    private void validatePrizes(List<RacePrizeRequest> prizes) {
+        Set<Integer> usedRanks = new HashSet<>();
+        BigDecimal oneHundred = new BigDecimal("100");
+
+        for (RacePrizeRequest prize : prizes) {
+            if (!usedRanks.add(prize.getRankPosition())) {
+                throw new ApiException(
+                        HttpStatus.BAD_REQUEST,
+                        "Race cannot contain duplicate prize ranks."
+                );
+            }
+
+            if (prize.getOwnerPercent()
+                    .add(prize.getJockeyPercent())
+                    .compareTo(oneHundred) != 0) {
+                throw new ApiException(
+                        HttpStatus.BAD_REQUEST,
+                        "Owner and jockey prize percentages must total 100."
+                );
+            }
+        }
+    }
+
+    private void savePrizes(
+            Integer raceId,
+            List<RacePrizeRequest> requests
+    ) {
+        List<RacePrize> prizes = requests.stream()
+                .map(request -> {
+                    RacePrize prize = new RacePrize();
+                    prize.setRaceId(raceId);
+                    prize.setRankPosition(request.getRankPosition());
+                    prize.setAmount(request.getAmount());
+                    prize.setOwnerPercent(request.getOwnerPercent());
+                    prize.setJockeyPercent(request.getJockeyPercent());
+                    return prize;
+                })
+                .toList();
+
+        racePrizeRepository.saveAll(prizes);
+    }
+
+    private void getAdmin(String adminEmail) {
+        User admin = userRepository.findByEmail(adminEmail)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.UNAUTHORIZED,
+                        "Authenticated administrator does not exist."
+                ));
+
+        if (admin.getRole() == null
+                || !"ADMIN".equalsIgnoreCase(
+                admin.getRole().getRoleName())) {
+            throw new ApiException(
+                    HttpStatus.FORBIDDEN,
+                    "Only administrators can manage races."
+            );
         }
 
-        return round.getRoundName() + " " + raceOrder;
+        if (!"ACTIVE".equalsIgnoreCase(admin.getStatus())) {
+            throw new ApiException(
+                    HttpStatus.FORBIDDEN,
+                    "Administrator account is not active."
+            );
+        }
     }
 
-    private List<Integer> getTournamentRoundIds(Integer tournamentId) {
-        return tournamentRoundRepository
-                .findByTournamentIdOrderByRoundOrderAsc(tournamentId)
-                .stream()
-                .map(TournamentRound::getRoundId)
-                .toList();
-    }
-
-    private Tournament getTournamentForUpdate(Integer tournamentId) {
-        return tournamentRepository.findByIdForUpdate(tournamentId)
+    private Race getRace(Integer raceId) {
+        return raceRepository.findById(raceId)
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
-                        "Giải đấu không tồn tại."
+                        "Race does not exist."
                 ));
     }
 
-    private Race saveRace(Race race) {
-        try {
-            return raceRepository.saveAndFlush(race);
-        } catch (DataIntegrityViolationException ex) {
-            throw new ApiException(
-                    HttpStatus.CONFLICT,
-                    "Thứ tự hoặc tên cuộc đua đã tồn tại."
-            );
-        }
+    private RaceResponse refreshAndMap(Race race) {
+        refreshRaceStatus(race);
+        return toResponse(race);
+    }
+
+    private RaceResponse toResponse(Race race) {
+        long entryCount =
+                raceEntryRepository.countByRaceIdAndStatus(race.getRaceId(),RaceEntryStatus.ASSIGNED);
+
+        List<RacePrizeResponse> prizes = racePrizeRepository
+                .findByRaceIdOrderByRankPositionAsc(race.getRaceId())
+                .stream()
+                .map(prize ->
+                        RacePrizeResponse.builder()
+                                .racePrizeId(prize.getRacePrizeId())
+                                .raceId(prize.getRaceId())
+                                .rankPosition(prize.getRankPosition())
+                                .amount(prize.getAmount())
+                                .ownerPercent(prize.getOwnerPercent())
+                                .jockeyPercent(prize.getJockeyPercent())
+                                .build()
+                )
+                .toList();
+
+        return RaceResponse.builder()
+                .raceId(race.getRaceId())
+                .tournamentId(race.getTournamentId())
+                .raceName(race.getRaceName())
+                .trackName(race.getTrackName())
+                .raceStartTime(race.getRaceStartTime())
+                .raceEndTime(race.getRaceEndTime())
+                .distance(race.getDistance())
+                .maxRunners(race.getMaxRunners())
+                .raceOrder(race.getRaceOrder())
+                .status(race.getStatus())
+                .createdAt(race.getCreatedAt())
+                .updatedAt(race.getUpdatedAt())
+                .entryCount(entryCount)
+                .availableStalls(
+                        Math.max(0, race.getMaxRunners() - entryCount)
+                )
+                .prizes(prizes)
+                .build();
     }
 }
