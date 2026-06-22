@@ -5,9 +5,20 @@ export async function uploadFile(file, folder = 'misc') {
   formData.append('file', file);
   formData.append('folder', folder);
 
-  return httpRequest('/api/uploads', {
+  const response = await httpRequest('/api/upload', {
     method: 'POST',
     body: formData,
     fallbackError: 'Khong the upload file.'
   });
+
+  const url = response && typeof response === 'object' && 'data' in response
+    ? response.data
+    : response;
+
+  return {
+    url: String(url || ''),
+    originalFilename: file?.name || '',
+    size: file?.size || 0,
+    contentType: file?.type || ''
+  };
 }

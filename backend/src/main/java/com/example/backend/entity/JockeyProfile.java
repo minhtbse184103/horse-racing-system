@@ -28,23 +28,20 @@ public class JockeyProfile {
     @Column(name = "jockeyID")
     private Integer jockeyId;
 
-    @Column(name = "licenseNo", nullable = false, unique = true)
-    private String licenseNo;
-
     @Column(name = "weight", nullable = false)
     private BigDecimal weight;
 
     @Column(name = "ranking")
     private String ranking;
 
-    @Column(name = "status")
-    private String status;
+    @Column(name = "biography", columnDefinition = "TEXT")
+    private String biography;
 
-    @Column(name = "rejectionReason", length = 500)
-    private String rejectionReason;
+    @Column(name = "totalRaces")
+    private Integer totalRaces;
 
-    @Column(name = "img_url", columnDefinition = "TEXT")
-    private String imgUrl;
+    @Column(name = "totalWins")
+    private Integer totalWins;
 
     @Column(name = "createdAt")
     private LocalDateTime createdAt;
@@ -57,8 +54,11 @@ public class JockeyProfile {
         LocalDateTime now = LocalDateTime.now();
         createdAt = now;
         updatedAt = now;
-        if (status == null) {
-            status = "ACTIVE";
+        if (totalRaces == null) {
+            totalRaces = 0;
+        }
+        if (totalWins == null) {
+            totalWins = 0;
         }
     }
 

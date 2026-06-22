@@ -23,36 +23,46 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "OwnerApplication")
-public class OwnerApplication {
+@Table(name = "JockeyVerification")
+public class JockeyVerification {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "applicationID")
-    private Integer applicationId;
+    @Column(name = "verificationID")
+    private Integer verificationId;
 
-    @Column(name = "userID", nullable = false)
-    private Integer userId;
+    @Column(name = "jockeyID", nullable = false)
+    private Integer jockeyId;
 
-    @Column(name = "fullName", nullable = false)
-    private String fullName;
+    @Column(name = "trainerName", nullable = false)
+    private String trainerName;
 
-    @Column(name = "dateOfBirth", nullable = false)
-    private LocalDate dateOfBirth;
+    @Column(name = "trainerEmail", nullable = false)
+    private String trainerEmail;
 
-    @Column(name = "gender", nullable = false)
-    private String gender;
+    @Column(name = "academyStableAddress", length = 500)
+    private String academyStableAddress;
 
-    @Column(name = "nationality", nullable = false)
-    private String nationality;
+    @Column(name = "issuingAuthority", nullable = false)
+    private String issuingAuthority;
 
-    @Column(name = "address", nullable = false, length = 500)
-    private String address;
+    @Column(name = "verificationLink", columnDefinition = "TEXT")
+    private String verificationLink;
 
-    @Column(name = "status", nullable = false)
-    private String status;
+    @Column(name = "licenceType", length = 50)
+    private String licenceType;
 
-    @Column(name = "rejectReason", length = 500)
-    private String rejectReason;
+    @Column(name = "expiryDate")
+    private LocalDate expiryDate;
+
+    @Column(name = "verificationStatus", length = 50)
+    private String verificationStatus;
+
+    @Column(name = "rejectionReason", length = 500)
+    private String rejectionReason;
+
+    @Column(name = "resubmitCount")
+    private Integer resubmitCount;
 
     @Column(name = "submittedAt")
     private LocalDateTime submittedAt;
@@ -74,11 +84,14 @@ public class OwnerApplication {
         LocalDateTime now = LocalDateTime.now();
         createdAt = now;
         updatedAt = now;
+        if (verificationStatus == null) {
+            verificationStatus = "PENDING";
+        }
+        if (resubmitCount == null) {
+            resubmitCount = 0;
+        }
         if (submittedAt == null) {
             submittedAt = now;
-        }
-        if (status == null) {
-            status = "PENDING";
         }
     }
 

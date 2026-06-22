@@ -10,16 +10,11 @@ import lombok.Getter;
 
 @Getter
 @Builder
-public class JockeyProfileResponse {
+public class JockeyVerificationResponse {
+    private Integer verificationId;
     private Integer jockeyId;
-    private String fullName;
-    private String email;
-    private String phoneNumber;
-    private BigDecimal weight;
-    private String ranking;
-    private String biography;
-    private Integer totalRaces;
-    private Integer totalWins;
+    private String jockeyFullName;
+    private String jockeyEmail;
     private String trainerName;
     private String trainerEmail;
     private String academyStableAddress;
@@ -27,11 +22,18 @@ public class JockeyProfileResponse {
     private String verificationLink;
     private String licenceType;
     private LocalDate expiryDate;
+    
+    // Profile Info
+    private BigDecimal weight;
+    private String ranking;
+    private String biography;
+
     private String verificationStatus;
     private String rejectionReason;
     private Integer resubmitCount;
     private LocalDateTime submittedAt;
     private LocalDateTime reviewedAt;
     private Integer reviewedBy;
+    private String reviewedByName;
     private List<JockeyVerificationFileResponse> files;
 }
