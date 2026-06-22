@@ -38,66 +38,66 @@ public class AuthService {
         validateLoginRequest(email, password);
 
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Email không tồn tại"));
+                .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Email khong ton tai"));
 
         if (!canLogin(user)) {
-            throw new ApiException(HttpStatus.UNAUTHORIZED, "Tài khoản không còn hoạt động");
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "Tai khoan khong con hoat dong");
         }
 
         if (!isPasswordValid(password, user)) {
-            throw new ApiException(HttpStatus.UNAUTHORIZED, "Mật khẩu không chính xác");
+            throw new ApiException(HttpStatus.UNAUTHORIZED, "Mat khau khong chinh xac");
         }
 
         String roleName = user.getRole().getRoleName();
         String token = jwtUtil.generateToken(user.getEmail(), roleName);
-        UserResponse userInfo = new UserResponse(
-                user.getUserID(),
-                user.getEmail(),
-                user.getFullName(),
-                user.getPhone(),
-                user.getStatus(),
-                roleName);
-
-        return new LoginResponse(token, userInfo);
+        return new LoginResponse(token, toResponse(user));
     }
 
     public UserResponse signup(SignupRequest request) {
         validateSignupRequest(request);
 
+        if (userRepository.existsByUsername(request.getUsername())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Username da ton tai");
+        }
+
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Email đã tồn tại");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Email da ton tai");
         }
 
         if (userRepository.existsByPhone(request.getPhone())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Số điện thoại đã tồn tại");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "So dien thoai da ton tai");
         }
 
-        String roleName = normalizePublicRole(request.getRoleName());
-        Role role = getRoleByName(roleName);
-
+        Role role = getRoleByName(DEFAULT_PUBLIC_ROLE);
         User user = createUser(
+                request.getUsername(),
                 request.getEmail(),
-                request.getFullName(),
                 request.getPhone(),
                 request.getPassword(),
                 role,
-                roleName.equals(ROLE_JOCKEY) ? STATUS_PENDING : null);
+                STATUS_ACTIVE);
         return toResponse(user);
     }
 
     public UserResponse createUserByAdmin(AdminCreateUserRequest request) {
+        String username = request.getFullName();
+
+        if (userRepository.existsByUsername(username)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Username da ton tai");
+        }
+
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Email đã tồn tại");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Email da ton tai");
         }
 
         if (userRepository.existsByPhone(request.getPhone())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Số điện thoại đã tồn tại");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "So dien thoai da ton tai");
         }
 
         Role role = getRoleByName(normalizeAdminRole(request.getRoleName()));
         User user = createUser(
+                username,
                 request.getEmail(),
-                request.getFullName(),
                 request.getPhone(),
                 request.getPassword(),
                 role,
@@ -107,65 +107,49 @@ public class AuthService {
 
     private void validateLoginRequest(String email, String password) {
         if (email == null || email.isBlank()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Email không được để trống");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Email khong duoc de trong");
         }
         if (!email.matches(EMAIL_REGEX)) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Email không đúng định dạng");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Email khong dung dinh dang");
         }
         if (password == null || password.isBlank()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Mật khẩu không được để trống");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Mat khau khong duoc de trong");
         }
         if (password.length() < 6 || password.length() > 72) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Mật khẩu phải có từ 6 đến 72 ký tự");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Mat khau phai co tu 6 den 72 ky tu");
         }
     }
 
     private void validateSignupRequest(SignupRequest request) {
+        if (request.getUsername() == null || request.getUsername().isBlank()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Username khong duoc de trong");
+        }
+        if (request.getUsername().length() > 255) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Username khong duoc vuot qua 255 ky tu");
+        }
         if (request.getEmail() == null || request.getEmail().isBlank()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Email không được để trống");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Email khong duoc de trong");
         }
         if (!request.getEmail().matches(EMAIL_REGEX)) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Email không đúng định dạng");
-        }
-        if (request.getFullName() == null || request.getFullName().isBlank()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Họ và tên không được để trống");
-        }
-        if (request.getFullName().length() > 255) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Họ và tên không được vượt quá 255 ký tự");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Email khong dung dinh dang");
         }
         if (request.getPassword() == null || request.getPassword().isBlank()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Mật khẩu không được để trống");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Mat khau khong duoc de trong");
         }
         if (request.getPassword().length() < 6 || request.getPassword().length() > 72) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Mật khẩu phải có từ 6 đến 72 ký tự");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Mat khau phai co tu 6 den 72 ky tu");
         }
         if (request.getPhone() == null || request.getPhone().isBlank()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Số điện thoại không được để trống");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "So dien thoai khong duoc de trong");
         }
         if (!request.getPhone().matches(PHONE_REGEX)) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Số điện thoại phải gồm 9-15 chữ số và có thể bắt đầu bằng +");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "So dien thoai phai gom 9-15 chu so va co the bat dau bang +");
         }
-        normalizePublicRole(request.getRoleName());
-    }
-
-    private String normalizePublicRole(String roleName) {
-        if (roleName == null || roleName.isBlank()) {
-            return DEFAULT_PUBLIC_ROLE;
-        }
-
-        String normalizedRole = roleName.trim().toUpperCase();
-        if (!normalizedRole.equals("OWNER")
-                && !normalizedRole.equals("JOCKEY")
-                && !normalizedRole.equals("SPECTATOR")) {
-            throw new ApiException(HttpStatus.BAD_REQUEST,
-                    "Vai trò đăng ký công khai chỉ được là OWNER, JOCKEY hoặc SPECTATOR");
-        }
-        return normalizedRole;
     }
 
     private String normalizeAdminRole(String roleName) {
         if (roleName == null || roleName.isBlank()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Vai trò không được để trống");
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Vai tro khong duoc de trong");
         }
 
         String normalizedRole = roleName.trim().toUpperCase();
@@ -175,7 +159,7 @@ public class AuthService {
                 && !normalizedRole.equals("REFEREE")
                 && !normalizedRole.equals("SPECTATOR")) {
             throw new ApiException(HttpStatus.BAD_REQUEST,
-                    "Vai trò phải là ADMIN, OWNER, JOCKEY, REFEREE hoặc SPECTATOR");
+                    "Vai tro phai la ADMIN, OWNER, JOCKEY, REFEREE hoac SPECTATOR");
         }
         return normalizedRole;
     }
@@ -183,14 +167,14 @@ public class AuthService {
     private Role getRoleByName(String roleName) {
         return roleRepository.findByRoleName(roleName)
                 .orElseThrow(() -> new ApiException(HttpStatus.INTERNAL_SERVER_ERROR,
-                        "Vai trò " + roleName + " chưa được khởi tạo trong hệ thống"));
+                        "Vai tro " + roleName + " chua duoc khoi tao trong he thong"));
     }
 
-    private User createUser(String email, String fullName, String phone, String password, Role role, String status) {
+    private User createUser(String username, String email, String phone, String password, Role role, String status) {
         User user = new User();
-        user.setEmail(email);
-        user.setFullName(fullName);
-        user.setPhone(phone);
+        user.setUsername(username.trim());
+        user.setEmail(email.trim());
+        user.setPhone(phone.trim());
         user.setPassword(passwordEncoder.encode(password));
         user.setRole(role);
         user.setStatus(status);
@@ -200,8 +184,8 @@ public class AuthService {
     private UserResponse toResponse(User user) {
         return new UserResponse(
                 user.getUserID(),
+                user.getUsername(),
                 user.getEmail(),
-                user.getFullName(),
                 user.getPhone(),
                 user.getStatus(),
                 user.getRole().getRoleName());

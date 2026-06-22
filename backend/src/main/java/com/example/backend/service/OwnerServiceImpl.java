@@ -23,12 +23,14 @@ import com.example.backend.dto.response.OwnerDashboardResponse;
 import com.example.backend.entity.Horse;
 import com.example.backend.entity.JockeyInvitation;
 import com.example.backend.entity.JockeyProfile;
+import com.example.backend.entity.OwnerProfile;
 import com.example.backend.entity.Registration;
 import com.example.backend.entity.User;
 import com.example.backend.exception.ApiException;
 import com.example.backend.repository.HorseRepository;
 import com.example.backend.repository.JockeyInvitationRepository;
 import com.example.backend.repository.JockeyProfileRepository;
+import com.example.backend.repository.OwnerProfileRepository;
 import com.example.backend.repository.RegistrationRepository;
 import com.example.backend.repository.UserRepository;
 
@@ -53,6 +55,7 @@ public class OwnerServiceImpl implements OwnerService {
     private final RegistrationRepository registrationRepository;
     private final JockeyInvitationRepository jockeyInvitationRepository;
     private final JockeyProfileRepository jockeyProfileRepository;
+    private final OwnerProfileRepository ownerProfileRepository;
     private final UserRepository userRepository;
     private final JdbcTemplate jdbcTemplate;
 
@@ -61,12 +64,14 @@ public class OwnerServiceImpl implements OwnerService {
             RegistrationRepository registrationRepository,
             JockeyInvitationRepository jockeyInvitationRepository,
             JockeyProfileRepository jockeyProfileRepository,
+            OwnerProfileRepository ownerProfileRepository,
             UserRepository userRepository,
             JdbcTemplate jdbcTemplate) {
         this.horseRepository = horseRepository;
         this.registrationRepository = registrationRepository;
         this.jockeyInvitationRepository = jockeyInvitationRepository;
         this.jockeyProfileRepository = jockeyProfileRepository;
+        this.ownerProfileRepository = ownerProfileRepository;
         this.userRepository = userRepository;
         this.jdbcTemplate = jdbcTemplate;
     }
@@ -97,7 +102,7 @@ public class OwnerServiceImpl implements OwnerService {
     @Transactional(readOnly = true)
     @Override
     public List<HorseResponse> getMyHorses() {
-        Integer ownerId = getCurrentOwner().getUserID();
+        Integer ownerId = getCurrentOwnerProfile().getOwnerId();
         return horseRepository.findByOwnerId(ownerId)
                 .stream()
                 .map(this::mapHorseToResponse)
@@ -115,8 +120,13 @@ public class OwnerServiceImpl implements OwnerService {
     @Transactional
     @Override
     public HorseResponse createHorse(CreateHorseRequest request) {
-        Integer ownerId = getCurrentOwner().getUserID();
+        Integer ownerId = getCurrentOwnerProfile().getOwnerId();
+        String passportNumber = normalizeUppercase(request.getPassportNumber());
         String horseName = normalizeText(request.getHorseName());
+
+        if (horseRepository.existsByPassportNumberIgnoreCase(passportNumber)) {
+            throw new ApiException(HttpStatus.CONFLICT, "Passport Number da ton tai.");
+        }
 
         if (horseRepository.existsByHorseNameIgnoreCase(horseName)) {
             throw new ApiException(HttpStatus.CONFLICT, "Tên ngựa đã tồn tại.");
@@ -124,6 +134,7 @@ public class OwnerServiceImpl implements OwnerService {
 
         Horse horse = Horse.builder()
                 .ownerId(ownerId)
+                .passportNumber(passportNumber)
                 .horseName(horseName)
                 .breed(normalizeText(request.getBreed()))
                 .gender(normalizeUppercase(request.getGender()))
@@ -131,9 +142,11 @@ public class OwnerServiceImpl implements OwnerService {
                 .dayOfBirth(request.getDayOfBirth())
                 .weight(request.getWeight())
                 .healthCertExpiry(request.getHealthCertExpiry())
+                .horsePassportUrl(normalizeText(request.getHorsePassportUrl()))
+                .healthCertificateUrl(normalizeText(request.getHealthCertificateUrl()))
+                .horseImageUrl(normalizeText(request.getHorseImageUrl()))
                 .status(STATUS_PENDING)
                 .rejectionReason(null)
-                .imgUrl(normalizeText(request.getImgUrl()))
                 .build();
 
         return mapHorseToResponse(horseRepository.save(horse));
@@ -144,12 +157,18 @@ public class OwnerServiceImpl implements OwnerService {
     @Override
     public HorseResponse updateHorse(Integer horseId, UpdateHorseRequest request) {
         Horse horse = getOwnedHorse(horseId);
+        String passportNumber = normalizeUppercase(request.getPassportNumber());
         String horseName = normalizeText(request.getHorseName());
+
+        if (horseRepository.existsByPassportNumberIgnoreCaseAndHorseIdNot(passportNumber, horse.getHorseId())) {
+            throw new ApiException(HttpStatus.CONFLICT, "Passport Number da ton tai.");
+        }
 
         if (horseRepository.existsByHorseNameIgnoreCaseAndHorseIdNot(horseName, horse.getHorseId())) {
             throw new ApiException(HttpStatus.CONFLICT, "Tên ngựa đã tồn tại.");
         }
 
+        horse.setPassportNumber(passportNumber);
         horse.setHorseName(horseName);
         horse.setBreed(normalizeText(request.getBreed()));
         horse.setGender(normalizeUppercase(request.getGender()));
@@ -157,9 +176,11 @@ public class OwnerServiceImpl implements OwnerService {
         horse.setDayOfBirth(request.getDayOfBirth());
         horse.setWeight(request.getWeight());
         horse.setHealthCertExpiry(request.getHealthCertExpiry());
+        horse.setHorsePassportUrl(normalizeText(request.getHorsePassportUrl()));
+        horse.setHealthCertificateUrl(normalizeText(request.getHealthCertificateUrl()));
+        horse.setHorseImageUrl(normalizeText(request.getHorseImageUrl()));
         horse.setStatus(STATUS_PENDING);
         horse.setRejectionReason(null);
-        horse.setImgUrl(normalizeText(request.getImgUrl()));
 
         return mapHorseToResponse(horseRepository.save(horse));
     }
@@ -187,7 +208,7 @@ public class OwnerServiceImpl implements OwnerService {
     @Transactional(readOnly = true)
     @Override
     public List<JockeyInvitationResponse> getMyInvitations() {
-        Integer ownerId = getCurrentOwner().getUserID();
+        Integer ownerId = getCurrentOwnerProfile().getOwnerId();
         return jockeyInvitationRepository.findByOwnerIdOrderByCreatedAtDesc(ownerId)
                 .stream()
                 .map(this::mapInvitationToResponse)
@@ -398,6 +419,13 @@ public class OwnerServiceImpl implements OwnerService {
     }
 
     // Lấy ngựa theo horseId và đảm bảo ngựa đó thuộc owner đang đăng nhập.
+    private OwnerProfile getCurrentOwnerProfile() {
+        User owner = getCurrentOwner();
+        return ownerProfileRepository.findById(owner.getUserID())
+                .orElseThrow(() -> new ApiException(HttpStatus.FORBIDDEN,
+                        "Owner profile chua duoc admin xac minh."));
+    }
+
     private Horse getOwnedHorse(Integer horseId) {
         Integer ownerId = getCurrentOwner().getUserID();
         return horseRepository.findByHorseIdAndOwnerId(horseId, ownerId)
@@ -471,6 +499,7 @@ public class OwnerServiceImpl implements OwnerService {
         return HorseResponse.builder()
                 .horseId(horse.getHorseId())
                 .ownerId(horse.getOwnerId())
+                .passportNumber(horse.getPassportNumber())
                 .horseName(horse.getHorseName())
                 .breed(horse.getBreed())
                 .gender(horse.getGender())
@@ -478,9 +507,11 @@ public class OwnerServiceImpl implements OwnerService {
                 .dayOfBirth(horse.getDayOfBirth())
                 .weight(horse.getWeight())
                 .healthCertExpiry(horse.getHealthCertExpiry())
+                .horsePassportUrl(horse.getHorsePassportUrl())
+                .healthCertificateUrl(horse.getHealthCertificateUrl())
+                .horseImageUrl(horse.getHorseImageUrl())
                 .status(horse.getStatus())
                 .rejectionReason(horse.getRejectionReason())
-                .imgUrl(horse.getImgUrl())
                 .registrationCount(registrationIds.size())
                 .participated(hasActiveRegistration(registrationIds))
                 .build();

@@ -4,9 +4,15 @@ import { formatDate, formatDisplayLabel, formatNumber, getHorseId, getHorseName 
 
 const STATUS_OPTIONS = ['ALL', 'ACTIVE', 'INACTIVE', 'PENDING', 'REJECTED'];
 
-function getDisplayImage(src) {
-  const value = String(src || '').trim();
-  return /^https?:\/\/.+/i.test(value) ? value : defaultHorseImage;
+function getDisplayImage(horse) {
+  const firstImportedImage = Array.isArray(horse?.horseImages)
+    ? horse.horseImages.find((image) => image?.dataUrl || image?.url)
+    : null;
+  const importedValue = firstImportedImage?.dataUrl || firstImportedImage?.url || '';
+  const fallbackValue = String(horse?.imgUrl || '').trim();
+
+  if (importedValue) return importedValue;
+  return /^https?:\/\/.+/i.test(fallbackValue) || fallbackValue.startsWith('data:image/') ? fallbackValue : defaultHorseImage;
 }
 
 export default function OwnerHorseTable({ horses, isLoading, onViewHorse, onEditHorse, onDeleteHorse }) {
@@ -70,7 +76,7 @@ export default function OwnerHorseTable({ horses, isLoading, onViewHorse, onEdit
             return (
               <article className="horse-card" key={horseId || horseName}>
                 <div className="horse-avatar">
-                  <img src={getDisplayImage(horse.imgUrl)} alt={horseName} />
+                  <img src={getDisplayImage(horse)} alt={horseName} />
                 </div>
                 <div className="horse-info">
                   <div className="horse-title-row">
@@ -88,8 +94,10 @@ export default function OwnerHorseTable({ horses, isLoading, onViewHorse, onEdit
                     <strong>{formatDate(horse.dayOfBirth)}</strong>
                     <span>Cân nặng</span>
                     <strong>{horse.weight ? `${horse.weight} kg` : 'Chưa cập nhật'}</strong>
-                    <span>Chứng nhận sức khỏe</span>
-                    <strong>{formatDate(horse.healthCertExpiry)}</strong>
+                    <span>Passport Number</span>
+                    <strong>{horse.passportNumber || 'Chưa cập nhật'}</strong>
+                    <span>Ngày tạo</span>
+                    <strong>{formatDate(horse.createdAt || horse.submittedAt)}</strong>
                     <span>Đơn đăng ký</span>
                     <strong>{formatNumber(horse.registrationCount)}</strong>
                   </div>

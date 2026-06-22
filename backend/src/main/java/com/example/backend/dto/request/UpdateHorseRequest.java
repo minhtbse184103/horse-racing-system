@@ -3,6 +3,8 @@ package com.example.backend.dto.request;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
+
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.FutureOrPresent;
@@ -17,40 +19,47 @@ import lombok.Setter;
 @Getter
 @Setter
 public class UpdateHorseRequest {
+    @NotBlank(message = "Passport Number is required")
+    @Size(min = 3, max = 255, message = "Passport Number must be 3-255 characters")
+    private String passportNumber;
 
-    @NotBlank(message = "Tên ngựa là bắt buộc")
-    @Size(min = 2, max = 100, message = "Tên ngựa phải có từ 2 đến 100 ký tự")
-    @Pattern(regexp = "^[\\p{L}0-9][\\p{L}0-9 .'-]*$", message = "Tên ngựa chứa ký tự không hợp lệ")
+    @NotBlank(message = "Horse Name is required")
+    @Size(min = 2, max = 255, message = "Horse Name must be 2-255 characters")
+    @Pattern(regexp = "^[\\p{L}0-9][\\p{L}0-9 .'-]*$", message = "Horse Name contains invalid characters")
     private String horseName;
 
-    @NotBlank(message = "Giống ngựa là bắt buộc")
-    @Size(min = 2, max = 100, message = "Tên giống ngựa phải có từ 2 đến 100 ký tự")
-    @Pattern(regexp = "^[\\p{L}0-9][\\p{L}0-9 .'-]*$", message = "Tên giống ngựa chứa ký tự không hợp lệ")
+    @NotBlank(message = "Breed is required")
+    @Size(max = 255, message = "Breed cannot exceed 255 characters")
     private String breed;
 
-    @NotBlank(message = "Giới tính là bắt buộc")
-    @Pattern(regexp = "(?i)MALE|FEMALE", message = "Giới tính phải là MALE hoặc FEMALE")
+    @NotBlank(message = "Gender is required")
+    @Pattern(regexp = "(?i)MALE|FEMALE", message = "Gender must be MALE or FEMALE")
     private String gender;
 
-    @NotBlank(message = "Màu lông là bắt buộc")
-    @Size(min = 2, max = 50, message = "Màu lông phải có từ 2 đến 50 ký tự")
-    @Pattern(regexp = "^[\\p{L}][\\p{L} .'-]*$", message = "Màu lông chứa ký tự không hợp lệ")
+    @NotBlank(message = "Coat Color is required")
+    @Size(max = 255, message = "Coat Color cannot exceed 255 characters")
     private String color;
 
-    @NotNull(message = "Ngày sinh là bắt buộc")
-    @PastOrPresent(message = "Ngày sinh phải là hôm nay hoặc một ngày trong quá khứ")
+    @NotNull(message = "Date of Birth is required")
+    @PastOrPresent(message = "Date of Birth must be today or in the past")
     private LocalDate dayOfBirth;
 
-    @NotNull(message = "Cân nặng là bắt buộc")
-    @DecimalMin(value = "200.00", message = "Cân nặng của ngựa phải ít nhất là 200 kg")
-    @DecimalMax(value = "1000.00", message = "Cân nặng của ngựa không được vượt quá 1000 kg")
+    @NotNull(message = "Weight is required")
+    @DecimalMin(value = "200.00", message = "Horse weight must be at least 200 kg")
+    @DecimalMax(value = "1000.00", message = "Horse weight cannot exceed 1000 kg")
     private BigDecimal weight;
 
-    @NotNull(message = "Ngày hết hạn giấy chứng nhận sức khỏe là bắt buộc")
-    @FutureOrPresent(message = "Ngày hết hạn giấy chứng nhận sức khỏe phải là hôm nay hoặc một ngày trong tương lai")
+    @JsonAlias("healthCertificateExpiryDate")
+    @NotNull(message = "Health Certificate Expiry Date is required")
+    @FutureOrPresent(message = "Health Certificate Expiry Date must be today or in the future")
     private LocalDate healthCertExpiry;
 
-    @NotBlank(message = "Đường dẫn hình ảnh là bắt buộc")
-    @Pattern(regexp = "^https?://.+$", message = "Đường dẫn hình ảnh phải là URL HTTP hoặc HTTPS hợp lệ")
-    private String imgUrl;
+    @NotBlank(message = "Horse Passport document URL is required")
+    private String horsePassportUrl;
+
+    @NotBlank(message = "Health Certificate URL is required")
+    private String healthCertificateUrl;
+
+    @NotBlank(message = "Horse Image URL is required")
+    private String horseImageUrl;
 }

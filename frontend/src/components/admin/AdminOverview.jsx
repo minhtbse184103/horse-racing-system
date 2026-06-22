@@ -4,6 +4,7 @@ import {
   CalendarDays,
   CheckCircle2,
   ClipboardCheck,
+  FileText,
   Flag,
   Gavel,
   RefreshCw,
@@ -23,6 +24,7 @@ import { getTournaments } from '../../services/eventService';
 import { getRaceEntryAssignmentQueue } from '../../services/raceEntryService';
 import { getRefereeAssignments } from '../../services/refereeAssignmentService';
 import { getUsers } from '../../services/userService';
+import { getAllOwnerApplications } from '../../services/ownerApplicationService';
 
 const STATUS_STYLES = {
   Draft: 'bg-amber-100 text-amber-800',
@@ -116,7 +118,8 @@ export default function AdminOverview({ onNavigate }) {
     pendingHorses: [],
     pendingJockeys: [],
     raceEntryQueue: [],
-    refereeAssignments: []
+    refereeAssignments: [],
+    ownerApplications: []
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -130,16 +133,7 @@ export default function AdminOverview({ onNavigate }) {
     setError('');
 
     try {
-      const [
-        users,
-        tournaments,
-        pendingRegistrations,
-        registrationHistory,
-        pendingHorses,
-        pendingJockeys,
-        raceEntryQueue,
-        refereeAssignments
-      ] = await Promise.all([
+      const results = await Promise.allSettled([
         getUsers(),
         getTournaments(),
         getAcceptedRegistrations(),
@@ -147,25 +141,30 @@ export default function AdminOverview({ onNavigate }) {
         getPendingHorses(),
         getJockeyProfilesUnderReview(),
         getRaceEntryAssignmentQueue(),
-        getRefereeAssignments()
+        getRefereeAssignments(),
+        getAllOwnerApplications()
       ]);
 
+      const valueAt = (index) =>
+        results[index].status === 'fulfilled' && Array.isArray(results[index].value)
+          ? results[index].value
+          : [];
+
       setData({
-        users: Array.isArray(users) ? users : [],
-        tournaments: Array.isArray(tournaments) ? tournaments : [],
-        pendingRegistrations: Array.isArray(pendingRegistrations)
-          ? pendingRegistrations
-          : [],
-        registrationHistory: Array.isArray(registrationHistory)
-          ? registrationHistory
-          : [],
-        pendingHorses: Array.isArray(pendingHorses) ? pendingHorses : [],
-        pendingJockeys: Array.isArray(pendingJockeys) ? pendingJockeys : [],
-        raceEntryQueue: Array.isArray(raceEntryQueue) ? raceEntryQueue : [],
-        refereeAssignments: Array.isArray(refereeAssignments)
-          ? refereeAssignments
-          : []
+        users: valueAt(0),
+        tournaments: valueAt(1),
+        pendingRegistrations: valueAt(2),
+        registrationHistory: valueAt(3),
+        pendingHorses: valueAt(4),
+        pendingJockeys: valueAt(5),
+        raceEntryQueue: valueAt(6),
+        refereeAssignments: valueAt(7),
+        ownerApplications: valueAt(8)
       });
+
+      if (results.some((result, index) => index < 8 && result.status === 'rejected')) {
+        setError('Một số API cũ chưa sẵn sàng; phần Owner Applications đang dùng mock data.');
+      }
     } catch (err) {
       setError(err.message || 'Không thể tải dữ liệu tổng quan.');
     } finally {
@@ -180,10 +179,15 @@ export default function AdminOverview({ onNavigate }) {
   const openTournaments = data.tournaments.filter(
     (tournament) => tournament.status === 'OpenForRegistration'
   ).length;
+  const pendingOwnerApplications = data.ownerApplications.filter(
+    (application) => application.status === 'PENDING'
+  ).length;
+  const ownerCount = data.users.filter((user) => String(user.role || user.roleName || '').toUpperCase() === 'OWNER').length;
   const totalReviewQueue =
     data.pendingRegistrations.length +
     data.pendingHorses.length +
-    data.pendingJockeys.length;
+    data.pendingJockeys.length +
+    pendingOwnerApplications;
 
   const upcomingTournaments = useMemo(
     () =>
@@ -219,6 +223,14 @@ export default function AdminOverview({ onNavigate }) {
       note: 'Lời mời jockey đã chấp nhận đang chờ admin quyết định',
       icon: UserCheck,
       tone: 'bg-blue-100 text-blue-700'
+    },
+    {
+      key: 'ownerApplications',
+      label: 'Duyệt Owner Applications',
+      count: pendingOwnerApplications,
+      note: 'Spectator đang yêu cầu trở thành Owner',
+      icon: FileText,
+      tone: 'bg-orange-100 text-orange-700'
     },
     {
       key: 'horseReviews',
@@ -264,6 +276,12 @@ export default function AdminOverview({ onNavigate }) {
       label: 'Quản lý người dùng',
       note: `${activeUsers} active accounts`,
       icon: Users
+    },
+    {
+      key: 'ownerApplications',
+      label: 'Owner Applications',
+      note: `${pendingOwnerApplications} pending approvals`,
+      icon: FileText
     }
   ];
 
@@ -303,35 +321,35 @@ export default function AdminOverview({ onNavigate }) {
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           icon={Trophy}
-          label="Giải đấu đang mở"
-          value={openTournaments}
-          note={`${data.tournaments.length} tournaments total`}
+          label="Total Users"
+          value={data.users.length}
+          note={`${activeUsers} active accounts`}
           tone="brown"
-          onClick={() => onNavigate('events')}
+          onClick={() => onNavigate('users')}
         />
         <MetricCard
           icon={ClipboardCheck}
-          label="Hồ sơ đang chờ xét duyệt"
-          value={totalReviewQueue}
-          note="Tổng hợp đơn đăng ký, ngựa và jockey"
+          label="Total Owners"
+          value={ownerCount}
+          note="Users with Owner role"
           tone="gold"
-          onClick={() => onNavigate('registrations')}
+          onClick={() => onNavigate('users')}
         />
         <MetricCard
           icon={Flag}
-          label="Đang chờ xếp cuộc đua"
-          value={data.raceEntryQueue.length}
-          note={`${confirmedRegistrations} confirmed registrations`}
+          label="Pending Applications"
+          value={pendingOwnerApplications}
+          note="Owner applications awaiting review"
           tone="green"
-          onClick={() => onNavigate('raceEntries')}
+          onClick={() => onNavigate('ownerApplications')}
         />
         <MetricCard
           icon={Gavel}
-          label="Referee đã phân công"
-          value={data.refereeAssignments.length}
-          note="Cuộc đua đã có referee phụ trách"
+          label="Total Horses"
+          value={data.pendingHorses.length}
+          note="Horse profiles in review queue"
           tone="cream"
-          onClick={() => onNavigate('refereeAssignments')}
+          onClick={() => onNavigate('horseReviews')}
         />
       </div>
 

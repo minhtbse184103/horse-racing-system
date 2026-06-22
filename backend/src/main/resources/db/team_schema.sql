@@ -14,11 +14,37 @@ CREATE TABLE `Roles` (
 CREATE TABLE `Users` (
   `userID` int PRIMARY KEY AUTO_INCREMENT,
   `roleID` int NOT NULL,
-  `fullName` varchar(255) NOT NULL,
+  `username` varchar(255) UNIQUE NOT NULL,
   `email` varchar(255) UNIQUE NOT NULL,
   `password` varchar(255) NOT NULL,
   `phone` varchar(255) UNIQUE,
   `status` varchar(255),
+  `createdAt` datetime,
+  `updatedAt` datetime
+);
+
+CREATE TABLE `OwnerApplication` (
+  `applicationID` int PRIMARY KEY AUTO_INCREMENT,
+  `userID` int NOT NULL,
+  `fullName` varchar(255) NOT NULL,
+  `dateOfBirth` date NOT NULL,
+  `gender` varchar(50) NOT NULL,
+  `nationality` varchar(255) NOT NULL,
+  `address` varchar(500) NOT NULL,
+  `identityDocumentImage` text,
+  `identityDocumentFileName` varchar(255),
+  `status` varchar(50) NOT NULL DEFAULT 'PENDING',
+  `rejectReason` varchar(500),
+  `submittedAt` datetime,
+  `reviewedAt` datetime,
+  `reviewedBy` int,
+  `createdAt` datetime,
+  `updatedAt` datetime
+);
+
+CREATE TABLE `OwnerProfile` (
+  `ownerID` int PRIMARY KEY,
+  `applicationID` int UNIQUE NOT NULL,
   `createdAt` datetime,
   `updatedAt` datetime
 );
@@ -96,16 +122,19 @@ CREATE TABLE `RefereeAssignment` (
 CREATE TABLE `Horse` (
   `horseID` int PRIMARY KEY AUTO_INCREMENT,
   `ownerID` int NOT NULL,
+  `passportNumber` varchar(255) UNIQUE NOT NULL,
   `horseName` varchar(255) UNIQUE NOT NULL,
-  `breed` varchar(255),
-  `gender` varchar(255),
-  `color` varchar(255),
-  `dayOfBirth` date,
+  `breed` varchar(255) NOT NULL,
+  `gender` varchar(50) NOT NULL,
+  `color` varchar(255) NOT NULL,
+  `dayOfBirth` date NOT NULL,
   `weight` decimal(10,2) NOT NULL,
-  `healthCertExpiry` date,
-  `status` varchar(255),
+  `healthCertExpiry` date NOT NULL,
+  `horsePassportUrl` text NOT NULL,
+  `healthCertificateUrl` text NOT NULL,
+  `horseImageUrl` text NOT NULL,
+  `status` varchar(50) NOT NULL DEFAULT 'PENDING',
   `rejectionReason` varchar(500),
-  `img_url` text,
   `createdAt` datetime,
   `updatedAt` datetime
 );
@@ -138,6 +167,14 @@ CREATE TABLE `JockeyInvitation` (
 
 ALTER TABLE `Users` ADD FOREIGN KEY (`roleID`) REFERENCES `Roles` (`roleID`);
 
+ALTER TABLE `OwnerApplication` ADD FOREIGN KEY (`userID`) REFERENCES `Users` (`userID`);
+
+ALTER TABLE `OwnerApplication` ADD FOREIGN KEY (`reviewedBy`) REFERENCES `Users` (`userID`);
+
+ALTER TABLE `OwnerProfile` ADD FOREIGN KEY (`ownerID`) REFERENCES `Users` (`userID`);
+
+ALTER TABLE `OwnerProfile` ADD FOREIGN KEY (`applicationID`) REFERENCES `OwnerApplication` (`applicationID`);
+
 ALTER TABLE `Tournament` ADD FOREIGN KEY (`conditionID`) REFERENCES `TournamentCondition` (`conditionID`);
 
 ALTER TABLE `Tournament` ADD FOREIGN KEY (`createdBy`) REFERENCES `Users` (`userID`);
@@ -162,7 +199,7 @@ ALTER TABLE `RefereeAssignment` ADD FOREIGN KEY (`raceID`) REFERENCES `Race` (`r
 
 ALTER TABLE `RefereeAssignment` ADD FOREIGN KEY (`refereeUserID`) REFERENCES `Users` (`userID`);
 
-ALTER TABLE `Horse` ADD FOREIGN KEY (`ownerID`) REFERENCES `Users` (`userID`);
+ALTER TABLE `Horse` ADD FOREIGN KEY (`ownerID`) REFERENCES `OwnerProfile` (`ownerID`);
 
 ALTER TABLE `JockeyProfile` ADD FOREIGN KEY (`jockeyID`) REFERENCES `Users` (`userID`);
 
@@ -217,7 +254,7 @@ VALUES
 -- Passwords are plain text intentionally; the backend upgrades them to BCrypt
 -- after the first successful login.
 INSERT INTO Users
-(userID, roleID, fullName, email, password, phone, status, createdAt, updatedAt)
+(userID, roleID, username, email, password, phone, status, createdAt, updatedAt)
 VALUES
 (1, 1, 'Admin Test', 'admin@c.com', 'admin123', '0900000001', 'ACTIVE', NOW(), NOW()),
 (2, 2, 'Owner Test', 'owner@test.com', 'owner123', '0900000002', 'ACTIVE', NOW(), NOW()),
@@ -230,6 +267,17 @@ VALUES
  'PENDING', NOW(), NOW()),
 (7, 4, 'Referee Test', 'referee@test.com', 'referee123', '0900000007', 'ACTIVE', NOW(), NOW()),
 (8, 5, 'Spectator Test', 'spectator@test.com', 'spectator123', '0900000008', 'ACTIVE', NOW(), NOW());
+
+INSERT INTO OwnerApplication
+(applicationID, userID, fullName, dateOfBirth, gender, nationality, address, status, rejectReason, submittedAt, reviewedAt, reviewedBy, createdAt, updatedAt)
+VALUES
+(1, 2, 'Owner Test', '1990-01-01', 'MALE', 'Vietnamese', 'Ho Chi Minh City', 'APPROVED', NULL,
+ DATE_SUB(NOW(), INTERVAL 10 DAY), DATE_SUB(NOW(), INTERVAL 9 DAY), 1, DATE_SUB(NOW(), INTERVAL 10 DAY), DATE_SUB(NOW(), INTERVAL 9 DAY));
+
+INSERT INTO OwnerProfile
+(ownerID, applicationID, createdAt, updatedAt)
+VALUES
+(2, 1, DATE_SUB(NOW(), INTERVAL 9 DAY), DATE_SUB(NOW(), INTERVAL 9 DAY));
 
 INSERT INTO JockeyProfile
 (jockeyID, licenseNo, weight, ranking, status, rejectionReason, img_url, createdAt, updatedAt)
