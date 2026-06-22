@@ -164,10 +164,10 @@ export default function JockeyReview() {
 
     try {
       if (action === 'approve') {
-        await approveJockeyProfile(profile.jockeyId);
+        await approveJockeyProfile(profile.reviewId);
         setMessage(`${profile.fullName} was approved.`);
       } else {
-        await rejectJockeyProfile(profile.jockeyId, feedback);
+        await rejectJockeyProfile(profile.reviewId, feedback);
         setMessage(`${profile.fullName} was rejected.`);
       }
 

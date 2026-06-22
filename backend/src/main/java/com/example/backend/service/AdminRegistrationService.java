@@ -329,6 +329,7 @@ public class AdminRegistrationService {
                                 .build();
         }
 
+        /*
         private void validateRegistrationForConfirmation(Registration registration) {
                 Tournament tournament = getTournamentForUpdate(registration.getTournamentId());
                 validateTournament(tournament);
@@ -505,5 +506,6 @@ public class AdminRegistrationService {
                                         "Nài ngựa đã có đơn đăng ký được xác nhận trong giải đấu này.");
                 }
         }
+        */
 
 }
