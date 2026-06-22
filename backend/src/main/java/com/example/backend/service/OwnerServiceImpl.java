@@ -448,10 +448,6 @@ public class OwnerServiceImpl implements OwnerService {
         JockeyProfile profile = jockeyProfileRepository.findById(jockeyId)
                 .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Hồ sơ nài ngựa không tồn tại."));
 
-        if (!STATUS_ACTIVE.equals(profile.getStatus())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Hồ sơ nài ngựa được chọn không hoạt động.");
-        }
-
         return jockey;
     }
 

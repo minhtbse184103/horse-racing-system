@@ -10,9 +10,5 @@ import com.example.backend.entity.JockeyProfile;
 
 @Repository
 public interface JockeyProfileRepository extends JpaRepository<JockeyProfile, Integer> {
-    boolean existsByLicenseNo(String licenseNo);
-
-    boolean existsByLicenseNoAndJockeyIdNot(String licenseNo, Integer jockeyId);
-
     List<JockeyProfile> findByJockeyIdIn(Collection<Integer> jockeyIds);
 }
