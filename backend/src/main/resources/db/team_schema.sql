@@ -18,7 +18,7 @@ CREATE TABLE `Users` (
   `email` varchar(255) UNIQUE NOT NULL,
   `password` varchar(255) NOT NULL,
   `phone` varchar(255) UNIQUE,
-  `status` varchar(255),
+  `status` varchar(50) NOT NULL DEFAULT 'ACTIVE',
   `createdAt` datetime,
   `updatedAt` datetime
 );
@@ -31,8 +31,6 @@ CREATE TABLE `OwnerApplication` (
   `gender` varchar(50) NOT NULL,
   `nationality` varchar(255) NOT NULL,
   `address` varchar(500) NOT NULL,
-  `identityDocumentImage` text,
-  `identityDocumentFileName` varchar(255),
   `status` varchar(50) NOT NULL DEFAULT 'PENDING',
   `rejectReason` varchar(500),
   `submittedAt` datetime,
@@ -47,76 +45,6 @@ CREATE TABLE `OwnerProfile` (
   `applicationID` int UNIQUE NOT NULL,
   `createdAt` datetime,
   `updatedAt` datetime
-);
-
-CREATE TABLE `TournamentCondition` (
-  `conditionID` int PRIMARY KEY AUTO_INCREMENT,
-  `conditionName` varchar(255) UNIQUE NOT NULL,
-  `maxHorseWeight` decimal(10,2) NOT NULL,
-  `maxJockeyWeight` decimal(10,2) NOT NULL,
-  `description` varchar(255)
-);
-
-CREATE TABLE `Tournament` (
-  `tournamentID` int PRIMARY KEY AUTO_INCREMENT,
-  `tournamentName` varchar(255) NOT NULL,
-  `location` varchar(255),
-  `startDate` date NOT NULL,
-  `endDate` date NOT NULL,
-  `registrationDeadline` datetime NOT NULL,
-  `minParticipants` int NOT NULL,
-  `maxParticipants` int NOT NULL,
-  `conditionID` int NOT NULL,
-  `status` varchar(255),
-  `createdBy` int NOT NULL,
-  `createdAt` datetime,
-  `updatedAt` datetime
-);
-
-CREATE TABLE `Registration` (
-  `registrationID` int PRIMARY KEY AUTO_INCREMENT,
-  `tournamentID` int NOT NULL,
-  `horseID` int NOT NULL,
-  `ownerID` int NOT NULL,
-  `jockeyID` int,
-  `status` varchar(255),
-  `createdAt` datetime,
-  `updatedAt` datetime
-);
-
-CREATE TABLE `TournamentRound` (
-  `roundID` int PRIMARY KEY AUTO_INCREMENT,
-  `tournamentID` int NOT NULL,
-  `roundName` varchar(255) NOT NULL,
-  `roundOrder` int NOT NULL,
-  `status` varchar(255)
-);
-
-CREATE TABLE `Race` (
-  `raceID` int PRIMARY KEY AUTO_INCREMENT,
-  `roundID` int NOT NULL,
-  `raceName` varchar(255) NOT NULL,
-  `startTime` datetime,
-  `endTime` datetime,
-  `raceOrder` int,
-  `distance` int,
-  `status` varchar(255)
-);
-
-CREATE TABLE `RaceEntry` (
-  `raceEntryID` int PRIMARY KEY AUTO_INCREMENT,
-  `raceID` int NOT NULL,
-  `registrationID` int NOT NULL,
-  `laneNumber` int,
-  `status` varchar(255)
-);
-
-CREATE TABLE `RefereeAssignment` (
-  `assignmentID` int PRIMARY KEY AUTO_INCREMENT,
-  `raceID` int UNIQUE NOT NULL,
-  `refereeUserID` int NOT NULL,
-  `assignedAt` datetime,
-  `status` varchar(255)
 );
 
 CREATE TABLE `Horse` (
@@ -141,14 +69,254 @@ CREATE TABLE `Horse` (
 
 CREATE TABLE `JockeyProfile` (
   `jockeyID` int PRIMARY KEY,
-  `licenseNo` varchar(255) UNIQUE NOT NULL,
   `weight` decimal(10,2) NOT NULL,
   `ranking` varchar(255),
-  `status` varchar(255),
-  `rejectionReason` varchar(500),
-  `img_url` text,
+  `biography` text,
+  `totalRaces` int DEFAULT 0,
+  `totalWins` int DEFAULT 0,
   `createdAt` datetime,
   `updatedAt` datetime
+);
+
+CREATE TABLE `JockeyVerification` (
+  `verificationID` int PRIMARY KEY AUTO_INCREMENT,
+  `jockeyID` int NOT NULL,
+  `trainerName` varchar(255) NOT NULL,
+  `trainerEmail` varchar(255) NOT NULL,
+  `academyStableAddress` varchar(500),
+  `issuingAuthority` varchar(255) NOT NULL,
+  `verificationLink` text,
+  `licenceType` varchar(50),
+  `expiryDate` date,
+  `verificationStatus` varchar(50) NOT NULL DEFAULT 'PENDING',
+  `rejectionReason` varchar(500),
+  `resubmitCount` int DEFAULT 0,
+  `submittedAt` datetime,
+  `reviewedAt` datetime,
+  `reviewedBy` int,
+  `createdAt` datetime,
+  `updatedAt` datetime
+);
+
+CREATE TABLE `JockeyVerificationFile` (
+  `fileID` int PRIMARY KEY AUTO_INCREMENT,
+  `verificationID` int NOT NULL,
+  `fileUrl` text NOT NULL,
+  `fileType` varchar(50),
+  `uploadedAt` datetime
+);
+
+CREATE TABLE `Tournament` (
+  `tournamentID` int PRIMARY KEY AUTO_INCREMENT,
+  `tournamentName` varchar(255) NOT NULL,
+  `venue` varchar(255) NOT NULL,
+  `venueImageUrl` varchar(500),
+  `description` text,
+  `registrationOpenAt` datetime NOT NULL,
+  `registrationCloseAt` datetime NOT NULL,
+  `startDate` date NOT NULL,
+  `endDate` date NOT NULL,
+  `maxRegistrations` int NOT NULL,
+  `entryFee` decimal(12,2) NOT NULL DEFAULT 0,
+  `status` varchar(50) NOT NULL DEFAULT 'OPEN_FOR_REGISTRATION',
+  `createdBy` int NOT NULL,
+  `createdAt` datetime,
+  `updatedAt` datetime,
+  CONSTRAINT `chk_tournament_dates`
+    CHECK (`startDate` <= `endDate`),
+  CONSTRAINT `chk_tournament_registration_window`
+    CHECK (`registrationOpenAt` < `registrationCloseAt`),
+  CONSTRAINT `chk_tournament_max_registrations`
+    CHECK (`maxRegistrations` > 0),
+  CONSTRAINT `chk_tournament_entry_fee`
+    CHECK (`entryFee` >= 0),
+  CONSTRAINT `chk_tournament_status`
+    CHECK (`status` IN (
+      'OPEN_FOR_REGISTRATION',
+      'REGISTRATION_CLOSED',
+      'IN_PROGRESS',
+      'COMPLETED',
+      'CANCELLED'
+    ))
+);
+
+CREATE TABLE `TournamentCondition` (
+  `conditionID` int PRIMARY KEY AUTO_INCREMENT,
+  `tournamentID` int NOT NULL,
+  `conditionType` varchar(50) NOT NULL,
+  `operator` varchar(20) NOT NULL,
+  `minValue` decimal(10,2),
+  `maxValue` decimal(10,2),
+  `value` varchar(50),
+  CONSTRAINT `chk_tournament_condition_type`
+    CHECK (`conditionType` IN ('AGE', 'GENDER', 'WEIGHT')),
+  CONSTRAINT `chk_tournament_condition_operator`
+    CHECK (
+      (`conditionType` = 'GENDER'
+        AND `operator` = 'EQ'
+        AND `value` IS NOT NULL
+        AND `minValue` IS NULL
+        AND `maxValue` IS NULL)
+      OR
+      (`conditionType` IN ('AGE', 'WEIGHT')
+        AND (
+          (`operator` IN ('EQ', 'GT', 'GTE', 'LT', 'LTE')
+            AND `value` IS NOT NULL
+            AND `minValue` IS NULL
+            AND `maxValue` IS NULL)
+          OR
+          (`operator` = 'BETWEEN'
+            AND `value` IS NULL
+            AND `minValue` IS NOT NULL
+            AND `maxValue` IS NOT NULL
+            AND `minValue` <= `maxValue`)
+        ))
+    )
+);
+
+CREATE TABLE `Race` (
+  `raceID` int PRIMARY KEY AUTO_INCREMENT,
+  `tournamentID` int NOT NULL,
+  `raceName` varchar(255) NOT NULL,
+  `trackName` varchar(255) NOT NULL,
+  `raceStartTime` datetime NOT NULL,
+  `raceEndTime` datetime,
+  `distance` int NOT NULL,
+  `maxRunners` int NOT NULL,
+  `raceOrder` int,
+  `status` varchar(50) NOT NULL DEFAULT 'OPEN_FOR_REGISTRATION',
+  `createdAt` datetime,
+  `updatedAt` datetime,
+  CONSTRAINT `chk_race_time`
+    CHECK (`raceEndTime` IS NULL OR `raceStartTime` < `raceEndTime`),
+  CONSTRAINT `chk_race_distance`
+    CHECK (`distance` > 0),
+  CONSTRAINT `chk_race_max_runners`
+    CHECK (`maxRunners` > 0),
+  CONSTRAINT `chk_race_order`
+    CHECK (`raceOrder` IS NULL OR `raceOrder` > 0),
+  CONSTRAINT `chk_race_status`
+    CHECK (`status` IN (
+      'OPEN_FOR_REGISTRATION',
+      'REGISTRATION_CLOSED',
+      'IN_PROGRESS',
+      'COMPLETED',
+      'CANCELLED'
+    ))
+);
+
+CREATE TABLE `RacePrize` (
+  `racePrizeID` int PRIMARY KEY AUTO_INCREMENT,
+  `raceID` int NOT NULL,
+  `rankPosition` int NOT NULL,
+  `amount` decimal(12,2) NOT NULL,
+  `ownerPercent` decimal(5,2) NOT NULL,
+  `jockeyPercent` decimal(5,2) NOT NULL,
+  CONSTRAINT `chk_race_prize_rank`
+    CHECK (`rankPosition` > 0),
+  CONSTRAINT `chk_race_prize_amount`
+    CHECK (`amount` > 0),
+  CONSTRAINT `chk_race_prize_owner_percent`
+    CHECK (`ownerPercent` >= 0),
+  CONSTRAINT `chk_race_prize_jockey_percent`
+    CHECK (`jockeyPercent` >= 0),
+  CONSTRAINT `chk_race_prize_split_total`
+    CHECK (`ownerPercent` + `jockeyPercent` = 100)
+);
+
+CREATE TABLE `Registration` (
+  `registrationID` int PRIMARY KEY AUTO_INCREMENT,
+  `tournamentID` int NOT NULL,
+  `horseID` int NOT NULL,
+  `ownerID` int NOT NULL,
+  `jockeyID` int,
+  `registrationNo` varchar(100) UNIQUE NOT NULL,
+  `paymentStatus` varchar(50) NOT NULL DEFAULT 'UNPAID',
+  `approvalStatus` varchar(50) NOT NULL DEFAULT 'PENDING',
+  `rejectionReason` varchar(500),
+  `submittedAt` datetime NOT NULL,
+  `reviewedAt` datetime,
+  `reviewedBy` int,
+  `createdAt` datetime,
+  `updatedAt` datetime,
+  CONSTRAINT `chk_registration_payment_status`
+    CHECK (`paymentStatus` IN ('UNPAID', 'PAID', 'REFUNDED', 'FAILED')),
+  CONSTRAINT `chk_registration_approval_status`
+    CHECK (`approvalStatus` IN ('PENDING', 'APPROVED', 'REJECTED', 'CANCELLED')),
+  CONSTRAINT `chk_approved_registration_paid`
+    CHECK (
+      `approvalStatus` <> 'APPROVED'
+      OR `paymentStatus` = 'PAID'
+    ),
+  CONSTRAINT `chk_registration_rejection_reason`
+    CHECK (
+      (`approvalStatus` = 'REJECTED'
+        AND `rejectionReason` IS NOT NULL
+        AND CHAR_LENGTH(TRIM(`rejectionReason`)) > 0)
+      OR
+      (`approvalStatus` <> 'REJECTED')
+    ),
+  CONSTRAINT `chk_registration_review_metadata`
+    CHECK (
+      (`approvalStatus` IN ('APPROVED', 'REJECTED')
+        AND `reviewedAt` IS NOT NULL
+        AND `reviewedBy` IS NOT NULL)
+      OR
+      (`approvalStatus` IN ('PENDING', 'CANCELLED'))
+    )
+);
+
+CREATE TABLE `RaceEntry` (
+  `raceEntryID` int PRIMARY KEY AUTO_INCREMENT,
+  `raceID` int NOT NULL,
+  `registrationID` int NOT NULL,
+  `startingStall` int NOT NULL,
+  `status` varchar(50) NOT NULL DEFAULT 'ASSIGNED',
+  `assignedAt` datetime NOT NULL,
+  `assignedBy` int NOT NULL,
+  `cancelledAt` datetime,
+  `cancelledBy` int,
+  `cancellationReason` varchar(500),
+  CONSTRAINT `chk_race_entry_starting_stall`
+    CHECK (`startingStall` > 0),
+  CONSTRAINT `chk_race_entry_status`
+    CHECK (`status` IN ('ASSIGNED', 'CANCELLED')),
+  CONSTRAINT `chk_race_entry_cancellation_metadata`
+    CHECK (
+      (
+        `status` = 'ASSIGNED'
+        AND `cancelledAt` IS NULL
+        AND `cancelledBy` IS NULL
+        AND `cancellationReason` IS NULL
+      )
+      OR
+      (
+        `status` = 'CANCELLED'
+        AND `cancelledAt` IS NOT NULL
+        AND `cancelledBy` IS NOT NULL
+        AND `cancellationReason` IS NOT NULL
+        AND CHAR_LENGTH(TRIM(`cancellationReason`)) > 0
+      )
+    )
+);
+
+CREATE TABLE `RaceResult` (
+  `resultID` int PRIMARY KEY AUTO_INCREMENT,
+  `raceEntryID` int UNIQUE NOT NULL,
+  `finishPosition` int NOT NULL,
+  `finishTime` varchar(50),
+  `points` int DEFAULT 0,
+  `prizeMoney` decimal(12,2) DEFAULT 0,
+  `recordedAt` datetime,
+  `recordedBy` int NOT NULL
+);
+
+CREATE TABLE `RefereeAssignment` (
+  `assignmentID` int PRIMARY KEY AUTO_INCREMENT,
+  `raceID` int UNIQUE NOT NULL,
+  `refereeUserID` int NOT NULL,
+  `assignedAt` datetime,
+  `status` varchar(50)
 );
 
 CREATE TABLE `JockeyInvitation` (
@@ -158,12 +326,70 @@ CREATE TABLE `JockeyInvitation` (
   `horseID` int NOT NULL,
   `ownerID` int NOT NULL,
   `jockeyID` int NOT NULL,
-  `status` varchar(255),
+  `status` varchar(50) NOT NULL DEFAULT 'PENDING',
   `message` varchar(255),
   `createdAt` datetime,
   `expiredAt` datetime,
   `respondedAt` datetime
 );
+
+CREATE UNIQUE INDEX `Race_index_0` ON `Race` (`tournamentID`, `raceName`);
+
+CREATE UNIQUE INDEX `Race_index_1` ON `Race` (`tournamentID`, `raceOrder`);
+
+CREATE UNIQUE INDEX `RacePrize_index_2` ON `RacePrize` (`raceID`, `rankPosition`);
+
+CREATE UNIQUE INDEX `TournamentCondition_index_3`
+ON `TournamentCondition` (`tournamentID`, `conditionType`);
+
+CREATE INDEX `RaceEntry_registration_idx`
+ON `RaceEntry` (`registrationID`);
+
+CREATE INDEX `RaceEntry_registration_status_idx`
+ON `RaceEntry` (`registrationID`, `status`);
+
+CREATE INDEX `RaceEntry_race_status_stall_idx`
+ON `RaceEntry` (`raceID`, `status`, `startingStall`);
+
+CREATE INDEX `Registration_index_5`
+ON `Registration` (`tournamentID`, `approvalStatus`);
+
+CREATE INDEX `Registration_index_6`
+ON `Registration` (`tournamentID`, `horseID`, `approvalStatus`);
+
+CREATE INDEX `Race_index_7`
+ON `Race` (`tournamentID`, `status`, `raceStartTime`);
+
+ALTER TABLE `Tournament` ADD FOREIGN KEY (`createdBy`) REFERENCES `Users` (`userID`);
+
+ALTER TABLE `TournamentCondition` ADD FOREIGN KEY (`tournamentID`) REFERENCES `Tournament` (`tournamentID`);
+
+ALTER TABLE `Race` ADD FOREIGN KEY (`tournamentID`) REFERENCES `Tournament` (`tournamentID`);
+
+ALTER TABLE `RacePrize` ADD FOREIGN KEY (`raceID`) REFERENCES `Race` (`raceID`);
+
+ALTER TABLE `Registration` ADD FOREIGN KEY (`tournamentID`) REFERENCES `Tournament` (`tournamentID`);
+
+ALTER TABLE `Registration` ADD FOREIGN KEY (`horseID`) REFERENCES `Horse` (`horseID`);
+
+ALTER TABLE `Registration` ADD FOREIGN KEY (`ownerID`) REFERENCES `Users` (`userID`);
+
+ALTER TABLE `Registration` ADD FOREIGN KEY (`jockeyID`) REFERENCES `Users` (`userID`);
+
+ALTER TABLE `Registration` ADD FOREIGN KEY (`reviewedBy`) REFERENCES `Users` (`userID`);
+
+ALTER TABLE `RaceEntry` ADD FOREIGN KEY (`raceID`) REFERENCES `Race` (`raceID`);
+
+ALTER TABLE `RaceEntry` ADD FOREIGN KEY (`registrationID`) REFERENCES `Registration` (`registrationID`);
+
+ALTER TABLE `RaceEntry` ADD FOREIGN KEY (`assignedBy`) REFERENCES `Users` (`userID`);
+
+ALTER TABLE `RaceEntry`
+ADD FOREIGN KEY (`cancelledBy`) REFERENCES `Users` (`userID`);
+
+ALTER TABLE `RefereeAssignment` ADD FOREIGN KEY (`raceID`) REFERENCES `Race` (`raceID`);
+
+ALTER TABLE `RefereeAssignment` ADD FOREIGN KEY (`refereeUserID`) REFERENCES `Users` (`userID`);
 
 ALTER TABLE `Users` ADD FOREIGN KEY (`roleID`) REFERENCES `Roles` (`roleID`);
 
@@ -175,9 +401,23 @@ ALTER TABLE `OwnerProfile` ADD FOREIGN KEY (`ownerID`) REFERENCES `Users` (`user
 
 ALTER TABLE `OwnerProfile` ADD FOREIGN KEY (`applicationID`) REFERENCES `OwnerApplication` (`applicationID`);
 
-ALTER TABLE `Tournament` ADD FOREIGN KEY (`conditionID`) REFERENCES `TournamentCondition` (`conditionID`);
+ALTER TABLE `Horse` ADD FOREIGN KEY (`ownerID`) REFERENCES `OwnerProfile` (`ownerID`);
+
+ALTER TABLE `JockeyProfile` ADD FOREIGN KEY (`jockeyID`) REFERENCES `Users` (`userID`);
+
+ALTER TABLE `JockeyVerification` ADD FOREIGN KEY (`jockeyID`) REFERENCES `Users` (`userID`);
+
+ALTER TABLE `JockeyVerification` ADD FOREIGN KEY (`reviewedBy`) REFERENCES `Users` (`userID`);
+
+ALTER TABLE `JockeyVerificationFile` ADD FOREIGN KEY (`verificationID`) REFERENCES `JockeyVerification` (`verificationID`);
 
 ALTER TABLE `Tournament` ADD FOREIGN KEY (`createdBy`) REFERENCES `Users` (`userID`);
+
+ALTER TABLE `TournamentCondition` ADD FOREIGN KEY (`tournamentID`) REFERENCES `Tournament` (`tournamentID`);
+
+ALTER TABLE `Race` ADD FOREIGN KEY (`tournamentID`) REFERENCES `Tournament` (`tournamentID`);
+
+ALTER TABLE `RacePrize` ADD FOREIGN KEY (`raceID`) REFERENCES `Race` (`raceID`);
 
 ALTER TABLE `Registration` ADD FOREIGN KEY (`tournamentID`) REFERENCES `Tournament` (`tournamentID`);
 
@@ -187,21 +427,23 @@ ALTER TABLE `Registration` ADD FOREIGN KEY (`ownerID`) REFERENCES `Users` (`user
 
 ALTER TABLE `Registration` ADD FOREIGN KEY (`jockeyID`) REFERENCES `Users` (`userID`);
 
-ALTER TABLE `TournamentRound` ADD FOREIGN KEY (`tournamentID`) REFERENCES `Tournament` (`tournamentID`);
-
-ALTER TABLE `Race` ADD FOREIGN KEY (`roundID`) REFERENCES `TournamentRound` (`roundID`);
+ALTER TABLE `Registration` ADD FOREIGN KEY (`reviewedBy`) REFERENCES `Users` (`userID`);
 
 ALTER TABLE `RaceEntry` ADD FOREIGN KEY (`raceID`) REFERENCES `Race` (`raceID`);
 
 ALTER TABLE `RaceEntry` ADD FOREIGN KEY (`registrationID`) REFERENCES `Registration` (`registrationID`);
 
+ALTER TABLE `RaceEntry` ADD FOREIGN KEY (`assignedBy`) REFERENCES `Users` (`userID`);
+
+ALTER TABLE `RaceEntry` ADD FOREIGN KEY (`cancelledBy`) REFERENCES `Users` (`userID`);
+
+ALTER TABLE `RaceResult` ADD FOREIGN KEY (`raceEntryID`) REFERENCES `RaceEntry` (`raceEntryID`);
+
+ALTER TABLE `RaceResult` ADD FOREIGN KEY (`recordedBy`) REFERENCES `Users` (`userID`);
+
 ALTER TABLE `RefereeAssignment` ADD FOREIGN KEY (`raceID`) REFERENCES `Race` (`raceID`);
 
 ALTER TABLE `RefereeAssignment` ADD FOREIGN KEY (`refereeUserID`) REFERENCES `Users` (`userID`);
-
-ALTER TABLE `Horse` ADD FOREIGN KEY (`ownerID`) REFERENCES `OwnerProfile` (`ownerID`);
-
-ALTER TABLE `JockeyProfile` ADD FOREIGN KEY (`jockeyID`) REFERENCES `Users` (`userID`);
 
 ALTER TABLE `JockeyInvitation` ADD FOREIGN KEY (`registrationID`) REFERENCES `Registration` (`registrationID`);
 
@@ -209,91 +451,6 @@ ALTER TABLE `JockeyInvitation` ADD FOREIGN KEY (`tournamentID`) REFERENCES `Tour
 
 ALTER TABLE `JockeyInvitation` ADD FOREIGN KEY (`horseID`) REFERENCES `Horse` (`horseID`);
 
-ALTER TABLE `JockeyInvitation` ADD FOREIGN KEY (`ownerID`) REFERENCES `Users` (`userID`);
+ALTER TABLE `JockeyInvitation` ADD FOREIGN KEY (`ownerID`) REFERENCES `OwnerProfile` (`ownerID`);
 
 ALTER TABLE `JockeyInvitation` ADD FOREIGN KEY (`jockeyID`) REFERENCES `Users` (`userID`);
-
-ALTER TABLE TournamentRound
-ADD CONSTRAINT uq_tournament_round_order
-UNIQUE (tournamentID, roundOrder);
-
-ALTER TABLE TournamentRound
-ADD CONSTRAINT uq_tournament_round_name
-UNIQUE (tournamentID, roundName);
-
-ALTER TABLE Race
-ADD CONSTRAINT uq_round_race_order
-UNIQUE (roundID, raceOrder);
-
-ALTER TABLE Race
-ADD CONSTRAINT uq_round_race_name
-UNIQUE (roundID, raceName);
-
-ALTER TABLE RaceEntry
-ADD CONSTRAINT uq_race_registration
-UNIQUE (raceID, registrationID);
-
-ALTER TABLE RaceEntry
-ADD CONSTRAINT uq_race_lane
-UNIQUE (raceID, laneNumber);
-
-INSERT INTO Roles(roleID, roleName) VALUES
-(1,'ADMIN'),
-(2,'OWNER'),
-(3,'JOCKEY'),
-(4,'REFEREE'),
-(5,'SPECTATOR');
-INSERT INTO TournamentCondition
-(conditionID, conditionName, maxHorseWeight, maxJockeyWeight, description)
-VALUES
-(1, 'Lightweight', 450.00, 55.00, 'Lightweight tournament condition'),
-(2, 'Featherweight', 550.00, 65.00, 'Featherweight tournament condition'),
-(3, 'Heavyweight', 650.00, 75.00, 'Heavyweight tournament condition');
-
--- Baseline accounts for local API and frontend testing.
--- Passwords are plain text intentionally; the backend upgrades them to BCrypt
--- after the first successful login.
-INSERT INTO Users
-(userID, roleID, username, email, password, phone, status, createdAt, updatedAt)
-VALUES
-(1, 1, 'Admin Test', 'admin@c.com', 'admin123', '0900000001', 'ACTIVE', NOW(), NOW()),
-(2, 2, 'Owner Test', 'owner@test.com', 'owner123', '0900000002', 'ACTIVE', NOW(), NOW()),
-(3, 3, 'Active Jockey', 'jockey@test.com', 'jockey123', '0900000003', 'ACTIVE', NOW(), NOW()),
-(4, 3, 'Jockey Under Review', 'jockey.review@test.com', 'jockey123', '0900000004',
- 'UNDER_REVIEW', DATE_SUB(NOW(), INTERVAL 2 DAY), DATE_SUB(NOW(), INTERVAL 1 HOUR)),
-(5, 3, 'Rejected Jockey', 'jockey.rejected@test.com', 'jockey123', '0900000005',
- 'REJECTED', DATE_SUB(NOW(), INTERVAL 5 DAY), DATE_SUB(NOW(), INTERVAL 2 DAY)),
-(6, 3, 'Pending Jockey', 'jockey.pending@test.com', 'jockey123', '0900000006',
- 'PENDING', NOW(), NOW()),
-(7, 4, 'Referee Test', 'referee@test.com', 'referee123', '0900000007', 'ACTIVE', NOW(), NOW()),
-(8, 5, 'Spectator Test', 'spectator@test.com', 'spectator123', '0900000008', 'ACTIVE', NOW(), NOW());
-
-INSERT INTO OwnerApplication
-(applicationID, userID, fullName, dateOfBirth, gender, nationality, address, status, rejectReason, submittedAt, reviewedAt, reviewedBy, createdAt, updatedAt)
-VALUES
-(1, 2, 'Owner Test', '1990-01-01', 'MALE', 'Vietnamese', 'Ho Chi Minh City', 'APPROVED', NULL,
- DATE_SUB(NOW(), INTERVAL 10 DAY), DATE_SUB(NOW(), INTERVAL 9 DAY), 1, DATE_SUB(NOW(), INTERVAL 10 DAY), DATE_SUB(NOW(), INTERVAL 9 DAY));
-
-INSERT INTO OwnerProfile
-(ownerID, applicationID, createdAt, updatedAt)
-VALUES
-(2, 1, DATE_SUB(NOW(), INTERVAL 9 DAY), DATE_SUB(NOW(), INTERVAL 9 DAY));
-
-INSERT INTO JockeyProfile
-(jockeyID, licenseNo, weight, ranking, status, rejectionReason, img_url, createdAt, updatedAt)
-VALUES
-(3, 'JOCKEY-ACTIVE-001', 52.00, 'PROFESSIONAL', 'ACTIVE', NULL,
- 'https://images.unsplash.com/photo-1553284965-83fd3e82fa5a',
- DATE_SUB(NOW(), INTERVAL 20 DAY), DATE_SUB(NOW(), INTERVAL 5 DAY)),
-(4, 'JOCKEY-REVIEW-001', 51.00, 'INTERMEDIATE', 'UNDER_REVIEW', NULL,
- 'https://images.unsplash.com/photo-1517328874681-6e2d2e1f1ea8',
- DATE_SUB(NOW(), INTERVAL 2 DAY), DATE_SUB(NOW(), INTERVAL 1 HOUR)),
-(5, 'JOCKEY-REJECTED-001', 53.00, 'BEGINNER', 'REJECTED',
- 'License proof image is unclear.',
- 'https://images.unsplash.com/photo-1450052590821-8bf91254a353',
- DATE_SUB(NOW(), INTERVAL 5 DAY), DATE_SUB(NOW(), INTERVAL 2 DAY));
-
--- Jockey review test cases:
--- jockey.review@test.com: approve or reject through the admin review API.
--- jockey.rejected@test.com: update profile to resubmit it as UNDER_REVIEW.
--- jockey.pending@test.com: create a profile to submit it for review.
