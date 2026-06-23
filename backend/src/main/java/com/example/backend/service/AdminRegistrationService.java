@@ -316,13 +316,13 @@ public class AdminRegistrationService {
                         horse != null ? horse.getHorseName() : null
                 )
                 .horseBreed(
-                        horse != null ? horse.getBreed() : null
+                        horse != null ? horse.getBreeding() : null
                 )
                 .horseGender(
-                        horse != null ? horse.getGender() : null
+                        horse != null ? horse.getSex() : null
                 )
                 .horseDateOfBirth(
-                        horse != null ? horse.getDayOfBirth() : null
+                        null
                 )
                 .horseWeight(
                         horse != null ? horse.getWeight() : null
@@ -338,7 +338,7 @@ public class AdminRegistrationService {
 
                 .ownerId(registration.getOwnerId())
                 .ownerName(
-                        owner != null ? owner.getFullName() : null
+                        owner != null ? owner.getUsername() : null
                 )
                 .ownerEmail(
                         owner != null ? owner.getEmail() : null
@@ -346,7 +346,7 @@ public class AdminRegistrationService {
 
                 .jockeyId(registration.getJockeyId())
                 .jockeyName(
-                        jockey != null ? jockey.getFullName() : null
+                        jockey != null ? jockey.getUsername() : null
                 )
                 .jockeyEmail(
                         jockey != null ? jockey.getEmail() : null
@@ -361,7 +361,7 @@ public class AdminRegistrationService {
                 .reviewedBy(registration.getReviewedBy())
                 .reviewerName(
                         reviewer != null
-                                ? reviewer.getFullName()
+                                ? reviewer.getUsername()
                                 : null
                 )
 

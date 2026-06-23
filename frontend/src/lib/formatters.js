@@ -79,17 +79,16 @@ export function getHorseName(horse) {
 
 export function emptyHorseForm() {
     return {
-        passportNumber: '',
         horseName: '',
-        breed: '',
-        gender: 'MALE',
-        color: '',
-        dayOfBirth: '',
+        age: '',
         weight: '',
+        colour: '',
+        sex: 'MALE',
+        breeding: '',
+        trainer: '',
         healthCertificateExpiryDate: '',
-        horsePassportImages: [],
-        horseCertificateImages: [],
-        horseImages: []
+        officialHorseProfileUrl: '',
+        horseCertificateImages: []
     };
 }
 
@@ -106,24 +105,20 @@ function cloneImages(images) {
 
 export function toHorsePayload(formValues) {
   const horseName = String(formValues.horseName ?? '').trim();
-  const weight = Number(formValues.weight);
-  const horsePassportImages = cloneImages(formValues.horsePassportImages);
-  const horseCertificateImages = cloneImages(formValues.horseCertificateImages);
-  const horseImages = cloneImages(formValues.horseImages);
-  const mainHorseImage = horseImages[0]?.dataUrl || horseImages[0]?.url || '';
+  const horseCertificateImages = Array.isArray(formValues.horseCertificateImages)
+    ? formValues.horseCertificateImages.map((image) => ({ ...image }))
+    : [];
 
   return {
-    passportNumber: String(formValues.passportNumber ?? '').trim(),
     horseName,
-    breed: String(formValues.breed ?? '').trim() || null,
-    gender: formValues.gender || null,
-    color: String(formValues.color ?? '').trim() || null,
-    dayOfBirth: formValues.dayOfBirth || null,
-    weight,
+    age: Number(formValues.age),
+    weight: Number(formValues.weight),
+    colour: String(formValues.colour ?? '').trim() || null,
+    sex: formValues.sex || null,
+    breeding: String(formValues.breeding ?? '').trim() || null,
+    trainer: String(formValues.trainer ?? '').trim() || null,
     healthCertificateExpiryDate: formValues.healthCertificateExpiryDate || null,
-    horsePassportImages,
     horseCertificateImages,
-    horseImages,
-    imgUrl: mainHorseImage
+    officialHorseProfileUrl: String(formValues.officialHorseProfileUrl ?? '').trim() || null
   };
 }

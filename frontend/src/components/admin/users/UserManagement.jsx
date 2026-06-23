@@ -7,11 +7,11 @@ import {
   Plus,
   RefreshCw,
   Search,
-  ShieldCheck,
   UserRoundX,
   Users
 } from 'lucide-react';
-import { formatDisplayLabel, getUserId } from '../../../lib';
+import { getUserId } from '../../../lib';
+import { useLanguage } from '../../../context/LanguageContext';
 import {
   createUser,
   deleteUser,
@@ -21,14 +21,6 @@ import {
 
 const ROLES = ['ADMIN', 'OWNER', 'JOCKEY', 'REFEREE', 'SPECTATOR'];
 const STANDARD_STATUSES = ['ACTIVE', 'INACTIVE', 'BLOCKED'];
-const JOCKEY_STATUSES = [
-  'ACTIVE',
-  'INACTIVE',
-  'BLOCKED',
-  'PENDING',
-  'UNDER_REVIEW',
-  'REJECTED',
-];
 
 function emptyForm() {
   return {
@@ -37,8 +29,7 @@ function emptyForm() {
     phone: '',
     password: '',
     roleName: 'SPECTATOR',
-    status: 'ACTIVE',
-    rejectionReason: ''
+    status: 'ACTIVE'
   };
 }
 
@@ -60,8 +51,14 @@ function getStatusClasses(status) {
   }
 }
 
-function formatStatus(status) {
-  return formatDisplayLabel(status);
+function formatStatus(status, t) {
+  const normalized = String(status || '').toUpperCase();
+  return t(`status_${normalized}`);
+}
+
+function formatRole(role, t) {
+  const normalized = String(role || '').toUpperCase();
+  return t(`role_${normalized}`);
 }
 
 function SummaryCard({ icon: Icon, label, value, tone }) {
@@ -88,6 +85,7 @@ function SummaryCard({ icon: Icon, label, value, tone }) {
 }
 
 export default function UserManagement() {
+  const { t } = useLanguage();
   const [users, setUsers] = useState([]);
   const [form, setForm] = useState(emptyForm());
   const [editingUser, setEditingUser] = useState(null);
@@ -113,7 +111,7 @@ export default function UserManagement() {
       const data = await getUsers();
       setUsers(Array.isArray(data) ? data : []);
     } catch (err) {
-      setError(err.message || 'Không thể tải danh sách người dùng.');
+      setError(err.message || t('loadUsersError'));
     } finally {
       setIsLoading(false);
     }
@@ -125,7 +123,7 @@ export default function UserManagement() {
     return users.filter((user) => {
       const matchesSearch =
         !query ||
-        [user.fullName, user.email, user.phone]
+        [user.username, user.email, user.phone]
           .filter(Boolean)
           .some((value) => String(value).toLowerCase().includes(query));
       const matchesRole = roleFilter === 'ALL' || user.role === roleFilter;
@@ -150,12 +148,11 @@ const availableStatuses = STANDARD_STATUSES;
     setEditingUser(user);
     setForm({
       email: user.email || '',
-      fullName: user.fullName || '',
+      fullName: user.username || '',
       phone: user.phone || '',
       password: '',
       roleName: user.role || 'SPECTATOR',
-      status: user.status || 'ACTIVE',
-      rejectionReason: user.rejectionReason || ''
+      status: user.status || 'ACTIVE'
     });
     setError('');
     setMessage('');
@@ -176,19 +173,6 @@ const availableStatuses = STANDARD_STATUSES;
     setForm((current) => {
       const next = { ...current, [name]: value };
 
-      if (
-        name === 'roleName' &&
-        value !== 'JOCKEY' &&
-        !STANDARD_STATUSES.includes(current.status)
-      ) {
-        next.status = 'ACTIVE';
-        next.rejectionReason = '';
-      }
-
-      if (name === 'status' && value !== 'REJECTED') {
-        next.rejectionReason = '';
-      }
-
       return next;
     });
 
@@ -196,23 +180,16 @@ const availableStatuses = STANDARD_STATUSES;
   }
 
   function validateForm() {
-    if (!form.fullName.trim()) return 'Họ và tên là bắt buộc.';
-    if (!form.email.trim()) return 'Email là bắt buộc.';
+    if (!form.fullName.trim()) return t('usernameRequired');
+    if (!form.email.trim()) return t('emailRequired');
     if (!/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(form.email)) {
-      return 'Định dạng email không hợp lệ.';
+      return t('invalidEmail');
     }
     if (!/^\+?[0-9]{9,15}$/.test(form.phone)) {
-      return 'Số điện thoại phải gồm 9-15 chữ số và có thể bắt đầu bằng +.';
+      return t('invalidPhone');
     }
     if (!editingUser && (form.password.length < 6 || form.password.length > 72)) {
-      return 'Mật khẩu phải có từ 6 đến 72 ký tự.';
-    }
-    if (
-      editingUser &&
-      form.status === 'REJECTED' &&
-      !form.rejectionReason.trim()
-    ) {
-      return 'Bắt buộc nhập lý do khi từ chối jockey.';
+      return t('invalidPassword');
     }
     return '';
   }
@@ -241,17 +218,10 @@ const availableStatuses = STANDARD_STATUSES;
 
         if (form.status !== editingUser.status) {
           payload.status = form.status;
-          payload.rejectionReason =
-            form.status === 'REJECTED' ? form.rejectionReason.trim() : null;
-        } else if (
-          form.status === 'REJECTED' &&
-          form.rejectionReason.trim() !== (editingUser.rejectionReason || '')
-        ) {
-          payload.rejectionReason = form.rejectionReason.trim();
         }
 
         await updateUser(getUserId(editingUser), payload);
-        setMessage('Đã cập nhật người dùng thành công.');
+        setMessage(t('updateUserSuccess'));
       } else {
         await createUser({
           email: form.email.trim(),
@@ -260,7 +230,7 @@ const availableStatuses = STANDARD_STATUSES;
           password: form.password,
           roleName: form.roleName
         });
-        setMessage('Đã tạo người dùng thành công.');
+        setMessage(t('createUserSuccess'));
       }
 
       setIsFormOpen(false);
@@ -268,7 +238,7 @@ const availableStatuses = STANDARD_STATUSES;
       setForm(emptyForm());
       await loadUsers();
     } catch (err) {
-      setError(err.message || 'Không thể lưu người dùng.');
+      setError(err.message || t('saveUserError'));
     } finally {
       setIsSaving(false);
     }
@@ -283,11 +253,11 @@ const availableStatuses = STANDARD_STATUSES;
 
     try {
       await deleteUser(getUserId(userToDeactivate));
-      setMessage('Đã chuyển người dùng sang trạng thái INACTIVE thành công.');
+      setMessage(t('deactivateUserSuccess'));
       setUserToDeactivate(null);
       await loadUsers();
     } catch (err) {
-      setError(err.message || 'Không thể vô hiệu hóa người dùng.');
+      setError(err.message || t('deactivateUserError'));
     } finally {
       setIsSaving(false);
     }
@@ -298,13 +268,13 @@ const availableStatuses = STANDARD_STATUSES;
       <header className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
           <p className="mb-2 text-sm font-extrabold uppercase tracking-widest text-brown-500">
-            Admin
+            {t('admin')}
           </p>
           <h1 className="text-4xl font-black text-brown-900 md:text-5xl">
-            User Management
+            {t('userManagementTitle')}
           </h1>
           <p className="mt-3 text-slate-500">
-            Manage account access, roles, and jockey review statuses.
+            {t('userManagementSubtitle')}
           </p>
         </div>
 
@@ -315,7 +285,7 @@ const availableStatuses = STANDARD_STATUSES;
           disabled={isLoading}
         >
           <RefreshCw size={17} className={isLoading ? 'animate-spin' : ''} />
-          Refresh
+          {t('refresh')}
         </button>
       </header>
 
@@ -331,26 +301,16 @@ const availableStatuses = STANDARD_STATUSES;
       )}
 
       <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-        <SummaryCard icon={Users} label="Tổng số người dùng" value={users.length} tone="brown" />
+        <SummaryCard icon={Users} label={t('totalUsers')} value={users.length} tone="brown" />
         <SummaryCard
           icon={CheckCircle2}
-          label="Active"
+          label={t('activeUsers')}
           value={users.filter((user) => user.status === 'ACTIVE').length}
           tone="green"
         />
         <SummaryCard
-          icon={ShieldCheck}
-          label="Xét duyệt jockey"
-          value={
-            users.filter((user) =>
-              ['PENDING', 'UNDER_REVIEW', 'REJECTED'].includes(user.status)
-            ).length
-          }
-          tone="gold"
-        />
-        <SummaryCard
           icon={UserRoundX}
-          label="Inactive / Blocked"
+          label={t('inactiveBlocked')}
           value={
             users.filter((user) => ['INACTIVE', 'BLOCKED'].includes(user.status))
               .length
@@ -362,9 +322,9 @@ const availableStatuses = STANDARD_STATUSES;
       <section className="overflow-hidden rounded-xl border border-brown-700/10 bg-cream-100/90 shadow-[0_18px_45px_rgba(78,44,25,0.12)]">
         <div className="flex items-center justify-between gap-4 border-b border-brown-700/10 bg-cream-200/50 px-5 py-4 max-sm:grid">
           <div>
-            <h2 className="text-xl font-extrabold text-brown-900">Danh sách người dùng</h2>
+            <h2 className="text-xl font-extrabold text-brown-900">{t('userList')}</h2>
             <p className="mt-1 text-sm text-slate-500">
-              {filteredUsers.length} of {users.length} users
+              {t('userCount', { filtered: filteredUsers.length, total: users.length })}
             </p>
           </div>
           <button
@@ -373,7 +333,7 @@ const availableStatuses = STANDARD_STATUSES;
             onClick={openCreateForm}
           >
             <Plus size={18} />
-            Create User
+            {t('createUser')}
           </button>
         </div>
 
@@ -385,7 +345,7 @@ const availableStatuses = STANDARD_STATUSES;
             />
             <input
               className="w-full rounded-xl border border-brown-700/15 bg-white/90 py-3 pl-10 pr-4 text-sm font-bold text-brown-900 outline-none transition focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
-              placeholder="Tìm theo tên, email hoặc số điện thoại"
+              placeholder={t('searchUsers')}
               value={search}
               onChange={(event) => setSearch(event.target.value)}
             />
@@ -395,9 +355,9 @@ const availableStatuses = STANDARD_STATUSES;
             value={roleFilter}
             onChange={(event) => setRoleFilter(event.target.value)}
           >
-            <option value="ALL">All roles</option>
+            <option value="ALL">{t('allRoles')}</option>
             {ROLES.map((role) => (
-              <option key={role} value={role}>{formatDisplayLabel(role)}</option>
+              <option key={role} value={role}>{formatRole(role, t)}</option>
             ))}
           </select>
           <select
@@ -405,17 +365,17 @@ const availableStatuses = STANDARD_STATUSES;
             value={statusFilter}
             onChange={(event) => setStatusFilter(event.target.value)}
           >
-            <option value="ALL">ALL</option>
-            {JOCKEY_STATUSES.map((status) => (
-              <option key={status} value={status}>{formatDisplayLabel(status)}</option>
+            <option value="ALL">{t('allStatuses')}</option>
+            {STANDARD_STATUSES.map((status) => (
+              <option key={status} value={status}>{formatStatus(status, t)}</option>
             ))}
           </select>
         </div>
 
         {isLoading ? (
-          <p className="px-5 py-10 text-slate-500">Đang tải người dùng...</p>
+          <p className="px-5 py-10 text-slate-500">{t('loadingUsers')}</p>
         ) : filteredUsers.length === 0 ? (
-          <p className="px-5 py-10 text-slate-500">Không tìm thấy người dùng.</p>
+          <p className="px-5 py-10 text-slate-500">{t('noUsersFound')}</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full table-fixed border-collapse">
@@ -430,7 +390,7 @@ const availableStatuses = STANDARD_STATUSES;
               </colgroup>
               <thead className="bg-cream-200/60">
                 <tr>
-                  {['ID', 'Người dùng', 'Email', 'Số điện thoại', 'Role', 'Trạng thái', 'Thao tác'].map(
+                  {[t('id'), t('username'), t('email'), t('phone'), t('role'), t('status'), t('actions')].map(
                     (heading) => (
                       <th
                         className="border-b border-brown-700/10 px-2 py-4 text-left text-[0.68rem] font-extrabold uppercase tracking-wide text-brown-700"
@@ -457,7 +417,7 @@ const availableStatuses = STANDARD_STATUSES;
                           <CircleUserRound size={18} />
                         </span>
                         <strong className="break-words text-[0.82rem] font-extrabold leading-snug">
-                          {user.fullName || 'N/A'}
+                          {user.username || 'N/A'}
                         </strong>
                       </div>
                     </td>
@@ -469,7 +429,7 @@ const availableStatuses = STANDARD_STATUSES;
                     </td>
                     <td className="border-b border-brown-700/10 px-2 py-4">
                       <span className="inline-flex rounded-full bg-cream-200 px-2 py-1 text-[0.68rem] font-extrabold text-brown-700">
-                        {formatDisplayLabel(user.role)}
+                        {formatRole(user.role, t)}
                       </span>
                     </td>
                     <td className="border-b border-brown-700/10 px-2 py-4">
@@ -478,7 +438,7 @@ const availableStatuses = STANDARD_STATUSES;
                           user.status
                         )}`}
                       >
-                        {formatStatus(user.status)}
+                        {formatStatus(user.status, t)}
                       </span>
                     </td>
                     <td className="border-b border-brown-700/10 px-2 py-4">
@@ -489,7 +449,7 @@ const availableStatuses = STANDARD_STATUSES;
                           onClick={() => openEditForm(user)}
                         >
                           <Pencil size={14} />
-                          Edit
+                          {t('edit')}
                         </button>
                         <button
                           className="inline-flex items-center justify-center gap-1 rounded-xl border border-danger/20 bg-danger-bg px-2 py-2 text-xs font-extrabold text-danger shadow-sm transition hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-40"
@@ -498,7 +458,7 @@ const availableStatuses = STANDARD_STATUSES;
                           onClick={() => setUserToDeactivate(user)}
                         >
                           <Ban size={14} />
-                          Deactivate
+                          {t('deactivate')}
                         </button>
                       </div>
                     </td>
@@ -519,15 +479,15 @@ const availableStatuses = STANDARD_STATUSES;
             <div className="mb-6 flex items-start justify-between gap-4">
               <div>
                 <span className="text-xs font-extrabold uppercase text-brown-500">
-                  {editingUser ? `User #${getUserId(editingUser)}` : 'Tài khoản mới'}
+                  {editingUser ? t('userNumber', { id: getUserId(editingUser) }) : t('newAccount')}
                 </span>
                 <h2 className="mt-1 text-2xl font-extrabold">
-                  {editingUser ? 'Chỉnh sửa người dùng' : 'Tạo người dùng'}
+                  {editingUser ? t('editUser') : t('createUserTitle')}
                 </h2>
                 <p className="mt-2 text-sm text-slate-500">
                   {editingUser
-                    ? 'Cập nhật thông tin tài khoản, role và trạng thái truy cập.'
-                    : 'Tài khoản do admin tạo sẽ hoạt động ngay lập tức.'}
+                    ? t('editUserDescription')
+                    : t('createUserDescription')}
                 </p>
               </div>
               <button
@@ -547,9 +507,9 @@ const availableStatuses = STANDARD_STATUSES;
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               {[
-                ['fullName', 'Họ và tên', 'text'],
-                ['email', 'Email', 'email'],
-                ['phone', 'Số điện thoại', 'tel']
+                ['fullName', t('username'), 'text'],
+                ['email', t('email'), 'email'],
+                ['phone', t('phone'), 'tel']
               ].map(([name, label, type]) => (
                 <label
                   className="grid gap-2 text-sm font-extrabold"
@@ -568,7 +528,7 @@ const availableStatuses = STANDARD_STATUSES;
 
               {!editingUser && (
                 <label className="grid gap-2 text-sm font-extrabold">
-                  <span>Mật khẩu</span>
+                  <span>{t('password')}</span>
                   <input
                     className="rounded-xl border border-brown-700/15 bg-white/90 px-4 py-3 outline-none transition focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
                     name="password"
@@ -580,7 +540,7 @@ const availableStatuses = STANDARD_STATUSES;
               )}
 
               <label className="grid gap-2 text-sm font-extrabold">
-                <span>Role</span>
+                <span>{t('role')}</span>
                 <select
                   className="rounded-xl border border-brown-700/15 bg-white/90 px-4 py-3 outline-none"
                   name="roleName"
@@ -588,14 +548,14 @@ const availableStatuses = STANDARD_STATUSES;
                   onChange={handleChange}
                 >
                   {ROLES.map((role) => (
-                    <option key={role} value={role}>{formatDisplayLabel(role)}</option>
+                    <option key={role} value={role}>{formatRole(role, t)}</option>
                   ))}
                 </select>
               </label>
 
               {editingUser && (
                 <label className="grid gap-2 text-sm font-extrabold">
-                  <span>Trạng thái</span>
+                  <span>{t('status')}</span>
                   <select
                     className="rounded-xl border border-brown-700/15 bg-white/90 px-4 py-3 outline-none"
                     name="status"
@@ -603,24 +563,12 @@ const availableStatuses = STANDARD_STATUSES;
                     onChange={handleChange}
                   >
                     {availableStatuses.map((status) => (
-                      <option key={status} value={status}>{formatDisplayLabel(status)}</option>
+                      <option key={status} value={status}>{formatStatus(status, t)}</option>
                     ))}
                   </select>
                 </label>
               )}
 
-              {editingUser && form.status === 'REJECTED' && (
-                <label className="grid gap-2 text-sm font-extrabold sm:col-span-2">
-                  <span>Lý do từ chối</span>
-                  <textarea
-                    className="min-h-28 rounded-xl border border-brown-700/15 bg-white/90 px-4 py-3 outline-none transition focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
-                    maxLength="500"
-                    name="rejectionReason"
-                    value={form.rejectionReason}
-                    onChange={handleChange}
-                  />
-                </label>
-              )}
             </div>
 
             <div className="mt-6 flex justify-end gap-3 max-sm:grid max-sm:grid-cols-1">
@@ -630,14 +578,14 @@ const availableStatuses = STANDARD_STATUSES;
                 onClick={closeForm}
                 disabled={isSaving}
               >
-                Cancel
+                {t('cancel')}
               </button>
               <button
                 className="rounded-xl border border-brown-700 bg-brown-700 px-4 py-3 font-extrabold text-white shadow-lg disabled:opacity-50"
                 type="submit"
                 disabled={isSaving}
               >
-                {isSaving ? 'Đang lưu...' : editingUser ? 'Lưu thay đổi' : 'Tạo người dùng'}
+                {isSaving ? t('saving') : editingUser ? t('saveChanges') : t('createUser')}
               </button>
             </div>
           </form>
@@ -659,18 +607,17 @@ const availableStatuses = STANDARD_STATUSES;
               </span>
               <div>
                 <span className="text-xs font-extrabold uppercase text-slate-500">
-                  User #{getUserId(userToDeactivate)}
+                  {t('userNumber', { id: getUserId(userToDeactivate) })}
                 </span>
-                <h2 className="mt-1 text-xl font-extrabold">Vô hiệu hóa người dùng</h2>
+                <h2 className="mt-1 text-xl font-extrabold">{t('deactivateUser')}</h2>
               </div>
             </div>
             <p className="my-5 leading-relaxed text-slate-500">
-              This performs the backend soft-delete operation and changes the
-              account status to INACTIVE.
+              {t('deactivateDescription')}
             </p>
             <div className="rounded-xl border border-brown-700/10 bg-white/70 p-4">
               <strong className="block font-extrabold">
-                {userToDeactivate.fullName}
+                {userToDeactivate.username}
               </strong>
               <span className="mt-1 block text-sm text-slate-500">
                 {userToDeactivate.email}
@@ -682,7 +629,7 @@ const availableStatuses = STANDARD_STATUSES;
                 type="button"
                 onClick={() => setUserToDeactivate(null)}
               >
-                Go Back
+                {t('goBack')}
               </button>
               <button
                 className="rounded-xl border border-danger bg-danger px-4 py-3 font-extrabold text-white disabled:opacity-50"
@@ -690,7 +637,7 @@ const availableStatuses = STANDARD_STATUSES;
                 disabled={isSaving}
                 onClick={deactivateUser}
               >
-                Deactivate User
+                {t('deactivateUser')}
               </button>
             </div>
           </div>

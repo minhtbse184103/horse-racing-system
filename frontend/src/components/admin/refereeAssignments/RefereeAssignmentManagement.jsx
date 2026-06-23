@@ -204,7 +204,7 @@ function AssignmentModal({
                   key={refereeId(referee)}
                   value={refereeId(referee)}
                 >
-                  {referee.fullName} · {referee.email}
+                  {referee.username} · {referee.email}
                 </option>
               ))}
             </select>
@@ -213,10 +213,10 @@ function AssignmentModal({
           {selectedReferee && (
             <div className="flex items-center gap-3 rounded-lg border border-brown-700/10 bg-white p-4">
               <span className="grid size-11 shrink-0 place-items-center rounded-full bg-brown-700 text-sm font-black text-white">
-                {(selectedReferee.fullName || 'R').charAt(0).toUpperCase()}
+                {(selectedReferee.username || 'R').charAt(0).toUpperCase()}
               </span>
               <div className="min-w-0">
-                <p className="truncate font-black text-brown-900">{selectedReferee.fullName}</p>
+                <p className="truncate font-black text-brown-900">{selectedReferee.username}</p>
                 <p className="truncate text-sm font-semibold text-slate-500">{selectedReferee.email}</p>
               </div>
               <span className="ml-auto rounded-full bg-green-50 px-3 py-1 text-xs font-extrabold text-green-800">

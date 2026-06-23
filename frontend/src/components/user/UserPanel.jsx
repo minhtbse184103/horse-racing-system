@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import OwnerApplicationForm from '../profile/OwnerApplicationForm';
 import StatCard from '../common/StatCard';
+import LanguageToggle from '../common/LanguageToggle';
 import { formatDate, formatDisplayLabel, getUserRole } from '../../lib';
 import { getMyOwnerApplication, submitOwnerApplication } from '../../services/ownerApplicationService';
 
@@ -398,6 +399,7 @@ export default function UserPanel({ user, onLogout }) {
           </div>
 
           <div className="relative flex flex-wrap items-center justify-end gap-3">
+            <LanguageToggle />
             <div className="hidden items-center gap-2 rounded-2xl border border-brown-700/10 bg-white/70 px-3 py-2 font-bold text-slate-500 md:flex">
               <Search size={16} />
               Search mock data

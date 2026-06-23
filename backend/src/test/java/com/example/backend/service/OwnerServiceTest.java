@@ -90,7 +90,7 @@ class OwnerServiceTest {
                 .horseId(10)
                 .ownerId(1)
                 .horseName("Lightning")
-                .weight(BigDecimal.valueOf(450))
+                .age(4)
                 .status("ACTIVE")
                 .build();
 
@@ -144,7 +144,7 @@ class OwnerServiceTest {
         User user = new User();
         user.setUserID(userId);
         user.setEmail(email);
-        user.setFullName(roleName + " Name");
+        user.setUsername(roleName + " Name");
         user.setStatus("ACTIVE");
         user.setRole(role);
         return user;

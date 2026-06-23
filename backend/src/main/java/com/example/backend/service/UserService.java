@@ -158,7 +158,7 @@ public class UserService {
         }
 
         if (hasText(request.getFullName())) {
-            user.setFullName(request.getFullName());
+            user.setUsername(request.getFullName().trim());
         }
 
         if (hasText(request.getPhone())) {
@@ -282,7 +282,7 @@ public class UserService {
 
         return JockeyProfileResponse.builder()
                 .jockeyId(jockey.getUserID())
-                .fullName(jockey.getFullName())
+                .fullName(jockey.getUsername())
                 .email(jockey.getEmail())
                 .licenseNo(profile.getLicenseNo())
                 .weight(profile.getWeight())

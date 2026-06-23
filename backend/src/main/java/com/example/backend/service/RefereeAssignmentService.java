@@ -352,7 +352,7 @@ public class RefereeAssignmentService {
                 .tournamentStatus(tournament.getStatus())
 
                 .refereeUserId(referee.getUserID())
-                .refereeName(referee.getFullName())
+                .refereeName(referee.getUsername())
                 .refereeEmail(referee.getEmail())
                 .build();
     }

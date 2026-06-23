@@ -1,10 +1,15 @@
 package com.example.backend.service;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
@@ -13,6 +18,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.example.backend.dto.request.CreateHorseRequest;
 import com.example.backend.dto.request.InviteJockeyRequest;
@@ -90,7 +96,7 @@ public class OwnerServiceImpl implements OwnerService {
 
         return OwnerDashboardResponse.builder()
                 .ownerId(ownerId)
-                .ownerName(owner.getFullName())
+                .ownerName(owner.getUsername())
                 .totalHorses(horseRepository.countByOwnerId(ownerId))
                 .totalRegistrations(registrationRepository.countByOwnerId(ownerId))
                 .registeredHorses(registrationRepository.countRegisteredHorsesByOwnerId(ownerId))
@@ -121,30 +127,26 @@ public class OwnerServiceImpl implements OwnerService {
     @Override
     public HorseResponse createHorse(CreateHorseRequest request) {
         Integer ownerId = getCurrentOwnerProfile().getOwnerId();
-        String passportNumber = normalizeUppercase(request.getPassportNumber());
         String horseName = normalizeText(request.getHorseName());
-
-        if (horseRepository.existsByPassportNumberIgnoreCase(passportNumber)) {
-            throw new ApiException(HttpStatus.CONFLICT, "Passport Number da ton tai.");
-        }
 
         if (horseRepository.existsByHorseNameIgnoreCase(horseName)) {
             throw new ApiException(HttpStatus.CONFLICT, "Tên ngựa đã tồn tại.");
         }
 
+        String healthCertificateUrl = storeHealthCertificate(request.getHealthCertificateFile());
+
         Horse horse = Horse.builder()
                 .ownerId(ownerId)
-                .passportNumber(passportNumber)
                 .horseName(horseName)
-                .breed(normalizeText(request.getBreed()))
-                .gender(normalizeUppercase(request.getGender()))
-                .color(normalizeText(request.getColor()))
-                .dayOfBirth(request.getDayOfBirth())
+                .age(request.getAge())
                 .weight(request.getWeight())
+                .colour(normalizeText(request.getColour()))
+                .sex(normalizeText(request.getSex()))
+                .breeding(normalizeText(request.getBreeding()))
+                .trainer(normalizeText(request.getTrainer()))
                 .healthCertExpiry(request.getHealthCertExpiry())
-                .horsePassportUrl(normalizeText(request.getHorsePassportUrl()))
-                .healthCertificateUrl(normalizeText(request.getHealthCertificateUrl()))
-                .horseImageUrl(normalizeText(request.getHorseImageUrl()))
+                .healthCertificateUrl(healthCertificateUrl)
+                .officialHorseProfileUrl(normalizeText(request.getOfficialHorseProfileUrl()))
                 .status(STATUS_PENDING)
                 .rejectionReason(null)
                 .build();
@@ -157,28 +159,21 @@ public class OwnerServiceImpl implements OwnerService {
     @Override
     public HorseResponse updateHorse(Integer horseId, UpdateHorseRequest request) {
         Horse horse = getOwnedHorse(horseId);
-        String passportNumber = normalizeUppercase(request.getPassportNumber());
         String horseName = normalizeText(request.getHorseName());
-
-        if (horseRepository.existsByPassportNumberIgnoreCaseAndHorseIdNot(passportNumber, horse.getHorseId())) {
-            throw new ApiException(HttpStatus.CONFLICT, "Passport Number da ton tai.");
-        }
 
         if (horseRepository.existsByHorseNameIgnoreCaseAndHorseIdNot(horseName, horse.getHorseId())) {
             throw new ApiException(HttpStatus.CONFLICT, "Tên ngựa đã tồn tại.");
         }
 
-        horse.setPassportNumber(passportNumber);
         horse.setHorseName(horseName);
-        horse.setBreed(normalizeText(request.getBreed()));
-        horse.setGender(normalizeUppercase(request.getGender()));
-        horse.setColor(normalizeText(request.getColor()));
-        horse.setDayOfBirth(request.getDayOfBirth());
+        horse.setAge(request.getAge());
         horse.setWeight(request.getWeight());
+        horse.setColour(normalizeText(request.getColour()));
+        horse.setSex(normalizeText(request.getSex()));
+        horse.setBreeding(normalizeText(request.getBreeding()));
+        horse.setTrainer(normalizeText(request.getTrainer()));
         horse.setHealthCertExpiry(request.getHealthCertExpiry());
-        horse.setHorsePassportUrl(normalizeText(request.getHorsePassportUrl()));
-        horse.setHealthCertificateUrl(normalizeText(request.getHealthCertificateUrl()));
-        horse.setHorseImageUrl(normalizeText(request.getHorseImageUrl()));
+        horse.setOfficialHorseProfileUrl(normalizeText(request.getOfficialHorseProfileUrl()));
         horse.setStatus(STATUS_PENDING);
         horse.setRejectionReason(null);
 
@@ -499,25 +494,64 @@ public class OwnerServiceImpl implements OwnerService {
         return HorseResponse.builder()
                 .horseId(horse.getHorseId())
                 .ownerId(horse.getOwnerId())
-                .passportNumber(horse.getPassportNumber())
                 .horseName(horse.getHorseName())
-                .breed(horse.getBreed())
-                .gender(horse.getGender())
-                .color(horse.getColor())
-                .dayOfBirth(horse.getDayOfBirth())
+                .age(horse.getAge())
                 .weight(horse.getWeight())
+                .colour(horse.getColour())
+                .sex(horse.getSex())
+                .breeding(horse.getBreeding())
+                .trainer(horse.getTrainer())
                 .healthCertExpiry(horse.getHealthCertExpiry())
-                .horsePassportUrl(horse.getHorsePassportUrl())
                 .healthCertificateUrl(horse.getHealthCertificateUrl())
-                .horseImageUrl(horse.getHorseImageUrl())
+                .officialHorseProfileUrl(horse.getOfficialHorseProfileUrl())
                 .status(horse.getStatus())
                 .rejectionReason(horse.getRejectionReason())
+                .createdAt(horse.getCreatedAt())
+                .updatedAt(horse.getUpdatedAt())
                 .registrationCount(registrationIds.size())
                 .participated(hasActiveRegistration(registrationIds))
                 .build();
     }
 
     // Kiểm tra một ngựa có registration active hay không dựa trên horseId.
+    private String storeHealthCertificate(MultipartFile file) {
+        validateHealthCertificateFile(file);
+
+        String extension = getFileExtension(file.getOriginalFilename());
+        String filename = UUID.randomUUID() + "." + extension;
+        Path uploadDir = Paths.get("uploads", "horse-health-certificates").toAbsolutePath().normalize();
+
+        try {
+            Files.createDirectories(uploadDir);
+            Files.copy(file.getInputStream(), uploadDir.resolve(filename));
+            return "/uploads/horse-health-certificates/" + filename;
+        } catch (IOException ex) {
+            throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Khong the luu Health Certificate.");
+        }
+    }
+
+    private void validateHealthCertificateFile(MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Health Certificate file is required.");
+        }
+
+        String extension = getFileExtension(file.getOriginalFilename());
+        String contentType = String.valueOf(file.getContentType()).toLowerCase(Locale.ROOT);
+        boolean allowedExtension = List.of("pdf", "jpg", "jpeg", "png").contains(extension);
+        boolean allowedType = List.of("application/pdf", "image/jpeg", "image/png").contains(contentType);
+
+        if (!allowedExtension || !allowedType) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Health Certificate file only supports PDF, JPG, JPEG or PNG.");
+        }
+    }
+
+    private String getFileExtension(String filename) {
+        if (filename == null || filename.isBlank() || !filename.contains(".")) {
+            return "";
+        }
+        return filename.substring(filename.lastIndexOf('.') + 1).toLowerCase(Locale.ROOT);
+    }
+
     private boolean hasActiveRegistration(Integer horseId) {
         return hasActiveRegistration(registrationRepository.findRegistrationIdsByHorseId(horseId));
     }
@@ -560,9 +594,9 @@ public class OwnerServiceImpl implements OwnerService {
                 .horseId(horseId)
                 .horseName(horse != null ? horse.getHorseName() : null)
                 .ownerId(invitation.getOwnerId())
-                .ownerName(owner != null ? owner.getFullName() : null)
+                .ownerName(owner != null ? owner.getUsername() : null)
                 .jockeyId(invitation.getJockeyId())
-                .jockeyName(jockey != null ? jockey.getFullName() : null)
+                .jockeyName(jockey != null ? jockey.getUsername() : null)
                 .message(invitation.getMessage())
                 .createdAt(invitation.getCreatedAt())
                 .respondedAt(invitation.getRespondedAt())

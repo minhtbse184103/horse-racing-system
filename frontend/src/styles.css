@@ -1092,7 +1092,7 @@ select {
 
 .horse-card {
   display: grid;
-  grid-template-columns: 60px minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   gap: 16px;
   align-items: flex-start;
   border-radius: 24px;
@@ -1166,6 +1166,7 @@ select {
 .horse-actions {
   display: flex;
   gap: 8px;
+  justify-content: flex-end;
 }
 
 .horse-actions button {
@@ -3195,6 +3196,27 @@ select {
 .horse-detail-image-list {
   display: grid;
   gap: 8px;
+}
+
+.horse-detail-document-item {
+  display: grid;
+  gap: 10px;
+}
+
+.horse-detail-document-item > div {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.horse-detail-document-item strong {
+  overflow-wrap: anywhere;
+  color: var(--brown-900);
+  font-size: 0.9rem;
+}
+
+.horse-detail-document-item .table-button {
+  width: fit-content;
 }
 
 .horse-detail-image-list img {

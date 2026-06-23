@@ -303,7 +303,7 @@ class RefereeAssignmentServiceTest {
         role.setRoleName("REFEREE");
         User referee = new User();
         referee.setUserID(userId);
-        referee.setFullName("Referee " + userId);
+        referee.setUsername("Referee " + userId);
         referee.setEmail("referee" + userId + "@example.com");
         referee.setStatus("ACTIVE");
         referee.setRole(role);

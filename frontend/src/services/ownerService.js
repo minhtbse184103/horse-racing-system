@@ -1,76 +1,79 @@
 import { httpRequest } from '../api/httpClient';
-
-function normalizePassportNumber(value) {
-  return String(value || '').trim().toUpperCase();
-}
+import API_BASE_URL from '../configs/apiConfig';
 
 function firstFileUrl(files) {
   const file = Array.isArray(files) ? files[0] : null;
   return String(file?.url || file?.dataUrl || '').trim();
 }
 
+function toAbsoluteFileUrl(url) {
+  const value = String(url || '').trim();
+  if (!value) return '';
+  if (/^(https?:|data:|blob:)/i.test(value)) return value;
+  return `${API_BASE_URL}${value.startsWith('/') ? value : `/${value}`}`;
+}
+
+function inferFileType(url) {
+  if (/\.(jpe?g|png|gif|webp)(\?|#|$)/i.test(url)) return 'image/*';
+  if (/\.pdf(\?|#|$)/i.test(url)) return 'application/pdf';
+  return '';
+}
+
 function makeFilePreview(name, url) {
-  if (!url) return [];
-  return [{ id: url, name, url }];
+  const absoluteUrl = toAbsoluteFileUrl(url);
+  if (!absoluteUrl) return [];
+  const fallbackName = decodeURIComponent(absoluteUrl.split('/').pop()?.split('?')[0] || name);
+  return [{ id: absoluteUrl, name: fallbackName || name, url: absoluteUrl, type: inferFileType(absoluteUrl) }];
+}
+
+function normalizeFilePreview(file, fallbackName) {
+  const url = toAbsoluteFileUrl(file?.url || file?.dataUrl);
+  return {
+    ...file,
+    id: file?.id || url || fallbackName,
+    name: file?.name || fallbackName,
+    url,
+    dataUrl: file?.dataUrl,
+    type: file?.type || inferFileType(url)
+  };
 }
 
 function normalizeHorse(horse) {
   if (!horse) return horse;
 
-  const horsePassportUrl = horse.horsePassportUrl || firstFileUrl(horse.horsePassportImages);
-  const healthCertificateUrl = horse.healthCertificateUrl || firstFileUrl(horse.horseCertificateImages);
-  const horseImageUrl = horse.horseImageUrl || horse.imgUrl || firstFileUrl(horse.horseImages);
+  const healthCertificateUrl = toAbsoluteFileUrl(horse.healthCertificateUrl || firstFileUrl(horse.horseCertificateImages));
 
   return {
     ...horse,
     id: horse.id ?? horse.horseId ?? horse.horseID,
     horseId: horse.horseId ?? horse.horseID ?? horse.id,
     healthCertificateExpiryDate: horse.healthCertificateExpiryDate || horse.healthCertExpiry || '',
-    horsePassportUrl,
     healthCertificateUrl,
-    horseImageUrl,
-    horsePassportImages: Array.isArray(horse.horsePassportImages)
-      ? horse.horsePassportImages
-      : makeFilePreview('Horse Passport', horsePassportUrl),
     horseCertificateImages: Array.isArray(horse.horseCertificateImages)
-      ? horse.horseCertificateImages
+      ? horse.horseCertificateImages.map((file, index) => normalizeFilePreview(file, `Health Certificate ${index + 1}`))
       : makeFilePreview('Health Certificate', healthCertificateUrl),
-    horseImages: Array.isArray(horse.horseImages)
-      ? horse.horseImages
-      : makeFilePreview('Horse Image', horseImageUrl),
-    imgUrl: horseImageUrl
+    imgUrl: ''
   };
 }
 
-function toHorseRequest(payload) {
-  return {
-    passportNumber: normalizePassportNumber(payload.passportNumber),
-    horseName: String(payload.horseName || '').trim(),
-    breed: String(payload.breed || '').trim(),
-    gender: payload.gender,
-    color: String(payload.color || '').trim(),
-    dayOfBirth: payload.dayOfBirth,
-    weight: payload.weight,
-    healthCertificateExpiryDate: payload.healthCertificateExpiryDate || payload.healthCertExpiry,
-    horsePassportUrl: payload.horsePassportUrl || firstFileUrl(payload.horsePassportImages),
-    healthCertificateUrl: payload.healthCertificateUrl || firstFileUrl(payload.horseCertificateImages),
-    horseImageUrl: payload.horseImageUrl || payload.imgUrl || firstFileUrl(payload.horseImages)
-  };
-}
+function toHorseFormData(payload) {
+  const formData = new FormData();
+  formData.append('horseName', String(payload.horseName || '').trim());
+  formData.append('age', String(payload.age || ''));
+  formData.append('weight', String(payload.weight || ''));
+  formData.append('colour', String(payload.colour || '').trim());
+  formData.append('sex', String(payload.sex || '').trim());
+  formData.append('breeding', String(payload.breeding || '').trim());
+  formData.append('trainer', String(payload.trainer || '').trim());
+  formData.append('healthCertExpiry', payload.healthCertificateExpiryDate || payload.healthCertExpiry || '');
+  formData.append('officialHorseProfileUrl', String(payload.officialHorseProfileUrl || '').trim());
 
-export async function checkHorsePassportNumber(passportNumber, currentHorseId = null) {
-  const normalizedPassport = normalizePassportNumber(passportNumber);
-
-  if (!normalizedPassport) {
-    throw new Error('Passport Number la bat buoc.');
+  const healthCertificate = Array.isArray(payload.horseCertificateImages) ? payload.horseCertificateImages[0] : null;
+  if (healthCertificate?.file) {
+    formData.append('healthCertificateFile', healthCertificate.file);
   }
 
-  const params = new URLSearchParams({ passportNumber: normalizedPassport });
-  if (currentHorseId) params.set('currentHorseId', currentHorseId);
-
-  return httpRequest(`/api/owner/horses/check-passport?${params.toString()}`, {
-    fallbackError: 'Khong the kiem tra Passport Number.'
-  });
+  return formData;
 }
 
 export async function getOwnerDashboard() {
@@ -80,7 +83,7 @@ export async function getOwnerDashboard() {
 }
 
 export async function getOwnerHorses() {
-  const horses = await httpRequest('/api/owner/horses', {
+  const horses = await httpRequest('/api/horses/my', {
     fallbackError: 'Khong the tai danh sach ngua.'
   });
 
@@ -88,7 +91,7 @@ export async function getOwnerHorses() {
 }
 
 export async function getOwnerHorseById(horseId) {
-  const horse = await httpRequest(`/api/owner/horses/${horseId}`, {
+  const horse = await httpRequest(`/api/horses/${horseId}`, {
     fallbackError: 'Khong the tai chi tiet ngua.'
   });
 
@@ -96,9 +99,9 @@ export async function getOwnerHorseById(horseId) {
 }
 
 export async function createHorse(payload) {
-  const horse = await httpRequest('/api/owner/horses', {
+  const horse = await httpRequest('/api/horses', {
     method: 'POST',
-    body: toHorseRequest(payload),
+    body: toHorseFormData(payload),
     fallbackError: 'Khong the them ngua.'
   });
 
@@ -106,9 +109,19 @@ export async function createHorse(payload) {
 }
 
 export async function updateHorse(horseId, payload) {
-  const horse = await httpRequest(`/api/owner/horses/${horseId}`, {
+  const horse = await httpRequest(`/api/horses/${horseId}`, {
     method: 'PUT',
-    body: toHorseRequest(payload),
+    body: {
+      horseName: String(payload.horseName || '').trim(),
+      age: payload.age,
+      weight: payload.weight,
+      colour: String(payload.colour || '').trim(),
+      sex: String(payload.sex || '').trim(),
+      breeding: String(payload.breeding || '').trim(),
+      trainer: String(payload.trainer || '').trim(),
+      healthCertificateExpiryDate: payload.healthCertificateExpiryDate || payload.healthCertExpiry,
+      officialHorseProfileUrl: String(payload.officialHorseProfileUrl || '').trim()
+    },
     fallbackError: 'Khong the cap nhat ngua.'
   });
 
@@ -116,7 +129,7 @@ export async function updateHorse(horseId, payload) {
 }
 
 export async function deleteHorse(horseId) {
-  return httpRequest(`/api/owner/horses/${horseId}`, {
+  return httpRequest(`/api/horses/${horseId}`, {
     method: 'DELETE',
     fallbackError: 'Khong the xoa ngua.'
   });

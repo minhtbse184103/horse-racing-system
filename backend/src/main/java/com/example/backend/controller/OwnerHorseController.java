@@ -3,10 +3,12 @@ package com.example.backend.controller;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -22,7 +24,7 @@ import com.example.backend.service.OwnerService;
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping("/api/owner/horses")
+@RequestMapping({"/api/horses", "/api/owner/horses"})
 @PreAuthorize("hasRole('OWNER')")
 public class OwnerHorseController {
     private final OwnerService ownerService;
@@ -37,6 +39,11 @@ public class OwnerHorseController {
         return ownerService.getMyHorses();
     }
 
+    @GetMapping("/my")
+    public List<HorseResponse> getMyHorsesNewApi() {
+        return ownerService.getMyHorses();
+    }
+
     // Lấy chi tiết một con ngựa thuộc owner theo horseId.
     @GetMapping("/{horseId}")
     public HorseResponse getMyHorseById(@PathVariable Integer horseId) {
@@ -44,8 +51,8 @@ public class OwnerHorseController {
     }
 
     // Tạo mới hồ sơ ngựa cho owner đang đăng nhập.
-    @PostMapping
-    public ResponseEntity<HorseResponse> createHorse(@Valid @RequestBody CreateHorseRequest request) {
+    @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<HorseResponse> createHorse(@Valid @ModelAttribute CreateHorseRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(ownerService.createHorse(request));
     }
 

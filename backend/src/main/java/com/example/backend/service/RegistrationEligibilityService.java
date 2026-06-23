@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Objects;
 
@@ -258,10 +257,10 @@ public class RegistrationEligibilityService {
             );
         }
 
-        if (horse.getDayOfBirth() == null) {
+        if (horse.getAge() == null) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
-                    "Horse date of birth is missing."
+                    "Horse age is missing."
             );
         }
 
@@ -345,10 +344,7 @@ public class RegistrationEligibilityService {
             Tournament tournament,
             TournamentCondition condition
     ) {
-        long horseAge = ChronoUnit.YEARS.between(
-                horse.getDayOfBirth(),
-                tournament.getStartDate()
-        );
+        long horseAge = horse.getAge();
 
         if (horseAge < 0) {
             throw new ApiException(
@@ -386,9 +382,9 @@ public class RegistrationEligibilityService {
             );
         }
 
-        if (horse.getGender() == null
+        if (horse.getSex() == null
                 || condition.getValue() == null
-                || !horse.getGender().trim().equalsIgnoreCase(
+                || !horse.getSex().trim().equalsIgnoreCase(
                 condition.getValue().trim())) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
