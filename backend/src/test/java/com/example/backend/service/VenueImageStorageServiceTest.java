@@ -1,26 +1,31 @@
 package com.example.backend.service;
 
+import com.cloudinary.Cloudinary;
+import com.cloudinary.Uploader;
 import com.example.backend.exception.ApiException;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
 import org.springframework.http.HttpStatus;
 import org.springframework.mock.web.MockMultipartFile;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.io.IOException;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class VenueImageStorageServiceTest {
 
-    @TempDir
-    Path tempDirectory;
-
     @Test
     void storeRejectsNonImageFile() {
-        VenueImageStorageService service = new VenueImageStorageService(tempDirectory);
+        Cloudinary cloudinary = mock(Cloudinary.class);
+        VenueImageStorageService service = new VenueImageStorageService(cloudinary);
+
         MockMultipartFile file = new MockMultipartFile(
                 "file",
                 "venue.txt",
@@ -30,7 +35,7 @@ class VenueImageStorageServiceTest {
 
         ApiException exception = assertThrows(
                 ApiException.class,
-                () -> service.store(file)
+                () -> service.store(1, file)
         );
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
@@ -38,7 +43,9 @@ class VenueImageStorageServiceTest {
 
     @Test
     void storeRejectsFileLargerThanFiveMegabytes() {
-        VenueImageStorageService service = new VenueImageStorageService(tempDirectory);
+        Cloudinary cloudinary = mock(Cloudinary.class);
+        VenueImageStorageService service = new VenueImageStorageService(cloudinary);
+
         MockMultipartFile file = new MockMultipartFile(
                 "file",
                 "venue.jpg",
@@ -48,27 +55,114 @@ class VenueImageStorageServiceTest {
 
         ApiException exception = assertThrows(
                 ApiException.class,
-                () -> service.store(file)
+                () -> service.store(1, file)
         );
 
         assertEquals(HttpStatus.PAYLOAD_TOO_LARGE, exception.getStatus());
     }
 
     @Test
-    void storeCreatesSafeUniqueImagePath() {
-        VenueImageStorageService service = new VenueImageStorageService(tempDirectory);
+    void storeReturnsCloudinarySecureUrl() throws IOException {
+        Cloudinary cloudinary = mock(Cloudinary.class);
+        Uploader uploader = mock(Uploader.class);
+
+        when(cloudinary.uploader()).thenReturn(uploader);
+        when(uploader.upload(any(byte[].class), anyMap()))
+                .thenReturn(Map.of(
+                        "secure_url",
+                        "https://res.cloudinary.com/demo/image/upload/tournament-1.png"
+                ));
+
+        VenueImageStorageService service = new VenueImageStorageService(cloudinary);
+
         MockMultipartFile file = new MockMultipartFile(
                 "file",
-                "../../unsafe-name.png",
+                "venue.png",
                 "image/png",
                 new byte[]{1, 2, 3}
         );
 
-        String publicPath = service.store(file);
-        String filename = publicPath.substring(publicPath.lastIndexOf('/') + 1);
+        String imageUrl = service.store(1, file);
 
-        assertTrue(publicPath.startsWith("/uploads/tournament-venues/"));
-        assertTrue(filename.endsWith(".png"));
-        assertTrue(Files.exists(tempDirectory.resolve(filename)));
+        assertEquals(
+                "https://res.cloudinary.com/demo/image/upload/tournament-1.png",
+                imageUrl
+        );
+
+        verify(uploader).upload(any(byte[].class), anyMap());
+    }
+
+    @Test
+    void storeThrowsServerErrorWhenCloudinaryDoesNotReturnUrl() throws IOException {
+        Cloudinary cloudinary = mock(Cloudinary.class);
+        Uploader uploader = mock(Uploader.class);
+
+        when(cloudinary.uploader()).thenReturn(uploader);
+        when(uploader.upload(any(byte[].class), anyMap()))
+                .thenReturn(Map.of());
+
+        VenueImageStorageService service = new VenueImageStorageService(cloudinary);
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "venue.png",
+                "image/png",
+                new byte[]{1, 2, 3}
+        );
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.store(1, file)
+        );
+
+        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, exception.getStatus());
+    }
+
+    @Test
+    void deleteDestroysCloudinaryTournamentImage() throws IOException {
+        Cloudinary cloudinary = mock(Cloudinary.class);
+        Uploader uploader = mock(Uploader.class);
+
+        when(cloudinary.uploader()).thenReturn(uploader);
+        when(uploader.destroy(any(String.class), anyMap()))
+                .thenReturn(Map.of("result", "ok"));
+
+        VenueImageStorageService service = new VenueImageStorageService(cloudinary);
+
+        service.delete(1);
+
+        verify(uploader).destroy(
+                "horse-racing-system/tournament-venues/tournament-1",
+                Map.of(
+                        "resource_type", "image",
+                        "invalidate", true
+                )
+        );
+    }
+
+    @Test
+    void allowsWebpImages() throws IOException {
+        Cloudinary cloudinary = mock(Cloudinary.class);
+        Uploader uploader = mock(Uploader.class);
+
+        when(cloudinary.uploader()).thenReturn(uploader);
+        when(uploader.upload(any(byte[].class), anyMap()))
+                .thenReturn(Map.of(
+                        "secure_url",
+                        "https://res.cloudinary.com/demo/image/upload/tournament-1.webp"
+                ));
+
+        VenueImageStorageService service = new VenueImageStorageService(cloudinary);
+
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "venue.webp",
+                "image/webp",
+                new byte[]{1, 2, 3}
+        );
+
+        String imageUrl = service.store(1, file);
+
+        assertTrue(imageUrl.endsWith(".webp"));
     }
 }

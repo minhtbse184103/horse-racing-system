@@ -1,15 +1,34 @@
-import { Flag, Plus } from 'lucide-react';
+import { useState } from 'react';
+import { AnimatePresence } from 'framer-motion';
+import { DownloadCloud, Flag, Plus } from 'lucide-react';
 import RaceEditorCard from './RaceEditorCard';
+import OurHubImportDialog from './OurHubImportDialog';
 import { WizardSectionHeading, WizardValidationBanner } from './WizardPrimitives';
 
 export default function RaceConfigStep({ draft, errors, onAddRace, onUpdateRace, onUpdateRaces }) {
+  const [importOpen, setImportOpen] = useState(false);
+
+  function importRaces(importedRaces) {
+    if (importedRaces.length > 0) {
+      onUpdateRaces([...draft.races, ...importedRaces]);
+    }
+    setImportOpen(false);
+  }
+
   return (
     <div>
       <WizardSectionHeading
         eyebrow="Bước 2 trên 4"
         title="Cấu hình Race"
         description="Thêm Race trực tiếp vào Tournament. Mỗi Race có đường đua, thời gian, cự ly và sức chứa riêng."
-        action={<button type="button" onClick={onAddRace} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-brown-700 px-4 text-sm font-extrabold text-white shadow-md hover:bg-brown-900"><Plus size={16} /> Thêm Race</button>}
+        action={(
+          <div className="flex flex-wrap items-center gap-2">
+            <button type="button" onClick={() => setImportOpen(true)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-brown-700/15 bg-white px-4 text-sm font-extrabold text-brown-700 shadow-sm hover:bg-cream-200">
+              <DownloadCloud size={16} /> Import Race từ OurHub
+            </button>
+            <button type="button" onClick={onAddRace} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-brown-700 px-4 text-sm font-extrabold text-white shadow-md hover:bg-brown-900"><Plus size={16} /> Thêm Race</button>
+          </div>
+        )}
       />
       <WizardValidationBanner message={errors.races} />
       <div className="mt-4 grid gap-3">
@@ -30,6 +49,16 @@ export default function RaceConfigStep({ draft, errors, onAddRace, onUpdateRace,
           </div>
         )}
       </div>
+
+      <AnimatePresence>
+        {importOpen && (
+          <OurHubImportDialog
+            draft={draft}
+            onClose={() => setImportOpen(false)}
+            onImport={importRaces}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

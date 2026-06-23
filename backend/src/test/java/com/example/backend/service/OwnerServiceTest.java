@@ -129,10 +129,10 @@ class OwnerServiceTest {
                             .thenReturn(Date.valueOf(registrationDeadline.toLocalDate().plusDays(1)));
                     when(resultSet.getDate("endDate"))
                             .thenReturn(Date.valueOf(registrationDeadline.toLocalDate().plusDays(2)));
-                    when(resultSet.getTimestamp("registrationDeadline"))
+                    when(resultSet.getTimestamp("registrationCloseAt"))
                             .thenReturn(Timestamp.valueOf(registrationDeadline));
-                    when(resultSet.getObject("maxParticipants")).thenReturn(null);
-                    when(resultSet.getString("status")).thenReturn("OpenForRegistration");
+                    when(resultSet.getObject("maxRegistrations")).thenReturn(null);
+                    when(resultSet.getString("status")).thenReturn("OPEN_FOR_REGISTRATION");
                     return rowMapper.mapRow(resultSet, 0);
                 });
     }

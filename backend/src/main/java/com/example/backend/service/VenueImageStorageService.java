@@ -1,89 +1,102 @@
 package com.example.backend.service;
 
+import com.cloudinary.Cloudinary;
 import com.example.backend.exception.ApiException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
 import java.util.Map;
-import java.util.UUID;
+import java.util.Set;
 
 @Service
 public class VenueImageStorageService {
 
     static final long MAX_FILE_SIZE = 5L * 1024 * 1024;
-    private static final String PUBLIC_PREFIX = "/uploads/tournament-venues/";
-    private static final Map<String, String> ALLOWED_TYPES = Map.of(
-            "image/jpeg", ".jpg",
-            "image/png", ".png",
-            "image/webp", ".webp"
-    );
+    private static final String FOLDER =
+            "horse-racing-system/tournament-venues";
 
-    private final Path storageDirectory;
+    private static final Set<String> ALLOWED_TYPES =
+            Set.of("image/jpeg", "image/png", "image/webp");
 
-    public VenueImageStorageService() {
-        this(Paths.get("uploads", "tournament-venues"));
+    private final Cloudinary cloudinary;
+
+    public VenueImageStorageService(Cloudinary cloudinary) {
+        this.cloudinary = cloudinary;
     }
 
-    VenueImageStorageService(Path storageDirectory) {
-        this.storageDirectory = storageDirectory.toAbsolutePath().normalize();
-    }
-
-    public String store(MultipartFile file) {
+    public String store(Integer tournamentId, MultipartFile file) {
         validate(file);
 
-        String extension = ALLOWED_TYPES.get(file.getContentType());
-        String filename = UUID.randomUUID() + extension;
-        Path destination = storageDirectory.resolve(filename).normalize();
-
-        if (!destination.getParent().equals(storageDirectory)) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid venue image path.");
-        }
-
         try {
-            Files.createDirectories(storageDirectory);
-            Files.copy(file.getInputStream(), destination, StandardCopyOption.REPLACE_EXISTING);
-            return PUBLIC_PREFIX + filename;
+            Map<?, ?> result = cloudinary.uploader().upload(
+                    file.getBytes(),
+                    Map.of(
+                            "folder", FOLDER,
+                            "public_id", "tournament-" + tournamentId,
+                            "resource_type", "image",
+                            "overwrite", true,
+                            "invalidate", true
+                    )
+            );
+
+            Object secureUrl = result.get("secure_url");
+            if (secureUrl == null) {
+                throw new ApiException(
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "Cloudinary không trả về URL hình ảnh."
+                );
+            }
+
+            return secureUrl.toString();
         } catch (IOException exception) {
-            throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Venue image could not be stored.");
+            throw new ApiException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Không thể tải hình địa điểm lên Cloudinary."
+            );
         }
     }
 
-    public void delete(String publicPath) {
-        if (publicPath == null || !publicPath.startsWith(PUBLIC_PREFIX)) {
-            return;
-        }
-
-        String filename = publicPath.substring(PUBLIC_PREFIX.length());
-        Path target = storageDirectory.resolve(filename).normalize();
-
-        if (!target.getParent().equals(storageDirectory)) {
-            return;
-        }
-
+    public void delete(Integer tournamentId) {
         try {
-            Files.deleteIfExists(target);
+            cloudinary.uploader().destroy(
+                    FOLDER + "/tournament-" + tournamentId,
+                    Map.of(
+                            "resource_type", "image",
+                            "invalidate", true
+                    )
+            );
         } catch (IOException exception) {
-            throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Venue image could not be removed.");
+            throw new ApiException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Không thể xóa hình địa điểm trên Cloudinary."
+            );
         }
     }
 
     private void validate(MultipartFile file) {
         if (file == null || file.isEmpty()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Venue image file is required.");
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Vui lòng chọn hình địa điểm."
+            );
         }
 
         if (file.getSize() > MAX_FILE_SIZE) {
-            throw new ApiException(HttpStatus.PAYLOAD_TOO_LARGE, "Venue image must not exceed 5MB.");
+            throw new ApiException(
+                    HttpStatus.PAYLOAD_TOO_LARGE,
+                    "Hình địa điểm không được vượt quá 5MB."
+            );
         }
 
-        if (!ALLOWED_TYPES.containsKey(file.getContentType())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Venue image must be JPEG, PNG, or WebP.");
+        String contentType = file.getContentType();
+        if (contentType == null
+                || !ALLOWED_TYPES.contains(contentType.toLowerCase())) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Hình địa điểm phải là JPEG, PNG hoặc WebP."
+            );
         }
     }
 }
