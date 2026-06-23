@@ -10,12 +10,26 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import java.time.LocalDateTime;
 
 @Repository
 public interface TournamentRepository
         extends JpaRepository<Tournament, Integer> {
 
     List<Tournament> findAllByOrderByCreatedAtDesc();
+
+    @Query("""
+            select tournament
+            from Tournament tournament
+            where tournament.status = :status
+              and tournament.registrationOpenAt <= :now
+              and tournament.registrationCloseAt >= :now
+            order by tournament.registrationCloseAt asc, tournament.startDate asc
+            """)
+    List<Tournament> findOpenForRegistration(
+            @Param("status") String status,
+            @Param("now") LocalDateTime now
+    );
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
