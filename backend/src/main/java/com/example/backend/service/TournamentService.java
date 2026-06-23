@@ -84,12 +84,12 @@ public class TournamentService {
                 ));
 
         getAdmin(adminEmail);
-        String previousImageUrl = tournament.getVenueImageUrl();
-        String newImageUrl = venueImageStorageService.store(file);
+
+        String newImageUrl = venueImageStorageService.store(tournamentId,file);
 
         tournament.setVenueImageUrl(newImageUrl);
         Tournament savedTournament = tournamentRepository.save(tournament);
-        venueImageStorageService.delete(previousImageUrl);
+
 
         return toDetailResponse(savedTournament);
     }
@@ -111,7 +111,7 @@ public class TournamentService {
         tournament.setVenueImageUrl(null);
 
         Tournament savedTournament = tournamentRepository.save(tournament);
-        venueImageStorageService.delete(previousImageUrl);
+        venueImageStorageService.delete(tournamentId);
 
         return toDetailResponse(savedTournament);
     }

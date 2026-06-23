@@ -54,9 +54,7 @@ export function adaptTournament(tournament, races = []) {
     description: tournament.description || '',
     venue: tournament.venue || '',
     venueImageUrl,
-    venueImageSrc: venueImageUrl
-      ? `${API_BASE_URL}${venueImageUrl.startsWith('/') ? '' : '/'}${venueImageUrl}`
-      : '',
+    venueImageSrc: resolveVenueImageUrl(venueImageUrl),
     venueImageFile: null,
     venueImageRemoved: false,
     registrationOpen: toDateInputValue(tournament.registrationOpenAt),
@@ -72,4 +70,10 @@ export function adaptTournament(tournament, races = []) {
     conditions: (tournament.conditions || []).map(adaptCondition),
     races: races.map(adaptRace)
   };
+  function resolveVenueImageUrl(url) {
+  if (!url) return '';
+  if (/^https?:\/\//i.test(url)) return url;
+
+  return `${API_BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+}
 }
