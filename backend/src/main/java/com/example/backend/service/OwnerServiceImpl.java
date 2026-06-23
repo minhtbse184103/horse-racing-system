@@ -55,7 +55,7 @@ public class OwnerServiceImpl implements OwnerService {
     private static final String INVITATION_PENDING = "PENDING";
     private static final String INVITATION_CANCELLED = "CANCELLED";
 
-    private static final String TOURNAMENT_OPEN_FOR_REGISTRATION = "OpenForRegistration";
+    private static final String TOURNAMENT_OPEN_FOR_REGISTRATION = "OPEN_FOR_REGISTRATION";
 
     private final HorseRepository horseRepository;
     private final RegistrationRepository registrationRepository;
@@ -379,20 +379,6 @@ public class OwnerServiceImpl implements OwnerService {
         if (!INVITATION_PENDING.equals(invitation.getStatus())) {
             throw new ApiException(HttpStatus.CONFLICT, "Chỉ có thể hủy lời mời đang ở trạng thái PENDING.");
         }
-
-        Registration registration = invitation.getRegistrationId() != null
-                ? registrationRepository.findById(invitation.getRegistrationId()).orElse(null)
-                : null;
-
-        invitation.setStatus(INVITATION_CANCELLED);
-        invitation.setRespondedAt(LocalDateTime.now());
-
-        if (registration != null) {
-            registration.setStatus(REGISTRATION_CANCELLED);
-            registration.setJockeyId(null);
-            registrationRepository.save(registration);
-        }
-
         return mapInvitationToResponse(jockeyInvitationRepository.save(invitation));
     }
 
@@ -442,10 +428,6 @@ public class OwnerServiceImpl implements OwnerService {
 
         JockeyProfile profile = jockeyProfileRepository.findById(jockeyId)
                 .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Hồ sơ nài ngựa không tồn tại."));
-
-        if (!STATUS_ACTIVE.equals(profile.getStatus())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Hồ sơ nài ngựa được chọn không hoạt động.");
-        }
 
         return jockey;
     }
@@ -619,7 +601,7 @@ public class OwnerServiceImpl implements OwnerService {
     private TournamentSnapshot getTournamentSnapshotOrNull(Integer tournamentId) {
         try {
             return jdbcTemplate.queryForObject("""
-                    SELECT tournamentID, tournamentName, startDate, endDate, registrationDeadline, maxParticipants, status
+                    SELECT tournamentID, tournamentName, startDate, endDate, registrationCloseAt, maxRegistrations, status
                     FROM Tournament
                     WHERE tournamentID = ?
                     """,
@@ -632,10 +614,10 @@ public class OwnerServiceImpl implements OwnerService {
                             rs.getDate("endDate") != null
                                     ? rs.getDate("endDate").toLocalDate()
                                     : null,
-                            rs.getTimestamp("registrationDeadline") != null
-                                    ? rs.getTimestamp("registrationDeadline").toLocalDateTime()
+                            rs.getTimestamp("registrationCloseAt") != null
+                                    ? rs.getTimestamp("registrationCloseAt").toLocalDateTime()
                                     : null,
-                            (Integer) rs.getObject("maxParticipants"),
+                            (Integer) rs.getObject("maxRegistrations"),
                             rs.getString("status")),
                     tournamentId);
         } catch (EmptyResultDataAccessException ex) {

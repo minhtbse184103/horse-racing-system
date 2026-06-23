@@ -48,12 +48,6 @@ public class OwnerApplication {
     @Column(name = "address", nullable = false, length = 500)
     private String address;
 
-    @Column(name = "identityDocumentImage", columnDefinition = "TEXT")
-    private String identityDocumentImage;
-
-    @Column(name = "identityDocumentFileName")
-    private String identityDocumentFileName;
-
     @Column(name = "status", nullable = false)
     private String status;
 

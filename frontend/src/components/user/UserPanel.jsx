@@ -11,10 +11,16 @@ import {
   UserRound
 } from 'lucide-react';
 import OwnerApplicationForm from '../profile/OwnerApplicationForm';
+import JockeyApplicationForm from '../profile/JockeyApplicationForm';
 import StatCard from '../common/StatCard';
 import LanguageToggle from '../common/LanguageToggle';
 import { formatDate, formatDisplayLabel, getUserRole } from '../../lib';
 import { getMyOwnerApplication, submitOwnerApplication } from '../../services/ownerApplicationService';
+import {
+  getMyJockeyVerification,
+  resubmitJockeyVerification,
+  submitJockeyVerification
+} from '../../services/jockeyVerificationService';
 
 const navItems = [
   { key: 'dashboard', label: 'Dashboard', icon: Home },
@@ -66,7 +72,7 @@ function EmptyState({ title, message }) {
   );
 }
 
-function DashboardHome({ onGoProfile }) {
+function DashboardHome({ onGoProfile, onBecomeJockey }) {
   return (
     <section className="owner-stack">
       <section className="owner-stats-grid">
@@ -88,6 +94,9 @@ function DashboardHome({ onGoProfile }) {
           <div className="owner-shortcut-actions">
             <button className="primary-button owner-hero-action" type="button" onClick={onGoProfile}>
               Become an Owner
+            </button>
+            <button className="outline-button owner-hero-action" type="button" onClick={onBecomeJockey}>
+              Become a Jockey
             </button>
           </div>
         </div>
@@ -136,16 +145,18 @@ function PlaceholderSection({ title, message, icon }) {
   );
 }
 
-function ProfileSection({ user, ownerApplication, isLoading, onOpenApplication, onOpenAgain }) {
+function ProfileSection({ user, ownerApplication, jockeyApplication, isLoading, onOpenApplication, onOpenAgain, onBecomeJockey }) {
   const role = getUserRole(user) || 'SPECTATOR';
   const status = ownerApplication?.status || null;
+  const jockeyStatus = jockeyApplication?.verificationStatus || null;
 
   const detailRows = [
     ['Username', user?.username || user?.fullName || 'Chưa cập nhật'],
     ['Email', user?.email || 'Chưa cập nhật'],
     ['Phone Number', user?.phone || 'Chưa cập nhật'],
     ['Role', <span className="role-badge" key="role">{formatDisplayLabel(role)}</span>],
-    ['Owner Status', <StatusBadge key="status" status={status} />]
+    ['Owner Status', <StatusBadge key="status" status={status} />],
+    ['Jockey Status', <StatusBadge key="jockey-status" status={jockeyStatus} />]
   ];
 
   if (status === 'PENDING') {
@@ -197,11 +208,51 @@ function ProfileSection({ user, ownerApplication, isLoading, onOpenApplication, 
           <div>
             <p className="eyebrow">Not Registered</p>
             <h2>You are currently registered as a Spectator.</h2>
-            <p>Become an Owner to register horses and participate in races.</p>
+            <p>Become an Owner to register horses, or apply as a Jockey to receive race invitations after admin approval.</p>
           </div>
-          <button className="primary-button owner-hero-action" type="button" onClick={onOpenApplication}>
-            Become an Owner
+          <div className="owner-shortcut-actions">
+            <button className="primary-button owner-hero-action" type="button" onClick={onOpenApplication}>
+              Become an Owner
+            </button>
+            <button className="outline-button owner-hero-action" type="button" onClick={onBecomeJockey}>
+              {jockeyStatus === 'REJECTED' ? 'Apply Again as Jockey' : 'Become a Jockey'}
+            </button>
+          </div>
+        </section>
+      )}
+
+      {jockeyStatus === 'PENDING' && (
+        <section className="owner-panel warning-owner-panel">
+          <p className="eyebrow">Jockey Pending Approval</p>
+          <h2>Your Jockey application has been submitted and is waiting for administrator approval.</h2>
+          <p>After admin approval, sign out and sign in again to enter the Jockey dashboard.</p>
+          <button className="outline-button mt-5" type="button" disabled>
+            Waiting For Approval
           </button>
+        </section>
+      )}
+
+      {jockeyStatus === 'REJECTED' && (
+        <section className="owner-panel">
+          <p className="eyebrow">Jockey Rejected</p>
+          <h2>Your Jockey application has been rejected.</h2>
+          <p>Please update the required information and submit again.</p>
+          <div className="mt-4 rounded-2xl border border-danger/20 bg-danger-bg p-4 font-bold text-danger">
+            {jockeyApplication.rejectionReason || 'Reject reason is not available.'}
+          </div>
+          <button className="primary-button owner-hero-action mt-5" type="button" onClick={onBecomeJockey}>
+            Apply Again as Jockey
+          </button>
+        </section>
+      )}
+
+      {jockeyStatus === 'APPROVED' && (
+        <section className="owner-panel hero-owner-panel">
+          <div>
+            <p className="eyebrow">Jockey Approved</p>
+            <h2>Your Jockey application has been approved.</h2>
+            <p>Sign out and sign in again so the app can load your new Jockey role and dashboard.</p>
+          </div>
         </section>
       )}
 
@@ -255,11 +306,14 @@ function ProfileSection({ user, ownerApplication, isLoading, onOpenApplication, 
 export default function UserPanel({ user, onLogout }) {
   const [activeSection, setActiveSection] = useState('dashboard');
   const [ownerApplication, setOwnerApplication] = useState(null);
+  const [jockeyApplication, setJockeyApplication] = useState(null);
   const [isLoadingApplication, setIsLoadingApplication] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isJockeyFormOpen, setIsJockeyFormOpen] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmittingJockey, setIsSubmittingJockey] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   const profileName = user?.fullName || user?.email || 'Spectator';
@@ -278,16 +332,36 @@ export default function UserPanel({ user, onLogout }) {
       return ['Your Owner application is waiting for administrator approval.'];
     }
 
+    if (jockeyApplication?.verificationStatus === 'PENDING') {
+      return ['Your Jockey application is waiting for administrator approval.'];
+    }
+
     return ['No new notifications.'];
-  }, [ownerApplication]);
+  }, [ownerApplication, jockeyApplication]);
 
   async function loadOwnerApplication() {
     setIsLoadingApplication(true);
     setError('');
 
     try {
-      const application = await getMyOwnerApplication(user);
-      setOwnerApplication(application);
+      const [ownerResult, jockeyResult] = await Promise.allSettled([
+        getMyOwnerApplication(user),
+        getMyJockeyVerification()
+      ]);
+
+      if (ownerResult.status === 'fulfilled') {
+        setOwnerApplication(ownerResult.value);
+      } else {
+        setOwnerApplication(null);
+      }
+
+      if (jockeyResult.status === 'fulfilled') {
+        setJockeyApplication(jockeyResult.value);
+      } else if (jockeyResult.reason?.status === 404) {
+        setJockeyApplication(null);
+      } else {
+        throw jockeyResult.reason;
+      }
     } catch (err) {
       setError(err.message || 'Không thể tải trạng thái Owner application.');
     } finally {
@@ -317,9 +391,39 @@ export default function UserPanel({ user, onLogout }) {
     }
   }
 
+  function handleBecomeJockey() {
+    if (jockeyApplication?.verificationStatus === 'PENDING' || jockeyApplication?.verificationStatus === 'APPROVED') {
+      setActiveSection('profile');
+      return;
+    }
+
+    setIsJockeyFormOpen(true);
+  }
+
+  async function handleSubmitJockeyApplication(values) {
+    setIsSubmittingJockey(true);
+    setError('');
+    setMessage('');
+
+    try {
+      const application = jockeyApplication?.verificationStatus === 'REJECTED'
+        ? await resubmitJockeyVerification(jockeyApplication.verificationId, values)
+        : await submitJockeyVerification(values);
+
+      setJockeyApplication(application);
+      setIsJockeyFormOpen(false);
+      setActiveSection('profile');
+      setMessage('Jockey application submitted successfully. Please wait for admin approval, then sign in again after approval.');
+    } catch (err) {
+      setError(err.message || 'Cannot submit Jockey application.');
+    } finally {
+      setIsSubmittingJockey(false);
+    }
+  }
+
   function renderSection() {
     if (activeSection === 'dashboard') {
-      return <DashboardHome onGoProfile={() => setActiveSection('profile')} />;
+      return <DashboardHome onGoProfile={() => setActiveSection('profile')} onBecomeJockey={handleBecomeJockey} />;
     }
 
     if (activeSection === 'profile') {
@@ -327,9 +431,11 @@ export default function UserPanel({ user, onLogout }) {
         <ProfileSection
           user={user}
           ownerApplication={ownerApplication}
+          jockeyApplication={jockeyApplication}
           isLoading={isLoadingApplication}
           onOpenApplication={() => setIsFormOpen(true)}
           onOpenAgain={() => setIsFormOpen(true)}
+          onBecomeJockey={handleBecomeJockey}
         />
       );
     }
@@ -437,6 +543,17 @@ export default function UserPanel({ user, onLogout }) {
           isSubmitting={isSubmitting}
           onCancel={() => setIsFormOpen(false)}
           onSubmit={handleSubmitApplication}
+        />
+      )}
+
+      {isJockeyFormOpen && (
+        <JockeyApplicationForm
+          user={user}
+          application={jockeyApplication}
+          mode={jockeyApplication?.verificationStatus === 'REJECTED' ? 'resubmit' : 'submit'}
+          isSubmitting={isSubmittingJockey}
+          onCancel={() => setIsJockeyFormOpen(false)}
+          onSubmit={handleSubmitJockeyApplication}
         />
       )}
     </main>

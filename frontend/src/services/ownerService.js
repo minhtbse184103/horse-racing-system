@@ -147,6 +147,12 @@ export function getOwnerInvitations() {
   });
 }
 
+export function getOpenOwnerTournaments() {
+  return httpRequest('/api/owner/tournament-registrations/open-tournaments', {
+    fallbackError: 'Khong the tai danh sach Tournament dang mo dang ky.'
+  });
+}
+
 export function inviteJockey(payload) {
   return httpRequest('/api/owner/invitations', {
     method: 'POST',
@@ -159,5 +165,13 @@ export function cancelOwnerInvitation(invitationId) {
   return httpRequest(`/api/owner/invitations/${invitationId}/cancel`, {
     method: 'PUT',
     fallbackError: 'Khong the huy loi moi jockey.'
+  });
+}
+
+export function submitOwnerTournamentRegistration(payload) {
+  return httpRequest('/api/owner/tournament-registrations', {
+    method: 'POST',
+    body: payload,
+    fallbackError: 'Khong the dang ky Tournament.'
   });
 }

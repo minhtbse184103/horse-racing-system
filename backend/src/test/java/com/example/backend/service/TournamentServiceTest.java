@@ -40,6 +40,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+
 @ExtendWith(MockitoExtension.class)
 class TournamentServiceTest {
 
@@ -180,22 +181,25 @@ class TournamentServiceTest {
     }
 
     @Test
-    void uploadVenueImageUpdatesPathAndRemovesPreviousImage() {
+    void uploadVenueImageUpdatesCloudinaryUrl() {
         Tournament tournament = tournament(1, EventStatus.OPEN_FOR_REGISTRATION);
-        tournament.setVenueImageUrl("/uploads/tournament-venues/old.jpg");
+        tournament.setVenueImageUrl("https://res.cloudinary.com/demo/old.jpg");
+
         MockMultipartFile file = new MockMultipartFile(
                 "file",
                 "venue.png",
                 "image/png",
                 new byte[]{1, 2, 3}
         );
+
         when(tournamentRepository.findByIdForUpdate(1))
                 .thenReturn(Optional.of(tournament));
         when(userRepository.findByEmail("admin@example.com"))
                 .thenReturn(Optional.of(activeAdmin()));
-        when(venueImageStorageService.store(file))
-                .thenReturn("/uploads/tournament-venues/new.png");
+        when(venueImageStorageService.store(1, file))
+                .thenReturn("https://res.cloudinary.com/demo/new.png");
         when(tournamentRepository.save(tournament)).thenReturn(tournament);
+
         stubDetailCollections(1, List.of());
 
         TournamentDetailResponse response = service.uploadVenueImage(
@@ -204,20 +208,22 @@ class TournamentServiceTest {
                 "admin@example.com"
         );
 
-        assertEquals("/uploads/tournament-venues/new.png", response.getVenueImageUrl());
-        verify(venueImageStorageService)
-                .delete("/uploads/tournament-venues/old.jpg");
+        assertEquals("https://res.cloudinary.com/demo/new.png", response.getVenueImageUrl());
+        verify(venueImageStorageService).store(1, file);
+        verify(venueImageStorageService, never()).delete(any(Integer.class));
     }
 
     @Test
-    void removeVenueImageClearsPathAndRemovesStoredFile() {
+    void removeVenueImageClearsUrlAndDeletesCloudinaryImage() {
         Tournament tournament = tournament(1, EventStatus.OPEN_FOR_REGISTRATION);
-        tournament.setVenueImageUrl("/uploads/tournament-venues/venue.webp");
+        tournament.setVenueImageUrl("https://res.cloudinary.com/demo/venue.webp");
+
         when(tournamentRepository.findByIdForUpdate(1))
                 .thenReturn(Optional.of(tournament));
         when(userRepository.findByEmail("admin@example.com"))
                 .thenReturn(Optional.of(activeAdmin()));
         when(tournamentRepository.save(tournament)).thenReturn(tournament);
+
         stubDetailCollections(1, List.of());
 
         TournamentDetailResponse response = service.removeVenueImage(
@@ -226,8 +232,7 @@ class TournamentServiceTest {
         );
 
         assertEquals(null, response.getVenueImageUrl());
-        verify(venueImageStorageService)
-                .delete("/uploads/tournament-venues/venue.webp");
+        verify(venueImageStorageService).delete(1);
     }
 
     @Test

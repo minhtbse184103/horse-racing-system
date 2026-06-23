@@ -1,9 +1,6 @@
 package com.example.backend.service;
 
 import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -27,7 +24,6 @@ import lombok.AllArgsConstructor;
 @AllArgsConstructor
 public class UserService {
     private static final String ROLE_JOCKEY = "JOCKEY";
-    private static final String STATUS_ACTIVE = "ACTIVE";
     private static final String STATUS_PENDING = "PENDING";
     private static final String STATUS_UNDER_REVIEW = "UNDER_REVIEW";
     private static final String STATUS_REJECTED = "REJECTED";
@@ -81,70 +77,6 @@ public class UserService {
         return toResponse(findUserById(userID));
     }
 
-    @Transactional(readOnly = true)
-    public List<JockeyProfileResponse> getJockeyProfilesUnderReview() {
-        List<User> jockeys = userRepository.findByStatusAndRoleRoleNameOrderByUpdatedAtDesc(
-                STATUS_UNDER_REVIEW,
-                ROLE_JOCKEY);
-        List<Integer> jockeyIds = jockeys.stream()
-                .map(User::getUserID)
-                .toList();
-        Map<Integer, JockeyProfile> profilesByJockeyId = jockeyProfileRepository.findByJockeyIdIn(jockeyIds)
-                .stream()
-                .collect(Collectors.toMap(JockeyProfile::getJockeyId, Function.identity()));
-
-        return jockeys.stream()
-                .map(jockey -> mapJockeyProfileToResponse(jockey, profilesByJockeyId.get(jockey.getUserID())))
-                .filter(profile -> profile != null)
-                .toList();
-    }
-
-    @Transactional
-    public JockeyProfileResponse approveJockeyProfile(Integer jockeyId) {
-        User jockey = findUserById(jockeyId);
-        if (!isJockey(jockey)) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Người dùng được chọn không phải là nài ngựa.");
-        }
-
-        JockeyProfile profile = jockeyProfileRepository.findById(jockeyId)
-                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST,
-                        "Hồ sơ nài ngựa không tồn tại."));
-        validateJockeyProfileUnderReview(jockey, profile);
-        validateJockeyProfileReadyForApproval(profile);
-
-        profile.setStatus(STATUS_ACTIVE);
-        profile.setRejectionReason(null);
-        jockey.setStatus(STATUS_ACTIVE);
-
-        jockeyProfileRepository.save(profile);
-        userRepository.save(jockey);
-        return mapJockeyProfileToResponse(jockey, profile);
-    }
-
-    @Transactional
-    public JockeyProfileResponse rejectJockeyProfile(Integer jockeyId, String feedback) {
-        User jockey = findUserById(jockeyId);
-        if (!isJockey(jockey)) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Người dùng được chọn không phải là nài ngựa.");
-        }
-
-        JockeyProfile profile = jockeyProfileRepository.findById(jockeyId)
-                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST,
-                        "Hồ sơ nài ngựa không tồn tại."));
-        validateJockeyProfileUnderReview(jockey, profile);
-        if (!hasText(feedback)) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Phản hồi từ chối là bắt buộc.");
-        }
-
-        profile.setStatus(STATUS_REJECTED);
-        profile.setRejectionReason(feedback.trim());
-        jockey.setStatus(STATUS_REJECTED);
-
-        jockeyProfileRepository.save(profile);
-        userRepository.save(jockey);
-        return mapJockeyProfileToResponse(jockey, profile);
-    }
-
     @Transactional
     public UserResponse updateUserByAdmin(Integer userID, AdminUpdateUserRequest request) {
         User user = findUserById(userID);
@@ -180,16 +112,7 @@ public class UserService {
                 throw new ApiException(HttpStatus.BAD_REQUEST,
                         "Các trạng thái PENDING, UNDER_REVIEW và REJECTED chỉ áp dụng cho người dùng nài ngựa.");
             }
-            if (STATUS_REJECTED.equals(status) && !hasText(request.getRejectionReason())) {
-                throw new ApiException(HttpStatus.BAD_REQUEST, "Lý do từ chối là bắt buộc khi từ chối nài ngựa.");
-            }
-            syncJockeyProfileStatus(user, status);
-            if (STATUS_REJECTED.equals(status)) {
-                updateJockeyProfileRejectionReason(user, request.getRejectionReason());
-            }
             user.setStatus(status);
-        } else if (hasText(request.getRejectionReason()) && STATUS_REJECTED.equals(user.getStatus()) && isJockey(user)) {
-            updateJockeyProfileRejectionReason(user, request.getRejectionReason());
         }
 
         if (isJockeyReviewStatus(user.getStatus()) && !isJockey(user)) {
@@ -232,50 +155,7 @@ public class UserService {
                 || STATUS_REJECTED.equals(status);
     }
 
-    private void syncJockeyProfileStatus(User user, String status) {
-        if (!isJockey(user)) {
-            return;
-        }
-
-        if (STATUS_ACTIVE.equals(status)) {
-            JockeyProfile profile = jockeyProfileRepository.findById(user.getUserID())
-                    .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST,
-                            "Hồ sơ nài ngựa không tồn tại."));
-            profile.setStatus(STATUS_ACTIVE);
-            profile.setRejectionReason(null);
-            jockeyProfileRepository.save(profile);
-            return;
-        }
-
-        if (STATUS_UNDER_REVIEW.equals(status)) {
-            jockeyProfileRepository.findById(user.getUserID())
-                    .ifPresent(profile -> {
-                        profile.setStatus(status);
-                        profile.setRejectionReason(null);
-                        jockeyProfileRepository.save(profile);
-                    });
-            return;
-        }
-
-        if (STATUS_REJECTED.equals(status)) {
-            JockeyProfile profile = jockeyProfileRepository.findById(user.getUserID())
-                    .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST,
-                            "Hồ sơ nài ngựa không tồn tại."));
-            profile.setStatus(status);
-            profile.setRejectionReason(null);
-            jockeyProfileRepository.save(profile);
-        }
-    }
-
-    private void updateJockeyProfileRejectionReason(User user, String rejectionReason) {
-        JockeyProfile profile = jockeyProfileRepository.findById(user.getUserID())
-                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST,
-                        "Hồ sơ nài ngựa không tồn tại."));
-        profile.setRejectionReason(rejectionReason.trim());
-        jockeyProfileRepository.save(profile);
-    }
-
-    private JockeyProfileResponse mapJockeyProfileToResponse(User jockey, JockeyProfile profile) {
+    public JockeyProfileResponse mapJockeyProfileToResponse(User jockey, JockeyProfile profile) {
         if (profile == null) {
             return null;
         }
@@ -284,41 +164,12 @@ public class UserService {
                 .jockeyId(jockey.getUserID())
                 .fullName(jockey.getUsername())
                 .email(jockey.getEmail())
-                .licenseNo(profile.getLicenseNo())
                 .weight(profile.getWeight())
                 .ranking(profile.getRanking())
-                .status(profile.getStatus())
-                .rejectionReason(profile.getRejectionReason())
-                .imgUrl(profile.getImgUrl())
+                .biography(profile.getBiography())
+                .totalRaces(profile.getTotalRaces())
+                .totalWins(profile.getTotalWins())
                 .build();
-    }
-
-    private void validateJockeyProfileUnderReview(User jockey, JockeyProfile profile) {
-        if (!STATUS_UNDER_REVIEW.equals(jockey.getStatus())
-                || !STATUS_UNDER_REVIEW.equals(profile.getStatus())) {
-            throw new ApiException(
-                    HttpStatus.CONFLICT,
-                    "Chỉ có thể phê duyệt hoặc từ chối hồ sơ nài ngựa đang được xét duyệt.");
-        }
-    }
-
-    private void validateJockeyProfileReadyForApproval(JockeyProfile profile) {
-        if (!hasText(profile.getLicenseNo())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST,
-                    "Số giấy phép của nài ngựa là bắt buộc trước khi phê duyệt.");
-        }
-        if (profile.getWeight() == null) {
-            throw new ApiException(HttpStatus.BAD_REQUEST,
-                    "Cân nặng của nài ngựa là bắt buộc trước khi phê duyệt.");
-        }
-        if (!hasText(profile.getRanking())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST,
-                    "Xếp hạng của nài ngựa là bắt buộc trước khi phê duyệt.");
-        }
-        if (!hasText(profile.getImgUrl())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST,
-                    "Ảnh minh chứng của nài ngựa là bắt buộc trước khi phê duyệt.");
-        }
     }
 
     private UserResponse toResponse(User user) {
