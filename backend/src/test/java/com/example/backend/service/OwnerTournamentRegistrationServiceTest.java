@@ -36,6 +36,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -215,6 +216,58 @@ class OwnerTournamentRegistrationServiceTest {
         );
         verify(horseRepository, never()).findByHorseIdAndOwnerId(any(), any());
         verify(registrationRepository, never()).save(any());
+    }
+
+    @Test
+    void getOpenTournamentsReturnsOwnerFriendlyTournamentSummaries() {
+        User owner = user(30, "owner@example.com", "OWNER");
+        Tournament tournament = openTournament();
+        tournament.setCreatedBy(99);
+        tournament.setVenue("Bangkok Equestrian Park");
+        tournament.setEntryFee(BigDecimal.valueOf(1_000_000));
+
+        when(userRepository.findByEmail("owner@example.com"))
+                .thenReturn(Optional.of(owner));
+        when(tournamentRepository.findOpenForRegistration(
+                eq(EventStatus.OPEN_FOR_REGISTRATION),
+                any(LocalDateTime.class)
+        )).thenReturn(List.of(tournament));
+        when(raceRepository.countByTournamentId(10)).thenReturn(3L);
+        when(registrationRepository.countByTournamentId(10)).thenReturn(5L);
+        when(registrationRepository.countByTournamentIdAndApprovalStatusIn(
+                eq(10),
+                any(Collection.class)
+        )).thenReturn(2L);
+
+        var result = service.getOpenTournaments();
+
+        assertEquals(1, result.size());
+        assertEquals(10, result.getFirst().getTournamentId());
+        assertEquals("Summer Cup", result.getFirst().getTournamentName());
+        assertEquals("Bangkok Equestrian Park", result.getFirst().getVenue());
+        assertEquals(EventStatus.OPEN_FOR_REGISTRATION, result.getFirst().getStatus());
+        assertEquals(3L, result.getFirst().getRaceCount());
+        assertEquals(5L, result.getFirst().getRegistrationCount());
+        assertEquals(2L, result.getFirst().getApprovedRegistrationCount());
+    }
+
+    @Test
+    void getOpenTournamentsQueriesOnlyCurrentlyOpenRegistrationWindow() {
+        User owner = user(30, "owner@example.com", "OWNER");
+        when(userRepository.findByEmail("owner@example.com"))
+                .thenReturn(Optional.of(owner));
+        when(tournamentRepository.findOpenForRegistration(
+                eq(EventStatus.OPEN_FOR_REGISTRATION),
+                any(LocalDateTime.class)
+        )).thenReturn(List.of());
+
+        var result = service.getOpenTournaments();
+
+        assertTrue(result.isEmpty());
+        verify(tournamentRepository).findOpenForRegistration(
+                eq(EventStatus.OPEN_FOR_REGISTRATION),
+                any(LocalDateTime.class)
+        );
     }
 
     private OwnerTournamentRegistrationRequest request() {

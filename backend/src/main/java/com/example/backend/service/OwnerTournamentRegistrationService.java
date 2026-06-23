@@ -6,6 +6,7 @@ import com.example.backend.constant.RaceEntryStatus;
 import com.example.backend.constant.RegistrationStatus;
 import com.example.backend.dto.request.OwnerTournamentRegistrationRequest;
 import com.example.backend.dto.response.RegistrationResponse;
+import com.example.backend.dto.response.TournamentResponse;
 import com.example.backend.entity.Horse;
 import com.example.backend.entity.Race;
 import com.example.backend.entity.RaceEntry;
@@ -101,6 +102,20 @@ public class OwnerTournamentRegistrationService {
         registration.setSubmittedAt(now);
 
         return toResponse(registrationRepository.save(registration));
+    }
+
+    @Transactional(readOnly = true)
+    public List<TournamentResponse> getOpenTournaments() {
+        getCurrentOwner();
+
+        return tournamentRepository
+                .findOpenForRegistration(
+                        EventStatus.OPEN_FOR_REGISTRATION,
+                        LocalDateTime.now()
+                )
+                .stream()
+                .map(this::toTournamentResponse)
+                .toList();
     }
 
     private User getCurrentOwner() {
@@ -413,6 +428,34 @@ public class OwnerTournamentRegistrationService {
                 .assignedRaceName(race != null ? race.getRaceName() : null)
                 .createdAt(registration.getCreatedAt())
                 .updatedAt(registration.getUpdatedAt())
+                .build();
+    }
+
+    private TournamentResponse toTournamentResponse(Tournament tournament) {
+        return TournamentResponse.builder()
+                .tournamentId(tournament.getTournamentId())
+                .tournamentName(tournament.getTournamentName())
+                .description(tournament.getDescription())
+                .venue(tournament.getVenue())
+                .venueImageUrl(tournament.getVenueImageUrl())
+                .registrationOpenAt(tournament.getRegistrationOpenAt())
+                .registrationCloseAt(tournament.getRegistrationCloseAt())
+                .startDate(tournament.getStartDate())
+                .endDate(tournament.getEndDate())
+                .maxRegistrations(tournament.getMaxRegistrations())
+                .entryFee(tournament.getEntryFee())
+                .status(tournament.getStatus())
+                .createdBy(tournament.getCreatedBy())
+                .createdAt(tournament.getCreatedAt())
+                .updatedAt(tournament.getUpdatedAt())
+                .raceCount(raceRepository.countByTournamentId(tournament.getTournamentId()))
+                .registrationCount(registrationRepository.countByTournamentId(tournament.getTournamentId()))
+                .approvedRegistrationCount(
+                        registrationRepository.countByTournamentIdAndApprovalStatusIn(
+                                tournament.getTournamentId(),
+                                List.of(RegistrationStatus.APPROVED)
+                        )
+                )
                 .build();
     }
 }
