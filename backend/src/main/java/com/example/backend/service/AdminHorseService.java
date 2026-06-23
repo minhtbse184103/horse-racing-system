@@ -33,11 +33,26 @@ public class AdminHorseService {
     }
 
     @Transactional(readOnly = true)
+    public List<HorseResponse> getHorses() {
+        return horseRepository.findAll()
+                .stream()
+                .map(this::mapHorseToResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public List<HorseResponse> getPendingHorses() {
         return horseRepository.findByStatus(STATUS_PENDING)
                 .stream()
                 .map(this::mapHorseToResponse)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public HorseResponse getHorseById(Integer horseId) {
+        return horseRepository.findById(horseId)
+                .map(this::mapHorseToResponse)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Ngá»±a khĂ´ng tá»“n táº¡i."));
     }
 
     @Transactional
@@ -54,9 +69,7 @@ public class AdminHorseService {
                     "Giấy chứng nhận sức khỏe của ngựa phải còn hiệu lực trước khi phê duyệt.");
         }
 
-        if (!hasText(horse.getHorsePassportUrl())
-                || !hasText(horse.getHealthCertificateUrl())
-                || !hasText(horse.getHorseImageUrl())) {
+        if (!hasText(horse.getHealthCertificateUrl()) || !hasText(horse.getOfficialHorseProfileUrl())) {
             throw new ApiException(HttpStatus.BAD_REQUEST,
                     "Ảnh minh chứng của ngựa là bắt buộc trước khi phê duyệt.");
         }
@@ -85,19 +98,20 @@ public class AdminHorseService {
         return HorseResponse.builder()
                 .horseId(horse.getHorseId())
                 .ownerId(horse.getOwnerId())
-                .passportNumber(horse.getPassportNumber())
                 .horseName(horse.getHorseName())
-                .breed(horse.getBreed())
-                .gender(horse.getGender())
-                .color(horse.getColor())
-                .dayOfBirth(horse.getDayOfBirth())
+                .age(horse.getAge())
                 .weight(horse.getWeight())
+                .colour(horse.getColour())
+                .sex(horse.getSex())
+                .breeding(horse.getBreeding())
+                .trainer(horse.getTrainer())
                 .healthCertExpiry(horse.getHealthCertExpiry())
-                .horsePassportUrl(horse.getHorsePassportUrl())
                 .healthCertificateUrl(horse.getHealthCertificateUrl())
-                .horseImageUrl(horse.getHorseImageUrl())
+                .officialHorseProfileUrl(horse.getOfficialHorseProfileUrl())
                 .status(horse.getStatus())
                 .rejectionReason(horse.getRejectionReason())
+                .createdAt(horse.getCreatedAt())
+                .updatedAt(horse.getUpdatedAt())
                 .registrationCount(registrationIds.size())
                 .participated(hasActiveRegistration(registrationIds))
                 .build();

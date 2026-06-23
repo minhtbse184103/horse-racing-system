@@ -46,8 +46,8 @@ export default function Register() {
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <label className="field-label">
-          Username
-          <input className="field-input" name="username" value={form.username} onChange={updateField} placeholder="oanhle" />
+          Tên đăng nhập
+          <input className="field-input" name="username" value={form.username} onChange={updateField} placeholder="ten_dang_nhap" />
         </label>
         <label className="field-label">
           Email

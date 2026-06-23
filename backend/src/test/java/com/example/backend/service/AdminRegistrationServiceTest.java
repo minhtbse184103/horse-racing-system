@@ -266,7 +266,7 @@ class AdminRegistrationServiceTest {
         admin.setUserID(99);
         admin.setRole(role);
         admin.setStatus("ACTIVE");
-        admin.setFullName("Admin User");
+        admin.setUsername("Admin User");
         return admin;
     }
 

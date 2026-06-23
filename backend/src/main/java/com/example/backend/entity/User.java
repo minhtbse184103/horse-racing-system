@@ -63,11 +63,4 @@ public class User {
         updatedAt = LocalDateTime.now();
     }
 
-    public String getFullName() {
-        return username;
-    }
-
-    public void setFullName(String fullName) {
-        this.username = fullName;
-    }
 }

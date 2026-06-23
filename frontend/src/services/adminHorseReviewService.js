@@ -8,28 +8,20 @@ function makeFilePreview(name, url) {
 function normalizeHorse(horse) {
   if (!horse) return horse;
 
-  const horseImageUrl = horse.horseImageUrl || horse.imgUrl || '';
-
   return {
     ...horse,
     id: horse.id ?? horse.horseId ?? horse.horseID,
     horseId: horse.horseId ?? horse.horseID ?? horse.id,
     healthCertificateExpiryDate: horse.healthCertificateExpiryDate || horse.healthCertExpiry || '',
-    horsePassportImages: Array.isArray(horse.horsePassportImages)
-      ? horse.horsePassportImages
-      : makeFilePreview('Horse Passport', horse.horsePassportUrl),
     horseCertificateImages: Array.isArray(horse.horseCertificateImages)
       ? horse.horseCertificateImages
       : makeFilePreview('Health Certificate', horse.healthCertificateUrl),
-    horseImages: Array.isArray(horse.horseImages)
-      ? horse.horseImages
-      : makeFilePreview('Horse Image', horseImageUrl),
-    imgUrl: horseImageUrl
+    imgUrl: ''
   };
 }
 
 export async function getPendingHorses() {
-  const horses = await httpRequest('/api/admin/horses/pending', {
+  const horses = await httpRequest('/api/admin/horses', {
     fallbackError: 'Khong the tai ho so ngua dang cho duyet.'
   });
 

@@ -606,7 +606,7 @@ class RaceEntryServiceTest {
         user.setUserID(userId);
         user.setEmail(email);
         user.setPassword("password");
-        user.setFullName(fullName);
+        user.setUsername(fullName);
         user.setStatus("ACTIVE");
         user.setRole(role);
         return user;
@@ -633,7 +633,7 @@ class RaceEntryServiceTest {
                 .horseId(HORSE_ID)
                 .ownerId(OWNER_ID)
                 .horseName("Lightning")
-                .weight(BigDecimal.valueOf(450))
+                .age(4)
                 .status("ACTIVE")
                 .build();
     }

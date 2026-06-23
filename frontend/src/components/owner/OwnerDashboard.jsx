@@ -10,7 +10,6 @@ import { useOwnerDashboard } from '../../hooks/useOwnerDashboard';
 import { emptyHorseForm, formatDisplayLabel, getHorseId, getHorseName, toHorsePayload } from '../../lib';
 import { validateHorseForm } from '../../utils/validators';
 import { getOwnerHorseById } from '../../services/ownerService';
-import { uploadFile } from '../../services/uploadService.js';
 
 const ownerNavItems = [
   { key: 'overview', label: 'Tổng quan', icon: '📊' },
@@ -37,11 +36,7 @@ function readImageFile(file) {
 }
 
 function countHorseImages(values) {
-  return (
-    (values.horsePassportImages?.length || 0) +
-    (values.horseCertificateImages?.length || 0) +
-    (values.horseImages?.length || 0)
-  );
+  return values.horseCertificateImages?.length || 0;
 }
 
 function isAllowedHorseFile(fieldName, file) {
@@ -55,13 +50,11 @@ function isAllowedHorseFile(fieldName, file) {
 
 function isPreviewableHorseImage(file) {
   const source = file?.dataUrl || file?.url || '';
-  return String(file?.type || '').startsWith('image/') || String(source).startsWith('data:image/');
+  return String(file?.type || '').startsWith('image/') || String(source).startsWith('data:image/') || /\.(jpe?g|png|gif|webp)(\?|#|$)/i.test(String(source));
 }
 
-function getHorseUploadFolder(fieldName) {
-  if (fieldName === 'horsePassportImages') return 'horse-passports';
-  if (fieldName === 'horseCertificateImages') return 'horse-health-certificates';
-  return 'horse-images';
+function getHorseDocumentUrl(file) {
+  return String(file?.dataUrl || file?.url || '').trim();
 }
 
 export default function OwnerDashboard({ currentUser, onLogout, onUserUpdated }) {
@@ -158,17 +151,16 @@ export default function OwnerDashboard({ currentUser, onLogout, onUserUpdated })
     setEditingHorse(horse);
 
     setFormValues({
-      passportNumber: horse.passportNumber || '',
       horseName: getHorseName(horse),
-      breed: horse.breed || '',
-      gender: horse.gender || 'MALE',
-      color: horse.color || '',
-      dayOfBirth: horse.dayOfBirth || '',
+      age: horse.age ?? '',
       weight: horse.weight ?? '',
+      colour: horse.colour || '',
+      sex: horse.sex || 'MALE',
+      breeding: horse.breeding || '',
+      trainer: horse.trainer || '',
       healthCertificateExpiryDate: horse.healthCertificateExpiryDate || '',
-      horsePassportImages: Array.isArray(horse.horsePassportImages) ? horse.horsePassportImages : [],
-      horseCertificateImages: Array.isArray(horse.horseCertificateImages) ? horse.horseCertificateImages : [],
-      horseImages: Array.isArray(horse.horseImages) ? horse.horseImages : []
+      officialHorseProfileUrl: horse.officialHorseProfileUrl || '',
+      horseCertificateImages: Array.isArray(horse.horseCertificateImages) ? horse.horseCertificateImages : []
     });
 
     setActiveSection('horses');
@@ -211,11 +203,10 @@ export default function OwnerDashboard({ currentUser, onLogout, onUserUpdated })
       return;
     }
 
-    const currentTotal = countHorseImages(formValues);
-    if (currentTotal + files.length > 10) {
+    if (files.length > 1) {
       setFormErrors((current) => ({
         ...current,
-        totalImages: 'Tong so file cua Horse Passport, Health Certificate va Horse Image khong duoc vuot qua 10 file.'
+        [fieldName]: 'Upload one Health Certificate file only.'
       }));
       return;
     }
@@ -223,19 +214,20 @@ export default function OwnerDashboard({ currentUser, onLogout, onUserUpdated })
     try {
       const images = await Promise.all(
         files.map(async (file) => {
-          const uploaded = await uploadFile(file, getHorseUploadFolder(fieldName));
+          const dataUrl = await readImageFile(file);
           return {
-            name: uploaded.originalFilename || file.name,
-            size: uploaded.size || file.size,
-            type: uploaded.contentType || file.type,
-            url: uploaded.url
+            name: file.name,
+            size: file.size,
+            type: file.type,
+            dataUrl,
+            file
           };
         })
       );
 
       setFormValues((current) => ({
         ...current,
-        [fieldName]: [...(current[fieldName] || []), ...images]
+        [fieldName]: images
       }));
 
       setFormErrors((current) => ({
@@ -414,22 +406,41 @@ export default function OwnerDashboard({ currentUser, onLogout, onUserUpdated })
                 <strong>{getHorseId(selectedHorse) || 'N/A'}</strong>
 
                 <span>Giống ngựa</span>
-                <strong>{selectedHorse.breed || 'Chưa cập nhật'}</strong>
+                <strong>{selectedHorse.breeding || 'Chưa cập nhật'}</strong>
 
                 <span>Giới tính</span>
-                <strong>{formatDisplayLabel(selectedHorse.gender, 'Chưa cập nhật')}</strong>
+                <strong>{formatDisplayLabel(selectedHorse.sex, 'Chưa cập nhật')}</strong>
 
                 <span>Màu lông</span>
-                <strong>{selectedHorse.color || 'Chưa cập nhật'}</strong>
+                <strong>{selectedHorse.colour || 'Chưa cập nhật'}</strong>
 
-                <span>Ngày sinh</span>
-                <strong>{selectedHorse.dayOfBirth || 'Chưa cập nhật'}</strong>
+                <span>Age</span>
+                <strong>{selectedHorse.age || 'Chưa cập nhật'}</strong>
 
-                <span>Cân nặng</span>
-                <strong>{selectedHorse.weight ? `${selectedHorse.weight} kg` : 'Chưa cập nhật'}</strong>
+                <span>Weight</span>
+                <strong>{selectedHorse.weight ? `${selectedHorse.weight} kg` : 'Chua cap nhat'}</strong>
 
-                <span>Passport Number</span>
-                <strong>{selectedHorse.passportNumber || 'Chưa cập nhật'}</strong>
+                <span>Trainer</span>
+                <strong>{selectedHorse.trainer || 'Chua cap nhat'}</strong>
+
+                <span>Official Horse Profile URL</span>
+                <strong>{selectedHorse.officialHorseProfileUrl || 'Chưa cập nhật'}</strong>
+
+                {selectedHorse.officialHorseProfileUrl && (
+                  <>
+                    <span>Official Website</span>
+                    <strong>
+                      <a
+                        className="table-button"
+                        href={selectedHorse.officialHorseProfileUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Mở website
+                      </a>
+                    </strong>
+                  </>
+                )}
 
                 <span>Health Certificate Expiry Date</span>
                 <strong>{selectedHorse.healthCertificateExpiryDate || 'Chưa cập nhật'}</strong>
@@ -457,25 +468,41 @@ export default function OwnerDashboard({ currentUser, onLogout, onUserUpdated })
 
               <div className="horse-detail-document-grid">
                 {[
-                  ['Horse Passport', selectedHorse.horsePassportImages],
                   ['Health Certificate', selectedHorse.horseCertificateImages],
-                  ['Horse Image', selectedHorse.horseImages]
                 ].map(([label, images]) => (
                   <div className="horse-detail-document-card" key={label}>
                     <h3>{label}</h3>
                     {Array.isArray(images) && images.length > 0 ? (
                       <div className="horse-detail-image-list">
-                        {images.map((image, index) => (
-                          isPreviewableHorseImage(image) ? (
-                            <img
-                              key={`${label}-${image.name || index}`}
-                              src={image.dataUrl || image.url}
-                              alt={`${label} ${index + 1}`}
-                            />
-                          ) : (
-                            <p key={`${label}-${image.name || index}`}>{image.name || `${label} ${index + 1}`}</p>
-                          )
-                        ))}
+                        {images.map((image, index) => {
+                          const documentUrl = getHorseDocumentUrl(image);
+                          const documentName = image.name || `${label} ${index + 1}`;
+
+                          return (
+                            <article className="horse-detail-document-item" key={`${label}-${documentName}-${index}`}>
+                              {isPreviewableHorseImage(image) && documentUrl ? (
+                                <a href={documentUrl} target="_blank" rel="noreferrer" title="Mở ảnh trong tab mới">
+                                  <img
+                                    src={documentUrl}
+                                    alt={`${label} ${index + 1}`}
+                                  />
+                                </a>
+                              ) : (
+                                <div className="horse-upload-empty">PDF</div>
+                              )}
+                              <div>
+                                <strong>{documentName}</strong>
+                                {documentUrl ? (
+                                  <a className="table-button" href={documentUrl} target="_blank" rel="noreferrer">
+                                    Xem file
+                                  </a>
+                                ) : (
+                                  <p>Không tìm thấy đường dẫn file.</p>
+                                )}
+                              </div>
+                            </article>
+                          );
+                        })}
                       </div>
                     ) : (
                       <p>Chưa import file.</p>

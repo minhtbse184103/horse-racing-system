@@ -402,11 +402,11 @@ public class RaceEntryService {
                 )
                 .ownerId(registration.getOwnerId())
                 .ownerName(
-                        owner != null ? owner.getFullName() : null
+                        owner != null ? owner.getUsername() : null
                 )
                 .jockeyId(registration.getJockeyId())
                 .jockeyName(
-                        jockey != null ? jockey.getFullName() : null
+                        jockey != null ? jockey.getUsername() : null
                 )
                 .paymentStatus(registration.getPaymentStatus())
                 .approvalStatus(registration.getApprovalStatus())
@@ -469,18 +469,18 @@ public class RaceEntryService {
                 )
                 .ownerId(registration.getOwnerId())
                 .ownerName(
-                        owner != null ? owner.getFullName() : null
+                        owner != null ? owner.getUsername() : null
                 )
                 .jockeyId(registration.getJockeyId())
                 .jockeyName(
-                        jockey != null ? jockey.getFullName() : null
+                        jockey != null ? jockey.getUsername() : null
                 )
                 .startingStall(entry.getStartingStall())
                 .status(entry.getStatus())
                 .assignedBy(entry.getAssignedBy())
                 .assignedByName(
                         assignedBy != null
-                                ? assignedBy.getFullName()
+                                ? assignedBy.getUsername()
                                 : null
                 )
                 .assignedAt(entry.getAssignedAt())
