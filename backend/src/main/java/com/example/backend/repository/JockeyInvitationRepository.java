@@ -31,6 +31,13 @@ public interface JockeyInvitationRepository extends JpaRepository<JockeyInvitati
             Integer jockeyId,
             String status);
 
+    boolean existsByTournamentIdAndHorseIdAndOwnerIdAndJockeyIdAndStatus(
+            Integer tournamentId,
+            Integer horseId,
+            Integer ownerId,
+            Integer jockeyId,
+            String status);
+
     @Query("""
             select count(i) > 0
             from JockeyInvitation i
