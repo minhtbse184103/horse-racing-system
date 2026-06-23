@@ -159,48 +159,9 @@ public class JockeyServiceImpl implements JockeyService {
         JockeyInvitation invitation = getOwnedInvitation(invitationId, jockey.getUserID());
 
         validateInvitationNotExpired(invitation);
-        TournamentSnapshot tournament = getTournamentSnapshot(invitation.getTournamentId());
-        Horse horse = validateOwnerHorseForInvitation(invitation);
-        validateJockeyAvailableForTournament(
-                tournament,
-                jockey.getUserID(),
-                null,
-                invitation.getInvitationId());
-        validateOwnerCanRegisterForTournament(
-                invitation.getOwnerId(),
-                tournament.tournamentId(),
-                invitation.getInvitationId());
-        validateHorseActiveRegistrationForTournament(
-                invitation.getHorseId(),
-                tournament.tournamentId(),
-                null);
-        validateHorseJockeyPairAvailableForOverlappingTournament(
-                invitation.getHorseId(),
-                jockey.getUserID(),
-                tournament,
-                null,
-                invitation.getInvitationId());
-
-        Registration registration = registrationRepository.findByTournamentIdAndHorseId(
-                        invitation.getTournamentId(), invitation.getHorseId())
-                .orElseGet(Registration::new);
-
-        if (registration.getRegistrationId() != null
-                && !List.of(REGISTRATION_CANCELLED, REGISTRATION_REJECTED).contains(registration.getStatus())) {
-            throw new ApiException(HttpStatus.CONFLICT,
-                    "Ngựa này đã có đơn đăng ký đang hoạt động trong giải đấu.");
-        }
-
         invitation.setStatus(INVITATION_ACCEPTED);
         invitation.setRespondedAt(LocalDateTime.now());
-        registration.setTournamentId(invitation.getTournamentId());
-        registration.setHorseId(horse.getHorseId());
-        registration.setOwnerId(invitation.getOwnerId());
-        registration.setJockeyId(jockey.getUserID());
-        registration.setStatus(REGISTRATION_ACCEPTED);
 
-        registration = registrationRepository.save(registration);
-        invitation.setRegistrationId(registration.getRegistrationId());
         return mapInvitationToResponse(jockeyInvitationRepository.save(invitation));
     }
 
