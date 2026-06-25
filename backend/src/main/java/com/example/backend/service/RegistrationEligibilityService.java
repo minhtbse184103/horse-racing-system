@@ -290,13 +290,12 @@ public class RegistrationEligibilityService {
             );
         }
 
-        JockeyProfile profile = jockeyProfileRepository
+        jockeyProfileRepository
                 .findById(jockeyId)
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
                         "Jockey profile does not exist."
                 ));
-
     }
 
     private void validateConditions(
