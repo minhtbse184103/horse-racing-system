@@ -43,11 +43,11 @@ VALUES
   (4, 3, DATE_SUB(@seed_now, INTERVAL 98 DAY),  DATE_SUB(@seed_now, INTERVAL 98 DAY));
 
 INSERT INTO `JockeyProfile`
-  (`jockeyID`, `licenseNo`, `weight`, `ranking`, `status`, `rejectionReason`, `img_url`, `biography`, `totalRaces`, `totalWins`, `createdAt`, `updatedAt`)
+  (`jockeyID`, `weight`, `ranking`, `biography`, `totalRaces`, `totalWins`, `createdAt`, `updatedAt`)
 VALUES
-  (5, 'JOCKEY-DEMO-005', 52.50, 'A', 'ACTIVE', NULL, 'https://example.com/jockeys/5/image.jpg', 'Experienced sprint jockey.', 48, 13, DATE_SUB(@seed_now, INTERVAL 300 DAY), @seed_now),
-  (6, 'JOCKEY-DEMO-006', 54.00, 'A', 'ACTIVE', NULL, 'https://example.com/jockeys/6/image.jpg', 'Specialist in middle-distance races.', 39, 9, DATE_SUB(@seed_now, INTERVAL 280 DAY), @seed_now),
-  (7, 'JOCKEY-DEMO-007', 55.25, 'B', 'PENDING', NULL, 'https://example.com/jockeys/7/image.jpg', 'New jockey awaiting verification.', 5, 1, DATE_SUB(@seed_now, INTERVAL 30 DAY), @seed_now);
+  (5, 52.50, 'A', 'Experienced sprint jockey.', 48, 13, DATE_SUB(@seed_now, INTERVAL 300 DAY), @seed_now),
+  (6, 54.00, 'A', 'Specialist in middle-distance races.', 39, 9, DATE_SUB(@seed_now, INTERVAL 280 DAY), @seed_now),
+  (7, 55.25, 'B', 'New jockey awaiting verification.', 5, 1, DATE_SUB(@seed_now, INTERVAL 30 DAY), @seed_now);
 
 INSERT INTO `JockeyVerification`
   (`verificationID`, `jockeyID`, `trainerName`, `trainerEmail`, `academyStableAddress`, `issuingAuthority`, `verificationLink`, `licenceType`, `expiryDate`, `verificationStatus`, `rejectionReason`, `resubmitCount`, `submittedAt`, `reviewedAt`, `reviewedBy`, `createdAt`, `updatedAt`)

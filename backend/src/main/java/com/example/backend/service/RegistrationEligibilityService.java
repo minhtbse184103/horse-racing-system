@@ -290,19 +290,12 @@ public class RegistrationEligibilityService {
             );
         }
 
-        JockeyProfile profile = jockeyProfileRepository
+        jockeyProfileRepository
                 .findById(jockeyId)
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
                         "Jockey profile does not exist."
                 ));
-
-        if (!ACTIVE.equalsIgnoreCase(profile.getStatus())) {
-            throw new ApiException(
-                    HttpStatus.CONFLICT,
-                    "Jockey profile is not active."
-            );
-        }
     }
 
     private void validateConditions(

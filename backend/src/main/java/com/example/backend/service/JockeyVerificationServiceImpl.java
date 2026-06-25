@@ -370,7 +370,7 @@ public class JockeyVerificationServiceImpl implements JockeyVerificationService 
         return JockeyVerificationResponse.builder()
                 .verificationId(verification.getVerificationId())
                 .jockeyId(verification.getJockeyId())
-                .jockeyFullName(user != null ? user.getFullName() : null)
+                .jockeyFullName(user != null ? user.getUsername() : null)
                 .jockeyEmail(user != null ? user.getEmail() : null)
                 .trainerName(verification.getTrainerName())
                 .trainerEmail(verification.getTrainerEmail())
@@ -388,7 +388,7 @@ public class JockeyVerificationServiceImpl implements JockeyVerificationService 
                 .submittedAt(verification.getSubmittedAt())
                 .reviewedAt(verification.getReviewedAt())
                 .reviewedBy(verification.getReviewedBy())
-                .reviewedByName(reviewer != null ? reviewer.getFullName() : null)
+                .reviewedByName(reviewer != null ? reviewer.getUsername() : null)
                 .files(fileResponses)
                 .build();
     }
