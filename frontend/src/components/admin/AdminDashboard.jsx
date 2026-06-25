@@ -20,53 +20,56 @@ import OwnerApplicationManagement from './ownerApplications/OwnerApplicationMana
 import UserManagement from './users/UserManagement';
 import { formatDisplayLabel } from '../../lib';
 import { tapPress } from './ui/motion';
+import LanguageToggle from '../common/LanguageToggle';
+import { useLanguage } from '../../context/LanguageContext';
 
 const adminNavItems = [
   {
     key: 'overview',
-    label: 'Tổng quan',
-    description: 'Tình hình vận hành',
+    labelKey: 'overview',
+    descriptionKey: 'overviewDescription',
     icon: LayoutDashboard
   },
   {
     key: 'users',
-    label: 'Người dùng',
-    description: 'Tài khoản và vai trò',
+    labelKey: 'manageUsers',
+    descriptionKey: 'usersDescription',
     icon: Users
   },
   {
     key: 'ownerApplications',
-    label: 'Duyệt Owner',
-    description: 'Đơn đăng ký Owner',
+    labelKey: 'manageOwners',
+    descriptionKey: 'ownersDescription',
     icon: FileText
   },
   {
     key: 'events',
-    label: 'Tournament',
-    description: 'Sự kiện và Registration',
+    labelKey: 'tournament',
+    descriptionKey: 'tournamentDescription',
     icon: Trophy
   },
   {
     key: 'jockeyReviews',
-    label: 'Duyệt jockey',
-    description: 'Hồ sơ vận động viên',
+    labelKey: 'manageJockeys',
+    descriptionKey: 'jockeysDescription',
     icon: ClipboardCheck
   },
   {
     key: 'horseReviews',
-    label: 'Duyệt ngựa',
-    description: 'Hồ sơ và sức khỏe',
+    labelKey: 'manageHorses',
+    descriptionKey: 'horsesDescription',
     icon: ShieldCheck
   },
   {
     key: 'refereeAssignments',
-    label: 'Phân công Referee',
-    description: 'Lịch làm việc Referee',
+    labelKey: 'refereeAssignments',
+    descriptionKey: 'refereeDescription',
     icon: Gavel
   }
 ];
 
 export default function AdminDashboard({ currentUser, onLogout }) {
+  const { t } = useLanguage();
   const [activeSection, setActiveSection] = useState('overview');
   const adminName =
     currentUser?.username || currentUser?.fullName || currentUser?.email || 'Admin';
@@ -95,19 +98,19 @@ export default function AdminDashboard({ currentUser, onLogout }) {
           <div className="min-w-0">
             <strong className="block truncate text-sm font-black">Horse Racing</strong>
             <span className="mt-0.5 block truncate text-[0.7rem] font-bold uppercase text-white/55">
-              Trung tâm quản trị
+              {t('adminCenter')}
             </span>
           </div>
         </div>
 
         <div className="relative mt-4 hidden px-2 lg:block">
           <span className="text-[0.65rem] font-extrabold uppercase text-white/40">
-            Điều hướng
+            {t('navigation')}
           </span>
         </div>
 
         <nav
-          aria-label="Điều hướng quản trị"
+          aria-label={t('navigation')}
           className="relative mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 lg:mt-2 lg:grid-cols-1 lg:gap-1.5"
         >
           {adminNavItems.map((item) => {
@@ -146,10 +149,10 @@ export default function AdminDashboard({ currentUser, onLogout }) {
                 </span>
                 <span className="min-w-0">
                   <strong className="block truncate text-xs font-extrabold sm:text-sm">
-                    {item.label}
+                    {t(item.labelKey)}
                   </strong>
                   <small className="mt-0.5 hidden truncate text-[0.65rem] font-semibold text-white/45 lg:block">
-                    {item.description}
+                    {t(item.descriptionKey)}
                   </small>
                 </span>
               </motion.button>
@@ -160,7 +163,7 @@ export default function AdminDashboard({ currentUser, onLogout }) {
         <div className="relative mt-4 flex items-center gap-2 border-t border-white/10 pt-3 lg:mt-auto lg:block">
           <div className="min-w-0 flex-1 rounded-lg border border-white/10 bg-white/[0.07] px-3 py-2.5 lg:mb-2">
             <span className="text-[0.65rem] font-bold uppercase text-white/45">
-              Đang đăng nhập
+              {t('signedInAs')}
             </span>
             <strong className="mt-1 block truncate text-sm font-extrabold">
               {adminName}
@@ -176,8 +179,11 @@ export default function AdminDashboard({ currentUser, onLogout }) {
             onClick={onLogout}
           >
             <LogOut size={17} />
-            <span className="hidden sm:inline">Đăng xuất</span>
+            <span className="hidden sm:inline">{t('logout')}</span>
           </button>
+          <div className="mt-2 lg:mt-3">
+            <LanguageToggle className="w-full border-white/10 bg-white/95" />
+          </div>
         </div>
       </aside>
 
@@ -190,9 +196,9 @@ export default function AdminDashboard({ currentUser, onLogout }) {
               </span>
               <div className="min-w-0">
                 <p className="text-[0.68rem] font-extrabold uppercase text-brown-500">
-                  Khu vực quản trị
+                  {t('adminArea')}
                 </p>
-                <h1 className="truncate text-xl font-black">{activeNavItem.label}</h1>
+                <h1 className="truncate text-xl font-black">{t(activeNavItem.labelKey)}</h1>
               </div>
             </div>
           )}

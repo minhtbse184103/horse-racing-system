@@ -1,83 +1,51 @@
-import { useMemo } from 'react';
-
-const MAX_TOTAL_IMAGES = 10;
-
-function countAllImages(values) {
-  return (
-    (values.horsePassportImages?.length || 0) +
-    (values.horseCertificateImages?.length || 0) +
-    (values.horseImages?.length || 0)
-  );
-}
-
-function getImageLabel(type) {
-  if (type === 'horsePassportImages') return 'Horse Passport';
-  if (type === 'horseCertificateImages') return 'Health Certificate';
-  return 'Horse Image';
-}
-
-function getImageHelpText(type) {
-  if (type === 'horsePassportImages') return 'Upload the horse passport document. Supported: PDF, JPG, PNG. Required.';
-  if (type === 'horseCertificateImages') return 'Upload the horse health certificate. Supported: PDF, JPG, PNG. Required.';
-  return 'Upload a clear image or document of the horse. Supported: PDF, JPG, PNG. Required.';
-}
-
-function getFileAccept(type) {
-  return 'application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png';
-}
-
 function isPreviewableImage(image) {
   const source = image?.dataUrl || image?.url || '';
   return String(image?.type || '').startsWith('image/') || String(source).startsWith('data:image/');
 }
 
-function ImageUploadGroup({ type, values, errors, isSaving, onFilesChange, onRemoveImage }) {
-  const images = values[type] || [];
-  const totalImages = countAllImages(values);
-  const remaining = Math.max(0, MAX_TOTAL_IMAGES - totalImages);
+function HealthCertificateUpload({ values, errors, isSaving, onFilesChange, onRemoveImage }) {
+  const images = values.horseCertificateImages || [];
 
   return (
-    <div className={errors[type] ? 'horse-upload-group has-error' : 'horse-upload-group'}>
+    <div className={errors.horseCertificateImages ? 'horse-upload-group has-error' : 'horse-upload-group'}>
       <div className="horse-upload-header">
         <div>
-          <label className="field-label" htmlFor={type}>
-            {getImageLabel(type)} <span className="required">*</span>
+          <label className="field-label" htmlFor="horseCertificateImages">
+            Health Certificate <span className="required">*</span>
           </label>
-          <p>{getImageHelpText(type)}</p>
-          <small>Tong so file con co the import: {remaining}</small>
+          <p>Upload one file only. Accepted formats: PDF, JPG, JPEG, PNG.</p>
         </div>
 
         <label className="outline-button compact-button cursor-pointer">
           Import Image
           <input
-            id={type}
+            id="horseCertificateImages"
             className="sr-only"
             type="file"
-            accept={getFileAccept(type)}
-            multiple
-            onChange={(event) => onFilesChange(type, event)}
-            disabled={isSaving || remaining <= 0}
+            accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png"
+            onChange={(event) => onFilesChange('horseCertificateImages', event)}
+            disabled={isSaving}
           />
         </label>
       </div>
 
-      {errors[type] && <p className="field-error">{errors[type]}</p>}
+      {errors.horseCertificateImages && <p className="field-error">{errors.horseCertificateImages}</p>}
 
       {images.length > 0 ? (
         <div className="horse-upload-preview-grid">
           {images.map((image, index) => (
-            <article className="horse-upload-preview-card" key={`${type}-${image.name}-${index}`}>
+            <article className="horse-upload-preview-card" key={`health-certificate-${image.name}-${index}`}>
               {isPreviewableImage(image) ? (
-                <img src={image.dataUrl || image.url} alt={`${getImageLabel(type)} ${index + 1}`} />
+                <img src={image.dataUrl || image.url} alt={`Health Certificate ${index + 1}`} />
               ) : (
                 <div className="horse-upload-empty">PDF</div>
               )}
               <div>
-                <strong>{image.name || `${getImageLabel(type)} ${index + 1}`}</strong>
+                <strong>{image.name || `Health Certificate ${index + 1}`}</strong>
                 <button
                   className="danger-action"
                   type="button"
-                  onClick={() => onRemoveImage(type, index)}
+                  onClick={() => onRemoveImage('horseCertificateImages', index)}
                   disabled={isSaving}
                 >
                   Remove
@@ -105,8 +73,6 @@ export default function OwnerHorseForm({
   onFilesChange,
   onRemoveImage
 }) {
-  const totalImages = useMemo(() => countAllImages(formValues), [formValues]);
-
   return (
     <div className="horse-form-overlay" role="presentation" onClick={onCancelEdit}>
       <section className="horse-form-modal" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
@@ -114,9 +80,7 @@ export default function OwnerHorseForm({
           <div>
             <p className="eyebrow">Register New Horse</p>
             <h2>{editingHorse ? 'Cap nhat ho so ngua' : 'Them ngua moi'}</h2>
-            <p>
-              Nhap Passport Number o dau form. Khi submit, he thong se kiem tra Passport Number co bi trung khong va bao loi ngay trong window nay.
-            </p>
+            <p>Owner enters horse information manually. Admin verifies it using the official horse profile URL.</p>
           </div>
 
           <button className="outline-button compact-button" type="button" onClick={onCancelEdit} disabled={isSaving}>
@@ -131,22 +95,6 @@ export default function OwnerHorseForm({
             </div>
           )}
 
-          <label className="field-label" htmlFor="horsePassportNumber">
-            Passport Number <span className="required">*</span>
-          </label>
-          <input
-            className={errors.passportNumber ? 'input has-error' : 'input'}
-            id="horsePassportNumber"
-            name="passportNumber"
-            type="text"
-            placeholder="Vi du: VN-HORSE-0001"
-            value={formValues.passportNumber || ''}
-            onChange={onChange}
-            disabled={isSaving}
-            autoFocus={!editingHorse}
-          />
-          {errors.passportNumber && <p className="field-error">{errors.passportNumber}</p>}
-
           <label className="field-label" htmlFor="horseName">
             Horse Name <span className="required">*</span>
           </label>
@@ -159,101 +107,119 @@ export default function OwnerHorseForm({
             value={formValues.horseName}
             onChange={onChange}
             disabled={isSaving}
+            autoFocus={!editingHorse}
           />
           {errors.horseName && <p className="field-error">{errors.horseName}</p>}
 
           <div className="owner-form-row">
             <div>
-              <label className="field-label" htmlFor="horseBreed">
-                Breed <span className="required">*</span>
+              <label className="field-label" htmlFor="horseAge">
+                Age <span className="required">*</span>
               </label>
               <input
-                className={errors.breed ? 'input has-error' : 'input'}
-                id="horseBreed"
-                name="breed"
-                type="text"
-                placeholder="Arabian, Thoroughbred..."
-                value={formValues.breed}
+                className={errors.age ? 'input has-error' : 'input'}
+                id="horseAge"
+                name="age"
+                type="number"
+                min="1"
+                step="1"
+                value={formValues.age}
                 onChange={onChange}
                 disabled={isSaving}
               />
-              {errors.breed && <p className="field-error">{errors.breed}</p>}
+              {errors.age && <p className="field-error">{errors.age}</p>}
             </div>
 
-            <div>
-              <label className="field-label" htmlFor="horseColor">
-                Coat Color <span className="required">*</span>
-              </label>
-              <input
-                className={errors.color ? 'input has-error' : 'input'}
-                id="horseColor"
-                name="color"
-                type="text"
-                placeholder="Brown, black, white..."
-                value={formValues.color}
-                onChange={onChange}
-                disabled={isSaving}
-              />
-              {errors.color && <p className="field-error">{errors.color}</p>}
-            </div>
-          </div>
-
-          <div className="owner-form-row">
-            <div>
-              <label className="field-label" htmlFor="horseGender">
-                Gender <span className="required">*</span>
-              </label>
-              <select
-                className={errors.gender ? 'input has-error' : 'input'}
-                id="horseGender"
-                name="gender"
-                value={formValues.gender}
-                onChange={onChange}
-                disabled={isSaving}
-              >
-                <option value="MALE">Male</option>
-                <option value="FEMALE">Female</option>
-              </select>
-              {errors.gender && <p className="field-error">{errors.gender}</p>}
-            </div>
-
-            <div>
-              <label className="field-label" htmlFor="horseBirthDate">
-                Date of Birth <span className="required">*</span>
-              </label>
-              <input
-                className={errors.dayOfBirth ? 'input has-error' : 'input'}
-                id="horseBirthDate"
-                name="dayOfBirth"
-                type="date"
-                value={formValues.dayOfBirth}
-                onChange={onChange}
-                disabled={isSaving}
-              />
-              {errors.dayOfBirth && <p className="field-error">{errors.dayOfBirth}</p>}
-            </div>
-          </div>
-
-          <div className="owner-form-row">
             <div>
               <label className="field-label" htmlFor="horseWeight">
-                Weight <span className="required">*</span>
+                Weight (kg) <span className="required">*</span>
               </label>
               <input
                 className={errors.weight ? 'input has-error' : 'input'}
                 id="horseWeight"
                 name="weight"
                 type="number"
-                min="0"
+                min="1"
                 step="0.1"
-                placeholder="450"
                 value={formValues.weight}
                 onChange={onChange}
                 disabled={isSaving}
               />
               {errors.weight && <p className="field-error">{errors.weight}</p>}
             </div>
+          </div>
 
+          <div className="owner-form-row">
+            <div>
+              <label className="field-label" htmlFor="horseColour">
+                Colour <span className="required">*</span>
+              </label>
+              <input
+                className={errors.colour ? 'input has-error' : 'input'}
+                id="horseColour"
+                name="colour"
+                type="text"
+                placeholder="Bay, chestnut, grey..."
+                value={formValues.colour}
+                onChange={onChange}
+                disabled={isSaving}
+              />
+              {errors.colour && <p className="field-error">{errors.colour}</p>}
+            </div>
+          </div>
+
+          <div className="owner-form-row">
+            <div>
+              <label className="field-label" htmlFor="horseSex">
+                Sex <span className="required">*</span>
+              </label>
+              <select
+                className={errors.sex ? 'input has-error' : 'input'}
+                id="horseSex"
+                name="sex"
+                value={formValues.sex}
+                onChange={onChange}
+                disabled={isSaving}
+              >
+                <option value="MALE">Male</option>
+                <option value="FEMALE">Female</option>
+              </select>
+              {errors.sex && <p className="field-error">{errors.sex}</p>}
+            </div>
+
+            <div>
+              <label className="field-label" htmlFor="horseBreeding">
+                Breeding <span className="required">*</span>
+              </label>
+              <input
+                className={errors.breeding ? 'input has-error' : 'input'}
+                id="horseBreeding"
+                name="breeding"
+                type="text"
+                placeholder="Thoroughbred..."
+                value={formValues.breeding}
+                onChange={onChange}
+                disabled={isSaving}
+              />
+              {errors.breeding && <p className="field-error">{errors.breeding}</p>}
+            </div>
+          </div>
+
+          <label className="field-label" htmlFor="horseTrainer">
+            Trainer <span className="required">*</span>
+          </label>
+          <input
+            className={errors.trainer ? 'input has-error' : 'input'}
+            id="horseTrainer"
+            name="trainer"
+            type="text"
+            value={formValues.trainer}
+            onChange={onChange}
+            disabled={isSaving}
+          />
+          {errors.trainer && <p className="field-error">{errors.trainer}</p>}
+
+          <div className="owner-form-row">
             <div>
               <label className="field-label" htmlFor="healthCertificateExpiryDate">
                 Health Certificate Expiry Date <span className="required">*</span>
@@ -269,40 +235,35 @@ export default function OwnerHorseForm({
               />
               {errors.healthCertificateExpiryDate && <p className="field-error">{errors.healthCertificateExpiryDate}</p>}
             </div>
+
+            <div>
+              <label className="field-label" htmlFor="officialHorseProfileUrl">
+                Official Horse Profile URL <span className="required">*</span>
+              </label>
+              <input
+                className={errors.officialHorseProfileUrl ? 'input has-error' : 'input'}
+                id="officialHorseProfileUrl"
+                name="officialHorseProfileUrl"
+                type="url"
+                placeholder="https://www.racingandsports.com.au/thoroughbred/horse/..."
+                value={formValues.officialHorseProfileUrl || ''}
+                onChange={onChange}
+                disabled={isSaving}
+              />
+              <p className="field-help">
+                Paste the official horse profile URL from Racing & Sports, Racing Post, Equibase, HKJC, or another trusted racing website.
+              </p>
+              {errors.officialHorseProfileUrl && <p className="field-error">{errors.officialHorseProfileUrl}</p>}
+            </div>
           </div>
 
-          <div className="horse-upload-summary">
-            Da import {totalImages}/{MAX_TOTAL_IMAGES} file. Tong so file cua Horse Passport, Health Certificate va Horse Image khong duoc vuot qua {MAX_TOTAL_IMAGES}.
-          </div>
-
-          <ImageUploadGroup
-            type="horsePassportImages"
+          <HealthCertificateUpload
             values={formValues}
             errors={errors}
             isSaving={isSaving}
             onFilesChange={onFilesChange}
             onRemoveImage={onRemoveImage}
           />
-
-          <ImageUploadGroup
-            type="horseCertificateImages"
-            values={formValues}
-            errors={errors}
-            isSaving={isSaving}
-            onFilesChange={onFilesChange}
-            onRemoveImage={onRemoveImage}
-          />
-
-          <ImageUploadGroup
-            type="horseImages"
-            values={formValues}
-            errors={errors}
-            isSaving={isSaving}
-            onFilesChange={onFilesChange}
-            onRemoveImage={onRemoveImage}
-          />
-
-          {errors.totalImages && <p className="field-error">{errors.totalImages}</p>}
 
           <div className="admin-form-actions sticky-modal-actions">
             <button className="primary-button" type="submit" disabled={isSaving}>

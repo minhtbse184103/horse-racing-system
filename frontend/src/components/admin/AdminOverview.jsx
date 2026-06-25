@@ -18,6 +18,7 @@ import {
   Users
 } from 'lucide-react';
 import { formatDisplayLabel } from '../../lib';
+import { useLanguage } from '../../context/LanguageContext';
 import { getPendingHorses } from '../../services/adminHorseReviewService';
 import { getJockeyProfilesUnderReview } from '../../services/adminProfileReviewService';
 import {
@@ -45,22 +46,14 @@ const STATUS_STYLES = {
   CANCELLED: 'bg-red-100 text-red-700'
 };
 
-const STATUS_LABELS = {
-  OPEN_FOR_REGISTRATION: 'Đang mở đăng ký',
-  REGISTRATION_CLOSED: 'Đã đóng đăng ký',
-  IN_PROGRESS: 'Đang diễn ra',
-  COMPLETED: 'Đã hoàn thành',
-  CANCELLED: 'Đã hủy'
-};
-
-function formatStatus(status) {
-  return STATUS_LABELS[status] || formatDisplayLabel(status);
+function formatStatus(status, t) {
+  return t(`status_${status}`) || formatDisplayLabel(status);
 }
 
-function formatDate(value) {
-  if (!value) return 'Chưa có ngày';
+function formatDate(value, language, t) {
+  if (!value) return t('noDate');
 
-  return new Date(`${value}T00:00:00`).toLocaleDateString('vi-VN', {
+  return new Date(`${value}T00:00:00`).toLocaleDateString(language === 'vi' ? 'vi-VN' : 'en-US', {
     day: '2-digit',
     month: 'short',
     year: 'numeric'
@@ -168,6 +161,7 @@ function WorkQueueCard({ icon: Icon, label, count, note, tone, onClick, isLoadin
 }
 
 export default function AdminOverview({ onNavigate }) {
+  const { language, t } = useLanguage();
   const [data, setData] = useState({
     users: [],
     tournaments: [],
@@ -283,43 +277,43 @@ export default function AdminOverview({ onNavigate }) {
   const workQueues = [
     {
       key: 'ownerApplications',
-      label: 'Duyệt Owner',
+      label: t('ownerApproval'),
       count: pendingOwnerApplications,
-      note: 'Tài khoản đang chờ xét duyệt để trở thành Owner',
+      note: t('ownerApprovalNote'),
       icon: FileText,
       tone: 'bg-rose-100 text-rose-700'
     },
     {
       key: 'registrations',
       target: 'events',
-      label: 'Duyệt đơn đăng ký',
+      label: t('registrationApproval'),
       count: data.pendingRegistrations.length,
-      note: 'Lời mời jockey đã chấp nhận đang chờ admin quyết định',
+      note: t('registrationApprovalNote'),
       icon: UserCheck,
       tone: 'bg-blue-100 text-blue-700'
     },
     {
       key: 'horseReviews',
-      label: 'Duyệt ngựa',
+      label: t('horseApproval'),
       count: data.pendingHorses.length,
-      note: 'Hồ sơ ngựa và chứng nhận sức khỏe đang chờ duyệt',
+      note: t('horseApprovalNote'),
       icon: ShieldCheck,
       tone: 'bg-green-100 text-green-700'
     },
     {
       key: 'jockeyReviews',
-      label: 'Duyệt jockey',
+      label: t('jockeyApproval'),
       count: data.pendingJockeys.length,
-      note: 'Hồ sơ jockey đang chờ phê duyệt',
+      note: t('jockeyApprovalNote'),
       icon: ClipboardCheck,
       tone: 'bg-amber-100 text-amber-700'
     },
     {
       key: 'raceEntries',
       target: 'events',
-      label: 'Hàng chờ xếp cuộc đua',
+      label: t('raceQueueSetup'),
       count: data.raceEntryQueue.length,
-      note: 'Đơn đăng ký đã xác nhận đang chờ xếp cuộc đua',
+      note: t('raceQueueSetupNote'),
       icon: Flag,
       tone: 'bg-purple-100 text-purple-700'
     }
@@ -328,26 +322,26 @@ export default function AdminOverview({ onNavigate }) {
   const quickActions = [
     {
       key: 'events',
-      label: 'Thiết lập giải đấu',
-      note: 'Tạo giải đấu và các cuộc đua trực thuộc',
+      label: t('setupTournament'),
+      note: t('setupTournamentNote'),
       icon: Trophy
     },
     {
       key: 'ownerApplications',
-      label: 'Duyệt Owner',
-      note: `${pendingOwnerApplications} hồ sơ đang chờ xử lý`,
+      label: t('ownerApproval'),
+      note: t('waitingCount', { count: pendingOwnerApplications }),
       icon: FileText
     },
     {
       key: 'refereeAssignments',
-      label: 'Phân công referee',
-      note: `${data.refereeAssignments.length} cuộc đua đã có người phụ trách`,
+      label: t('refereeAssignments'),
+      note: t('refereeAssignmentNote', { count: data.refereeAssignments.length }),
       icon: Gavel
     },
     {
       key: 'users',
-      label: 'Quản lý người dùng',
-      note: `${activeUsers} tài khoản đang hoạt động`,
+      label: t('manageUsers'),
+      note: t('activeAccountNote', { count: activeUsers }),
       icon: Users
     }
   ];
@@ -357,21 +351,20 @@ export default function AdminOverview({ onNavigate }) {
       <header className="relative overflow-hidden rounded-lg border border-white/80 bg-[linear-gradient(135deg,rgba(255,255,255,0.84),rgba(255,248,238,0.52))] px-5 py-5 shadow-[0_14px_40px_rgba(78,44,25,0.08)] backdrop-blur-sm sm:px-6 sm:py-6 md:flex md:items-center md:justify-between md:gap-6">
         <div>
           <p className="text-xs font-extrabold uppercase text-brown-500">
-            Trung tâm điều hành
+            {t('operationsCenter')}
           </p>
           <h1 className="mt-2 text-3xl font-black sm:text-4xl">
-            Tổng quan vận hành
+            {t('operationsOverview')}
           </h1>
           <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-slate-500 sm:text-base">
-            Theo dõi hồ sơ, chuẩn bị danh sách thi đấu và điều phối các giải đấu
-            từ một màn hình duy nhất.
+            {t('operationsOverviewSubtitle')}
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             <span className="inline-flex items-center gap-2 rounded-full border border-emerald-700/10 bg-emerald-50 px-3 py-1.5 text-xs font-extrabold text-emerald-800">
-              <Activity size={14} /> {isLoading ? 'Đang đồng bộ' : `${activeUsers} tài khoản hoạt động`}
+              <Activity size={14} /> {isLoading ? t('syncing') : t('activeAccountCount', { count: activeUsers })}
             </span>
             <span className="inline-flex items-center gap-2 rounded-full border border-brown-700/10 bg-cream-200/70 px-3 py-1.5 text-xs font-extrabold text-brown-700">
-              <Trophy size={14} /> {isLoading ? 'Đang tải giải đấu' : `${data.tournaments.length} giải đấu`}
+              <Trophy size={14} /> {isLoading ? t('loadingTournaments') : t('tournamentCount', { count: data.tournaments.length })}
             </span>
           </div>
         </div>
@@ -383,7 +376,7 @@ export default function AdminOverview({ onNavigate }) {
           disabled={isLoading}
         >
           <RefreshCw size={17} className={isLoading ? 'animate-spin' : ''} />
-          Làm mới
+          {t('refresh')}
         </button>
         <span className="pointer-events-none absolute -right-10 -top-12 size-36 rounded-full border border-gold-400/15" />
       </header>
@@ -395,7 +388,7 @@ export default function AdminOverview({ onNavigate }) {
             {error}
           </span>
           <button className="rounded-md border border-danger/20 bg-white px-3 py-2 text-xs font-extrabold transition hover:bg-danger-bg" type="button" onClick={loadOverview}>
-            Thử lại
+            {t('retry')}
           </button>
         </div>
       )}
@@ -408,36 +401,36 @@ export default function AdminOverview({ onNavigate }) {
       >
         <MetricCard
           icon={Trophy}
-          label="Giải đấu đang mở"
+          label={t('openTournaments')}
           value={openTournaments}
-          note={`${data.tournaments.length} giải đấu trong hệ thống`}
+          note={t('tournamentsInSystem', { count: data.tournaments.length })}
           tone="brown"
           isLoading={isLoading}
           onClick={() => onNavigate('events')}
         />
         <MetricCard
           icon={ClipboardCheck}
-          label="Hồ sơ đang chờ xét duyệt"
+          label={t('reviewQueueProfiles')}
           value={totalReviewQueue}
-          note="Tổng hợp đơn đăng ký, ngựa và jockey"
+          note={t('reviewQueueProfilesNote')}
           tone="gold"
           isLoading={isLoading}
           onClick={() => onNavigate('events')}
         />
         <MetricCard
           icon={Flag}
-          label="Đang chờ xếp cuộc đua"
+          label={t('raceEntryQueue')}
           value={data.raceEntryQueue.length}
-          note={`${approvedRegistrations} đơn đăng ký đã được duyệt`}
+          note={t('approvedRegistrationCount', { count: approvedRegistrations })}
           tone="green"
           isLoading={isLoading}
           onClick={() => onNavigate('events')}
         />
         <MetricCard
           icon={Gavel}
-          label="Referee đã phân công"
+          label={t('assignedReferees')}
           value={data.refereeAssignments.length}
-          note="Cuộc đua đã có referee phụ trách"
+          note={t('assignedRefereesNote')}
           tone="cream"
           isLoading={isLoading}
           onClick={() => onNavigate('refereeAssignments')}
@@ -449,12 +442,12 @@ export default function AdminOverview({ onNavigate }) {
           <div className="flex items-start justify-between gap-4">
             <div>
               <span className="text-xs font-extrabold uppercase text-brown-500">
-                Cần xử lý
+                {t('needsProcessing')}
               </span>
-              <h2 className="mt-1 text-2xl font-black">Hàng chờ công việc quản trị</h2>
+              <h2 className="mt-1 text-2xl font-black">{t('adminWorkQueue')}</h2>
             </div>
             <span className="shrink-0 rounded-full bg-danger-bg px-3 py-1 text-sm font-black text-danger">
-              {isLoading ? '...' : totalReviewQueue + data.raceEntryQueue.length} đang chờ
+              {isLoading ? '...' : t('waitingCount', { count: totalReviewQueue + data.raceEntryQueue.length })}
             </span>
           </div>
 
@@ -472,9 +465,9 @@ export default function AdminOverview({ onNavigate }) {
 
         <motion.section whileHover={{ y: -2 }} className="relative overflow-hidden rounded-lg border border-white/10 bg-[linear-gradient(145deg,#2b1710,#4a2819)] p-4 text-white shadow-[0_22px_52px_rgba(43,23,16,0.25)] sm:p-5">
           <span className="text-xs font-extrabold uppercase text-gold-400">
-            Thao tác nhanh
+            {t('quickActions')}
           </span>
-          <h2 className="mt-1 text-2xl font-black">Tiếp tục thiết lập</h2>
+          <h2 className="mt-1 text-2xl font-black">{t('continueSetup')}</h2>
 
           <div className="mt-5 grid gap-3">
             {quickActions.map((action) => {
@@ -516,9 +509,9 @@ export default function AdminOverview({ onNavigate }) {
           <div className="flex items-center justify-between gap-4 border-b border-brown-700/10 bg-cream-200/45 px-5 py-4">
             <div>
               <span className="text-xs font-extrabold uppercase text-brown-500">
-                Lịch sự kiện
+                {t('eventSchedule')}
               </span>
-              <h2 className="mt-1 text-xl font-black">Giải đấu sắp diễn ra</h2>
+              <h2 className="mt-1 text-xl font-black">{t('upcomingTournaments')}</h2>
             </div>
             <CalendarDays size={22} className="text-brown-500" />
           </div>
@@ -531,8 +524,8 @@ export default function AdminOverview({ onNavigate }) {
               <div className="grid min-h-40 place-items-center px-5 py-8 text-center">
                 <div>
                   <span className="mx-auto grid size-11 place-items-center rounded-lg bg-cream-200 text-brown-500"><CalendarDays size={20} /></span>
-                  <p className="mt-3 font-extrabold text-brown-900">Chưa có giải đấu sắp diễn ra</p>
-                  <p className="mt-1 text-xs font-semibold text-slate-500">Các giải đấu sắp tới sẽ xuất hiện tại đây.</p>
+                  <p className="mt-3 font-extrabold text-brown-900">{t('noUpcomingTournaments')}</p>
+                  <p className="mt-1 text-xs font-semibold text-slate-500">{t('noUpcomingTournamentsNote')}</p>
                 </div>
               </div>
             ) : (
@@ -557,7 +550,7 @@ export default function AdminOverview({ onNavigate }) {
                   <span className="flex items-center gap-2 text-right">
                     <span>
                     <time className="block text-xs font-extrabold text-brown-700">
-                      {formatDate(tournament.startDate)}
+                      {formatDate(tournament.startDate, language, t)}
                     </time>
                     <small
                       className={`mt-1 inline-flex rounded-full px-2 py-1 text-[0.68rem] font-extrabold ${
@@ -565,7 +558,7 @@ export default function AdminOverview({ onNavigate }) {
                         'bg-cream-200 text-brown-700'
                       }`}
                     >
-                      {formatStatus(tournament.status)}
+                      {formatStatus(tournament.status, t)}
                     </small>
                     </span>
                     <ChevronRight className="hidden text-brown-500/50 transition group-hover:translate-x-0.5 group-hover:text-brown-500 sm:block" size={17} />
@@ -579,9 +572,9 @@ export default function AdminOverview({ onNavigate }) {
 
         <motion.section whileHover={{ y: -2 }} className="rounded-lg border border-white/75 bg-cream-100 p-5 shadow-[0_18px_45px_rgba(78,44,25,0.1),0_1px_2px_rgba(43,23,16,0.08)]">
           <span className="text-xs font-extrabold uppercase text-brown-500">
-            Vòng đời giải đấu
+            {t('tournamentLifecycle')}
           </span>
-          <h2 className="mt-1 text-xl font-black">Giải đấu theo trạng thái</h2>
+          <h2 className="mt-1 text-xl font-black">{t('tournamentsByStatus')}</h2>
 
           <div className="mt-5 grid gap-4">
             {tournamentStatuses.map(({ status, count }) => (
@@ -591,7 +584,7 @@ export default function AdminOverview({ onNavigate }) {
               >
                 <span className="min-w-0">
                   <span className="flex items-center justify-between gap-3 text-sm font-extrabold">
-                    <span>{formatStatus(status)}</span>
+                    <span>{formatStatus(status, t)}</span>
                     <span className="rounded-full bg-cream-200 px-2 py-0.5 text-xs">{isLoading ? '...' : count}</span>
                   </span>
                   <span className="mt-2 block h-2 overflow-hidden rounded-full bg-cream-200">

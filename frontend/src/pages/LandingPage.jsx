@@ -7,6 +7,7 @@ import Roles from "../components/landing/Roles";
 import Lifecycle from "../components/landing/Lifecycle";
 import FinalCTA from "../components/landing/FinalCTA";
 import Footer from "../components/landing/Footer";
+import LanguageToggle from "../components/common/LanguageToggle";
 import {
   getPublicTournamentConditions,
   getPublicTournaments
@@ -95,6 +96,9 @@ export default function LandingPage({ onGoLogin, onGoRegister }) {
 
   return (
     <div className="min-h-screen bg-cream-100 text-brown-900 font-sans">
+      <div className="fixed right-4 top-4 z-50">
+        <LanguageToggle />
+      </div>
       <Navbar onGoLogin={onGoLogin} onGoRegister={onGoRegister} />
       <main>
         <Hero stats={heroStats} isLoading={isLoading} />

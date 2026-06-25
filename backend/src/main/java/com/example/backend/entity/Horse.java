@@ -35,38 +35,35 @@ public class Horse {
     @Column(name = "ownerID", nullable = false)
     private Integer ownerId;
 
-    @Column(name = "passportNumber", nullable = false, unique = true)
-    private String passportNumber;
-
     @Column(name = "horseName", nullable = false, unique = true)
     private String horseName;
 
-    @Column(name = "breed", nullable = false)
-    private String breed;
-
-    @Column(name = "gender", nullable = false)
-    private String gender;
-
-    @Column(name = "color", nullable = false)
-    private String color;
-
-    @Column(name = "dayOfBirth", nullable = false)
-    private LocalDate dayOfBirth;
+    @Column(name = "age", nullable = false)
+    private Integer age;
 
     @Column(name = "weight", nullable = false)
     private BigDecimal weight;
 
+    @Column(name = "colour", nullable = false)
+    private String colour;
+
+    @Column(name = "sex", nullable = false)
+    private String sex;
+
+    @Column(name = "breeding", nullable = false)
+    private String breeding;
+
+    @Column(name = "trainer", nullable = false)
+    private String trainer;
+
     @Column(name = "healthCertExpiry", nullable = false)
     private LocalDate healthCertExpiry;
-
-    @Column(name = "horsePassportUrl", nullable = false, columnDefinition = "TEXT")
-    private String horsePassportUrl;
 
     @Column(name = "healthCertificateUrl", nullable = false, columnDefinition = "TEXT")
     private String healthCertificateUrl;
 
-    @Column(name = "horseImageUrl", nullable = false, columnDefinition = "TEXT")
-    private String horseImageUrl;
+    @Column(name = "officialHorseProfileUrl", nullable = false, columnDefinition = "TEXT")
+    private String officialHorseProfileUrl;
 
     @Column(name = "status")
     private String status;

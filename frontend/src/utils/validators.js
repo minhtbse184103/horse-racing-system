@@ -5,15 +5,15 @@ export function validateLoginForm(values) {
   const errors = {};
 
   if (!values.email?.trim()) {
-    errors.email = 'Email là bắt buộc.';
+    errors.email = 'Email is required.';
   } else if (!EMAIL_REGEX.test(values.email.trim())) {
-    errors.email = 'Định dạng email không hợp lệ.';
+    errors.email = 'Email format is invalid.';
   }
 
   if (!values.password) {
-    errors.password = 'Mật khẩu là bắt buộc.';
+    errors.password = 'Password is required.';
   } else if (values.password.length < 6 || values.password.length > 72) {
-    errors.password = 'Mật khẩu phải có từ 6 đến 72 ký tự.';
+    errors.password = 'Password must be 6 to 72 characters.';
   }
 
   return errors;
@@ -23,27 +23,27 @@ export function validateSignupForm(values) {
   const errors = {};
 
   if (!values.username?.trim()) {
-    errors.username = 'Username la bat buoc.';
+    errors.username = 'Tên đăng nhập là bắt buộc.';
   } else if (values.username.trim().length > 255) {
-    errors.username = 'Username khong duoc vuot qua 255 ky tu.';
+    errors.username = 'Tên đăng nhập không được vượt quá 255 ký tự.';
   }
 
   if (!values.email?.trim()) {
-    errors.email = 'Email là bắt buộc.';
+    errors.email = 'Email is required.';
   } else if (!EMAIL_REGEX.test(values.email.trim())) {
-    errors.email = 'Định dạng email không hợp lệ.';
+    errors.email = 'Email format is invalid.';
   }
 
   if (!values.phone?.trim()) {
-    errors.phone = 'Số điện thoại là bắt buộc.';
+    errors.phone = 'Phone is required.';
   } else if (!PHONE_REGEX.test(values.phone.trim())) {
-    errors.phone = 'Số điện thoại phải gồm 9-15 chữ số và có thể bắt đầu bằng +.';
+    errors.phone = 'Phone must be 9-15 digits and may start with +.';
   }
 
   if (!values.password) {
-    errors.password = 'Mật khẩu là bắt buộc.';
+    errors.password = 'Password is required.';
   } else if (values.password.length < 6 || values.password.length > 72) {
-    errors.password = 'Mật khẩu phải có từ 6 đến 72 ký tự.';
+    errors.password = 'Password must be 6 to 72 characters.';
   }
 
   return errors;
@@ -55,70 +55,37 @@ function toDateOnly(value) {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-function todayDateOnly() {
-  const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
-}
-
 export function validateHorseForm(values) {
   const errors = {};
+  const age = Number(values.age);
   const weight = Number(values.weight);
-  const today = todayDateOnly();
-  const dayOfBirth = toDateOnly(values.dayOfBirth);
   const healthCertificateExpiryDate = toDateOnly(values.healthCertificateExpiryDate);
-  const passportNumber = String(values.passportNumber ?? '').trim();
-  const horsePassportImages = Array.isArray(values.horsePassportImages) ? values.horsePassportImages : [];
   const horseCertificateImages = Array.isArray(values.horseCertificateImages) ? values.horseCertificateImages : [];
-  const horseImages = Array.isArray(values.horseImages) ? values.horseImages : [];
-  const totalImages = horsePassportImages.length + horseCertificateImages.length + horseImages.length;
-
-  if (!passportNumber) {
-    errors.passportNumber = 'Passport Number là bắt buộc.';
-  } else if (passportNumber.length < 3 || passportNumber.length > 50) {
-    errors.passportNumber = 'Passport Number phải có từ 3 đến 50 ký tự.';
-  }
 
   if (!values.horseName?.trim()) {
-    errors.horseName = 'Tên ngựa là bắt buộc.';
+    errors.horseName = 'Horse Name is required.';
   } else if (values.horseName.trim().length < 2 || values.horseName.trim().length > 100) {
-    errors.horseName = 'Tên ngựa phải có từ 2 đến 100 ký tự.';
+    errors.horseName = 'Horse Name must be 2 to 100 characters.';
   } else if (!/^[\p{L}0-9][\p{L}0-9 .'-]*$/u.test(values.horseName.trim())) {
-    errors.horseName = 'Tên ngựa chứa ký tự không hợp lệ.';
+    errors.horseName = 'Horse Name contains invalid characters.';
   }
 
-  if (!values.breed?.trim()) {
-    errors.breed = 'Giống ngựa là bắt buộc.';
-  } else if (values.breed.trim().length < 2 || values.breed.trim().length > 100) {
-    errors.breed = 'Tên giống ngựa phải có từ 2 đến 100 ký tự.';
-  } else if (!/^[\p{L}0-9][\p{L}0-9 .'-]*$/u.test(values.breed.trim())) {
-    errors.breed = 'Tên giống ngựa chứa ký tự không hợp lệ.';
-  }
-
-  if (!values.color?.trim()) {
-    errors.color = 'Màu lông là bắt buộc.';
-  } else if (values.color.trim().length < 2 || values.color.trim().length > 50) {
-    errors.color = 'Màu lông phải có từ 2 đến 50 ký tự.';
-  } else if (!/^[\p{L}][\p{L} .'-]*$/u.test(values.color.trim())) {
-    errors.color = 'Màu lông chứa ký tự không hợp lệ.';
-  }
-
-  if (!values.gender) {
-    errors.gender = 'Gender is required.';
-  }
-
-  if (!values.dayOfBirth) {
-    errors.dayOfBirth = 'Ngày sinh là bắt buộc.';
-  } else if (!dayOfBirth) {
-    errors.dayOfBirth = 'Ngày sinh không hợp lệ.';
-  } else if (dayOfBirth > today) {
-    errors.dayOfBirth = 'Ngày sinh phải là hôm nay hoặc một ngày trong quá khứ.';
+  if (values.age === '' || values.age === null || values.age === undefined) {
+    errors.age = 'Age is required.';
+  } else if (!Number.isFinite(age) || age <= 0) {
+    errors.age = 'Age must be greater than 0.';
   }
 
   if (values.weight === '' || values.weight === null || values.weight === undefined) {
-    errors.weight = 'Cân nặng là bắt buộc.';
-  } else if (!Number.isFinite(weight) || weight < 200 || weight > 1000) {
-    errors.weight = 'Cân nặng của ngựa phải từ 200 đến 1000 kg.';
+    errors.weight = 'Weight is required.';
+  } else if (!Number.isFinite(weight) || weight <= 0) {
+    errors.weight = 'Weight must be greater than 0.';
   }
+
+  if (!values.colour?.trim()) errors.colour = 'Colour is required.';
+  if (!values.sex?.trim()) errors.sex = 'Sex is required.';
+  if (!values.breeding?.trim()) errors.breeding = 'Breeding is required.';
+  if (!values.trainer?.trim()) errors.trainer = 'Trainer is required.';
 
   if (!values.healthCertificateExpiryDate) {
     errors.healthCertificateExpiryDate = 'Health Certificate Expiry Date is required.';
@@ -126,20 +93,23 @@ export function validateHorseForm(values) {
     errors.healthCertificateExpiryDate = 'Health Certificate Expiry Date is invalid.';
   }
 
-  if (horsePassportImages.length === 0) {
-    errors.horsePassportImages = 'Horse Passport is required. Import at least 1 file.';
+  if (!values.officialHorseProfileUrl?.trim()) {
+    errors.officialHorseProfileUrl = 'Official Horse Profile URL is required.';
+  } else {
+    try {
+      const url = new URL(values.officialHorseProfileUrl.trim());
+      if (!['http:', 'https:'].includes(url.protocol)) {
+        errors.officialHorseProfileUrl = 'Official Horse Profile URL must be a valid URL.';
+      }
+    } catch {
+      errors.officialHorseProfileUrl = 'Official Horse Profile URL must be a valid URL.';
+    }
   }
 
   if (horseCertificateImages.length === 0) {
-    errors.horseCertificateImages = 'Health Certificate is required. Import at least 1 file.';
-  }
-
-  if (horseImages.length === 0) {
-    errors.horseImages = 'Horse Image is required. Import at least 1 file.';
-  }
-
-  if (totalImages > 10) {
-    errors.totalImages = 'Total files for Horse Passport, Health Certificate and Horse Image cannot exceed 10 files.';
+    errors.horseCertificateImages = 'Health Certificate is required. Import one file.';
+  } else if (horseCertificateImages.length > 1) {
+    errors.horseCertificateImages = 'Upload one Health Certificate file only.';
   }
 
   return errors;

@@ -24,9 +24,19 @@ public class AdminHorseController {
         this.adminHorseService = adminHorseService;
     }
 
+    @GetMapping
+    public List<HorseResponse> getHorses() {
+        return adminHorseService.getHorses();
+    }
+
     @GetMapping("/pending")
     public List<HorseResponse> getPendingHorses() {
         return adminHorseService.getPendingHorses();
+    }
+
+    @GetMapping("/{horseId}")
+    public HorseResponse getHorseById(@PathVariable Integer horseId) {
+        return adminHorseService.getHorseById(horseId);
     }
 
     @PutMapping("/{horseId}/approve")

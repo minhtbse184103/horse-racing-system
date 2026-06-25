@@ -1,3 +1,6 @@
+import LanguageToggle from './LanguageToggle';
+import { useLanguage } from '../../context/LanguageContext';
+
 export default function AppShell({
   variant = 'owner',
   title,
@@ -11,6 +14,7 @@ export default function AppShell({
   children,
   headerAction
 }) {
+  const { t } = useLanguage();
   const layoutVariant = variant === 'jockey' ? 'owner' : variant;
   const shellClass = `${layoutVariant}-shell`;
   const sidebarClass = `${layoutVariant}-sidebar`;
@@ -30,7 +34,13 @@ export default function AppShell({
           <div className={logoClass}>🏇</div>
           <div>
             <strong>Đường đua chiến thắng</strong>
-            <span>{variant === 'owner' ? 'Cổng thông tin owner' : variant === 'jockey' ? 'Cổng thông tin jockey' : 'Bảng điều khiển quản trị'}</span>
+            <span>
+              {variant === 'owner'
+                ? 'Cổng thông tin owner'
+                : variant === 'jockey'
+                  ? 'Cổng thông tin jockey'
+                  : 'Bảng điều khiển quản trị'}
+            </span>
           </div>
         </div>
 
@@ -55,18 +65,27 @@ export default function AppShell({
         </div>
 
         <button className={logoutClass} type="button" onClick={onLogout}>
-          Sign Out
+          {t('logout')}
         </button>
       </aside>
 
       <section className={mainClass}>
         <header className={topbarClass}>
           <div>
-            <p className="eyebrow">{variant === 'owner' ? 'Bảng điều khiển owner' : variant === 'jockey' ? 'Bảng điều khiển jockey' : 'Admin'}</p>
+            <p className="eyebrow">
+              {variant === 'owner'
+                ? 'Bảng điều khiển owner'
+                : variant === 'jockey'
+                  ? 'Bảng điều khiển jockey'
+                  : 'Admin'}
+            </p>
             <h1>{title}</h1>
             {subtitle && <p>{subtitle}</p>}
           </div>
-          {headerAction}
+          <div className="flex items-center gap-2">
+            <LanguageToggle />
+            {headerAction}
+          </div>
         </header>
 
         {children}

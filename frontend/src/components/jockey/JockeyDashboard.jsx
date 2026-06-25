@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import defaultJockeyAvatar from '../../assets/default-jockey-avatar.svg';
 import AppShell from '../common/AppShell';
-import StatCard from '../common/StatCard';
 import {
   acceptJockeyInvitation,
   createJockeyProfile,
@@ -279,6 +278,14 @@ function countByStatus(invitations, status) {
   return invitations.filter((invitation) => String(invitation.status || '').toUpperCase() === status).length;
 }
 
+function getWinRate(profile) {
+  const totalRaces = Number(profile?.totalRaces ?? 0);
+  const totalWins = Number(profile?.totalWins ?? 0);
+
+  if (!totalRaces || totalRaces < 1) return '0%';
+  return `${Math.round((totalWins / totalRaces) * 100)}%`;
+}
+
 function getProfileNotice(profile, isLoadingProfile) {
   if (isLoadingProfile) return null;
   if (!profile) {
@@ -358,6 +365,41 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
   }, [invitations, statusFilter]);
 
   const latestInvitations = useMemo(() => invitations.slice(0, 5), [invitations]);
+  const pendingInvitationCount = countByStatus(invitations, 'PENDING');
+  const acceptedInvitationCount = countByStatus(invitations, 'ACCEPTED');
+  const profileCompletionItems = [
+    profile?.fullName || profileForm.applicantFullName,
+    profile?.email || profileForm.applicantEmail,
+    profileForm.phoneNumber,
+    profileForm.trainerName,
+    profileForm.issuingAuthority,
+    profileForm.licenseFileName || profileForm.licenseFiles.length > 0
+  ];
+  const profileCompletion = Math.round(
+    (profileCompletionItems.filter(Boolean).length / profileCompletionItems.length) * 100
+  );
+  const jockeyStats = [
+    {
+      label: 'Races',
+      value: profile?.totalRaces ?? 0,
+      detail: 'Total starts'
+    },
+    {
+      label: 'Wins',
+      value: profile?.totalWins ?? 0,
+      detail: `${getWinRate(profile)} win rate`
+    },
+    {
+      label: 'Profile',
+      value: profile ? formatDisplayLabel(profile.status) : 'Missing',
+      detail: profile ? `Licence: ${profile.licenseNo || 'Not set'}` : 'Create profile'
+    },
+    {
+      label: 'Pending',
+      value: pendingInvitationCount,
+      detail: `${acceptedInvitationCount} accepted`
+    }
+  ];
 
   async function loadProfile({ silentMissing = false } = {}) {
     setIsLoadingProfile(true);
@@ -573,8 +615,8 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
 
   function renderProfileForm() {
     return (
-      <form className="owner-panel owner-form licence-application-form" onSubmit={handleProfileSubmit} noValidate>
-        <div className="owner-panel-header">
+      <form className="owner-panel owner-form jockey-profile-form licence-application-form" onSubmit={handleProfileSubmit} noValidate>
+        <div className="owner-panel-header jockey-form-header">
           <div>
             <p className="eyebrow">Hồ sơ jockey</p>
             <h2>{profile ? 'Cập nhật hồ sơ jockey' : 'Tạo hồ sơ jockey'}</h2>
@@ -586,6 +628,20 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
             </span>
           )}
         </div>
+
+        <section className="jockey-profile-summary">
+          <div className="jockey-profile-avatar-large">
+            <img src={profileForm.imgUrl || defaultJockeyAvatar} alt="" />
+          </div>
+          <div>
+            <p className="eyebrow">Profile readiness</p>
+            <h3>{displayValue(profileForm.applicantFullName, jockeyName)}</h3>
+            <p>{profileCompletion}% complete before review. Keep phone, trainer, licence authority and licence file easy to verify.</p>
+          </div>
+          <div className="jockey-completion-meter" aria-label={`${profileCompletion}% profile complete`}>
+            <span style={{ width: `${profileCompletion}%` }} />
+          </div>
+        </section>
 
         {profileSubmitError && (
           <div className="admin-alert error modal-alert" role="alert">
@@ -992,73 +1048,79 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
     if (items.length === 0) return <p className="table-empty">Không có lời mời phù hợp với bộ lọc hiện tại.</p>;
 
     return (
-      <div className="table-wrapper">
-        <table className="user-table">
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Giải đấu</th>
-              <th>Thời gian</th>
-              <th>Deadline đăng ký</th>
-              <th>Ngựa</th>
-              <th>Owner</th>
-              <th>Ngày tạo</th>
-              <th>Hết hạn</th>
-              <th>Trạng thái</th>
-              <th>Đăng ký</th>
-              <th>Thao tác</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((invitation) => {
-              const invitationId = getInvitationId(invitation);
-              const isPending = String(invitation.status || '').toUpperCase() === 'PENDING';
-              const acceptDisabled = !isPending || !isProfileActive || actionId === invitationId;
+      <div className="jockey-invitation-list">
+        {items.map((invitation) => {
+          const invitationId = getInvitationId(invitation);
+          const isPending = String(invitation.status || '').toUpperCase() === 'PENDING';
+          const acceptDisabled = !isPending || !isProfileActive || actionId === invitationId;
 
-              return (
-                <tr key={invitationId || `${invitation.tournamentId}-${invitation.horseId}`}>
-                  <td>{invitationId || 'N/A'}</td>
-                  <td>
-                    <strong>{invitation.tournamentName || invitation.tournamentId || 'N/A'}</strong>
-                    {invitation.message && <p className="table-subtext">{invitation.message}</p>}
-                  </td>
-                  <td>{formatTournamentDateRange(invitation)}</td>
-                  <td>{formatDate(getInvitationRegistrationDeadline(invitation, tournamentById))}</td>
-                  <td>
-                    <strong>{invitation.horseName || invitation.horseId || 'N/A'}</strong>
-                    <button className="table-button mt-2" type="button" onClick={() => setSelectedInvitation(invitation)}>
-                      Xem thông tin ngựa
+          return (
+            <article className="jockey-invitation-card" key={invitationId || `${invitation.tournamentId}-${invitation.horseId}`}>
+              <div className="jockey-invitation-main">
+                <div className="jockey-invitation-title">
+                  <span className="jockey-id-chip">#{invitationId || 'N/A'}</span>
+                  <div>
+                    <h3>{invitation.tournamentName || invitation.tournamentId || 'N/A'}</h3>
+                    {invitation.message && <p>{invitation.message}</p>}
+                  </div>
+                </div>
+
+                <div className="jockey-invitation-meta">
+                  <div>
+                    <span>Thời gian</span>
+                    <strong>{formatTournamentDateRange(invitation)}</strong>
+                  </div>
+                  <div>
+                    <span>Deadline</span>
+                    <strong>{formatDate(getInvitationRegistrationDeadline(invitation, tournamentById))}</strong>
+                  </div>
+                  <div>
+                    <span>Owner</span>
+                    <strong>{invitation.ownerName || invitation.ownerId || 'N/A'}</strong>
+                  </div>
+                  <div>
+                    <span>Hết hạn</span>
+                    <strong>{formatDate(invitation.expiredAt)}</strong>
+                  </div>
+                </div>
+              </div>
+
+              <aside className="jockey-invitation-side">
+                <div className="jockey-horse-pill">
+                  <span>Ngựa</span>
+                  <strong>{invitation.horseName || invitation.horseId || 'N/A'}</strong>
+                  <button className="table-button" type="button" onClick={() => setSelectedInvitation(invitation)}>
+                    Xem thông tin
+                  </button>
+                </div>
+
+                <div className="jockey-status-pair">
+                  <span className={`status-badge ${statusClass(invitation.status)}`}>{formatDisplayLabel(invitation.status)}</span>
+                  <span className={`status-badge ${statusClass(invitation.registrationStatus)}`}>{formatDisplayLabel(invitation.registrationStatus)}</span>
+                </div>
+
+                {isPending ? (
+                  <div className="jockey-invitation-actions">
+                    <button
+                      className="primary-button"
+                      type="button"
+                      onClick={() => handleInvitationAction(invitation, 'accept')}
+                      disabled={acceptDisabled}
+                      title={!isProfileActive ? 'Hồ sơ chưa ở trạng thái ACTIVE nên không thể chấp nhận lời mời này.' : 'Chấp nhận lời mời'}
+                    >
+                      Accept
                     </button>
-                  </td>
-                  <td>{invitation.ownerName || invitation.ownerId || 'N/A'}</td>
-                  <td>{formatDate(invitation.createdAt)}</td>
-                  <td>{formatDate(invitation.expiredAt)}</td>
-                  <td><span className={`status-badge ${statusClass(invitation.status)}`}>{formatDisplayLabel(invitation.status)}</span></td>
-                  <td><span className={`status-badge ${statusClass(invitation.registrationStatus)}`}>{formatDisplayLabel(invitation.registrationStatus)}</span></td>
-                  <td>
-                    {isPending ? (
-                      <div className="table-actions">
-                        <button
-                          type="button"
-                          onClick={() => handleInvitationAction(invitation, 'accept')}
-                          disabled={acceptDisabled}
-                          title={!isProfileActive ? 'Hồ sơ chưa ở trạng thái ACTIVE nên không thể chấp nhận lời mời này.' : 'Chấp nhận lời mời'}
-                        >
-                          Accept
-                        </button>
-                        <button type="button" className="danger-action" onClick={() => handleInvitationAction(invitation, 'reject')} disabled={actionId === invitationId}>
-                          Reject
-                        </button>
-                      </div>
-                    ) : (
-                      <span className="readonly-note">Đã xử lý</span>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+                    <button type="button" className="outline-button danger-action" onClick={() => handleInvitationAction(invitation, 'reject')} disabled={actionId === invitationId}>
+                      Reject
+                    </button>
+                  </div>
+                ) : (
+                  <span className="readonly-note">Đã xử lý</span>
+                )}
+              </aside>
+            </article>
+          );
+        })}
       </div>
     );
   }
@@ -1085,45 +1147,96 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
       {profileNotice && activeSection !== 'profile' && <div className={`admin-alert ${profileNotice.type}`} role="alert">{profileNotice.text}</div>}
 
       {activeSection === 'overview' && (
-        <section className="owner-stack">
-          <section className="owner-stats-grid">
-            <StatCard label="Total races" value={profile?.totalRaces ?? 0} description="Chỉ hiển thị theo dữ liệu backend" />
-            <StatCard label="Total wins" value={profile?.totalWins ?? 0} description="Chỉ hiển thị theo dữ liệu backend" />
-            <StatCard label="Trạng thái hồ sơ" value={profile ? formatDisplayLabel(profile.status) : 'Chưa có hồ sơ'} description={profile ? `Giấy phép: ${profile.licenseNo || 'Chưa cập nhật'}` : 'Tạo hồ sơ jockey'} highlight />
-            <StatCard label="Xếp hạng" value={formatDisplayLabel(profile?.ranking)} description="Xếp hạng hiện tại trong hồ sơ" />
-            <StatCard label="Lời mời đang chờ phản hồi" value={countByStatus(invitations, 'PENDING')} description="Lời mời đang chờ bạn phản hồi" />
-            <StatCard label="Lời mời đã chấp nhận" value={countByStatus(invitations, 'ACCEPTED')} description="Lời mời bạn đã chấp nhận" />
-          </section>
-
-          <section className="owner-overview-grid">
-            <div className="owner-panel hero-owner-panel">
-              <div>
-                <p className="eyebrow">Bảng điều khiển jockey</p>
-                <h2>Quản lý hồ sơ và lời mời</h2>
-                <p>Hồ sơ của bạn phải được admin xác minh trước khi có thể chấp nhận lời mời thi đấu.</p>
-              </div>
+        <section className="jockey-dashboard">
+          <section className="jockey-hero-panel">
+            <div className="jockey-hero-copy">
+              <p className="eyebrow">Bảng điều khiển jockey</p>
+              <h2>Quản lý hồ sơ và lời mời thi đấu</h2>
+              <p>Hồ sơ cần ACTIVE trước khi nhận lời mời. Ưu tiên kiểm tra lời mời PENDING và cập nhật licence khi có thay đổi.</p>
               <div className="owner-shortcut-actions">
-                <button className="primary-button owner-hero-action" type="button" onClick={() => setActiveSection('profile')}>Mở hồ sơ</button>
-                <button className="outline-button owner-hero-action" type="button" onClick={() => setActiveSection('invitations')}>Xem lời mời</button>
+                <button className="primary-button owner-hero-action" type="button" onClick={() => setActiveSection('invitations')}>
+                  Xem lời mời
+                </button>
+                <button className="outline-button owner-hero-action" type="button" onClick={() => setActiveSection('profile')}>
+                  Mở hồ sơ
+                </button>
               </div>
             </div>
+            <div className="jockey-hero-card" aria-label="Jockey profile summary">
+              <img src={profileForm.imgUrl || defaultJockeyAvatar} alt="" />
+              <div>
+                <span className={`status-badge ${statusClass(profileStatus || 'missing')}`}>
+                  {profile ? formatDisplayLabel(profile.status) : 'Chưa có hồ sơ'}
+                </span>
+                <strong>{jockeyName}</strong>
+                <small>{formatDisplayLabel(profile?.ranking || profileForm.ranking)} ranking</small>
+              </div>
+              <div className="jockey-readiness">
+                <span>{profileCompletion}%</span>
+                <small>profile complete</small>
+              </div>
+            </div>
+          </section>
 
-            <div className="owner-panel compact-panel">
+          <section className="jockey-stat-grid">
+            {jockeyStats.map((stat) => (
+              <article className="jockey-stat-card" key={stat.label}>
+                <span>{stat.label}</span>
+                <strong>{stat.value}</strong>
+                <small>{stat.detail}</small>
+              </article>
+            ))}
+          </section>
+
+          <section className="jockey-overview-grid">
+            <div className="owner-panel jockey-inbox-panel">
               <div className="owner-panel-header">
                 <div>
+                  <p className="eyebrow">Inbox</p>
                   <h2>Lời mời mới nhất</h2>
-                  <p>Hiển thị tối đa năm lời mời mới nhất.</p>
+                  <p>Hiển thị tối đa năm lời mời gần nhất để phản hồi nhanh.</p>
                 </div>
+                <button className="outline-button compact-button" type="button" onClick={() => setActiveSection('invitations')}>
+                  Xem tất cả
+                </button>
               </div>
-              <div className="owner-mini-list">
+              <div className="jockey-invitation-preview-list">
                 {latestInvitations.length === 0 ? (
                   <p className="table-empty">Chưa có lời mời.</p>
                 ) : latestInvitations.map((invitation) => (
-                  <div key={invitation.invitationId || `${invitation.tournamentId}-${invitation.horseId}`}>
-                    <span>{invitation.tournamentName || `Tournament ${invitation.tournamentId || ''}`}</span>
-                    <strong>{formatDisplayLabel(invitation.status)}</strong>
-                  </div>
+                  <article className="jockey-invitation-preview" key={invitation.invitationId || `${invitation.tournamentId}-${invitation.horseId}`}>
+                    <div>
+                      <strong>{invitation.tournamentName || `Tournament ${invitation.tournamentId || ''}`}</strong>
+                      <span>{invitation.horseName || invitation.horseId || 'N/A'} · {formatTournamentDateRange(invitation)}</span>
+                    </div>
+                    <span className={`status-badge ${statusClass(invitation.status)}`}>
+                      {formatDisplayLabel(invitation.status)}
+                    </span>
+                  </article>
                 ))}
+              </div>
+            </div>
+
+            <div className="owner-panel jockey-checklist-panel">
+              <div className="owner-panel-header">
+                <div>
+                  <p className="eyebrow">Next steps</p>
+                  <h2>Việc cần ưu tiên</h2>
+                </div>
+              </div>
+              <div className="jockey-checklist">
+                <div>
+                  <span>{profile ? '✓' : '1'}</span>
+                  <p>Tạo hồ sơ jockey và bổ sung thông tin liên hệ.</p>
+                </div>
+                <div>
+                  <span>{isProfileActive ? '✓' : '2'}</span>
+                  <p>Chờ admin xác minh licence đến trạng thái ACTIVE.</p>
+                </div>
+                <div>
+                  <span>{pendingInvitationCount > 0 ? '!' : '3'}</span>
+                  <p>Phản hồi {pendingInvitationCount} lời mời đang chờ.</p>
+                </div>
               </div>
             </div>
           </section>
@@ -1131,8 +1244,8 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
       )}
 
       {activeSection === 'profile' && (
-        <section className="owner-stack">
-          <div className="owner-section-toolbar">
+        <section className="owner-stack jockey-section">
+          <div className="owner-section-toolbar jockey-section-toolbar">
             <div>
               <p className="eyebrow">Hồ sơ</p>
               <h2>Hồ sơ jockey</h2>
@@ -1148,7 +1261,7 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
           </div>
 
           {isLoadingProfile ? (
-            <div className="owner-panel">
+            <div className="owner-panel jockey-loading-panel">
               <p className="table-empty">Đang tải hồ sơ...</p>
             </div>
           ) : (
@@ -1158,8 +1271,8 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
       )}
 
       {activeSection === 'invitations' && (
-        <section className="owner-stack">
-          <section className="owner-panel">
+        <section className="owner-stack jockey-section">
+          <section className="owner-panel jockey-invitations-panel">
             <div className="owner-panel-header">
               <div>
                 <p className="eyebrow">Lời mời</p>

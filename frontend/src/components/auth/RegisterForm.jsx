@@ -2,12 +2,13 @@ import { useMemo, useState } from 'react';
 import { ArrowLeft, Eye, EyeOff, LogIn, Trophy } from 'lucide-react';
 import AuthLayout from './AuthLayout';
 import { signup } from '../../services/authService';
-import { validateSignupForm } from '../../utils/validators';
+import { useLanguage } from '../../context/LanguageContext';
 
 const inputClasses =
   'w-full rounded-lg border bg-white px-4 py-3 text-sm font-semibold text-brown-900 outline-none transition placeholder:text-slate-500/65 focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20 disabled:cursor-not-allowed disabled:opacity-60';
 
 export default function RegisterForm({ onGoHome, onGoLogin }) {
+  const { t } = useLanguage();
   const [values, setValues] = useState({
     username: '',
     email: '',
@@ -39,7 +40,7 @@ export default function RegisterForm({ onGoHome, onGoLogin }) {
 
   async function handleSubmit(event) {
     event.preventDefault();
-    const formErrors = validateSignupForm(values);
+    const formErrors = validateForm(values, t);
     setErrors(formErrors);
     setApiError('');
     setSuccessMessage('');
@@ -54,7 +55,7 @@ export default function RegisterForm({ onGoHome, onGoLogin }) {
         phone: values.phone.trim(),
         password: values.password
       });
-      setSuccessMessage('Đã tạo tài khoản thành công. Bạn có thể đăng nhập ngay.');
+      setSuccessMessage(t('registerSuccess'));
       setValues({
         username: '',
         email: '',
@@ -62,7 +63,7 @@ export default function RegisterForm({ onGoHome, onGoLogin }) {
         password: ''
       });
     } catch (error) {
-      setApiError(error.message || 'Đăng ký thất bại. Vui lòng thử lại.');
+      setApiError(error.message || t('registerError'));
     } finally {
       setIsSubmitting(false);
     }
@@ -84,7 +85,7 @@ export default function RegisterForm({ onGoHome, onGoLogin }) {
             onClick={onGoHome}
           >
             <ArrowLeft size={16} strokeWidth={2.5} />
-            Về trang chủ
+            {t('backHome')}
           </button>
           <button
             className="inline-flex items-center gap-2 rounded-lg border border-brown-700/15 bg-cream-200 px-3.5 py-2.5 text-sm font-extrabold text-brown-700 transition hover:-translate-y-0.5 hover:border-brown-700/35 hover:bg-white hover:shadow-md"
@@ -92,7 +93,7 @@ export default function RegisterForm({ onGoHome, onGoLogin }) {
             onClick={onGoLogin}
           >
             <LogIn size={16} strokeWidth={2.5} />
-            Đăng nhập
+            {t('login')}
           </button>
         </div>
 
@@ -100,13 +101,13 @@ export default function RegisterForm({ onGoHome, onGoLogin }) {
           <Trophy size={19} />
         </span>
         <p className="text-xs font-extrabold uppercase tracking-widest text-brown-500">
-          Tham gia hệ thống
+          {t('joinSystem')}
         </p>
         <h2 className="mt-2 text-4xl font-black text-brown-900">
-          Tạo tài khoản
+          {t('createAccount')}
         </h2>
         <p className="mt-3 font-medium text-slate-500">
-          Tài khoản mới mặc định là Spectator. Bạn có thể đăng ký trở thành Owner trong Profile sau khi đăng nhập.
+          {t('registerSubtitle')}
         </p>
 
         {apiError && (
@@ -130,14 +131,14 @@ export default function RegisterForm({ onGoHome, onGoLogin }) {
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="grid gap-2" htmlFor="username">
               <span className="text-sm font-extrabold text-brown-900">
-                Username
+                {t('username')}
               </span>
               <input
                 className={fieldClasses(errors.username)}
                 id="username"
                 name="username"
                 type="text"
-                placeholder="oanhle"
+                placeholder="ten_dang_nhap"
                 autoComplete="username"
                 value={values.username}
                 onChange={handleChange}
@@ -152,7 +153,7 @@ export default function RegisterForm({ onGoHome, onGoLogin }) {
 
             <label className="grid gap-2" htmlFor="phone">
               <span className="text-sm font-extrabold text-brown-900">
-                Số điện thoại
+                {t('phone')}
               </span>
               <input
                 className={fieldClasses(errors.phone)}
@@ -194,7 +195,7 @@ export default function RegisterForm({ onGoHome, onGoLogin }) {
           <label className="grid gap-2" htmlFor="registerPassword">
             <span className="flex items-center justify-between gap-3">
               <span className="text-sm font-extrabold text-brown-900">
-                Mật khẩu
+                {t('password')}
               </span>
               <button
                 className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-extrabold text-brown-500 transition hover:bg-cream-200 hover:text-brown-700"
@@ -202,7 +203,7 @@ export default function RegisterForm({ onGoHome, onGoLogin }) {
                 onClick={() => setShowPassword((value) => !value)}
               >
                 {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
-                {showPassword ? 'Ẩn' : 'Hiện'}
+                {showPassword ? t('hide') : t('show')}
               </button>
             </span>
             <input
@@ -210,7 +211,7 @@ export default function RegisterForm({ onGoHome, onGoLogin }) {
               id="registerPassword"
               name="password"
               type={showPassword ? 'text' : 'password'}
-              placeholder="Tối thiểu 6 ký tự"
+              placeholder={t('minPasswordPlaceholder')}
               autoComplete="new-password"
               value={values.password}
               onChange={handleChange}
@@ -228,21 +229,51 @@ export default function RegisterForm({ onGoHome, onGoLogin }) {
             type="submit"
             disabled={!isFormReady || isSubmitting}
           >
-            {isSubmitting ? 'Đang tạo tài khoản...' : 'Tạo tài khoản'}
+            {isSubmitting ? t('creatingAccount') : t('createAccount')}
           </button>
         </form>
 
         <p className="mt-6 text-center text-sm font-semibold text-slate-500">
-          Đã có tài khoản?{' '}
+          {t('alreadyHaveAccount')}{' '}
           <button
             className="rounded-md px-1.5 py-1 font-extrabold text-brown-500 transition hover:bg-cream-200 hover:text-brown-700"
             type="button"
             onClick={onGoLogin}
           >
-            Đăng nhập
+            {t('login')}
           </button>
         </p>
       </section>
     </AuthLayout>
   );
+}
+
+function validateForm(values, t) {
+  const errors = {};
+
+  if (!values.username?.trim()) {
+    errors.username = t('usernameRequired');
+  } else if (values.username.trim().length > 255) {
+    errors.username = t('usernameTooLong');
+  }
+
+  if (!values.email?.trim()) {
+    errors.email = t('emailRequired');
+  } else if (!/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(values.email.trim())) {
+    errors.email = t('invalidEmail');
+  }
+
+  if (!values.phone?.trim()) {
+    errors.phone = t('phoneRequired');
+  } else if (!/^\+?[0-9]{9,15}$/.test(values.phone.trim())) {
+    errors.phone = t('invalidPhone');
+  }
+
+  if (!values.password) {
+    errors.password = t('passwordRequired');
+  } else if (values.password.length < 6 || values.password.length > 72) {
+    errors.password = t('invalidPassword');
+  }
+
+  return errors;
 }

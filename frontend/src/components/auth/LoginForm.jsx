@@ -2,12 +2,13 @@ import { useMemo, useState } from 'react';
 import { ArrowLeft, Eye, EyeOff, Trophy } from 'lucide-react';
 import AuthLayout from './AuthLayout';
 import { login, saveAuthSession } from '../../services/authService';
-import { validateLoginForm } from '../../utils/validators';
+import { useLanguage } from '../../context/LanguageContext';
 
 const inputClasses =
   'w-full rounded-lg border bg-white px-4 py-3.5 text-sm font-semibold text-brown-900 outline-none transition placeholder:text-slate-500/65 focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20 disabled:cursor-not-allowed disabled:opacity-60';
 
 export default function LoginForm({ onLoginSuccess, onGoHome, onGoRegister }) {
+  const { t } = useLanguage();
   const [values, setValues] = useState({ email: '', password: '' });
   const [rememberMe, setRememberMe] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
@@ -29,7 +30,7 @@ export default function LoginForm({ onLoginSuccess, onGoHome, onGoRegister }) {
 
   async function handleSubmit(event) {
     event.preventDefault();
-    const formErrors = validateLoginForm(values);
+    const formErrors = validateForm(values, t);
     setErrors(formErrors);
     setApiError('');
 
@@ -44,7 +45,7 @@ export default function LoginForm({ onLoginSuccess, onGoHome, onGoRegister }) {
       saveAuthSession(loginResponse, rememberMe);
       onLoginSuccess(loginResponse.user);
     } catch (error) {
-      setApiError(error.message || 'Đăng nhập thất bại. Vui lòng thử lại.');
+      setApiError(error.message || t('loginError'));
     } finally {
       setIsSubmitting(false);
     }
@@ -60,7 +61,7 @@ export default function LoginForm({ onLoginSuccess, onGoHome, onGoRegister }) {
             onClick={onGoHome}
           >
             <ArrowLeft size={16} strokeWidth={2.5} />
-            Về trang chủ
+            {t('backHome')}
           </button>
           <span className="grid size-10 place-items-center rounded-lg bg-brown-900 text-gold-400 lg:hidden">
             <Trophy size={19} />
@@ -68,11 +69,11 @@ export default function LoginForm({ onLoginSuccess, onGoHome, onGoRegister }) {
         </div>
 
         <p className="text-xs font-extrabold uppercase tracking-widest text-brown-500">
-          Chào mừng trở lại
+          {t('welcomeBack')}
         </p>
-        <h2 className="mt-2 text-4xl font-black text-brown-900">Đăng nhập</h2>
+        <h2 className="mt-2 text-4xl font-black text-brown-900">{t('login')}</h2>
         <p className="mt-3 font-medium text-slate-500">
-          Nhập thông tin tài khoản để tiếp tục.
+          {t('loginSubtitle')}
         </p>
 
         {apiError && (
@@ -108,7 +109,7 @@ export default function LoginForm({ onLoginSuccess, onGoHome, onGoRegister }) {
           <label className="grid gap-2" htmlFor="password">
             <span className="flex items-center justify-between gap-3">
               <span className="text-sm font-extrabold text-brown-900">
-                Mật khẩu
+                {t('password')}
               </span>
               <button
                 className="inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-xs font-extrabold text-brown-500 transition hover:bg-cream-200 hover:text-brown-700"
@@ -116,7 +117,7 @@ export default function LoginForm({ onLoginSuccess, onGoHome, onGoRegister }) {
                 onClick={() => setShowPassword((value) => !value)}
               >
                 {showPassword ? <EyeOff size={14} /> : <Eye size={14} />}
-                {showPassword ? 'Ẩn' : 'Hiện'}
+                {showPassword ? t('hide') : t('show')}
               </button>
             </span>
             <input
@@ -128,7 +129,7 @@ export default function LoginForm({ onLoginSuccess, onGoHome, onGoRegister }) {
               id="password"
               name="password"
               type={showPassword ? 'text' : 'password'}
-              placeholder="Tối thiểu 6 ký tự"
+              placeholder={t('minPasswordPlaceholder')}
               autoComplete="current-password"
               value={values.password}
               onChange={handleChange}
@@ -149,7 +150,7 @@ export default function LoginForm({ onLoginSuccess, onGoHome, onGoRegister }) {
               onChange={(event) => setRememberMe(event.target.checked)}
               disabled={isSubmitting}
             />
-            Ghi nhớ đăng nhập
+            {t('rememberLogin')}
           </label>
 
           <button
@@ -157,21 +158,39 @@ export default function LoginForm({ onLoginSuccess, onGoHome, onGoRegister }) {
             type="submit"
             disabled={!isFormReady || isSubmitting}
           >
-            {isSubmitting ? 'Đang đăng nhập...' : 'Đăng nhập'}
+            {isSubmitting ? t('signingIn') : t('login')}
           </button>
         </form>
 
         <p className="mt-7 text-center text-sm font-semibold text-slate-500">
-          Chưa có tài khoản?{' '}
+          {t('noAccount')}{' '}
           <button
             className="rounded-md px-1.5 py-1 font-extrabold text-brown-500 transition hover:bg-cream-200 hover:text-brown-700"
             type="button"
             onClick={onGoRegister}
           >
-            Tạo tài khoản
+            {t('createAccount')}
           </button>
         </p>
       </section>
     </AuthLayout>
   );
+}
+
+function validateForm(values, t) {
+  const errors = {};
+
+  if (!values.email?.trim()) {
+    errors.email = t('emailRequired');
+  } else if (!/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(values.email.trim())) {
+    errors.email = t('invalidEmail');
+  }
+
+  if (!values.password) {
+    errors.password = t('passwordRequired');
+  } else if (values.password.length < 6 || values.password.length > 72) {
+    errors.password = t('invalidPassword');
+  }
+
+  return errors;
 }
