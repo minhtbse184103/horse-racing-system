@@ -80,7 +80,7 @@ export function getHorseName(horse) {
 export function emptyHorseForm() {
     return {
         horseName: '',
-        age: '',
+        dayOfBirth: '',
         weight: '',
         colour: '',
         sex: 'MALE',
@@ -111,7 +111,7 @@ export function toHorsePayload(formValues) {
 
   return {
     horseName,
-    age: Number(formValues.age),
+    dayOfBirth: formValues.dayOfBirth || null,
     weight: Number(formValues.weight),
     colour: String(formValues.colour ?? '').trim() || null,
     sex: formValues.sex || null,

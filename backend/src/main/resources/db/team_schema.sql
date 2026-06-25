@@ -31,13 +31,31 @@ CREATE TABLE `OwnerApplication` (
   `gender` varchar(50) NOT NULL,
   `nationality` varchar(255) NOT NULL,
   `address` varchar(500) NOT NULL,
+  `identityDocumentUrl` text NOT NULL,
+  `stableName` varchar(255) NOT NULL,
+  `stableAddress` varchar(500) NOT NULL,
+  `stableCertificateUrl` text NOT NULL,
+  `totalHorsesOwned` int NOT NULL,
+  `horseOwnershipProofUrl` text NOT NULL,
   `status` varchar(50) NOT NULL DEFAULT 'PENDING',
   `rejectReason` varchar(500),
-  `submittedAt` datetime,
+  `submittedAt` datetime NOT NULL,
   `reviewedAt` datetime,
   `reviewedBy` int,
   `createdAt` datetime,
-  `updatedAt` datetime
+  `updatedAt` datetime,
+  CONSTRAINT `chk_owner_total_horses`
+    CHECK (`totalHorsesOwned` >= 1),
+  CONSTRAINT `chk_owner_application_status`
+    CHECK (`status` IN ('PENDING', 'APPROVED', 'REJECTED')),
+  CONSTRAINT `chk_owner_reject_reason`
+    CHECK (
+      (`status` = 'REJECTED'
+        AND `rejectReason` IS NOT NULL
+        AND CHAR_LENGTH(TRIM(`rejectReason`)) > 0)
+      OR
+      `status` <> 'REJECTED'
+    )
 );
 
 CREATE TABLE `OwnerProfile` (
@@ -52,6 +70,7 @@ CREATE TABLE `Horse` (
   `ownerID` int NOT NULL,
   `horseName` varchar(255) UNIQUE NOT NULL,
   `age` int NOT NULL,
+  `dayOfBirth` date NOT NULL,
   `weight` decimal(10,2) NOT NULL,
   `colour` varchar(255) NOT NULL,
   `sex` varchar(50) NOT NULL,
@@ -63,18 +82,29 @@ CREATE TABLE `Horse` (
   `status` varchar(50) NOT NULL DEFAULT 'PENDING',
   `rejectionReason` varchar(500),
   `createdAt` datetime,
-  `updatedAt` datetime
+  `updatedAt` datetime,
+  CONSTRAINT `chk_horse_age` CHECK (`age` > 0),
+  CONSTRAINT `chk_horse_weight` CHECK (`weight` > 0),
+  CONSTRAINT `chk_horse_sex` CHECK (`sex` IN ('MALE', 'FEMALE')),
+  CONSTRAINT `chk_horse_status` CHECK (`status` IN ('PENDING', 'ACTIVE', 'REJECTED'))
 );
 
 CREATE TABLE `JockeyProfile` (
   `jockeyID` int PRIMARY KEY,
+  `fullName` varchar(255) NOT NULL,
   `weight` decimal(10,2) NOT NULL,
   `ranking` varchar(255),
   `biography` text,
   `totalRaces` int DEFAULT 0,
   `totalWins` int DEFAULT 0,
   `createdAt` datetime,
-  `updatedAt` datetime
+  `updatedAt` datetime,
+  CONSTRAINT `chk_jockey_profile_full_name`
+    CHECK (CHAR_LENGTH(TRIM(`fullName`)) > 0),
+  CONSTRAINT `chk_jockey_profile_weight`
+    CHECK (`weight` >= 35.00 AND `weight` <= 90.00),
+  CONSTRAINT `chk_jockey_profile_totals`
+    CHECK (`totalRaces` >= 0 AND `totalWins` >= 0 AND `totalWins` <= `totalRaces`)
 );
 
 CREATE TABLE `JockeyVerification` (

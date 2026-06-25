@@ -9,9 +9,11 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.example.backend.dto.request.OwnerApplicationRequest;
 import com.example.backend.dto.response.OwnerApplicationResponse;
+import com.example.backend.dto.response.FileUploadResponse;
 import com.example.backend.dto.response.OwnerProfileResponse;
 import com.example.backend.entity.OwnerApplication;
 import com.example.backend.entity.OwnerProfile;
@@ -30,21 +32,25 @@ public class OwnerApplicationService {
     private static final String STATUS_PENDING = "PENDING";
     private static final String STATUS_APPROVED = "APPROVED";
     private static final String STATUS_REJECTED = "REJECTED";
+    private static final String OWNER_DOCUMENT_FOLDER = "owner-applications";
 
     private final OwnerApplicationRepository ownerApplicationRepository;
     private final OwnerProfileRepository ownerProfileRepository;
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final FileUploadService fileUploadService;
 
     public OwnerApplicationService(
             OwnerApplicationRepository ownerApplicationRepository,
             OwnerProfileRepository ownerProfileRepository,
             UserRepository userRepository,
-            RoleRepository roleRepository) {
+            RoleRepository roleRepository,
+            FileUploadService fileUploadService) {
         this.ownerApplicationRepository = ownerApplicationRepository;
         this.ownerProfileRepository = ownerProfileRepository;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
+        this.fileUploadService = fileUploadService;
     }
 
     @Transactional
@@ -58,11 +64,17 @@ public class OwnerApplicationService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Only spectator accounts can apply to become owner.");
         }
 
-        ownerApplicationRepository.findFirstByUserIdOrderByApplicationIdDesc(user.getUserID())
-                .filter(application -> STATUS_PENDING.equals(application.getStatus()))
-                .ifPresent(application -> {
-                    throw new ApiException(HttpStatus.CONFLICT, "An owner application is already pending.");
-                });
+        if (ownerApplicationRepository.existsByUserIdAndStatus(user.getUserID(), STATUS_PENDING)) {
+            throw new ApiException(HttpStatus.CONFLICT, "An owner application is already pending.");
+        }
+
+        validateFile(request.getIdentityDocumentFile(), "Identity Document file is required.");
+        validateFile(request.getStableCertificateFile(), "Stable Certificate file is required.");
+        validateFile(request.getHorseOwnershipProofFile(), "Horse Ownership Proof file is required.");
+
+        FileUploadResponse identityDocument = fileUploadService.upload(request.getIdentityDocumentFile(), OWNER_DOCUMENT_FOLDER);
+        FileUploadResponse stableCertificate = fileUploadService.upload(request.getStableCertificateFile(), OWNER_DOCUMENT_FOLDER);
+        FileUploadResponse horseOwnershipProof = fileUploadService.upload(request.getHorseOwnershipProofFile(), OWNER_DOCUMENT_FOLDER);
 
         OwnerApplication application = OwnerApplication.builder()
                 .userId(user.getUserID())
@@ -71,6 +83,12 @@ public class OwnerApplicationService {
                 .gender(normalizeUppercase(request.getGender()))
                 .nationality(normalizeText(request.getNationality()))
                 .address(normalizeText(request.getAddress()))
+                .identityDocumentUrl(identityDocument.getUrl())
+                .stableName(normalizeText(request.getStableName()))
+                .stableAddress(normalizeText(request.getStableAddress()))
+                .stableCertificateUrl(stableCertificate.getUrl())
+                .totalHorsesOwned(request.getTotalHorsesOwned())
+                .horseOwnershipProofUrl(horseOwnershipProof.getUrl())
                 .status(STATUS_PENDING)
                 .submittedAt(LocalDateTime.now())
                 .build();
@@ -87,13 +105,28 @@ public class OwnerApplicationService {
     }
 
     @Transactional(readOnly = true)
-    public List<OwnerApplicationResponse> getApplicationsByStatus(String status) {
-        String normalizedStatus = normalizeUppercase(status);
-        if (normalizedStatus == null) {
-            normalizedStatus = STATUS_PENDING;
+    public OwnerApplicationResponse getMyApplication(Integer applicationId) {
+        User user = getCurrentUser();
+        OwnerApplication application = getApplication(applicationId);
+        if (!application.getUserId().equals(user.getUserID())) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "You cannot view this owner application.");
         }
-        return ownerApplicationRepository.findByStatusOrderBySubmittedAtDesc(normalizedStatus)
-                .stream()
+        return mapApplication(application);
+    }
+
+    @Transactional(readOnly = true)
+    public OwnerApplicationResponse getAdminApplication(Integer applicationId) {
+        return mapApplication(getApplication(applicationId));
+    }
+
+    @Transactional(readOnly = true)
+    public List<OwnerApplicationResponse> getApplicationsByStatus(String status) {
+        String normalizedStatus = parseStatus(status);
+        List<OwnerApplication> applications = normalizedStatus == null
+                ? ownerApplicationRepository.findAllByOrderBySubmittedAtDesc()
+                : ownerApplicationRepository.findByStatusOrderBySubmittedAtDesc(normalizedStatus);
+
+        return applications.stream()
                 .map(this::mapApplication)
                 .toList();
     }
@@ -184,6 +217,12 @@ public class OwnerApplicationService {
                 .gender(application.getGender())
                 .nationality(application.getNationality())
                 .address(application.getAddress())
+                .identityDocumentUrl(application.getIdentityDocumentUrl())
+                .stableName(application.getStableName())
+                .stableAddress(application.getStableAddress())
+                .stableCertificateUrl(application.getStableCertificateUrl())
+                .totalHorsesOwned(application.getTotalHorsesOwned())
+                .horseOwnershipProofUrl(application.getHorseOwnershipProofUrl())
                 .status(application.getStatus())
                 .rejectReason(application.getRejectReason())
                 .submittedAt(application.getSubmittedAt())
@@ -204,6 +243,12 @@ public class OwnerApplicationService {
                 .gender(application.getGender())
                 .nationality(application.getNationality())
                 .address(application.getAddress())
+                .identityDocumentUrl(application.getIdentityDocumentUrl())
+                .stableName(application.getStableName())
+                .stableAddress(application.getStableAddress())
+                .stableCertificateUrl(application.getStableCertificateUrl())
+                .totalHorsesOwned(application.getTotalHorsesOwned())
+                .horseOwnershipProofUrl(application.getHorseOwnershipProofUrl())
                 .status(application.getStatus())
                 .submittedAt(application.getSubmittedAt())
                 .reviewedAt(application.getReviewedAt())
@@ -218,5 +263,24 @@ public class OwnerApplicationService {
     private String normalizeUppercase(String value) {
         String normalizedValue = normalizeText(value);
         return normalizedValue == null ? null : normalizedValue.toUpperCase(Locale.ROOT);
+    }
+
+    private String parseStatus(String status) {
+        String normalizedStatus = normalizeUppercase(status);
+        if (normalizedStatus == null || normalizedStatus.isBlank() || "ALL".equals(normalizedStatus)) {
+            return null;
+        }
+        if (!STATUS_PENDING.equals(normalizedStatus)
+                && !STATUS_APPROVED.equals(normalizedStatus)
+                && !STATUS_REJECTED.equals(normalizedStatus)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid owner application status.");
+        }
+        return normalizedStatus;
+    }
+
+    private void validateFile(MultipartFile file, String message) {
+        if (file == null || file.isEmpty()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, message);
+        }
     }
 }

@@ -16,6 +16,7 @@ import com.example.backend.exception.ApiException;
 import com.example.backend.repository.HorseRepository;
 import com.example.backend.repository.JockeyInvitationRepository;
 import com.example.backend.repository.JockeyProfileRepository;
+import com.example.backend.repository.OwnerApplicationRepository;
 import com.example.backend.repository.RaceEntryRepository;
 import com.example.backend.repository.RaceRepository;
 import com.example.backend.repository.RegistrationRepository;
@@ -57,6 +58,7 @@ class OwnerTournamentRegistrationServiceTest {
     @Mock private HorseRepository horseRepository;
     @Mock private UserRepository userRepository;
     @Mock private JockeyProfileRepository jockeyProfileRepository;
+    @Mock private OwnerApplicationRepository ownerApplicationRepository;
     @Mock private JockeyInvitationRepository jockeyInvitationRepository;
     @Mock private RaceEntryRepository raceEntryRepository;
     @Mock private RaceRepository raceRepository;
@@ -71,6 +73,7 @@ class OwnerTournamentRegistrationServiceTest {
                 horseRepository,
                 userRepository,
                 jockeyProfileRepository,
+                ownerApplicationRepository,
                 jockeyInvitationRepository,
                 raceEntryRepository,
                 raceRepository
@@ -296,6 +299,7 @@ class OwnerTournamentRegistrationServiceTest {
         when(jockeyProfileRepository.findById(40))
                 .thenReturn(Optional.of(JockeyProfile.builder()
                         .jockeyId(40)
+                        .fullName("Jockey Full Name")
                         .weight(BigDecimal.valueOf(55))
                         .build()));
     }
@@ -359,8 +363,10 @@ class OwnerTournamentRegistrationServiceTest {
                 .horseId(20)
                 .ownerId(30)
                 .horseName("Lightning")
-                .breed("Thoroughbred")
-                .gender("MALE")
+                .age(4)
+                .dayOfBirth(LocalDate.now().minusYears(4))
+                .breeding("Thoroughbred")
+                .sex("MALE")
                 .weight(BigDecimal.valueOf(480))
                 .healthCertExpiry(LocalDate.now().plusMonths(6))
                 .status("ACTIVE")

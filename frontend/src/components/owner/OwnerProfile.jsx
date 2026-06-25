@@ -15,7 +15,7 @@ function getAccountValues(user) {
 }
 
 function getIdentityImage(profile) {
-  return profile?.identityDocumentImage || profile?.nationalIdImage || profile?.passportImage || '';
+  return profile?.identityDocumentUrl || profile?.identityDocumentImage || profile?.nationalIdImage || profile?.passportImage || '';
 }
 
 function getIdentityFileName(profile) {
@@ -215,18 +215,33 @@ export default function OwnerProfile({ user, onUserUpdated }) {
             <ProfileField label="Gender" value={profile.gender} />
             <ProfileField label="Nationality" value={profile.nationality} />
             <ProfileField label="Address" value={profile.address} />
-            <ProfileField label="Identity Number" value={profile.identityNumber || profile.nationalIdNumber || profile.passportNumber} />
+            <ProfileField label="Stable Name" value={profile.stableName} />
+            <ProfileField label="Stable Address" value={profile.stableAddress} />
+            <ProfileField label="Total Horses Owned" value={profile.totalHorsesOwned} />
           </div>
 
           <div className="mt-5 rounded-2xl border border-brown-700/10 bg-white/70 p-4">
-            <span className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">National ID / Passport Image</span>
+            <span className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">Identity Document</span>
             <strong className="mt-1 block break-words text-brown-900">{identityFileName || 'Chưa cập nhật'}</strong>
             {identityImage ? (
               <a className="outline-button compact-button mt-3 inline-flex" href={identityImage} target="_blank" rel="noreferrer">
-                View Image
+                View Document
               </a>
             ) : (
               <p className="mt-2">Chưa có ảnh National ID / Passport.</p>
+            )}
+          </div>
+
+          <div className="mt-5 grid gap-4 md:grid-cols-2">
+            {profile.stableCertificateUrl && (
+              <a className="outline-button compact-button inline-flex" href={profile.stableCertificateUrl} target="_blank" rel="noreferrer">
+                View Stable Certificate
+              </a>
+            )}
+            {profile.horseOwnershipProofUrl && (
+              <a className="outline-button compact-button inline-flex" href={profile.horseOwnershipProofUrl} target="_blank" rel="noreferrer">
+                View Horse Ownership Proof
+              </a>
             )}
           </div>
         </section>

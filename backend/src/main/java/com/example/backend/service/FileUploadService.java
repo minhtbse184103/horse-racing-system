@@ -61,8 +61,8 @@ public class FileUploadService {
         boolean isPdf = "application/pdf".equals(contentType) && "pdf".equals(extension);
 
         if (targetFolder.endsWith("/owner-identity")) {
-            if (!isJpgOrPng) {
-                throw new ApiException(HttpStatus.BAD_REQUEST, "Giay to owner chi ho tro JPG hoac PNG.");
+            if (!isJpgOrPng && !isPdf) {
+                throw new ApiException(HttpStatus.BAD_REQUEST, "Giay to owner chi ho tro PDF, JPG hoac PNG.");
             }
             return;
         }

@@ -8,6 +8,8 @@ import com.example.backend.dto.request.OwnerTournamentRegistrationRequest;
 import com.example.backend.dto.response.RegistrationResponse;
 import com.example.backend.dto.response.TournamentResponse;
 import com.example.backend.entity.Horse;
+import com.example.backend.entity.JockeyProfile;
+import com.example.backend.entity.OwnerApplication;
 import com.example.backend.entity.Race;
 import com.example.backend.entity.RaceEntry;
 import com.example.backend.entity.Registration;
@@ -17,6 +19,7 @@ import com.example.backend.exception.ApiException;
 import com.example.backend.repository.HorseRepository;
 import com.example.backend.repository.JockeyInvitationRepository;
 import com.example.backend.repository.JockeyProfileRepository;
+import com.example.backend.repository.OwnerApplicationRepository;
 import com.example.backend.repository.RaceEntryRepository;
 import com.example.backend.repository.RaceRepository;
 import com.example.backend.repository.RegistrationRepository;
@@ -50,6 +53,7 @@ public class OwnerTournamentRegistrationService {
     private final HorseRepository horseRepository;
     private final UserRepository userRepository;
     private final JockeyProfileRepository jockeyProfileRepository;
+    private final OwnerApplicationRepository ownerApplicationRepository;
     private final JockeyInvitationRepository jockeyInvitationRepository;
     private final RaceEntryRepository raceEntryRepository;
     private final RaceRepository raceRepository;
@@ -60,6 +64,7 @@ public class OwnerTournamentRegistrationService {
             HorseRepository horseRepository,
             UserRepository userRepository,
             JockeyProfileRepository jockeyProfileRepository,
+            OwnerApplicationRepository ownerApplicationRepository,
             JockeyInvitationRepository jockeyInvitationRepository,
             RaceEntryRepository raceEntryRepository,
             RaceRepository raceRepository) {
@@ -68,6 +73,7 @@ public class OwnerTournamentRegistrationService {
         this.horseRepository = horseRepository;
         this.userRepository = userRepository;
         this.jockeyProfileRepository = jockeyProfileRepository;
+        this.ownerApplicationRepository = ownerApplicationRepository;
         this.jockeyInvitationRepository = jockeyInvitationRepository;
         this.raceEntryRepository = raceEntryRepository;
         this.raceRepository = raceRepository;
@@ -405,17 +411,17 @@ public class OwnerTournamentRegistrationService {
                 .tournamentName(tournament != null ? tournament.getTournamentName() : null)
                 .horseId(registration.getHorseId())
                 .horseName(horse != null ? horse.getHorseName() : null)
-                .horseBreed(horse != null ? horse.getBreed() : null)
-                .horseGender(horse != null ? horse.getGender() : null)
+                .horseBreed(horse != null ? horse.getBreeding() : null)
+                .horseGender(horse != null ? horse.getSex() : null)
                 .horseDateOfBirth(horse != null ? horse.getDayOfBirth() : null)
                 .horseWeight(horse != null ? horse.getWeight() : null)
                 .horseHealthCertExpiry(horse != null ? horse.getHealthCertExpiry() : null)
                 .horseStatus(horse != null ? horse.getStatus() : null)
                 .ownerId(registration.getOwnerId())
-                .ownerName(owner != null ? owner.getFullName() : null)
+                .ownerName(resolveOwnerFullName(owner))
                 .ownerEmail(owner != null ? owner.getEmail() : null)
                 .jockeyId(registration.getJockeyId())
-                .jockeyName(jockey != null ? jockey.getFullName() : null)
+                .jockeyName(resolveJockeyFullName(jockey))
                 .jockeyEmail(jockey != null ? jockey.getEmail() : null)
                 .paymentStatus(registration.getPaymentStatus())
                 .approvalStatus(registration.getApprovalStatus())
@@ -429,6 +435,26 @@ public class OwnerTournamentRegistrationService {
                 .createdAt(registration.getCreatedAt())
                 .updatedAt(registration.getUpdatedAt())
                 .build();
+    }
+
+    private String resolveOwnerFullName(User owner) {
+        if (owner == null) {
+            return null;
+        }
+        return ownerApplicationRepository.findFirstByUserIdOrderByApplicationIdDesc(owner.getUserID())
+                .map(OwnerApplication::getFullName)
+                .filter(name -> !name.isBlank())
+                .orElse(owner.getUsername());
+    }
+
+    private String resolveJockeyFullName(User jockey) {
+        if (jockey == null) {
+            return null;
+        }
+        return jockeyProfileRepository.findById(jockey.getUserID())
+                .map(JockeyProfile::getFullName)
+                .filter(name -> !name.isBlank())
+                .orElse(jockey.getUsername());
     }
 
     private TournamentResponse toTournamentResponse(Tournament tournament) {

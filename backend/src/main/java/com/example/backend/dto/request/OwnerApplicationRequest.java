@@ -2,14 +2,19 @@ package com.example.backend.dto.request;
 
 import java.time.LocalDate;
 
+import org.springframework.web.multipart.MultipartFile;
+
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
+import lombok.Setter;
 
 @Getter
+@Setter
 public class OwnerApplicationRequest {
     @NotBlank(message = "Full Name is required")
     @Size(max = 255, message = "Full Name cannot exceed 255 characters")
@@ -31,9 +36,24 @@ public class OwnerApplicationRequest {
     @Size(max = 500, message = "Address cannot exceed 500 characters")
     private String address;
 
-    @NotBlank(message = "Identity document image is required")
-    private String identityDocumentImage;
+    @NotBlank(message = "Stable Name is required")
+    @Size(max = 255, message = "Stable Name cannot exceed 255 characters")
+    private String stableName;
 
-    @Size(max = 255, message = "Identity document file name cannot exceed 255 characters")
-    private String identityDocumentFileName;
+    @NotBlank(message = "Stable Address is required")
+    @Size(max = 500, message = "Stable Address cannot exceed 500 characters")
+    private String stableAddress;
+
+    @NotNull(message = "Total Horses Owned is required")
+    @Min(value = 1, message = "Total Horses Owned must be at least 1")
+    private Integer totalHorsesOwned;
+
+    @NotNull(message = "Identity Document file is required")
+    private MultipartFile identityDocumentFile;
+
+    @NotNull(message = "Stable Certificate file is required")
+    private MultipartFile stableCertificateFile;
+
+    @NotNull(message = "Horse Ownership Proof file is required")
+    private MultipartFile horseOwnershipProofFile;
 }

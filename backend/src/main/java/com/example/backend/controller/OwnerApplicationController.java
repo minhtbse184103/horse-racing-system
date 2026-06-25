@@ -8,8 +8,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.http.MediaType;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -29,15 +30,22 @@ public class OwnerApplicationController {
         this.ownerApplicationService = ownerApplicationService;
     }
 
-    @PostMapping("/api/owner-applications/me")
+    @PostMapping(value = "/api/owner-applications", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('SPECTATOR')")
     public ResponseEntity<OwnerApplicationResponse> submitMyApplication(
-            @Valid @RequestBody OwnerApplicationRequest request) {
+            @Valid @ModelAttribute OwnerApplicationRequest request) {
         return ResponseEntity.ok(ownerApplicationService.submitMyApplication(request));
     }
 
     @GetMapping("/api/owner-applications/me")
     public ResponseEntity<OwnerApplicationResponse> getMyApplication() {
         return ResponseEntity.ok(ownerApplicationService.getMyApplication());
+    }
+
+    @GetMapping("/api/owner-applications/{applicationId}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<OwnerApplicationResponse> getMyApplication(@PathVariable Integer applicationId) {
+        return ResponseEntity.ok(ownerApplicationService.getMyApplication(applicationId));
     }
 
     @GetMapping("/api/owner/profile")
@@ -49,8 +57,14 @@ public class OwnerApplicationController {
     @GetMapping("/api/admin/owner-applications")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<List<OwnerApplicationResponse>> getOwnerApplications(
-            @RequestParam(defaultValue = "PENDING") String status) {
+            @RequestParam(required = false) String status) {
         return ResponseEntity.ok(ownerApplicationService.getApplicationsByStatus(status));
+    }
+
+    @GetMapping("/api/admin/owner-applications/{applicationId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<OwnerApplicationResponse> getOwnerApplication(@PathVariable Integer applicationId) {
+        return ResponseEntity.ok(ownerApplicationService.getAdminApplication(applicationId));
     }
 
     @PutMapping("/api/admin/owner-applications/{applicationId}/approve")

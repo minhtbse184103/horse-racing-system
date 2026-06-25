@@ -19,6 +19,10 @@ import lombok.Setter;
 @Setter
 public class JockeyVerificationRequest {
 
+    @NotBlank(message = "Full name is required")
+    @Size(max = 255, message = "Full name must not exceed 255 characters")
+    private String fullName;
+
     @NotBlank(message = "Tên huấn luyện viên là bắt buộc")
     @Size(max = 255, message = "Tên huấn luyện viên không được vượt quá 255 ký tự")
     private String trainerName;

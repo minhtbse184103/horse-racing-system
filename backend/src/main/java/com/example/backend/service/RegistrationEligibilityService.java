@@ -297,12 +297,6 @@ public class RegistrationEligibilityService {
                         "Jockey profile does not exist."
                 ));
 
-        if (!ACTIVE.equalsIgnoreCase(profile.getStatus())) {
-            throw new ApiException(
-                    HttpStatus.CONFLICT,
-                    "Jockey profile is not active."
-            );
-        }
     }
 
     private void validateConditions(

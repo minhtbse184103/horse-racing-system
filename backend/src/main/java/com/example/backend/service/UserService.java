@@ -162,7 +162,7 @@ public class UserService {
 
         return JockeyProfileResponse.builder()
                 .jockeyId(jockey.getUserID())
-                .fullName(jockey.getUsername())
+                .fullName(profile.getFullName() != null ? profile.getFullName() : jockey.getUsername())
                 .email(jockey.getEmail())
                 .weight(profile.getWeight())
                 .ranking(profile.getRanking())

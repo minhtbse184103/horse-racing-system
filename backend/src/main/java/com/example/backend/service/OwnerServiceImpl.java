@@ -6,6 +6,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.Period;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
@@ -138,7 +139,8 @@ public class OwnerServiceImpl implements OwnerService {
         Horse horse = Horse.builder()
                 .ownerId(ownerId)
                 .horseName(horseName)
-                .age(request.getAge())
+                .age(calculateAge(request.getDayOfBirth()))
+                .dayOfBirth(request.getDayOfBirth())
                 .weight(request.getWeight())
                 .colour(normalizeText(request.getColour()))
                 .sex(normalizeText(request.getSex()))
@@ -166,7 +168,8 @@ public class OwnerServiceImpl implements OwnerService {
         }
 
         horse.setHorseName(horseName);
-        horse.setAge(request.getAge());
+        horse.setAge(calculateAge(request.getDayOfBirth()));
+        horse.setDayOfBirth(request.getDayOfBirth());
         horse.setWeight(request.getWeight());
         horse.setColour(normalizeText(request.getColour()));
         horse.setSex(normalizeText(request.getSex()));
@@ -478,6 +481,7 @@ public class OwnerServiceImpl implements OwnerService {
                 .ownerId(horse.getOwnerId())
                 .horseName(horse.getHorseName())
                 .age(horse.getAge())
+                .dayOfBirth(horse.getDayOfBirth())
                 .weight(horse.getWeight())
                 .colour(horse.getColour())
                 .sex(horse.getSex())
@@ -496,6 +500,17 @@ public class OwnerServiceImpl implements OwnerService {
     }
 
     // Kiểm tra một ngựa có registration active hay không dựa trên horseId.
+    private int calculateAge(LocalDate dayOfBirth) {
+        if (dayOfBirth == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Day of birth is required.");
+        }
+        int age = Period.between(dayOfBirth, LocalDate.now()).getYears();
+        if (age <= 0) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Horse age must be greater than 0.");
+        }
+        return age;
+    }
+
     private String storeHealthCertificate(MultipartFile file) {
         validateHealthCertificateFile(file);
 

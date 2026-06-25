@@ -41,6 +41,9 @@ public class Horse {
     @Column(name = "age", nullable = false)
     private Integer age;
 
+    @Column(name = "dayOfBirth", nullable = false)
+    private LocalDate dayOfBirth;
+
     @Column(name = "weight", nullable = false)
     private BigDecimal weight;
 

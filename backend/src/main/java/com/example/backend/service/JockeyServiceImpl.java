@@ -100,6 +100,7 @@ public class JockeyServiceImpl implements JockeyService {
 
         JockeyProfile profile = JockeyProfile.builder()
                 .jockeyId(jockeyId)
+                .fullName(normalizeText(request.getFullName()) != null ? normalizeText(request.getFullName()) : jockey.getUsername())
                 .weight(request.getWeight())
                 .ranking(normalizeUppercase(request.getRanking()))
                 .biography(normalizeText(request.getBiography()))
@@ -123,6 +124,9 @@ public class JockeyServiceImpl implements JockeyService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Hồ sơ nài ngựa không tồn tại."));
 
         updatePhoneNumber(jockey, request.getPhoneNumber());
+        if (normalizeText(request.getFullName()) != null) {
+            profile.setFullName(normalizeText(request.getFullName()));
+        }
         return mapProfileToResponse(profile, jockey);
     }
 
@@ -311,7 +315,7 @@ public class JockeyServiceImpl implements JockeyService {
 
         return JockeyProfileResponse.builder()
                 .jockeyId(profile.getJockeyId())
-                .fullName(jockey.getUsername())
+                .fullName(profile.getFullName() != null ? profile.getFullName() : jockey.getUsername())
                 .email(jockey.getEmail())
                 .phoneNumber(jockey.getPhone())
                 .weight(profile.getWeight())

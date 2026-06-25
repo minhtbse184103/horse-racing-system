@@ -145,10 +145,100 @@ function PlaceholderSection({ title, message, icon }) {
   );
 }
 
+function ApplicationDetailItem({ label, value }) {
+  return (
+    <div className="rounded-2xl border border-brown-700/10 bg-white/70 p-4">
+      <span className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">{label}</span>
+      <strong className="mt-1 block break-words text-brown-900">{value || 'Chua cap nhat'}</strong>
+    </div>
+  );
+}
+
+function ApplicationDocumentLink({ label, url }) {
+  const documentUrl = String(url || '').trim();
+
+  function openDocument() {
+    if (!documentUrl) return;
+    window.open(documentUrl, '_blank', 'noopener,noreferrer');
+  }
+
+  return (
+    <div className="rounded-2xl border border-brown-700/10 bg-white/70 p-4">
+      <span className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">{label}</span>
+      {documentUrl ? (
+        <button className="outline-button compact-button mt-3" type="button" onClick={openDocument}>
+          View
+        </button>
+      ) : (
+        <strong className="mt-1 block text-brown-900">Chua co file</strong>
+      )}
+    </div>
+  );
+}
+
+function OwnerApplicationDetail({ application }) {
+  if (!application) return null;
+
+  return (
+    <section className="owner-panel">
+      <div className="owner-panel-header">
+        <div>
+          <p className="eyebrow">Submitted Application</p>
+          <h2>Ho so Owner da gui</h2>
+          <p>Thong tin nay dang duoc admin xem xet.</p>
+        </div>
+        <StatusBadge status={application.status} />
+      </div>
+
+      <div className="grid gap-5">
+        <div>
+          <h3 className="text-xl font-black text-brown-900">Personal Information</h3>
+          <div className="mt-3 grid gap-3 md:grid-cols-2">
+            <ApplicationDetailItem label="Full Name" value={application.fullName} />
+            <ApplicationDetailItem label="Date of Birth" value={formatDate(application.dateOfBirth)} />
+            <ApplicationDetailItem label="Gender" value={application.gender} />
+            <ApplicationDetailItem label="Nationality" value={application.nationality} />
+            <ApplicationDetailItem label="Address" value={application.address} />
+            <ApplicationDocumentLink label="Identity Document" url={application.identityDocumentUrl} />
+          </div>
+        </div>
+
+        <div>
+          <h3 className="text-xl font-black text-brown-900">Stable Information</h3>
+          <div className="mt-3 grid gap-3 md:grid-cols-2">
+            <ApplicationDetailItem label="Stable Name" value={application.stableName} />
+            <ApplicationDetailItem label="Stable Address" value={application.stableAddress} />
+            <ApplicationDocumentLink label="Stable Certificate" url={application.stableCertificateUrl} />
+          </div>
+        </div>
+
+        <div>
+          <h3 className="text-xl font-black text-brown-900">Horse Ownership Proof</h3>
+          <div className="mt-3 grid gap-3 md:grid-cols-2">
+            <ApplicationDetailItem label="Total Horses Owned" value={application.totalHorsesOwned} />
+            <ApplicationDocumentLink label="Horse Ownership Proof" url={application.horseOwnershipProofUrl} />
+          </div>
+        </div>
+
+        <div>
+          <h3 className="text-xl font-black text-brown-900">Application Information</h3>
+          <div className="mt-3 grid gap-3 md:grid-cols-2">
+            <ApplicationDetailItem label="Status" value={application.status} />
+            <ApplicationDetailItem label="Submitted At" value={formatDate(application.submittedAt)} />
+            <ApplicationDetailItem label="Reviewed At" value={formatDate(application.reviewedAt)} />
+            <ApplicationDetailItem label="Reject Reason" value={application.rejectReason} />
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
 function ProfileSection({ user, ownerApplication, jockeyApplication, isLoading, onOpenApplication, onOpenAgain, onBecomeJockey }) {
   const role = getUserRole(user) || 'SPECTATOR';
   const status = ownerApplication?.status || null;
   const jockeyStatus = jockeyApplication?.verificationStatus || null;
+  const [showOwnerApplicationDetail, setShowOwnerApplicationDetail] = useState(false);
 
   const detailRows = [
     ['Username', user?.username || user?.fullName || 'Chưa cập nhật'],
@@ -260,10 +350,18 @@ function ProfileSection({ user, ownerApplication, jockeyApplication, isLoading, 
         <section className="owner-panel warning-owner-panel">
           <p className="eyebrow">Pending Approval</p>
           <h2>Your application has been submitted successfully and is waiting for administrator approval.</h2>
-          <button className="outline-button mt-5" type="button" disabled>
-            Waiting For Approval
+          <button
+            className="outline-button mt-5"
+            type="button"
+            onClick={() => setShowOwnerApplicationDetail((value) => !value)}
+          >
+            {showOwnerApplicationDetail ? 'Hide Submitted Application' : 'View Submitted Application'}
           </button>
         </section>
+      )}
+
+      {status === 'PENDING' && showOwnerApplicationDetail && (
+        <OwnerApplicationDetail application={ownerApplication} />
       )}
 
       {status === 'REJECTED' && (
@@ -278,11 +376,19 @@ function ProfileSection({ user, ownerApplication, jockeyApplication, isLoading, 
             <button className="primary-button owner-hero-action" type="button" onClick={onOpenAgain}>
               Apply Again
             </button>
-            <button className="outline-button" type="button">
-              View Application
+            <button
+              className="outline-button"
+              type="button"
+              onClick={() => setShowOwnerApplicationDetail((value) => !value)}
+            >
+              {showOwnerApplicationDetail ? 'Hide Application' : 'View Application'}
             </button>
           </div>
         </section>
+      )}
+
+      {status === 'REJECTED' && showOwnerApplicationDetail && (
+        <OwnerApplicationDetail application={ownerApplication} />
       )}
 
       {status === 'APPROVED' && (
@@ -383,7 +489,7 @@ export default function UserPanel({ user, onLogout }) {
       setOwnerApplication(application);
       setIsFormOpen(false);
       setActiveSection('profile');
-      setMessage('Application submitted successfully. Status is now PENDING.');
+      setMessage('Your Owner Application has been submitted and is pending Admin review.');
     } catch (err) {
       setError(err.message || 'Không thể gửi Owner application.');
     } finally {

@@ -19,8 +19,12 @@ public class OwnerApplicationResponse {
     private String gender;
     private String nationality;
     private String address;
-    private String identityDocumentImage;
-    private String identityDocumentFileName;
+    private String identityDocumentUrl;
+    private String stableName;
+    private String stableAddress;
+    private String stableCertificateUrl;
+    private Integer totalHorsesOwned;
+    private String horseOwnershipProofUrl;
     private String status;
     private String rejectReason;
     private LocalDateTime submittedAt;

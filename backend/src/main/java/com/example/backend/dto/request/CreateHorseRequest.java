@@ -8,6 +8,7 @@ import com.fasterxml.jackson.annotation.JsonAlias;
 import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Past;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
@@ -23,9 +24,9 @@ public class CreateHorseRequest {
     @Pattern(regexp = "^[\\p{L}0-9][\\p{L}0-9 .'-]*$", message = "Horse Name contains invalid characters")
     private String horseName;
 
-    @NotNull(message = "Age is required")
-    @Positive(message = "Age must be greater than 0")
-    private Integer age;
+    @NotNull(message = "Day of birth is required")
+    @Past(message = "Day of birth must be in the past")
+    private LocalDate dayOfBirth;
 
     @NotNull(message = "Weight is required")
     @Positive(message = "Weight must be greater than 0")

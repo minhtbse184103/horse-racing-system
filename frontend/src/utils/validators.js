@@ -57,8 +57,8 @@ function toDateOnly(value) {
 
 export function validateHorseForm(values) {
   const errors = {};
-  const age = Number(values.age);
   const weight = Number(values.weight);
+  const dayOfBirth = toDateOnly(values.dayOfBirth);
   const healthCertificateExpiryDate = toDateOnly(values.healthCertificateExpiryDate);
   const horseCertificateImages = Array.isArray(values.horseCertificateImages) ? values.horseCertificateImages : [];
 
@@ -70,10 +70,12 @@ export function validateHorseForm(values) {
     errors.horseName = 'Horse Name contains invalid characters.';
   }
 
-  if (values.age === '' || values.age === null || values.age === undefined) {
-    errors.age = 'Age is required.';
-  } else if (!Number.isFinite(age) || age <= 0) {
-    errors.age = 'Age must be greater than 0.';
+  if (!values.dayOfBirth) {
+    errors.dayOfBirth = 'Day of Birth is required.';
+  } else if (!dayOfBirth) {
+    errors.dayOfBirth = 'Day of Birth is invalid.';
+  } else if (dayOfBirth >= new Date()) {
+    errors.dayOfBirth = 'Day of Birth must be in the past.';
   }
 
   if (values.weight === '' || values.weight === null || values.weight === undefined) {

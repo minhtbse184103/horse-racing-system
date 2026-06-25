@@ -28,6 +28,9 @@ public class JockeyProfile {
     @Column(name = "jockeyID")
     private Integer jockeyId;
 
+    @Column(name = "fullName", nullable = false)
+    private String fullName;
+
     @Column(name = "weight", nullable = false)
     private BigDecimal weight;
 

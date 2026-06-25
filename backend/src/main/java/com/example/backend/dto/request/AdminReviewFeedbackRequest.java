@@ -12,6 +12,6 @@ import lombok.Setter;
 public class AdminReviewFeedbackRequest {
     @NotBlank(message = "Phản hồi là bắt buộc")
     @Size(max = 500, message = "Phản hồi không được vượt quá 500 ký tự")
-    @JsonAlias("rejectionReason")
+    @JsonAlias({"rejectionReason", "rejectReason"})
     private String feedback;
 }

@@ -12,5 +12,9 @@ import com.example.backend.entity.OwnerApplication;
 public interface OwnerApplicationRepository extends JpaRepository<OwnerApplication, Integer> {
     Optional<OwnerApplication> findFirstByUserIdOrderByApplicationIdDesc(Integer userId);
 
+    boolean existsByUserIdAndStatus(Integer userId, String status);
+
     List<OwnerApplication> findByStatusOrderBySubmittedAtDesc(String status);
+
+    List<OwnerApplication> findAllByOrderBySubmittedAtDesc();
 }

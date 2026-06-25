@@ -100,6 +100,7 @@ public class AdminHorseService {
                 .ownerId(horse.getOwnerId())
                 .horseName(horse.getHorseName())
                 .age(horse.getAge())
+                .dayOfBirth(horse.getDayOfBirth())
                 .weight(horse.getWeight())
                 .colour(horse.getColour())
                 .sex(horse.getSex())

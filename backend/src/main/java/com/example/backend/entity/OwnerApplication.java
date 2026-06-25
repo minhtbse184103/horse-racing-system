@@ -48,6 +48,24 @@ public class OwnerApplication {
     @Column(name = "address", nullable = false, length = 500)
     private String address;
 
+    @Column(name = "identityDocumentUrl", nullable = false, columnDefinition = "TEXT")
+    private String identityDocumentUrl;
+
+    @Column(name = "stableName", nullable = false)
+    private String stableName;
+
+    @Column(name = "stableAddress", nullable = false, length = 500)
+    private String stableAddress;
+
+    @Column(name = "stableCertificateUrl", nullable = false, columnDefinition = "TEXT")
+    private String stableCertificateUrl;
+
+    @Column(name = "totalHorsesOwned", nullable = false)
+    private Integer totalHorsesOwned;
+
+    @Column(name = "horseOwnershipProofUrl", nullable = false, columnDefinition = "TEXT")
+    private String horseOwnershipProofUrl;
+
     @Column(name = "status", nullable = false)
     private String status;
 

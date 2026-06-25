@@ -185,7 +185,24 @@ export default function Profile() {
               <InfoRow label="Gender" value={application.gender} />
               <InfoRow label="Nationality" value={application.nationality} />
               <InfoRow label="Address" value={application.address} />
-              <InfoRow label="Identity Number" value={application.identityNumber} />
+              <InfoRow label="Stable Name" value={application.stableName} />
+              <InfoRow label="Stable Address" value={application.stableAddress} />
+              <InfoRow label="Total Horses Owned" value={application.totalHorsesOwned} />
+              {application.identityDocumentUrl && (
+                <a className="btn btn-muted" href={application.identityDocumentUrl} target="_blank" rel="noreferrer">
+                  View Identity Document
+                </a>
+              )}
+              {application.stableCertificateUrl && (
+                <a className="btn btn-muted" href={application.stableCertificateUrl} target="_blank" rel="noreferrer">
+                  View Stable Certificate
+                </a>
+              )}
+              {application.horseOwnershipProofUrl && (
+                <a className="btn btn-muted" href={application.horseOwnershipProofUrl} target="_blank" rel="noreferrer">
+                  View Horse Ownership Proof
+                </a>
+              )}
             </div>
           )}
         </Card>

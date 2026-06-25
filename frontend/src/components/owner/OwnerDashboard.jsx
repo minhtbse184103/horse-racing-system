@@ -152,7 +152,7 @@ export default function OwnerDashboard({ currentUser, onLogout, onUserUpdated })
 
     setFormValues({
       horseName: getHorseName(horse),
-      age: horse.age ?? '',
+      dayOfBirth: horse.dayOfBirth || horse.horseDateOfBirth || '',
       weight: horse.weight ?? '',
       colour: horse.colour || '',
       sex: horse.sex || 'MALE',
@@ -416,6 +416,9 @@ export default function OwnerDashboard({ currentUser, onLogout, onUserUpdated })
 
                 <span>Age</span>
                 <strong>{selectedHorse.age || 'Chưa cập nhật'}</strong>
+
+                <span>Day of Birth</span>
+                <strong>{selectedHorse.dayOfBirth || 'Chua cap nhat'}</strong>
 
                 <span>Weight</span>
                 <strong>{selectedHorse.weight ? `${selectedHorse.weight} kg` : 'Chua cap nhat'}</strong>

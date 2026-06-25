@@ -59,7 +59,7 @@ function normalizeHorse(horse) {
 function toHorseFormData(payload) {
   const formData = new FormData();
   formData.append('horseName', String(payload.horseName || '').trim());
-  formData.append('age', String(payload.age || ''));
+  formData.append('dayOfBirth', payload.dayOfBirth || '');
   formData.append('weight', String(payload.weight || ''));
   formData.append('colour', String(payload.colour || '').trim());
   formData.append('sex', String(payload.sex || '').trim());
@@ -113,7 +113,7 @@ export async function updateHorse(horseId, payload) {
     method: 'PUT',
     body: {
       horseName: String(payload.horseName || '').trim(),
-      age: payload.age,
+      dayOfBirth: payload.dayOfBirth,
       weight: payload.weight,
       colour: String(payload.colour || '').trim(),
       sex: String(payload.sex || '').trim(),

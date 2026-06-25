@@ -355,6 +355,7 @@ public class JockeyVerificationServiceImpl implements JockeyVerificationService 
                     newProfile.setJockeyId(jockeyId);
                     return newProfile;
                 });
+        profile.setFullName(normalizeText(request.getFullName()));
         profile.setWeight(request.getWeight());
         profile.setRanking(normalizeUppercase(request.getRanking()));
         profile.setBiography(normalizeText(request.getBiography()));
@@ -370,7 +371,7 @@ public class JockeyVerificationServiceImpl implements JockeyVerificationService 
         return JockeyVerificationResponse.builder()
                 .verificationId(verification.getVerificationId())
                 .jockeyId(verification.getJockeyId())
-                .jockeyFullName(user != null ? user.getFullName() : null)
+                .jockeyFullName(resolveJockeyFullName(profile, user))
                 .jockeyEmail(user != null ? user.getEmail() : null)
                 .trainerName(verification.getTrainerName())
                 .trainerEmail(verification.getTrainerEmail())
@@ -388,9 +389,16 @@ public class JockeyVerificationServiceImpl implements JockeyVerificationService 
                 .submittedAt(verification.getSubmittedAt())
                 .reviewedAt(verification.getReviewedAt())
                 .reviewedBy(verification.getReviewedBy())
-                .reviewedByName(reviewer != null ? reviewer.getFullName() : null)
+                .reviewedByName(reviewer != null ? reviewer.getUsername() : null)
                 .files(fileResponses)
                 .build();
+    }
+
+    private String resolveJockeyFullName(JockeyProfile profile, User user) {
+        if (profile != null && profile.getFullName() != null && !profile.getFullName().isBlank()) {
+            return profile.getFullName();
+        }
+        return user != null ? user.getUsername() : null;
     }
 
     private JockeyVerificationFileResponse mapFileToResponse(JockeyVerificationFile file) {

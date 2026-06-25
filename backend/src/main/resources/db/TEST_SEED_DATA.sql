@@ -43,11 +43,11 @@ VALUES
   (4, 3, DATE_SUB(@seed_now, INTERVAL 98 DAY),  DATE_SUB(@seed_now, INTERVAL 98 DAY));
 
 INSERT INTO `JockeyProfile`
-  (`jockeyID`, `licenseNo`, `weight`, `ranking`, `status`, `rejectionReason`, `img_url`, `biography`, `totalRaces`, `totalWins`, `createdAt`, `updatedAt`)
+  (`jockeyID`, `fullName`, `weight`, `ranking`, `biography`, `totalRaces`, `totalWins`, `createdAt`, `updatedAt`)
 VALUES
-  (5, 'JOCKEY-DEMO-005', 52.50, 'A', 'ACTIVE', NULL, 'https://example.com/jockeys/5/image.jpg', 'Experienced sprint jockey.', 48, 13, DATE_SUB(@seed_now, INTERVAL 300 DAY), @seed_now),
-  (6, 'JOCKEY-DEMO-006', 54.00, 'A', 'ACTIVE', NULL, 'https://example.com/jockeys/6/image.jpg', 'Specialist in middle-distance races.', 39, 9, DATE_SUB(@seed_now, INTERVAL 280 DAY), @seed_now),
-  (7, 'JOCKEY-DEMO-007', 55.25, 'B', 'PENDING', NULL, 'https://example.com/jockeys/7/image.jpg', 'New jockey awaiting verification.', 5, 1, DATE_SUB(@seed_now, INTERVAL 30 DAY), @seed_now);
+  (5, 'Demo Jockey Five', 52.50, 'A', 'Experienced sprint jockey.', 48, 13, DATE_SUB(@seed_now, INTERVAL 300 DAY), @seed_now),
+  (6, 'Demo Jockey Six', 54.00, 'A', 'Specialist in middle-distance races.', 39, 9, DATE_SUB(@seed_now, INTERVAL 280 DAY), @seed_now),
+  (7, 'Demo Jockey Seven', 55.25, 'B', 'New jockey awaiting verification.', 5, 1, DATE_SUB(@seed_now, INTERVAL 30 DAY), @seed_now);
 
 INSERT INTO `JockeyVerification`
   (`verificationID`, `jockeyID`, `trainerName`, `trainerEmail`, `academyStableAddress`, `issuingAuthority`, `verificationLink`, `licenceType`, `expiryDate`, `verificationStatus`, `rejectionReason`, `resubmitCount`, `submittedAt`, `reviewedAt`, `reviewedBy`, `createdAt`, `updatedAt`)
@@ -64,16 +64,16 @@ VALUES
   (3, 3, 'https://example.com/documents/jockey-7-license.pdf', 'PDF', DATE_SUB(@seed_now, INTERVAL 2 DAY));
 
 INSERT INTO `Horse`
-  (`horseID`, `ownerID`, `horseName`, `age`, `weight`, `colour`, `sex`, `breeding`, `trainer`, `healthCertExpiry`, `healthCertificateUrl`, `officialHorseProfileUrl`, `status`, `rejectionReason`, `createdAt`, `updatedAt`)
+  (`horseID`, `ownerID`, `horseName`, `age`, `dayOfBirth`, `weight`, `colour`, `sex`, `breeding`, `trainer`, `healthCertExpiry`, `healthCertificateUrl`, `officialHorseProfileUrl`, `status`, `rejectionReason`, `createdAt`, `updatedAt`)
 VALUES
-  (1, 2, 'Demo Thunder', 4, 480.00, 'Bay',      'MALE',   'Thoroughbred', 'Demo Trainer', DATE_ADD(@seed_today, INTERVAL 1 YEAR), 'https://example.com/horses/1/health.pdf', 'https://www.racingandsports.com.au/thoroughbred/horse/demo-thunder', 'ACTIVE', NULL, @seed_now, @seed_now),
-  (2, 2, 'Demo Comet',   5, 495.00, 'Chestnut', 'MALE',   'Thoroughbred', 'Demo Trainer', DATE_ADD(@seed_today, INTERVAL 1 YEAR), 'https://example.com/horses/2/health.pdf', 'https://www.racingandsports.com.au/thoroughbred/horse/demo-comet', 'ACTIVE', NULL, @seed_now, @seed_now),
-  (3, 3, 'Demo Atlas',   6, 510.00, 'Black',    'MALE',   'Thoroughbred', 'Demo Trainer', DATE_ADD(@seed_today, INTERVAL 1 YEAR), 'https://example.com/horses/3/health.pdf', 'https://www.racingandsports.com.au/thoroughbred/horse/demo-atlas', 'ACTIVE', NULL, @seed_now, @seed_now),
-  (4, 3, 'Demo Rocket',  4, 500.00, 'Grey',     'MALE',   'Thoroughbred', 'Demo Trainer', DATE_ADD(@seed_today, INTERVAL 1 YEAR), 'https://example.com/horses/4/health.pdf', 'https://www.racingandsports.com.au/thoroughbred/horse/demo-rocket', 'ACTIVE', NULL, @seed_now, @seed_now),
-  (5, 4, 'Demo Blaze',   7, 520.00, 'Bay',      'MALE',   'Thoroughbred', 'Demo Trainer', DATE_ADD(@seed_today, INTERVAL 1 YEAR), 'https://example.com/horses/5/health.pdf', 'https://www.racingandsports.com.au/thoroughbred/horse/demo-blaze', 'ACTIVE', NULL, @seed_now, @seed_now),
-  (6, 4, 'Demo Legacy',  8, 530.00, 'Brown',    'MALE',   'Thoroughbred', 'Demo Trainer', DATE_ADD(@seed_today, INTERVAL 1 YEAR), 'https://example.com/horses/6/health.pdf', 'https://www.racingandsports.com.au/thoroughbred/horse/demo-legacy', 'ACTIVE', NULL, @seed_now, @seed_now),
-  (7, 4, 'Demo Aurora',  5, 475.00, 'Grey',     'FEMALE', 'Thoroughbred', 'Demo Trainer', DATE_ADD(@seed_today, INTERVAL 1 YEAR), 'https://example.com/horses/7/health.pdf', 'https://www.racingandsports.com.au/thoroughbred/horse/demo-aurora', 'PENDING', NULL, @seed_now, @seed_now),
-  (8, 3, 'Demo Eclipse', 6, 490.00, 'Black',    'FEMALE', 'Thoroughbred', 'Demo Trainer', DATE_ADD(@seed_today, INTERVAL 1 YEAR), 'https://example.com/horses/8/health.pdf', 'https://www.racingandsports.com.au/thoroughbred/horse/demo-eclipse', 'REJECTED', 'Health certificate image is unclear.', @seed_now, @seed_now);
+  (1, 2, 'Demo Thunder', 4, DATE_SUB(@seed_today, INTERVAL 4 YEAR), 480.00, 'Bay',      'MALE',   'Thoroughbred', 'Demo Trainer', DATE_ADD(@seed_today, INTERVAL 1 YEAR), 'https://example.com/horses/1/health.pdf', 'https://www.racingandsports.com.au/thoroughbred/horse/demo-thunder', 'ACTIVE', NULL, @seed_now, @seed_now),
+  (2, 2, 'Demo Comet',   5, DATE_SUB(@seed_today, INTERVAL 5 YEAR), 495.00, 'Chestnut', 'MALE',   'Thoroughbred', 'Demo Trainer', DATE_ADD(@seed_today, INTERVAL 1 YEAR), 'https://example.com/horses/2/health.pdf', 'https://www.racingandsports.com.au/thoroughbred/horse/demo-comet', 'ACTIVE', NULL, @seed_now, @seed_now),
+  (3, 3, 'Demo Atlas',   6, DATE_SUB(@seed_today, INTERVAL 6 YEAR), 510.00, 'Black',    'MALE',   'Thoroughbred', 'Demo Trainer', DATE_ADD(@seed_today, INTERVAL 1 YEAR), 'https://example.com/horses/3/health.pdf', 'https://www.racingandsports.com.au/thoroughbred/horse/demo-atlas', 'ACTIVE', NULL, @seed_now, @seed_now),
+  (4, 3, 'Demo Rocket',  4, DATE_SUB(@seed_today, INTERVAL 4 YEAR), 500.00, 'Grey',     'MALE',   'Thoroughbred', 'Demo Trainer', DATE_ADD(@seed_today, INTERVAL 1 YEAR), 'https://example.com/horses/4/health.pdf', 'https://www.racingandsports.com.au/thoroughbred/horse/demo-rocket', 'ACTIVE', NULL, @seed_now, @seed_now),
+  (5, 4, 'Demo Blaze',   7, DATE_SUB(@seed_today, INTERVAL 7 YEAR), 520.00, 'Bay',      'MALE',   'Thoroughbred', 'Demo Trainer', DATE_ADD(@seed_today, INTERVAL 1 YEAR), 'https://example.com/horses/5/health.pdf', 'https://www.racingandsports.com.au/thoroughbred/horse/demo-blaze', 'ACTIVE', NULL, @seed_now, @seed_now),
+  (6, 4, 'Demo Legacy',  8, DATE_SUB(@seed_today, INTERVAL 8 YEAR), 530.00, 'Brown',    'MALE',   'Thoroughbred', 'Demo Trainer', DATE_ADD(@seed_today, INTERVAL 1 YEAR), 'https://example.com/horses/6/health.pdf', 'https://www.racingandsports.com.au/thoroughbred/horse/demo-legacy', 'ACTIVE', NULL, @seed_now, @seed_now),
+  (7, 4, 'Demo Aurora',  5, DATE_SUB(@seed_today, INTERVAL 5 YEAR), 475.00, 'Grey',     'FEMALE', 'Thoroughbred', 'Demo Trainer', DATE_ADD(@seed_today, INTERVAL 1 YEAR), 'https://example.com/horses/7/health.pdf', 'https://www.racingandsports.com.au/thoroughbred/horse/demo-aurora', 'PENDING', NULL, @seed_now, @seed_now),
+  (8, 3, 'Demo Eclipse', 6, DATE_SUB(@seed_today, INTERVAL 6 YEAR), 490.00, 'Black',    'FEMALE', 'Thoroughbred', 'Demo Trainer', DATE_ADD(@seed_today, INTERVAL 1 YEAR), 'https://example.com/horses/8/health.pdf', 'https://www.racingandsports.com.au/thoroughbred/horse/demo-eclipse', 'REJECTED', 'Health certificate image is unclear.', @seed_now, @seed_now);
 
 INSERT INTO `Tournament`
   (`tournamentID`, `tournamentName`, `venue`, `venueImageUrl`, `description`, `registrationOpenAt`, `registrationCloseAt`, `startDate`, `endDate`, `maxRegistrations`, `entryFee`, `status`, `createdBy`, `createdAt`, `updatedAt`)

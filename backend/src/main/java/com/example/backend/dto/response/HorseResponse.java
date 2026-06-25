@@ -14,6 +14,7 @@ public class HorseResponse {
     private Integer ownerId;
     private String horseName;
     private Integer age;
+    private LocalDate dayOfBirth;
     private BigDecimal weight;
     private String colour;
     private String sex;

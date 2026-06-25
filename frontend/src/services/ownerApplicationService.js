@@ -1,4 +1,12 @@
 import { httpRequest } from '../api/httpClient';
+import API_BASE_URL from '../configs/apiConfig';
+
+function toAbsoluteFileUrl(url) {
+  const value = String(url || '').trim();
+  if (!value) return '';
+  if (/^(https?:|data:|blob:)/i.test(value)) return value;
+  return `${API_BASE_URL}${value.startsWith('/') ? value : `/${value}`}`;
+}
 
 function normalizeOwnerApplication(application) {
   if (!application) return null;
@@ -13,7 +21,10 @@ function normalizeOwnerApplication(application) {
     approvedAt: application.approvedAt ?? application.reviewedAt,
     rejectedAt: application.rejectedAt ?? application.reviewedAt,
     ownerSince: application.ownerSince ?? application.approvedAt ?? application.reviewedAt,
-    rejectReason: application.rejectReason ?? application.feedback
+    rejectReason: application.rejectReason ?? application.feedback,
+    identityDocumentUrl: toAbsoluteFileUrl(application.identityDocumentUrl),
+    stableCertificateUrl: toAbsoluteFileUrl(application.stableCertificateUrl),
+    horseOwnershipProofUrl: toAbsoluteFileUrl(application.horseOwnershipProofUrl)
   };
 }
 
@@ -24,8 +35,29 @@ function normalizeOwnerProfile(profile) {
     ...profile,
     approvedAt: profile.approvedAt ?? profile.reviewedAt,
     ownerSince: profile.ownerSince ?? profile.approvedAt ?? profile.reviewedAt,
-    status: profile.status ?? 'APPROVED'
+    status: profile.status ?? 'APPROVED',
+    identityDocumentUrl: toAbsoluteFileUrl(profile.identityDocumentUrl),
+    stableCertificateUrl: toAbsoluteFileUrl(profile.stableCertificateUrl),
+    horseOwnershipProofUrl: toAbsoluteFileUrl(profile.horseOwnershipProofUrl)
   };
+}
+
+function toOwnerApplicationFormData(payload) {
+  const formData = new FormData();
+  formData.append('fullName', String(payload.fullName || '').trim());
+  formData.append('dateOfBirth', payload.dateOfBirth || '');
+  formData.append('gender', String(payload.gender || '').trim());
+  formData.append('nationality', String(payload.nationality || '').trim());
+  formData.append('address', String(payload.address || '').trim());
+  formData.append('stableName', String(payload.stableName || '').trim());
+  formData.append('stableAddress', String(payload.stableAddress || '').trim());
+  formData.append('totalHorsesOwned', String(payload.totalHorsesOwned || ''));
+
+  if (payload.identityDocumentFile) formData.append('identityDocumentFile', payload.identityDocumentFile);
+  if (payload.stableCertificateFile) formData.append('stableCertificateFile', payload.stableCertificateFile);
+  if (payload.horseOwnershipProofFile) formData.append('horseOwnershipProofFile', payload.horseOwnershipProofFile);
+
+  return formData;
 }
 
 export async function getMyOwnerApplication() {
@@ -43,24 +75,16 @@ export async function getMyOwnerProfile() {
 }
 
 export async function submitOwnerApplication(_user, payload) {
-  const application = await httpRequest('/api/owner-applications/me', {
+  const application = await httpRequest('/api/owner-applications', {
     method: 'POST',
-    body: {
-      fullName: String(payload.fullName || '').trim(),
-      dateOfBirth: payload.dateOfBirth,
-      gender: payload.gender,
-      nationality: String(payload.nationality || '').trim(),
-      address: String(payload.address || '').trim(),
-      identityDocumentImage: payload.identityDocumentImage,
-      identityDocumentFileName: payload.identityDocumentFileName
-    },
+    body: toOwnerApplicationFormData(payload),
     fallbackError: 'Khong the gui don dang ky owner.'
   });
 
   return normalizeOwnerApplication(application);
 }
 
-export async function getAllOwnerApplications(status = 'PENDING') {
+export async function getAllOwnerApplications(status = '') {
   const query = status ? `?status=${encodeURIComponent(status)}` : '';
   const applications = await httpRequest(`/api/admin/owner-applications${query}`, {
     fallbackError: 'Khong the tai danh sach don dang ky owner.'
@@ -72,13 +96,10 @@ export async function getAllOwnerApplications(status = 'PENDING') {
 }
 
 export async function getOwnerApplicationById(applicationId) {
-  const applications = await getAllOwnerApplications('');
-  const application = applications.find(
-    (item) => String(item.applicationID) === String(applicationId)
-  );
-
-  if (!application) throw new Error('Khong tim thay don dang ky owner.');
-  return application;
+  const application = await httpRequest(`/api/admin/owner-applications/${applicationId}`, {
+    fallbackError: 'Khong the tai chi tiet don dang ky owner.'
+  });
+  return normalizeOwnerApplication(application);
 }
 
 export async function approveOwnerApplication(applicationId) {
@@ -97,7 +118,7 @@ export async function rejectOwnerApplication(applicationId, rejectReason) {
 
   const application = await httpRequest(`/api/admin/owner-applications/${applicationId}/reject`, {
     method: 'PUT',
-    body: { feedback: reason },
+    body: { rejectReason: reason },
     fallbackError: 'Khong the tu choi don dang ky owner.'
   });
 

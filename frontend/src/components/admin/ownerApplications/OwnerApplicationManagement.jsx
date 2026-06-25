@@ -67,6 +67,30 @@ function EmptyState({ t }) {
   );
 }
 
+function InfoCard({ label, value }) {
+  return (
+    <div className="rounded-2xl border border-brown-700/10 bg-white/70 p-4">
+      <span className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">{label}</span>
+      <strong className="mt-1 block break-words text-brown-900">{value || 'Not updated'}</strong>
+    </div>
+  );
+}
+
+function DocumentCard({ label, url }) {
+  return (
+    <div className="rounded-2xl border border-brown-700/10 bg-white/70 p-4">
+      <span className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">{label}</span>
+      {url ? (
+        <a className="outline-button compact-button mt-3 inline-flex" href={url} target="_blank" rel="noreferrer">
+          View Document
+        </a>
+      ) : (
+        <strong className="mt-1 block text-brown-900">Not updated</strong>
+      )}
+    </div>
+  );
+}
+
 export default function OwnerApplicationManagement() {
   const { t } = useLanguage();
   const [applications, setApplications] = useState([]);
@@ -215,35 +239,41 @@ export default function OwnerApplicationManagement() {
           </div>
 
           <div className="mt-5 grid gap-4 md:grid-cols-2">
-            {[
-              [t('fullName'), selectedApplication.fullName],
-              [t('dateOfBirth'), formatDate(selectedApplication.dateOfBirth)],
-              [t('gender'), selectedApplication.gender],
-              [t('nationality'), selectedApplication.nationality],
-              [t('address'), selectedApplication.address],
-              [t('email'), selectedApplication.applicantEmail],
-              [t('phone'), selectedApplication.applicantPhone]
-            ].map(([label, value]) => (
-              <div className="rounded-2xl border border-brown-700/10 bg-white/70 p-4" key={label}>
-                <span className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">{label}</span>
-                <strong className="mt-1 block break-words text-brown-900">{value || t('notUpdated')}</strong>
-              </div>
-            ))}
+            <InfoCard label={t('fullName')} value={selectedApplication.fullName} />
+            <InfoCard label={t('dateOfBirth')} value={formatDate(selectedApplication.dateOfBirth)} />
+            <InfoCard label={t('gender')} value={selectedApplication.gender} />
+            <InfoCard label={t('nationality')} value={selectedApplication.nationality} />
+            <InfoCard label={t('address')} value={selectedApplication.address} />
+            <InfoCard label={t('email')} value={selectedApplication.applicantEmail} />
+            <InfoCard label={t('phone')} value={selectedApplication.applicantPhone} />
+            <DocumentCard label="Identity Document" url={selectedApplication.identityDocumentUrl} />
           </div>
 
+          <div className="mt-6">
+            <h3 className="text-xl font-black text-brown-900">Stable Information</h3>
+            <div className="mt-3 grid gap-4 md:grid-cols-2">
+              <InfoCard label="Stable Name" value={selectedApplication.stableName} />
+              <InfoCard label="Stable Address" value={selectedApplication.stableAddress} />
+              <DocumentCard label="Stable Certificate" url={selectedApplication.stableCertificateUrl} />
+            </div>
+          </div>
 
-          <div className="mt-5 rounded-2xl border border-brown-700/10 bg-white/70 p-4">
-            <span className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">{t('identityDocument')}</span>
-            {selectedApplication.identityDocumentImage ? (
-              <div className="mt-3 identity-preview-card large">
-                <img src={selectedApplication.identityDocumentImage} alt={t('identityAlt')} />
-              </div>
-            ) : (
-              <strong className="mt-2 block text-brown-900">{t('notUpdated')}</strong>
-            )}
-            {selectedApplication.identityDocumentFileName && (
-              <small className="mt-2 block font-bold text-slate-500">{selectedApplication.identityDocumentFileName}</small>
-            )}
+          <div className="mt-6">
+            <h3 className="text-xl font-black text-brown-900">Horse Ownership Proof</h3>
+            <div className="mt-3 grid gap-4 md:grid-cols-2">
+              <InfoCard label="Total Horses Owned" value={selectedApplication.totalHorsesOwned} />
+              <DocumentCard label="Horse Ownership Proof" url={selectedApplication.horseOwnershipProofUrl} />
+            </div>
+          </div>
+
+          <div className="mt-6">
+            <h3 className="text-xl font-black text-brown-900">Application Information</h3>
+            <div className="mt-3 grid gap-4 md:grid-cols-2">
+              <InfoCard label="Status" value={selectedApplication.status} />
+              <InfoCard label="Submitted At" value={formatDate(selectedApplication.submittedAt)} />
+              <InfoCard label="Reviewed At" value={formatDate(selectedApplication.reviewedAt)} />
+              <InfoCard label="Reviewed By" value={selectedApplication.reviewedBy} />
+            </div>
           </div>
 
           {selectedApplication.rejectReason && (
@@ -252,16 +282,22 @@ export default function OwnerApplicationManagement() {
             </div>
           )}
 
-          <div className="mt-6 flex flex-wrap gap-3 border-t border-brown-700/10 pt-5">
-            <button className="inline-flex items-center gap-2 rounded-lg bg-green-700 px-5 py-3 font-extrabold text-white shadow-sm transition hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50" type="button" onClick={() => setApproveTarget(selectedApplication)} disabled={!canAct || isActionLoading}>
-              <CheckCircle2 size={18} />
-              {t('approve')}
-            </button>
-            <button className="outline-button danger-action inline-flex items-center gap-2" type="button" onClick={() => setRejectTarget(selectedApplication)} disabled={!canAct || isActionLoading}>
-              <XCircle size={18} />
-              {t('reject')}
-            </button>
-          </div>
+          {canAct ? (
+            <div className="mt-6 flex flex-wrap gap-3 border-t border-brown-700/10 pt-5">
+              <button className="inline-flex items-center gap-2 rounded-lg bg-green-700 px-5 py-3 font-extrabold text-white shadow-sm transition hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50" type="button" onClick={() => setApproveTarget(selectedApplication)} disabled={isActionLoading}>
+                <CheckCircle2 size={18} />
+                {t('approve')}
+              </button>
+              <button className="outline-button danger-action inline-flex items-center gap-2" type="button" onClick={() => setRejectTarget(selectedApplication)} disabled={isActionLoading}>
+                <XCircle size={18} />
+                {t('reject')}
+              </button>
+            </div>
+          ) : (
+            <div className="mt-6 border-t border-brown-700/10 pt-5">
+              <StatusBadge status={selectedApplication.status} t={t} />
+            </div>
+          )}
         </section>
 
         {approveTarget && (

@@ -18,6 +18,21 @@ function DetailItem({ label, value }) {
   );
 }
 
+function DocumentItem({ label, url }) {
+  return (
+    <div className="rounded-2xl bg-slate-50 p-4">
+      <p className="text-xs font-bold uppercase tracking-wide text-slate-400">{label}</p>
+      {url ? (
+        <a className="btn btn-muted mt-3 inline-flex" href={url} target="_blank" rel="noreferrer">
+          View Document
+        </a>
+      ) : (
+        <p className="mt-1 font-semibold text-slate-900">-</p>
+      )}
+    </div>
+  );
+}
+
 export default function OwnerApplicationDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -119,9 +134,24 @@ export default function OwnerApplicationDetail() {
             <DetailItem label="Gender" value={application.gender} />
             <DetailItem label="Nationality" value={application.nationality} />
             <DetailItem label="Address" value={application.address} />
-            <DetailItem label="Identity Number" value={application.identityNumber} />
             <DetailItem label="Email" value={application.email} />
             <DetailItem label="Phone Number" value={application.phone} />
+            <DocumentItem label="Identity Document" url={application.identityDocumentUrl} />
+          </div>
+        </Card>
+
+        <Card title="Stable Information">
+          <div className="grid gap-4 md:grid-cols-2">
+            <DetailItem label="Stable Name" value={application.stableName} />
+            <DetailItem label="Stable Address" value={application.stableAddress} />
+            <DocumentItem label="Stable Certificate" url={application.stableCertificateUrl} />
+          </div>
+        </Card>
+
+        <Card title="Horse Ownership Proof">
+          <div className="grid gap-4 md:grid-cols-2">
+            <DetailItem label="Total Horses Owned" value={application.totalHorsesOwned} />
+            <DocumentItem label="Horse Ownership Proof" url={application.horseOwnershipProofUrl} />
           </div>
         </Card>
 
@@ -141,12 +171,18 @@ export default function OwnerApplicationDetail() {
             {application.approvedAt && <DetailItem label="Approval Date" value={application.approvedAt} />}
             {application.rejectedAt && <DetailItem label="Rejected Date" value={application.rejectedAt} />}
 
-            <button type="button" className="btn btn-primary w-full" disabled={!isPending} onClick={() => setApproveOpen(true)}>
-              Approve
-            </button>
-            <button type="button" className="btn btn-danger w-full" disabled={!isPending} onClick={() => setRejectOpen(true)}>
-              Reject
-            </button>
+            {isPending ? (
+              <>
+                <button type="button" className="btn btn-primary w-full" onClick={() => setApproveOpen(true)}>
+                  Approve
+                </button>
+                <button type="button" className="btn btn-danger w-full" onClick={() => setRejectOpen(true)}>
+                  Reject
+                </button>
+              </>
+            ) : (
+              <StatusBadge status={application.status} />
+            )}
           </div>
         </Card>
       </div>

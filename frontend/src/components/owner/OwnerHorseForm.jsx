@@ -114,20 +114,18 @@ export default function OwnerHorseForm({
           <div className="owner-form-row">
             <div>
               <label className="field-label" htmlFor="horseAge">
-                Age <span className="required">*</span>
+                Day of Birth <span className="required">*</span>
               </label>
               <input
-                className={errors.age ? 'input has-error' : 'input'}
+                className={errors.dayOfBirth ? 'input has-error' : 'input'}
                 id="horseAge"
-                name="age"
-                type="number"
-                min="1"
-                step="1"
-                value={formValues.age}
+                name="dayOfBirth"
+                type="date"
+                value={formValues.dayOfBirth || ''}
                 onChange={onChange}
                 disabled={isSaving}
               />
-              {errors.age && <p className="field-error">{errors.age}</p>}
+              {errors.dayOfBirth && <p className="field-error">{errors.dayOfBirth}</p>}
             </div>
 
             <div>
