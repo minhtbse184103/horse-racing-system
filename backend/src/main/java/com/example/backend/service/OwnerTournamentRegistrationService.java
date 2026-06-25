@@ -389,6 +389,18 @@ public class OwnerTournamentRegistrationService {
                 .findById(registration.getJockeyId())
                 .orElse(null);
 
+        OwnerApplication ownerApplication = owner == null
+                ? null
+                : ownerApplicationRepository
+                .findFirstByUserIdOrderByApplicationIdDesc(owner.getUserID())
+                .orElse(null);
+
+        JockeyProfile jockeyProfile = jockey == null
+                ? null
+                : jockeyProfileRepository
+                .findById(jockey.getUserID())
+                .orElse(null);
+
         RaceEntry raceEntry = registration.getRegistrationId() == null
                 ? null
                 : raceEntryRepository
@@ -418,10 +430,10 @@ public class OwnerTournamentRegistrationService {
                 .horseHealthCertExpiry(horse != null ? horse.getHealthCertExpiry() : null)
                 .horseStatus(horse != null ? horse.getStatus() : null)
                 .ownerId(registration.getOwnerId())
-                .ownerName(resolveOwnerFullName(owner))
+                .ownerName(ownerApplication != null ? ownerApplication.getFullName() : null)
                 .ownerEmail(owner != null ? owner.getEmail() : null)
                 .jockeyId(registration.getJockeyId())
-                .jockeyName(resolveJockeyFullName(jockey))
+                .jockeyName(jockeyProfile != null ? jockeyProfile.getFullName() : null)
                 .jockeyEmail(jockey != null ? jockey.getEmail() : null)
                 .paymentStatus(registration.getPaymentStatus())
                 .approvalStatus(registration.getApprovalStatus())
@@ -435,26 +447,6 @@ public class OwnerTournamentRegistrationService {
                 .createdAt(registration.getCreatedAt())
                 .updatedAt(registration.getUpdatedAt())
                 .build();
-    }
-
-    private String resolveOwnerFullName(User owner) {
-        if (owner == null) {
-            return null;
-        }
-        return ownerApplicationRepository.findFirstByUserIdOrderByApplicationIdDesc(owner.getUserID())
-                .map(OwnerApplication::getFullName)
-                .filter(name -> !name.isBlank())
-                .orElse(owner.getUsername());
-    }
-
-    private String resolveJockeyFullName(User jockey) {
-        if (jockey == null) {
-            return null;
-        }
-        return jockeyProfileRepository.findById(jockey.getUserID())
-                .map(JockeyProfile::getFullName)
-                .filter(name -> !name.isBlank())
-                .orElse(jockey.getUsername());
     }
 
     private TournamentResponse toTournamentResponse(Tournament tournament) {
