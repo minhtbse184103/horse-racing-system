@@ -1,5 +1,10 @@
 USE horse_racing_system;
 
+-- WARNING:
+-- This is a legacy migration for databases created before the current
+-- team_schema.sql. Do not run this file after importing the current
+-- team_schema.sql, because those columns and constraints already exist there.
+
 ALTER TABLE `OwnerApplication`
   ADD COLUMN `identityDocumentUrl` TEXT NULL AFTER `address`,
   ADD COLUMN `stableName` VARCHAR(255) NULL AFTER `identityDocumentUrl`,
