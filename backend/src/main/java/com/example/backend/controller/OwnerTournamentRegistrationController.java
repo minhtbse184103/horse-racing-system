@@ -1,10 +1,12 @@
 package com.example.backend.controller;
 
 import com.example.backend.dto.request.OwnerTournamentRegistrationRequest;
+import com.example.backend.dto.response.OwnerRegistrationPaymentResponse;
 import com.example.backend.dto.response.RegistrationResponse;
 import com.example.backend.dto.response.TournamentResponse;
 import com.example.backend.service.OwnerTournamentRegistrationService;
 import jakarta.validation.Valid;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -35,11 +37,23 @@ public class OwnerTournamentRegistrationController {
     }
 
     @PostMapping
-    public ResponseEntity<RegistrationResponse> submitRegistration(
-            @Valid @RequestBody OwnerTournamentRegistrationRequest request
+    public ResponseEntity<OwnerRegistrationPaymentResponse> submitRegistration(
+            @Valid @RequestBody OwnerTournamentRegistrationRequest request,
+            HttpServletRequest httpRequest
     ) {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(registrationService.submitRegistration(request));
+                .body(registrationService.submitRegistration(
+                        request,
+                        getClientIp(httpRequest)
+                ));
+    }
+
+    private String getClientIp(HttpServletRequest request) {
+        String forwardedFor = request.getHeader("X-Forwarded-For");
+        if (forwardedFor != null && !forwardedFor.isBlank()) {
+            return forwardedFor.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
     }
 }

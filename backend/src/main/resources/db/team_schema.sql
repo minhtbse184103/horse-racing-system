@@ -295,6 +295,60 @@ CREATE TABLE `Registration` (
     )
 );
 
+CREATE TABLE `Wallet` (
+  `walletID` int PRIMARY KEY AUTO_INCREMENT,
+  `userID` int UNIQUE NOT NULL,
+  `balance` decimal(14,2) NOT NULL DEFAULT 0,
+  `lockedBalance` decimal(14,2) NOT NULL DEFAULT 0,
+  `currency` varchar(10) NOT NULL DEFAULT 'VND',
+  `status` varchar(50) NOT NULL DEFAULT 'ACTIVE',
+  `createdAt` datetime,
+  `updatedAt` datetime,
+  CONSTRAINT `chk_wallet_balance`
+    CHECK (`balance` >= 0),
+  CONSTRAINT `chk_wallet_locked_balance`
+    CHECK (`lockedBalance` >= 0 AND `lockedBalance` <= `balance`),
+  CONSTRAINT `chk_wallet_status`
+    CHECK (`status` IN ('ACTIVE', 'LOCKED', 'CLOSED'))
+);
+
+CREATE TABLE `PaymentTransaction` (
+  `paymentTransactionID` int PRIMARY KEY AUTO_INCREMENT,
+  `userID` int NOT NULL,
+  `registrationID` int,
+  `walletID` int,
+  `purpose` varchar(50) NOT NULL,
+  `provider` varchar(50) NOT NULL DEFAULT 'VNPAY',
+  `amount` decimal(12,2) NOT NULL,
+  `currency` varchar(10) NOT NULL DEFAULT 'VND',
+  `txnRef` varchar(100) UNIQUE NOT NULL,
+  `providerTransactionNo` varchar(100),
+  `status` varchar(50) NOT NULL DEFAULT 'PENDING',
+  `payUrl` text,
+  `responseCode` varchar(20),
+  `rawResponse` text,
+  `createdAt` datetime,
+  `paidAt` datetime,
+  `updatedAt` datetime,
+  CONSTRAINT `chk_payment_transaction_purpose`
+    CHECK (`purpose` IN ('REGISTRATION_FEE', 'WALLET_DEPOSIT')),
+  CONSTRAINT `chk_payment_transaction_provider`
+    CHECK (`provider` IN ('VNPAY')),
+  CONSTRAINT `chk_payment_transaction_status`
+    CHECK (`status` IN ('PENDING', 'SUCCESS', 'FAILED', 'EXPIRED', 'CANCELLED')),
+  CONSTRAINT `chk_payment_transaction_amount`
+    CHECK (`amount` > 0),
+  CONSTRAINT `chk_payment_transaction_target`
+    CHECK (
+      (`purpose` = 'REGISTRATION_FEE'
+        AND `registrationID` IS NOT NULL
+        AND `walletID` IS NULL)
+      OR
+      (`purpose` = 'WALLET_DEPOSIT'
+        AND `walletID` IS NOT NULL)
+    )
+);
+
 CREATE TABLE `RaceEntry` (
   `raceEntryID` int PRIMARY KEY AUTO_INCREMENT,
   `raceID` int NOT NULL,
@@ -340,6 +394,76 @@ CREATE TABLE `RaceResult` (
   `recordedBy` int NOT NULL
 );
 
+CREATE TABLE `WalletTransaction` (
+  `walletTransactionID` int PRIMARY KEY AUTO_INCREMENT,
+  `walletID` int NOT NULL,
+  `userID` int NOT NULL,
+  `type` varchar(50) NOT NULL,
+  `amount` decimal(14,2) NOT NULL,
+  `balanceBefore` decimal(14,2) NOT NULL,
+  `balanceAfter` decimal(14,2) NOT NULL,
+  `lockedBefore` decimal(14,2) NOT NULL,
+  `lockedAfter` decimal(14,2) NOT NULL,
+  `referenceType` varchar(50),
+  `referenceID` int,
+  `description` varchar(500),
+  `createdAt` datetime NOT NULL,
+  CONSTRAINT `chk_wallet_transaction_type`
+    CHECK (`type` IN (
+      'DEPOSIT',
+      'BET_LOCK',
+      'BET_LOST',
+      'BET_WIN',
+      'BET_REFUND',
+      'PRIZE_PAYOUT',
+      'WITHDRAW'
+    )),
+  CONSTRAINT `chk_wallet_transaction_amount`
+    CHECK (`amount` > 0)
+);
+
+CREATE TABLE `Bet` (
+  `betID` int PRIMARY KEY AUTO_INCREMENT,
+  `spectatorID` int NOT NULL,
+  `raceID` int NOT NULL,
+  `raceEntryID` int NOT NULL,
+  `walletID` int NOT NULL,
+  `amount` decimal(12,2) NOT NULL,
+  `odds` decimal(8,2),
+  `potentialPayout` decimal(12,2),
+  `status` varchar(50) NOT NULL DEFAULT 'PLACED',
+  `placedAt` datetime NOT NULL,
+  `settledAt` datetime,
+  CONSTRAINT `chk_bet_amount`
+    CHECK (`amount` > 0),
+  CONSTRAINT `chk_bet_status`
+    CHECK (`status` IN ('PLACED', 'WON', 'LOST', 'VOID', 'CANCELLED'))
+);
+
+CREATE TABLE `PrizeDistribution` (
+  `prizeDistributionID` int PRIMARY KEY AUTO_INCREMENT,
+  `raceID` int NOT NULL,
+  `raceEntryID` int NOT NULL,
+  `racePrizeID` int NOT NULL,
+  `ownerID` int NOT NULL,
+  `jockeyID` int NOT NULL,
+  `totalPrize` decimal(12,2) NOT NULL,
+  `ownerAmount` decimal(12,2) NOT NULL,
+  `jockeyAmount` decimal(12,2) NOT NULL,
+  `status` varchar(50) NOT NULL DEFAULT 'PENDING',
+  `distributedAt` datetime,
+  `createdAt` datetime,
+  CONSTRAINT `chk_prize_distribution_amounts`
+    CHECK (
+      `totalPrize` > 0
+      AND `ownerAmount` >= 0
+      AND `jockeyAmount` >= 0
+      AND `ownerAmount` + `jockeyAmount` = `totalPrize`
+    ),
+  CONSTRAINT `chk_prize_distribution_status`
+    CHECK (`status` IN ('PENDING', 'PAID', 'FAILED', 'CANCELLED'))
+);
+
 CREATE TABLE `RefereeAssignment` (
   `assignmentID` int PRIMARY KEY AUTO_INCREMENT,
   `raceID` int UNIQUE NOT NULL,
@@ -371,6 +495,9 @@ CREATE UNIQUE INDEX `RacePrize_index_2` ON `RacePrize` (`raceID`, `rankPosition`
 CREATE UNIQUE INDEX `TournamentCondition_index_3`
 ON `TournamentCondition` (`tournamentID`, `conditionType`);
 
+CREATE UNIQUE INDEX `PrizeDistribution_unique_prize_idx`
+ON `PrizeDistribution` (`raceID`, `raceEntryID`, `racePrizeID`);
+
 CREATE INDEX `RaceEntry_registration_idx`
 ON `RaceEntry` (`registrationID`);
 
@@ -385,6 +512,33 @@ ON `Registration` (`tournamentID`, `approvalStatus`);
 
 CREATE INDEX `Registration_index_6`
 ON `Registration` (`tournamentID`, `horseID`, `approvalStatus`);
+
+CREATE INDEX `PaymentTransaction_registration_idx`
+ON `PaymentTransaction` (`registrationID`, `status`);
+
+CREATE INDEX `PaymentTransaction_user_idx`
+ON `PaymentTransaction` (`userID`, `status`);
+
+CREATE INDEX `PaymentTransaction_wallet_idx`
+ON `PaymentTransaction` (`walletID`, `status`);
+
+CREATE INDEX `WalletTransaction_wallet_created_idx`
+ON `WalletTransaction` (`walletID`, `createdAt`);
+
+CREATE INDEX `WalletTransaction_user_created_idx`
+ON `WalletTransaction` (`userID`, `createdAt`);
+
+CREATE INDEX `Bet_race_status_idx`
+ON `Bet` (`raceID`, `status`);
+
+CREATE INDEX `Bet_spectator_status_idx`
+ON `Bet` (`spectatorID`, `status`);
+
+CREATE INDEX `Bet_race_entry_idx`
+ON `Bet` (`raceEntryID`);
+
+CREATE INDEX `PrizeDistribution_race_status_idx`
+ON `PrizeDistribution` (`raceID`, `status`);
 
 CREATE INDEX `Race_index_7`
 ON `Race` (`tournamentID`, `status`, `raceStartTime`);
@@ -427,6 +581,14 @@ ALTER TABLE `Registration` ADD FOREIGN KEY (`jockeyID`) REFERENCES `Users` (`use
 
 ALTER TABLE `Registration` ADD FOREIGN KEY (`reviewedBy`) REFERENCES `Users` (`userID`);
 
+ALTER TABLE `Wallet` ADD FOREIGN KEY (`userID`) REFERENCES `Users` (`userID`);
+
+ALTER TABLE `PaymentTransaction` ADD FOREIGN KEY (`userID`) REFERENCES `Users` (`userID`);
+
+ALTER TABLE `PaymentTransaction` ADD FOREIGN KEY (`registrationID`) REFERENCES `Registration` (`registrationID`);
+
+ALTER TABLE `PaymentTransaction` ADD FOREIGN KEY (`walletID`) REFERENCES `Wallet` (`walletID`);
+
 ALTER TABLE `RaceEntry` ADD FOREIGN KEY (`raceID`) REFERENCES `Race` (`raceID`);
 
 ALTER TABLE `RaceEntry` ADD FOREIGN KEY (`registrationID`) REFERENCES `Registration` (`registrationID`);
@@ -438,6 +600,28 @@ ALTER TABLE `RaceEntry` ADD FOREIGN KEY (`cancelledBy`) REFERENCES `Users` (`use
 ALTER TABLE `RaceResult` ADD FOREIGN KEY (`raceEntryID`) REFERENCES `RaceEntry` (`raceEntryID`);
 
 ALTER TABLE `RaceResult` ADD FOREIGN KEY (`recordedBy`) REFERENCES `Users` (`userID`);
+
+ALTER TABLE `WalletTransaction` ADD FOREIGN KEY (`walletID`) REFERENCES `Wallet` (`walletID`);
+
+ALTER TABLE `WalletTransaction` ADD FOREIGN KEY (`userID`) REFERENCES `Users` (`userID`);
+
+ALTER TABLE `Bet` ADD FOREIGN KEY (`spectatorID`) REFERENCES `Users` (`userID`);
+
+ALTER TABLE `Bet` ADD FOREIGN KEY (`raceID`) REFERENCES `Race` (`raceID`);
+
+ALTER TABLE `Bet` ADD FOREIGN KEY (`raceEntryID`) REFERENCES `RaceEntry` (`raceEntryID`);
+
+ALTER TABLE `Bet` ADD FOREIGN KEY (`walletID`) REFERENCES `Wallet` (`walletID`);
+
+ALTER TABLE `PrizeDistribution` ADD FOREIGN KEY (`raceID`) REFERENCES `Race` (`raceID`);
+
+ALTER TABLE `PrizeDistribution` ADD FOREIGN KEY (`raceEntryID`) REFERENCES `RaceEntry` (`raceEntryID`);
+
+ALTER TABLE `PrizeDistribution` ADD FOREIGN KEY (`racePrizeID`) REFERENCES `RacePrize` (`racePrizeID`);
+
+ALTER TABLE `PrizeDistribution` ADD FOREIGN KEY (`ownerID`) REFERENCES `Users` (`userID`);
+
+ALTER TABLE `PrizeDistribution` ADD FOREIGN KEY (`jockeyID`) REFERENCES `Users` (`userID`);
 
 ALTER TABLE `RefereeAssignment` ADD FOREIGN KEY (`raceID`) REFERENCES `Race` (`raceID`);
 

@@ -6,6 +6,7 @@ import OwnerDashboard from './components/owner/OwnerDashboard';
 import JockeyDashboard from './components/jockey/JockeyDashboard';
 import UserPanel from './components/user/UserPanel';
 import AccessDenied from './components/common/AccessDenied';
+import VnpayReturnPage from './components/payment/VnpayReturnPage';
 import LandingPage from './pages/LandingPage';
 import { useAuth } from './hooks/useAuth';
 import { getUserRole } from './lib';
@@ -42,6 +43,9 @@ export default function App() {
     navigateTo('/login');
   }
 
+  if (currentPath.startsWith('/payment/vnpay-return')) {
+    return <VnpayReturnPage />;
+  }
 
   if (user && currentPath.startsWith('/owner') && userRole !== 'OWNER') {
     return <AccessDenied onReturnDashboard={() => navigateTo('/dashboard')} />;

@@ -366,7 +366,14 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
         horseId: Number(registrationValues.horseId),
         jockeyId: Number(registrationValues.jockeyId)
       });
-      setRegistrationResult(response);
+      const registration = response?.registration || response;
+      setRegistrationResult(registration);
+
+      if (response?.paymentUrl) {
+        setMessage('Registration da duoc tao. Dang chuyen sang VNPAY de thanh toan phi tham gia.');
+        window.location.assign(response.paymentUrl);
+        return;
+      }
       setMessage('Đã gửi Registration Tournament. Vui lòng chờ Admin duyệt.');
       await loadPageData();
     } catch (err) {

@@ -5,6 +5,7 @@ import com.example.backend.constant.PaymentStatus;
 import com.example.backend.constant.RaceEntryStatus;
 import com.example.backend.constant.RegistrationStatus;
 import com.example.backend.dto.request.OwnerTournamentRegistrationRequest;
+import com.example.backend.dto.response.OwnerRegistrationPaymentResponse;
 import com.example.backend.dto.response.RegistrationResponse;
 import com.example.backend.dto.response.TournamentResponse;
 import com.example.backend.entity.Horse;
@@ -57,6 +58,7 @@ public class OwnerTournamentRegistrationService {
     private final JockeyInvitationRepository jockeyInvitationRepository;
     private final RaceEntryRepository raceEntryRepository;
     private final RaceRepository raceRepository;
+    private final VnpayPaymentService vnpayPaymentService;
 
     public OwnerTournamentRegistrationService(
             RegistrationRepository registrationRepository,
@@ -67,7 +69,8 @@ public class OwnerTournamentRegistrationService {
             OwnerApplicationRepository ownerApplicationRepository,
             JockeyInvitationRepository jockeyInvitationRepository,
             RaceEntryRepository raceEntryRepository,
-            RaceRepository raceRepository) {
+            RaceRepository raceRepository,
+            VnpayPaymentService vnpayPaymentService) {
         this.registrationRepository = registrationRepository;
         this.tournamentRepository = tournamentRepository;
         this.horseRepository = horseRepository;
@@ -77,11 +80,13 @@ public class OwnerTournamentRegistrationService {
         this.jockeyInvitationRepository = jockeyInvitationRepository;
         this.raceEntryRepository = raceEntryRepository;
         this.raceRepository = raceRepository;
+        this.vnpayPaymentService = vnpayPaymentService;
     }
 
     @Transactional
-    public RegistrationResponse submitRegistration(
-            OwnerTournamentRegistrationRequest request
+    public OwnerRegistrationPaymentResponse submitRegistration(
+            OwnerTournamentRegistrationRequest request,
+            String clientIp
     ) {
         User owner = getCurrentOwner();
         Tournament tournament = getTournament(request.getTournamentId());
@@ -107,7 +112,19 @@ public class OwnerTournamentRegistrationService {
         registration.setApprovalStatus(RegistrationStatus.PENDING);
         registration.setSubmittedAt(now);
 
-        return toResponse(registrationRepository.save(registration));
+        Registration savedRegistration = registrationRepository.save(registration);
+
+        var paymentTransaction = vnpayPaymentService.createRegistrationFeePayment(
+                savedRegistration,
+                tournament,
+                clientIp
+        );
+
+        return OwnerRegistrationPaymentResponse.builder()
+                .registration(toResponse(savedRegistration))
+                .paymentTransaction(vnpayPaymentService.toResponse(paymentTransaction))
+                .paymentUrl(paymentTransaction.getPayUrl())
+                .build();
     }
 
     @Transactional(readOnly = true)

@@ -5,9 +5,12 @@ import com.example.backend.constant.PaymentStatus;
 import com.example.backend.constant.RaceEntryStatus;
 import com.example.backend.constant.RegistrationStatus;
 import com.example.backend.dto.request.OwnerTournamentRegistrationRequest;
+import com.example.backend.dto.response.OwnerRegistrationPaymentResponse;
+import com.example.backend.dto.response.PaymentTransactionResponse;
 import com.example.backend.dto.response.RegistrationResponse;
 import com.example.backend.entity.Horse;
 import com.example.backend.entity.JockeyProfile;
+import com.example.backend.entity.PaymentTransaction;
 import com.example.backend.entity.Registration;
 import com.example.backend.entity.Role;
 import com.example.backend.entity.Tournament;
@@ -62,6 +65,7 @@ class OwnerTournamentRegistrationServiceTest {
     @Mock private JockeyInvitationRepository jockeyInvitationRepository;
     @Mock private RaceEntryRepository raceEntryRepository;
     @Mock private RaceRepository raceRepository;
+    @Mock private VnpayPaymentService vnpayPaymentService;
 
     private OwnerTournamentRegistrationService service;
 
@@ -76,7 +80,8 @@ class OwnerTournamentRegistrationServiceTest {
                 ownerApplicationRepository,
                 jockeyInvitationRepository,
                 raceEntryRepository,
-                raceRepository
+                raceRepository,
+                vnpayPaymentService
         );
 
         SecurityContextHolder.getContext()
@@ -118,7 +123,23 @@ class OwnerTournamentRegistrationServiceTest {
                 77, RaceEntryStatus.ASSIGNED
         )).thenReturn(Optional.empty());
 
-        RegistrationResponse response = service.submitRegistration(request);
+        PaymentTransaction paymentTransaction = paymentTransaction();
+        when(vnpayPaymentService.createRegistrationFeePayment(
+                any(Registration.class),
+                eq(tournament),
+                eq("127.0.0.1")
+        )).thenReturn(paymentTransaction);
+        when(vnpayPaymentService.toResponse(paymentTransaction))
+                .thenReturn(PaymentTransactionResponse.builder()
+                        .paymentTransactionId(501)
+                        .registrationId(77)
+                        .status("PENDING")
+                        .txnRef("REG-77-TEST")
+                        .build());
+
+        OwnerRegistrationPaymentResponse response =
+                service.submitRegistration(request, "127.0.0.1");
+        RegistrationResponse registrationResponse = response.getRegistration();
 
         ArgumentCaptor<Registration> captor =
                 ArgumentCaptor.forClass(Registration.class);
@@ -133,8 +154,9 @@ class OwnerTournamentRegistrationServiceTest {
         assertEquals(RegistrationStatus.PENDING, saved.getApprovalStatus());
         assertNotNull(saved.getSubmittedAt());
         assertTrue(saved.getRegistrationNo().startsWith("REG-T10-"));
-        assertEquals(RegistrationStatus.PENDING, response.getApprovalStatus());
-        assertEquals(PaymentStatus.UNPAID, response.getPaymentStatus());
+        assertEquals(RegistrationStatus.PENDING, registrationResponse.getApprovalStatus());
+        assertEquals(PaymentStatus.UNPAID, registrationResponse.getPaymentStatus());
+        assertEquals("https://sandbox.test/pay", response.getPaymentUrl());
     }
 
     @Test
@@ -152,7 +174,7 @@ class OwnerTournamentRegistrationServiceTest {
 
         ApiException exception = assertThrows(
                 ApiException.class,
-                () -> service.submitRegistration(request)
+                () -> service.submitRegistration(request, "127.0.0.1")
         );
 
         assertEquals(HttpStatus.CONFLICT, exception.getStatus());
@@ -184,7 +206,7 @@ class OwnerTournamentRegistrationServiceTest {
 
         ApiException exception = assertThrows(
                 ApiException.class,
-                () -> service.submitRegistration(request)
+                () -> service.submitRegistration(request, "127.0.0.1")
         );
 
         assertEquals(HttpStatus.CONFLICT, exception.getStatus());
@@ -209,7 +231,7 @@ class OwnerTournamentRegistrationServiceTest {
 
         ApiException exception = assertThrows(
                 ApiException.class,
-                () -> service.submitRegistration(request)
+                () -> service.submitRegistration(request, "127.0.0.1")
         );
 
         assertEquals(HttpStatus.CONFLICT, exception.getStatus());
@@ -280,6 +302,16 @@ class OwnerTournamentRegistrationServiceTest {
         request.setHorseId(20);
         request.setJockeyId(40);
         return request;
+    }
+
+    private PaymentTransaction paymentTransaction() {
+        PaymentTransaction paymentTransaction = new PaymentTransaction();
+        paymentTransaction.setPaymentTransactionId(501);
+        paymentTransaction.setRegistrationId(77);
+        paymentTransaction.setTxnRef("REG-77-TEST");
+        paymentTransaction.setStatus("PENDING");
+        paymentTransaction.setPayUrl("https://sandbox.test/pay");
+        return paymentTransaction;
     }
 
     private void stubBaseLookups(
