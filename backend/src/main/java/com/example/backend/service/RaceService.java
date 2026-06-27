@@ -18,11 +18,15 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.backend.dto.response.AdminAssignableRaceResponse;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class RaceService {
@@ -51,6 +55,51 @@ public class RaceService {
         this.raceEntryRepository = raceEntryRepository;
         this.tournamentRepository = tournamentRepository;
         this.userRepository = userRepository;
+    }
+
+    @Transactional(readOnly = true)
+    public List<AdminAssignableRaceResponse> getAssignableRaces() {
+        List<Race> races = raceRepository.findByStatusIn(
+                List.of(
+                        EventStatus.OPEN_FOR_REGISTRATION,
+                        EventStatus.REGISTRATION_CLOSED
+                )
+        );
+
+        if (races.isEmpty()) {
+            return List.of();
+        }
+
+        List<Integer> tournamentIds = races.stream()
+                .map(Race::getTournamentId)
+                .distinct()
+                .toList();
+
+        Map<Integer, String> tournamentNameById = tournamentRepository
+                .findAllById(tournamentIds)
+                .stream()
+                .collect(Collectors.toMap(
+                        t -> t.getTournamentId(),
+                        t -> t.getTournamentName()
+                ));
+
+        return races.stream()
+                .map(race -> AdminAssignableRaceResponse.builder()
+                        .raceId(race.getRaceId())
+                        .tournamentId(race.getTournamentId())
+                        .tournamentName(tournamentNameById.getOrDefault(
+                                race.getTournamentId(), ""))
+                        .raceName(race.getRaceName())
+                        .trackName(race.getTrackName())
+                        .raceStartTime(race.getRaceStartTime())
+                        .raceEndTime(race.getRaceEndTime())
+                        .distance(race.getDistance())
+                        .maxRunners(race.getMaxRunners())
+                        .raceOrder(race.getRaceOrder())
+                        .status(race.getStatus())
+                        .build()
+                )
+                .toList();
     }
 
     @Transactional

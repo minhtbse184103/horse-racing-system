@@ -8,8 +8,8 @@ export function getTournaments() {
   return httpRequest('/api/tournaments');
 }
 
-export function getTournamentById(tournamentId) {
-  return httpRequest(`/api/tournaments/${tournamentId}`);
+export function getTournamentWorkspace() {
+  return httpRequest('/api/admin/tournaments/workspace');
 }
 
 export function getPublicTournaments() {

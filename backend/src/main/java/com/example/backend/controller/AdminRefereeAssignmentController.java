@@ -1,8 +1,10 @@
 package com.example.backend.controller;
 
 import com.example.backend.dto.request.CreateRefereeAssignmentRequest;
+import com.example.backend.dto.response.AdminAssignableRaceResponse;
 import com.example.backend.dto.response.RefereeAssignmentResponse;
 import com.example.backend.dto.response.UserResponse;
+import com.example.backend.service.RaceService;
 import com.example.backend.service.RefereeAssignmentService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -17,11 +19,14 @@ import java.util.List;
 public class AdminRefereeAssignmentController {
 
     private final RefereeAssignmentService assignmentService;
+    private final RaceService raceService;
 
     public AdminRefereeAssignmentController(
-            RefereeAssignmentService assignmentService
+            RefereeAssignmentService assignmentService,
+            RaceService raceService
     ) {
         this.assignmentService = assignmentService;
+        this.raceService = raceService;
     }
 
     @PostMapping
@@ -74,5 +79,10 @@ public class AdminRefereeAssignmentController {
     @GetMapping("/referees")
     public List<UserResponse> getActiveReferees() {
         return assignmentService.getActiveReferees();
+    }
+
+    @GetMapping("/assignable-races")
+    public List<AdminAssignableRaceResponse> getAssignableRaces() {
+        return raceService.getAssignableRaces();
     }
 }

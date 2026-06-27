@@ -135,12 +135,6 @@ export async function deleteHorse(horseId) {
   });
 }
 
-export function getTournaments() {
-  return httpRequest('/api/tournaments', {
-    fallbackError: 'Khong the tai danh sach giai dau.'
-  });
-}
-
 export function getOwnerInvitations() {
   return httpRequest('/api/owner/invitations', {
     fallbackError: 'Khong the tai loi moi jockey.'

@@ -29,7 +29,7 @@ public class OurHubApiClient {
 
     public OurHubApiClient(
             ObjectMapper objectMapper,
-            @Value("${ourhub.api.base-url:https://api.ourhub.site}") String baseUrl,
+            @Value("${ourhub.api.base-url:http://racing.ourhub.site}") String baseUrl,
             @Value("${ourhub.api.key:${OURHUB_API_KEY:}}") String apiKey
     ) {
         this.objectMapper = objectMapper;
@@ -111,7 +111,7 @@ public class OurHubApiClient {
 
     private String normalizeBaseUrl(String value) {
         String normalized = value == null || value.isBlank()
-                ? "https://api.ourhub.site"
+                ? "http://racing.ourhub.site"
                 : value.trim();
 
         while (normalized.endsWith("/")) {

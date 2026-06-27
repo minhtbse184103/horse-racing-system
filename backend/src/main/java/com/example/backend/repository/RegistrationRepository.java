@@ -108,6 +108,40 @@ public interface RegistrationRepository
      * New Admin flow must use approvalStatus-based repository methods.
      */
 
+    interface TournamentRegistrationCountProjection {
+        Integer getTournamentId();
+        long getRegistrationCount();
+    }
+
+    interface TournamentApprovedRegistrationCountProjection {
+        Integer getTournamentId();
+        long getApprovedRegistrationCount();
+    }
+
+    @Query("""
+        select registration.tournamentId as tournamentId,
+               count(registration) as registrationCount
+        from Registration registration
+        where registration.tournamentId in :tournamentIds
+        group by registration.tournamentId
+        """)
+    List<TournamentRegistrationCountProjection> countRegistrationsByTournamentIds(
+            @Param("tournamentIds") Collection<Integer> tournamentIds
+    );
+
+    @Query("""
+        select registration.tournamentId as tournamentId,
+               count(registration) as approvedRegistrationCount
+        from Registration registration
+        where registration.tournamentId in :tournamentIds
+          and registration.approvalStatus in :approvalStatuses
+        group by registration.tournamentId
+        """)
+    List<TournamentApprovedRegistrationCountProjection> countApprovedRegistrationsByTournamentIds(
+            @Param("tournamentIds") Collection<Integer> tournamentIds,
+            @Param("approvalStatuses") Collection<String> approvalStatuses
+    );
+
     boolean existsByHorseId(Integer horseId);
 
     Optional<Registration> findByTournamentIdAndHorseId(

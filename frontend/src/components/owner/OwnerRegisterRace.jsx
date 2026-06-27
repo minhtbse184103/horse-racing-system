@@ -5,10 +5,10 @@ import {
   getOpenOwnerTournaments,
   getOwnerHorses,
   getOwnerInvitations,
-  getTournaments,
   inviteJockey,
   submitOwnerTournamentRegistration
 } from '../../services/ownerService';
+import { getTournaments } from '../../services/eventService';
 import { formatDate, formatDisplayLabel, getHorseId, getHorseName, getUserId, getUserRole } from '../../lib';
 
 const INVITATION_STATUS_OPTIONS = ['ALL', 'PENDING', 'ACCEPTED', 'REJECTED', 'CANCELLED', 'EXPIRED'];

@@ -27,3 +27,7 @@ export function removeRefereeAssignment(raceId) {
     method: 'DELETE'
   });
 }
+
+export function getAssignableRaces() {
+  return httpRequest('/api/admin/referee-assignments/assignable-races');
+}

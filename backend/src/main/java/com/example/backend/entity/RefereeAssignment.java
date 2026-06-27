@@ -36,7 +36,7 @@ public class RefereeAssignment {
         }
 
         if (status == null) {
-            status = "Assigned";
+            status = "ASSIGNED";
         }
     }
 }

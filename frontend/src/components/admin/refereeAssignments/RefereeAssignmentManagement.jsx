@@ -13,12 +13,9 @@ import {
   Users
 } from 'lucide-react';
 import {
-  getRacesByTournament,
-  getTournaments
-} from '../../../services/eventService';
-import {
   createRefereeAssignment,
   getActiveReferees,
+  getAssignableRaces,
   getRefereeAssignments,
   removeRefereeAssignment,
   replaceRefereeAssignment
@@ -356,51 +353,28 @@ export default function RefereeAssignmentManagement() {
     loadData();
   }, []);
 
-  async function loadEligibleRaces(currentAssignments) {
-    const tournaments = await getTournaments();
-
-    const racesByTournament = await Promise.all(
-      (Array.isArray(tournaments) ? tournaments : []).map(async (tournament) => ({
-        tournament,
-        races: await getRacesByTournament(tournament.tournamentId)
-      }))
-    );
-
-    const assignedRaceIds = new Set(
-      currentAssignments.map((assignment) => String(assignment.raceId))
-    );
-
-    return racesByTournament.flatMap(({ tournament, races }) =>
-      (Array.isArray(races) ? races : [])
-        .filter(
-          (race) =>
-            ASSIGNABLE_RACE_STATUSES.has(normalizeStatus(race.status)) &&
-            !assignedRaceIds.has(String(race.raceId))
-        )
-        .map((race) => ({
-          ...race,
-          tournamentName: tournament.tournamentName
-        }))
-    );
-  }
-
   async function loadData() {
     setIsLoading(true);
     setError('');
 
     try {
-      const [assignmentData, refereeData] = await Promise.all([
+      const [assignmentData, refereeData, allAssignableRaces] = await Promise.all([
         getRefereeAssignments(),
-        getActiveReferees()
+        getActiveReferees(),
+        getAssignableRaces()
       ]);
 
-      const nextAssignments = Array.isArray(assignmentData)
-        ? assignmentData
-        : [];
+      const nextAssignments = Array.isArray(assignmentData) ? assignmentData : [];
+      const assignedRaceIds = new Set(
+        nextAssignments.map((assignment) => String(assignment.raceId))
+      );
+
+      const eligibleRaceList = (Array.isArray(allAssignableRaces) ? allAssignableRaces : [])
+        .filter((race) => !assignedRaceIds.has(String(race.raceId)));
 
       setAssignments(nextAssignments);
       setReferees(Array.isArray(refereeData) ? refereeData : []);
-      setEligibleRaces(await loadEligibleRaces(nextAssignments));
+      setEligibleRaces(eligibleRaceList);
     } catch (err) {
       setError(err.message || 'Không thể tải phân công referee.');
     } finally {

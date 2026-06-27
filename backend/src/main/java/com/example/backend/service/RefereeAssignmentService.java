@@ -110,12 +110,10 @@ public class RefereeAssignmentService {
 
         RefereeAssignment assignment = assignmentRepository
                 .findByRaceId(raceId)
-                .orElseThrow(() -> new ApiException(
-                        HttpStatus.NOT_FOUND,
-                        "Race does not have a referee assignment."
-                ));
+                .orElse(null);
 
-        if (assignment.getRefereeUserId().equals(refereeUserId)) {
+        if (assignment != null
+                && assignment.getRefereeUserId().equals(refereeUserId)) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
                     "Selected referee is already assigned to this race."
@@ -130,11 +128,25 @@ public class RefereeAssignmentService {
                 raceId
         );
 
+        if (assignment == null) {
+            RefereeAssignment newAssignment = new RefereeAssignment();
+            newAssignment.setRaceId(raceId);
+            newAssignment.setRefereeUserId(referee.getUserID());
+            newAssignment.setAssignedAt(LocalDateTime.now());
+            newAssignment.setStatus(RefereeAssignmentStatus.ASSIGNED);
+            try {
+                return toResponse(assignmentRepository.saveAndFlush(newAssignment));
+            } catch (DataIntegrityViolationException e) {
+                throw new ApiException(
+                        HttpStatus.CONFLICT,
+                        "Race already has a referee assignment."
+                );
+            }
+        }
+
         assignment.setRefereeUserId(referee.getUserID());
         assignment.setAssignedAt(LocalDateTime.now());
-        assignment.setStatus(
-                RefereeAssignmentStatus.ASSIGNED
-        );
+        assignment.setStatus(RefereeAssignmentStatus.ASSIGNED);
 
         return toResponse(assignmentRepository.save(assignment));
     }

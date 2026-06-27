@@ -20,9 +20,13 @@ import org.springframework.web.multipart.MultipartFile;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @Service
 public class TournamentService {
@@ -57,11 +61,231 @@ public class TournamentService {
     }
 
     @Transactional(readOnly = true)
-    public List<TournamentResponse> getAllTournaments() {
-        return tournamentRepository.findAllByOrderByCreatedAtDesc()
-                .stream()
-                .map(this::toResponse)
+    public List<AdminTournamentWorkspaceResponse> getAdminTournamentWorkspace() {
+        List<Tournament> tournaments =
+                tournamentRepository.findAllByOrderByCreatedAtDesc();
+
+        if (tournaments.isEmpty()) {
+            return List.of();
+        }
+
+        List<Integer> tournamentIds = tournaments.stream()
+                .map(Tournament::getTournamentId)
                 .toList();
+
+        // Batch load conditions
+        Map<Integer, List<TournamentConditionResponse>> conditionsByTournamentId =
+                new HashMap<>();
+        conditionRepository.findByTournamentIds(tournamentIds)
+                .forEach(condition -> conditionsByTournamentId
+                        .computeIfAbsent(
+                                condition.getTournamentId(),
+                                id -> new ArrayList<>()
+                        )
+                        .add(TournamentConditionResponse.builder()
+                                .conditionId(condition.getConditionId())
+                                .conditionType(condition.getConditionType())
+                                .operator(condition.getOperator())
+                                .value(condition.getValue())
+                                .minValue(condition.getMinValue())
+                                .maxValue(condition.getMaxValue())
+                                .build())
+                );
+
+        // Batch load races
+        List<Race> allRaces = raceRepository.findByTournamentIds(tournamentIds);
+        Map<Integer, List<Race>> racesByTournamentId = allRaces.stream()
+                .collect(Collectors.groupingBy(Race::getTournamentId));
+
+        List<Integer> raceIds = allRaces.stream()
+                .map(Race::getRaceId)
+                .toList();
+
+        // Batch load prizes
+        Map<Integer, List<RacePrizeResponse>> prizesByRaceId = new HashMap<>();
+        if (!raceIds.isEmpty()) {
+            racePrizeRepository.findByRaceIds(raceIds)
+                    .forEach(prize -> prizesByRaceId
+                            .computeIfAbsent(
+                                    prize.getRaceId(),
+                                    id -> new ArrayList<>()
+                            )
+                            .add(RacePrizeResponse.builder()
+                                    .racePrizeId(prize.getRacePrizeId())
+                                    .raceId(prize.getRaceId())
+                                    .rankPosition(prize.getRankPosition())
+                                    .amount(prize.getAmount())
+                                    .ownerPercent(prize.getOwnerPercent())
+                                    .jockeyPercent(prize.getJockeyPercent())
+                                    .build())
+                    );
+        }
+
+        // Batch load assigned entry counts
+        Map<Integer, Long> entryCountByRaceId = new HashMap<>();
+        if (!raceIds.isEmpty()) {
+            raceEntryRepository.countAssignedEntriesByRaceIds(
+                            raceIds, RaceEntryStatus.ASSIGNED)
+                    .forEach(projection ->
+                            entryCountByRaceId.put(
+                                    projection.getRaceId(),
+                                    projection.getEntryCount()
+                            )
+                    );
+        }
+
+        // Batch load registration counts
+        Map<Integer, Long> registrationCountByTournamentId = new HashMap<>();
+        registrationRepository.countRegistrationsByTournamentIds(tournamentIds)
+                .forEach(projection ->
+                        registrationCountByTournamentId.put(
+                                projection.getTournamentId(),
+                                projection.getRegistrationCount()
+                        )
+                );
+
+        // Batch load approved registration counts
+        Map<Integer, Long> approvedCountByTournamentId = new HashMap<>();
+        registrationRepository.countApprovedRegistrationsByTournamentIds(
+                        tournamentIds,
+                        List.of(RegistrationStatus.APPROVED)
+                )
+                .forEach(projection ->
+                        approvedCountByTournamentId.put(
+                                projection.getTournamentId(),
+                                projection.getApprovedRegistrationCount()
+                        )
+                );
+
+        // Assemble response in memory
+        return tournaments.stream()
+                .map(tournament -> {
+                    Integer tid = tournament.getTournamentId();
+
+                    List<RaceResponse> races = racesByTournamentId
+                            .getOrDefault(tid, List.of())
+                            .stream()
+                            .map(race -> {
+                                long entryCount = entryCountByRaceId
+                                        .getOrDefault(race.getRaceId(), 0L);
+                                return toRaceResponseWithData(
+                                        race,
+                                        prizesByRaceId.getOrDefault(
+                                                race.getRaceId(), List.of()),
+                                        entryCount
+                                );
+                            })
+                            .toList();
+
+                    return AdminTournamentWorkspaceResponse.builder()
+                            .tournamentId(tid)
+                            .tournamentName(tournament.getTournamentName())
+                            .description(tournament.getDescription())
+                            .venue(tournament.getVenue())
+                            .venueImageUrl(tournament.getVenueImageUrl())
+                            .registrationOpenAt(tournament.getRegistrationOpenAt())
+                            .registrationCloseAt(tournament.getRegistrationCloseAt())
+                            .startDate(tournament.getStartDate())
+                            .endDate(tournament.getEndDate())
+                            .maxRegistrations(tournament.getMaxRegistrations())
+                            .entryFee(tournament.getEntryFee())
+                            .status(tournament.getStatus())
+                            .createdBy(tournament.getCreatedBy())
+                            .createdAt(tournament.getCreatedAt())
+                            .updatedAt(tournament.getUpdatedAt())
+                            .raceCount(races.size())
+                            .registrationCount(
+                                    registrationCountByTournamentId
+                                            .getOrDefault(tid, 0L)
+                            )
+                            .approvedRegistrationCount(
+                                    approvedCountByTournamentId
+                                            .getOrDefault(tid, 0L)
+                            )
+                            .conditions(
+                                    conditionsByTournamentId
+                                            .getOrDefault(tid, List.of())
+                            )
+                            .races(races)
+                            .build();
+                })
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<TournamentResponse> getAllTournaments() {
+        List<Tournament> tournaments = tournamentRepository.findAllByOrderByCreatedAtDesc();
+        if (tournaments.isEmpty()) return List.of();
+
+        List<Integer> ids = tournaments.stream()
+                .map(Tournament::getTournamentId)
+                .toList();
+
+        Map<Integer, Long> raceCountById = raceRepository
+                .countRacesByTournamentIds(ids)
+                .stream()
+                .collect(Collectors.toMap(
+                        RaceRepository.RaceCountProjection::getTournamentId,
+                        RaceRepository.RaceCountProjection::getRaceCount
+                ));
+
+        Map<Integer, Long> regCountById = registrationRepository
+                .countRegistrationsByTournamentIds(ids)
+                .stream()
+                .collect(Collectors.toMap(
+                        RegistrationRepository.TournamentRegistrationCountProjection::getTournamentId,
+                        RegistrationRepository.TournamentRegistrationCountProjection::getRegistrationCount
+                ));
+
+        Map<Integer, Long> approvedCountById = registrationRepository
+                .countApprovedRegistrationsByTournamentIds(ids, List.of(RegistrationStatus.APPROVED))
+                .stream()
+                .collect(Collectors.toMap(
+                        RegistrationRepository.TournamentApprovedRegistrationCountProjection::getTournamentId,
+                        RegistrationRepository.TournamentApprovedRegistrationCountProjection::getApprovedRegistrationCount
+                ));
+
+        Map<Integer, List<TournamentConditionResponse>> conditionsByTournamentId =
+                conditionRepository.findByTournamentIds(ids)
+                        .stream()
+                        .collect(Collectors.groupingBy(
+                                TournamentCondition::getTournamentId,
+                                Collectors.mapping(c -> TournamentConditionResponse.builder()
+                                        .conditionId(c.getConditionId())
+                                        .conditionType(c.getConditionType())
+                                        .operator(c.getOperator())
+                                        .value(c.getValue())
+                                        .minValue(c.getMinValue())
+                                        .maxValue(c.getMaxValue())
+                                        .build(),
+                                        Collectors.toList()
+                                )
+                        ));
+
+        return tournaments.stream().map(t -> {
+            Integer tid = t.getTournamentId();
+            return TournamentResponse.builder()
+                    .tournamentId(tid)
+                    .tournamentName(t.getTournamentName())
+                    .description(t.getDescription())
+                    .venue(t.getVenue())
+                    .venueImageUrl(t.getVenueImageUrl())
+                    .registrationOpenAt(t.getRegistrationOpenAt())
+                    .registrationCloseAt(t.getRegistrationCloseAt())
+                    .startDate(t.getStartDate())
+                    .endDate(t.getEndDate())
+                    .maxRegistrations(t.getMaxRegistrations())
+                    .entryFee(t.getEntryFee())
+                    .status(t.getStatus())
+                    .createdBy(t.getCreatedBy())
+                    .createdAt(t.getCreatedAt())
+                    .updatedAt(t.getUpdatedAt())
+                    .raceCount(raceCountById.getOrDefault(tid, 0L))
+                    .registrationCount(regCountById.getOrDefault(tid, 0L))
+                    .approvedRegistrationCount(approvedCountById.getOrDefault(tid, 0L))
+                    .conditions(conditionsByTournamentId.getOrDefault(tid, List.of()))
+                    .build();
+        }).toList();
     }
 
     @Transactional(readOnly = true)
@@ -624,49 +848,52 @@ public class TournamentService {
                 ));
     }
 
-    private TournamentResponse toResponse(Tournament tournament) {
-        Integer tournamentId = tournament.getTournamentId();
-
-        return TournamentResponse.builder()
-                .tournamentId(tournamentId)
-                .tournamentName(tournament.getTournamentName())
-                .description(tournament.getDescription())
-                .venue(tournament.getVenue())
-                .venueImageUrl(tournament.getVenueImageUrl())
-                .registrationOpenAt(tournament.getRegistrationOpenAt())
-                .registrationCloseAt(tournament.getRegistrationCloseAt())
-                .startDate(tournament.getStartDate())
-                .endDate(tournament.getEndDate())
-                .maxRegistrations(tournament.getMaxRegistrations())
-                .entryFee(tournament.getEntryFee())
-                .status(tournament.getStatus())
-                .createdBy(tournament.getCreatedBy())
-                .createdAt(tournament.getCreatedAt())
-                .updatedAt(tournament.getUpdatedAt())
-                .raceCount(raceRepository.countByTournamentId(tournamentId))
-                .registrationCount(
-                        registrationRepository.countByTournamentId(tournamentId)
-                )
-                .approvedRegistrationCount(
-                        registrationRepository
-                                .countByTournamentIdAndApprovalStatusIn(
-                                        tournamentId,
-                                        List.of(RegistrationStatus.APPROVED)
-                                )
-                )
-                .conditions(getConditionResponses(tournamentId))
-                .build();
-    }
-
     private TournamentDetailResponse toDetailResponse(
             Tournament tournament
     ) {
         Integer tournamentId = tournament.getTournamentId();
 
-        List<RaceResponse> races = raceRepository
-                .findByTournamentIdOrderByRaceOrderAsc(tournamentId)
-                .stream()
-                .map(this::toRaceResponse)
+        List<Race> rawRaces = raceRepository
+                .findByTournamentIdOrderByRaceOrderAsc(tournamentId);
+
+        List<Integer> raceIds = rawRaces.stream()
+                .map(Race::getRaceId)
+                .toList();
+
+        Map<Integer, List<RacePrizeResponse>> prizesByRaceId = raceIds.isEmpty()
+                ? Map.of()
+                : racePrizeRepository.findByRaceIds(raceIds)
+                        .stream()
+                        .collect(Collectors.groupingBy(
+                                RacePrize::getRaceId,
+                                Collectors.mapping(p -> RacePrizeResponse.builder()
+                                        .racePrizeId(p.getRacePrizeId())
+                                        .raceId(p.getRaceId())
+                                        .rankPosition(p.getRankPosition())
+                                        .amount(p.getAmount())
+                                        .ownerPercent(p.getOwnerPercent())
+                                        .jockeyPercent(p.getJockeyPercent())
+                                        .build(),
+                                        Collectors.toList()
+                                )
+                        ));
+
+        Map<Integer, Long> entryCountByRaceId = raceIds.isEmpty()
+                ? Map.of()
+                : raceEntryRepository
+                        .countAssignedEntriesByRaceIds(raceIds, RaceEntryStatus.ASSIGNED)
+                        .stream()
+                        .collect(Collectors.toMap(
+                                RaceEntryRepository.RaceEntryCountProjection::getRaceId,
+                                RaceEntryRepository.RaceEntryCountProjection::getEntryCount
+                        ));
+
+        List<RaceResponse> races = rawRaces.stream()
+                .map(race -> toRaceResponseWithData(
+                        race,
+                        prizesByRaceId.getOrDefault(race.getRaceId(), List.of()),
+                        entryCountByRaceId.getOrDefault(race.getRaceId(), 0L)
+                ))
                 .toList();
 
         return TournamentDetailResponse.builder()
@@ -720,25 +947,11 @@ public class TournamentService {
                 .toList();
     }
 
-    private RaceResponse toRaceResponse(Race race) {
-        long entryCount =
-                raceEntryRepository.countByRaceIdAndStatus(race.getRaceId(), RaceEntryStatus.ASSIGNED);
-
-        List<RacePrizeResponse> prizes = racePrizeRepository
-                .findByRaceIdOrderByRankPositionAsc(race.getRaceId())
-                .stream()
-                .map(prize ->
-                        RacePrizeResponse.builder()
-                                .racePrizeId(prize.getRacePrizeId())
-                                .raceId(prize.getRaceId())
-                                .rankPosition(prize.getRankPosition())
-                                .amount(prize.getAmount())
-                                .ownerPercent(prize.getOwnerPercent())
-                                .jockeyPercent(prize.getJockeyPercent())
-                                .build()
-                )
-                .toList();
-
+    private RaceResponse toRaceResponseWithData(
+            Race race,
+            List<RacePrizeResponse> prizes,
+            long entryCount
+    ) {
         return RaceResponse.builder()
                 .raceId(race.getRaceId())
                 .tournamentId(race.getTournamentId())
@@ -753,9 +966,7 @@ public class TournamentService {
                 .createdAt(race.getCreatedAt())
                 .updatedAt(race.getUpdatedAt())
                 .entryCount(entryCount)
-                .availableStalls(
-                        Math.max(0, race.getMaxRunners() - entryCount)
-                )
+                .availableStalls(Math.max(0, race.getMaxRunners() - entryCount))
                 .prizes(prizes)
                 .build();
     }

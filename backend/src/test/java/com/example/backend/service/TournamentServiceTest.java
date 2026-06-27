@@ -245,8 +245,6 @@ class TournamentServiceTest {
         when(raceRepository.findByTournamentIdOrderByRaceOrderAsc(1))
                 .thenReturn(List.of(openRace, completedRace));
         when(tournamentRepository.save(tournament)).thenReturn(tournament);
-        when(racePrizeRepository.findByRaceIdOrderByRankPositionAsc(any()))
-                .thenReturn(List.of());
 
         TournamentDetailResponse response = service.closeRegistration(1);
 

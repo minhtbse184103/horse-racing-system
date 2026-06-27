@@ -9,15 +9,31 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface RaceRepository extends JpaRepository<Race, Integer> {
 
+    interface RaceCountProjection {
+        Integer getTournamentId();
+        long getRaceCount();
+    }
+
     List<Race> findByTournamentIdOrderByRaceOrderAsc(Integer tournamentId);
 
     long countByTournamentId(Integer tournamentId);
+
+    @Query("""
+        select race.tournamentId as tournamentId, count(race) as raceCount
+        from Race race
+        where race.tournamentId in :tournamentIds
+        group by race.tournamentId
+        """)
+    List<RaceCountProjection> countRacesByTournamentIds(
+            @Param("tournamentIds") Collection<Integer> tournamentIds
+    );
 
     boolean existsByTournamentIdAndRaceNameIgnoreCase(
             Integer tournamentId,
@@ -59,6 +75,26 @@ public interface RaceRepository extends JpaRepository<Race, Integer> {
         """)
     int findMaximumRaceOrder(
             @Param("tournamentId") Integer tournamentId
+    );
+
+    @Query("""
+        select race
+        from Race race
+        where race.tournamentId in :tournamentIds
+        order by race.tournamentId asc, race.raceOrder asc
+        """)
+    List<Race> findByTournamentIds(
+            @Param("tournamentIds") Collection<Integer> tournamentIds
+    );
+
+    @Query("""
+        select race
+        from Race race
+        where race.status in :statuses
+        order by race.raceStartTime asc
+        """)
+    List<Race> findByStatusIn(
+            @Param("statuses") Collection<String> statuses
     );
 
 }

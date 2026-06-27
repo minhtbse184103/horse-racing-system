@@ -45,7 +45,14 @@ function adaptRace(race) {
   };
 }
 
-export function adaptTournament(tournament, races = []) {
+export function adaptWorkspaceTournament(tournament) {
+  return adaptTournament(
+    tournament,
+    Array.isArray(tournament.races) ? tournament.races : []
+  );
+}
+
+function adaptTournament(tournament, races = []) {
   const venueImageUrl = tournament.venueImageUrl || tournament.venueImagePath || '';
 
   return {

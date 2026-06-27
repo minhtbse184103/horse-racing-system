@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { adaptTournament } from '../../../../adapters/tournamentAdapter';
+import { adaptWorkspaceTournament } from '../../../../adapters/tournamentAdapter';
 import { adaptRegistration, adaptRegistrations } from '../../../../adapters/registrationAdapter';
 import {
   approveRegistration as approveRegistrationRequest,
@@ -10,9 +10,7 @@ import {
   cancelTournament,
   closeTournamentRegistration,
   completeTournament,
-  getRacesByTournament,
-  getTournamentById,
-  getTournaments
+  getTournamentWorkspace
 } from '../../../../services/eventService';
 import {
   createTournamentProgramme,
@@ -45,25 +43,12 @@ export default function useTournamentWorkspace() {
     setLoadError('');
 
     try {
-      const summaries = await getTournaments();
-      if (!Array.isArray(summaries)) {
+      const response = await getTournamentWorkspace();
+      if (!Array.isArray(response)) {
         throw new Error('Dịch vụ Tournament trả về dữ liệu không hợp lệ.');
       }
 
-      const adaptedTournaments = await Promise.all(
-        summaries.map(async (summary) => {
-          const tournamentId = summary.tournamentId;
-          const [detail, races] = await Promise.all([
-            getTournamentById(tournamentId),
-            getRacesByTournament(tournamentId)
-          ]);
-
-          return adaptTournament(
-            { ...summary, ...detail },
-            Array.isArray(races) ? races : []
-          );
-        })
-      );
+      const adaptedTournaments = response.map(adaptWorkspaceTournament);
 
       if (sequence === loadSequence.current) {
         setTournaments(adaptedTournaments);

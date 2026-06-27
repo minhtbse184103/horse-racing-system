@@ -215,6 +215,44 @@ class RefereeAssignmentServiceTest {
     }
 
     @Test
+    void replaceAssignmentCreatesWhenNoExistingAssignment() {
+        Race race = futureRace();
+        Tournament tournament = openTournament();
+        User referee = activeReferee(22);
+        stubAdmin();
+        when(raceRepository.findByIdForUpdate(10))
+                .thenReturn(Optional.of(race));
+        when(tournamentRepository.findById(40))
+                .thenReturn(Optional.of(tournament));
+        when(assignmentRepository.findByRaceId(10))
+                .thenReturn(Optional.empty());
+        when(userRepository.findById(22)).thenReturn(Optional.of(referee));
+        when(assignmentRepository.existsOverlappingAssignment(
+                22,
+                10,
+                race.getRaceStartTime(),
+                race.getRaceEndTime(),
+                RefereeAssignmentStatus.ASSIGNED,
+                EventStatus.CANCELLED
+        )).thenReturn(false);
+        when(assignmentRepository.saveAndFlush(any(RefereeAssignment.class)))
+                .thenAnswer(invocation -> {
+                    RefereeAssignment saved = invocation.getArgument(0);
+                    saved.setAssignmentId(51);
+                    return saved;
+                });
+        stubResponseLookups(race, tournament, referee);
+
+        RefereeAssignmentResponse response = service.replaceAssignment(
+                10, 22, "admin@example.com"
+        );
+
+        assertEquals(10, response.getRaceId());
+        assertEquals(22, response.getRefereeUserId());
+        assertEquals(RefereeAssignmentStatus.ASSIGNED, response.getAssignmentStatus());
+    }
+
+    @Test
     void replaceAssignmentRejectsNonAdmin() {
         User nonAdmin = new User();
         Role jockeyRole = new Role();

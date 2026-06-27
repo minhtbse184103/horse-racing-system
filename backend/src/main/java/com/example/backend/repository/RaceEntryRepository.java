@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.Lock;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -54,5 +55,22 @@ public interface RaceEntryRepository
     List<RaceEntry> findByRaceIdInAndStatus(
             List<Integer> raceIds,
             String status
+    );
+
+    interface RaceEntryCountProjection {
+        Integer getRaceId();
+        long getEntryCount();
+    }
+
+    @Query("""
+        select entry.raceId as raceId, count(entry) as entryCount
+        from RaceEntry entry
+        where entry.raceId in :raceIds
+          and entry.status = :status
+        group by entry.raceId
+        """)
+    List<RaceEntryCountProjection> countAssignedEntriesByRaceIds(
+            @Param("raceIds") Collection<Integer> raceIds,
+            @Param("status") String status
     );
 }
