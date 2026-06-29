@@ -12,6 +12,7 @@ import com.example.backend.exception.ApiException;
 import com.example.backend.repository.RaceEntryRepository;
 import com.example.backend.repository.RacePrizeRepository;
 import com.example.backend.repository.RaceRepository;
+import com.example.backend.repository.RaceResultRepository;
 import com.example.backend.repository.RegistrationRepository;
 import com.example.backend.repository.TournamentConditionRepository;
 import com.example.backend.repository.TournamentRepository;
@@ -49,9 +50,11 @@ class TournamentServiceTest {
     @Mock private RaceRepository raceRepository;
     @Mock private RacePrizeRepository racePrizeRepository;
     @Mock private RaceEntryRepository raceEntryRepository;
+    @Mock private RaceResultRepository raceResultRepository;
     @Mock private RegistrationRepository registrationRepository;
     @Mock private UserRepository userRepository;
     @Mock private VenueImageStorageService venueImageStorageService;
+    @Mock private RaceRunWatchdogService raceRunWatchdogService;
 
     private TournamentService service;
 
@@ -63,9 +66,11 @@ class TournamentServiceTest {
                 raceRepository,
                 racePrizeRepository,
                 raceEntryRepository,
+                raceResultRepository,
                 registrationRepository,
                 userRepository,
-                venueImageStorageService
+                venueImageStorageService,
+                raceRunWatchdogService
         );
     }
 

@@ -92,11 +92,19 @@ VALUES
 INSERT INTO `Race`
   (`raceID`, `tournamentID`, `raceName`, `trackName`, `raceStartTime`, `raceEndTime`, `distance`, `maxRunners`, `raceOrder`, `status`, `createdAt`, `updatedAt`)
 VALUES
-  (1, 1, 'Future Sprint',    'Bangkok Track A', TIMESTAMP(DATE_ADD(@seed_today, INTERVAL 40 DAY), '10:00:00'), TIMESTAMP(DATE_ADD(@seed_today, INTERVAL 40 DAY), '10:30:00'), 1200, 8,  1, 'OPEN_FOR_REGISTRATION', @seed_now, @seed_now),
-  (2, 1, 'Future Classic',   'Bangkok Track A', TIMESTAMP(DATE_ADD(@seed_today, INTERVAL 41 DAY), '13:00:00'), TIMESTAMP(DATE_ADD(@seed_today, INTERVAL 41 DAY), '13:45:00'), 1800, 10, 2, 'OPEN_FOR_REGISTRATION', @seed_now, @seed_now),
-  (3, 1, 'Future Endurance', 'Bangkok Track B', TIMESTAMP(DATE_ADD(@seed_today, INTERVAL 42 DAY), '15:00:00'), TIMESTAMP(DATE_ADD(@seed_today, INTERVAL 42 DAY), '16:00:00'), 2400, 12, 3, 'OPEN_FOR_REGISTRATION', @seed_now, @seed_now),
-  (4, 2, 'Heritage Sprint',  'Chiang Mai Main', TIMESTAMP(DATE_SUB(@seed_today, INTERVAL 120 DAY), '10:00:00'), TIMESTAMP(DATE_SUB(@seed_today, INTERVAL 120 DAY), '10:30:00'), 1200, 8,  1, 'COMPLETED', DATE_SUB(@seed_now, INTERVAL 190 DAY), DATE_SUB(@seed_now, INTERVAL 120 DAY)),
-  (5, 2, 'Heritage Classic', 'Chiang Mai Main', TIMESTAMP(DATE_SUB(@seed_today, INTERVAL 119 DAY), '14:00:00'), TIMESTAMP(DATE_SUB(@seed_today, INTERVAL 119 DAY), '14:45:00'), 1800, 10, 2, 'COMPLETED', DATE_SUB(@seed_now, INTERVAL 190 DAY), DATE_SUB(@seed_now, INTERVAL 119 DAY));
+  (1, 1, 'Future Sprint',    'Bangkok Track A', TIMESTAMP(DATE_ADD(@seed_today, INTERVAL 40 DAY), '10:00:00'), TIMESTAMP(DATE_ADD(@seed_today, INTERVAL 40 DAY), '10:30:00'), 1200, 6, 1, 'OPEN_FOR_REGISTRATION', @seed_now, @seed_now),
+  (2, 1, 'Future Classic',   'Bangkok Track A', TIMESTAMP(DATE_ADD(@seed_today, INTERVAL 41 DAY), '13:00:00'), TIMESTAMP(DATE_ADD(@seed_today, INTERVAL 41 DAY), '13:45:00'), 1800, 6, 2, 'OPEN_FOR_REGISTRATION', @seed_now, @seed_now),
+  (3, 1, 'Future Endurance', 'Bangkok Track B', TIMESTAMP(DATE_ADD(@seed_today, INTERVAL 42 DAY), '15:00:00'), TIMESTAMP(DATE_ADD(@seed_today, INTERVAL 42 DAY), '16:00:00'), 2400, 6, 3, 'OPEN_FOR_REGISTRATION', @seed_now, @seed_now),
+  (4, 2, 'Heritage Sprint',  'Chiang Mai Main', TIMESTAMP(DATE_SUB(@seed_today, INTERVAL 120 DAY), '10:00:00'), TIMESTAMP(DATE_SUB(@seed_today, INTERVAL 120 DAY), '10:30:00'), 1200, 6, 1, 'COMPLETED', DATE_SUB(@seed_now, INTERVAL 190 DAY), DATE_SUB(@seed_now, INTERVAL 120 DAY)),
+  (5, 2, 'Heritage Classic', 'Chiang Mai Main', TIMESTAMP(DATE_SUB(@seed_today, INTERVAL 119 DAY), '14:00:00'), TIMESTAMP(DATE_SUB(@seed_today, INTERVAL 119 DAY), '14:45:00'), 1800, 6, 2, 'COMPLETED', DATE_SUB(@seed_now, INTERVAL 190 DAY), DATE_SUB(@seed_now, INTERVAL 119 DAY)),
+  -- Manual-mode launch test race: raceStartTime is already in the past and
+  -- status is OPEN_FOR_REGISTRATION, so RaceEngineLaunchService.refreshRaceStatus
+  -- flips it to IN_PROGRESS the moment "Run Race" is clicked (no waiting on
+  -- the clock). Has 6 ASSIGNED RaceEntry rows below, matching the Unity
+  -- simulator capacity and satisfying
+  -- MIN_RUNNERS_TO_LAUNCH, and no RaceResult yet, so it's launchable and
+  -- ready to receive a result from Unity right after seeding.
+  (6, 1, 'Live Test Race',   'Bangkok Track A', DATE_SUB(@seed_now, INTERVAL 1 HOUR), DATE_ADD(@seed_now, INTERVAL 1 HOUR), 1000, 6, 4, 'OPEN_FOR_REGISTRATION', @seed_now, @seed_now);
 
 INSERT INTO `RacePrize`
   (`racePrizeID`, `raceID`, `rankPosition`, `amount`, `ownerPercent`, `jockeyPercent`)
@@ -105,7 +113,8 @@ VALUES
   (4,  2, 1, 75000000.00, 80.00, 20.00), (5,  2, 2, 45000000.00, 80.00, 20.00), (6,  2, 3, 30000000.00, 80.00, 20.00),
   (7,  3, 1, 90000000.00, 80.00, 20.00), (8,  3, 2, 54000000.00, 80.00, 20.00), (9,  3, 3, 36000000.00, 80.00, 20.00),
   (10, 4, 1, 40000000.00, 80.00, 20.00), (11, 4, 2, 24000000.00, 80.00, 20.00), (12, 4, 3, 16000000.00, 80.00, 20.00),
-  (13, 5, 1, 60000000.00, 80.00, 20.00), (14, 5, 2, 36000000.00, 80.00, 20.00), (15, 5, 3, 24000000.00, 80.00, 20.00);
+  (13, 5, 1, 60000000.00, 80.00, 20.00), (14, 5, 2, 36000000.00, 80.00, 20.00), (15, 5, 3, 24000000.00, 80.00, 20.00),
+  (16, 6, 1, 20000000.00, 80.00, 20.00), (17, 6, 2, 12000000.00, 80.00, 20.00), (18, 6, 3, 8000000.00,  80.00, 20.00);
 
 INSERT INTO `Registration`
   (`registrationID`, `tournamentID`, `horseID`, `ownerID`, `jockeyID`, `registrationNo`, `paymentStatus`, `approvalStatus`, `rejectionReason`, `submittedAt`, `reviewedAt`, `reviewedBy`, `createdAt`, `updatedAt`)
@@ -116,14 +125,32 @@ VALUES
   (4, 1, 4, 3, 5,    'REG-DEMO-004', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 7 DAY), DATE_SUB(@seed_now, INTERVAL 3 DAY), 1, DATE_SUB(@seed_now, INTERVAL 7 DAY), DATE_SUB(@seed_now, INTERVAL 2 DAY)),
   (5, 1, 5, 4, 5,    'REG-DEMO-005', 'UNPAID', 'REJECTED',  'Health document requires clearer verification.', DATE_SUB(@seed_now, INTERVAL 3 DAY), DATE_SUB(@seed_now, INTERVAL 1 DAY), 1, DATE_SUB(@seed_now, INTERVAL 3 DAY), DATE_SUB(@seed_now, INTERVAL 1 DAY)),
   (6, 2, 6, 4, 6,    'REG-DEMO-006', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 160 DAY), DATE_SUB(@seed_now, INTERVAL 155 DAY), 1, DATE_SUB(@seed_now, INTERVAL 160 DAY), DATE_SUB(@seed_now, INTERVAL 118 DAY)),
-  (7, 1, 1, 2, 5,    'REG-DEMO-007', 'UNPAID', 'CANCELLED', NULL, DATE_SUB(@seed_now, INTERVAL 20 DAY), NULL, NULL, DATE_SUB(@seed_now, INTERVAL 20 DAY), DATE_SUB(@seed_now, INTERVAL 18 DAY));
+  (7, 1, 1, 2, 5,    'REG-DEMO-007', 'UNPAID', 'CANCELLED', NULL, DATE_SUB(@seed_now, INTERVAL 20 DAY), NULL, NULL, DATE_SUB(@seed_now, INTERVAL 20 DAY), DATE_SUB(@seed_now, INTERVAL 18 DAY)),
+  -- Dedicated registrations for Race 6 (Live Test Race). Each row below
+  -- is used once by one ASSIGNED RaceEntry so Unity receives a full
+  -- six-runner lineup without any registration having two ASSIGNED entries.
+  (8, 1, 1, 2, 5,    'REG-DEMO-008', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now, 1, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now),
+  (9, 1, 2, 2, 6,    'REG-DEMO-009', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now, 1, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now),
+  (10, 1, 3, 3, 5,   'REG-DEMO-010', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now, 1, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now),
+  (11, 1, 4, 3, 6,   'REG-DEMO-011', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now, 1, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now),
+  (12, 1, 5, 4, 5,   'REG-DEMO-012', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now, 1, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now),
+  (13, 1, 6, 4, 6,   'REG-DEMO-013', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now, 1, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now);
 
 INSERT INTO `RaceEntry`
   (`raceEntryID`, `raceID`, `registrationID`, `startingStall`, `status`, `assignedAt`, `assignedBy`, `cancelledAt`, `cancelledBy`, `cancellationReason`)
 VALUES
   (1, 1, 4, 1, 'ASSIGNED',  DATE_SUB(@seed_now, INTERVAL 2 DAY), 1, NULL, NULL, NULL),
   (2, 2, 3, 2, 'CANCELLED', DATE_SUB(@seed_now, INTERVAL 2 DAY), 1, DATE_SUB(@seed_now, INTERVAL 1 DAY), 1, 'Owner requested reassignment before race start.'),
-  (3, 4, 6, 3, 'ASSIGNED',  DATE_SUB(@seed_now, INTERVAL 130 DAY), 1, NULL, NULL, NULL);
+  (3, 4, 6, 3, 'ASSIGNED',  DATE_SUB(@seed_now, INTERVAL 130 DAY), 1, NULL, NULL, NULL),
+  -- Race 6 (Live Test Race) entries: six active stalls for Unity's
+  -- maximum supported race size. Each RaceEntry uses a dedicated
+  -- registration from 8 through 13 above.
+  (4, 6, 8, 1, 'ASSIGNED',  @seed_now, 1, NULL, NULL, NULL),
+  (5, 6, 9, 2, 'ASSIGNED',  @seed_now, 1, NULL, NULL, NULL),
+  (6, 6, 10, 3, 'ASSIGNED', @seed_now, 1, NULL, NULL, NULL),
+  (7, 6, 11, 4, 'ASSIGNED', @seed_now, 1, NULL, NULL, NULL),
+  (8, 6, 12, 5, 'ASSIGNED', @seed_now, 1, NULL, NULL, NULL),
+  (9, 6, 13, 6, 'ASSIGNED', @seed_now, 1, NULL, NULL, NULL);
 
 INSERT INTO `RaceResult`
   (`resultID`, `raceEntryID`, `finishPosition`, `finishTime`, `points`, `prizeMoney`, `recordedAt`, `recordedBy`)

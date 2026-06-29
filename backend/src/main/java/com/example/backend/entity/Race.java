@@ -56,6 +56,18 @@ public class Race {
     @Column(name = "status", nullable = false, length = 50)
     private String status;
 
+    @Column(name = "runTriggeredBy")
+    private Integer runTriggeredBy;
+
+    @Column(name = "runStartedAt")
+    private LocalDateTime runStartedAt;
+
+    @Column(name = "raceEngineToken", length = 128)
+    private String raceEngineToken;
+
+    @Column(name = "raceEngineTokenIssuedAt")
+    private LocalDateTime raceEngineTokenIssuedAt;
+
     @Column(name = "createdAt")
     private LocalDateTime createdAt;
 

@@ -36,9 +36,11 @@ public class TournamentService {
     private final RaceRepository raceRepository;
     private final RacePrizeRepository racePrizeRepository;
     private final RaceEntryRepository raceEntryRepository;
+    private final RaceResultRepository raceResultRepository;
     private final RegistrationRepository registrationRepository;
     private final UserRepository userRepository;
     private final VenueImageStorageService venueImageStorageService;
+    private final RaceRunWatchdogService raceRunWatchdogService;
 
     public TournamentService(
             TournamentRepository tournamentRepository,
@@ -46,21 +48,32 @@ public class TournamentService {
             RaceRepository raceRepository,
             RacePrizeRepository racePrizeRepository,
             RaceEntryRepository raceEntryRepository,
+            RaceResultRepository raceResultRepository,
             RegistrationRepository registrationRepository,
             UserRepository userRepository,
-            VenueImageStorageService venueImageStorageService
+            VenueImageStorageService venueImageStorageService,
+            RaceRunWatchdogService raceRunWatchdogService
     ) {
         this.tournamentRepository = tournamentRepository;
         this.conditionRepository = conditionRepository;
         this.raceRepository = raceRepository;
         this.racePrizeRepository = racePrizeRepository;
         this.raceEntryRepository = raceEntryRepository;
+        this.raceResultRepository = raceResultRepository;
         this.registrationRepository = registrationRepository;
         this.userRepository = userRepository;
         this.venueImageStorageService = venueImageStorageService;
+        this.raceRunWatchdogService = raceRunWatchdogService;
     }
 
-    @Transactional(readOnly = true)
+    // Not readOnly: refreshLifecycleStatuses below saves races/tournaments
+    // whose raceStartTime has passed. This is the same "transition on
+    // read" pattern RaceService.refreshRaceStatus already uses for its
+    // own endpoints — replicated here because this BFF endpoint has its
+    // own query path and was never wired into that logic, so races sat
+    // in OPEN_FOR_REGISTRATION/REGISTRATION_CLOSED past their start time
+    // until something else happened to touch them (e.g. Run Race).
+    @Transactional
     public List<AdminTournamentWorkspaceResponse> getAdminTournamentWorkspace() {
         List<Tournament> tournaments =
                 tournamentRepository.findAllByOrderByCreatedAtDesc();
@@ -94,6 +107,14 @@ public class TournamentService {
 
         // Batch load races
         List<Race> allRaces = raceRepository.findByTournamentIds(tournamentIds);
+
+        // Transition any race whose raceStartTime has passed, and cascade
+        // its tournament to IN_PROGRESS. Mutates the same Race/Tournament
+        // instances used below, so the rest of this method (grouping,
+        // response mapping) sees the post-transition status without a
+        // second query.
+        refreshLifecycleStatuses(tournaments, allRaces);
+
         Map<Integer, List<Race>> racesByTournamentId = allRaces.stream()
                 .collect(Collectors.groupingBy(Race::getTournamentId));
 
@@ -130,6 +151,17 @@ public class TournamentService {
                             entryCountByRaceId.put(
                                     projection.getRaceId(),
                                     projection.getEntryCount()
+                            )
+                    );
+        }
+
+        Map<Integer, Long> resultCountByRaceId = new HashMap<>();
+        if (!raceIds.isEmpty()) {
+            raceResultRepository.countResultsByRaceIds(raceIds)
+                    .forEach(projection ->
+                            resultCountByRaceId.put(
+                                    projection.getRaceId(),
+                                    projection.getResultCount()
                             )
                     );
         }
@@ -172,7 +204,9 @@ public class TournamentService {
                                         race,
                                         prizesByRaceId.getOrDefault(
                                                 race.getRaceId(), List.of()),
-                                        entryCount
+                                        entryCount,
+                                        resultCountByRaceId.getOrDefault(
+                                                race.getRaceId(), 0L)
                                 );
                             })
                             .toList();
@@ -210,6 +244,56 @@ public class TournamentService {
                             .build();
                 })
                 .toList();
+    }
+
+    // Same transition rules as RaceService.refreshRaceStatus /
+    // RaceEngineLaunchService's mirror of it: a race past its
+    // raceStartTime moves OPEN_FOR_REGISTRATION/REGISTRATION_CLOSED ->
+    // IN_PROGRESS, and the first race to do so cascades its tournament
+    // to IN_PROGRESS (other races in the same tournament are untouched
+    // until their own raceStartTime passes — intentional, each race is
+    // gated independently for Run Race). Batched: one saveAll per
+    // collection instead of per-row saves, consistent with the rest of
+    // this method's batch-query design.
+    private void refreshLifecycleStatuses(
+            List<Tournament> tournaments,
+            List<Race> races
+    ) {
+        LocalDateTime now = LocalDateTime.now();
+
+        List<Race> racesToTransition = races.stream()
+                .filter(race ->
+                        (EventStatus.OPEN_FOR_REGISTRATION.equals(race.getStatus())
+                                || EventStatus.REGISTRATION_CLOSED.equals(race.getStatus()))
+                                && !now.isBefore(race.getRaceStartTime())
+                )
+                .toList();
+
+        if (racesToTransition.isEmpty()) {
+            return;
+        }
+
+        racesToTransition.forEach(race -> race.setStatus(EventStatus.IN_PROGRESS));
+        raceRepository.saveAll(racesToTransition);
+
+        Set<Integer> tournamentIdsToTransition = racesToTransition.stream()
+                .map(Race::getTournamentId)
+                .collect(Collectors.toSet());
+
+        List<Tournament> tournamentsToTransition = tournaments.stream()
+                .filter(tournament ->
+                        tournamentIdsToTransition.contains(tournament.getTournamentId())
+                                && !EventStatus.CANCELLED.equals(tournament.getStatus())
+                                && !EventStatus.COMPLETED.equals(tournament.getStatus())
+                                && !EventStatus.IN_PROGRESS.equals(tournament.getStatus())
+                )
+                .toList();
+
+        if (!tournamentsToTransition.isEmpty()) {
+            tournamentsToTransition.forEach(
+                    tournament -> tournament.setStatus(EventStatus.IN_PROGRESS));
+            tournamentRepository.saveAll(tournamentsToTransition);
+        }
     }
 
     @Transactional(readOnly = true)
@@ -888,11 +972,21 @@ public class TournamentService {
                                 RaceEntryRepository.RaceEntryCountProjection::getEntryCount
                         ));
 
+        Map<Integer, Long> resultCountByRaceId = raceIds.isEmpty()
+                ? Map.of()
+                : raceResultRepository.countResultsByRaceIds(raceIds)
+                        .stream()
+                        .collect(Collectors.toMap(
+                                RaceResultRepository.RaceResultCountProjection::getRaceId,
+                                RaceResultRepository.RaceResultCountProjection::getResultCount
+                        ));
+
         List<RaceResponse> races = rawRaces.stream()
                 .map(race -> toRaceResponseWithData(
                         race,
                         prizesByRaceId.getOrDefault(race.getRaceId(), List.of()),
-                        entryCountByRaceId.getOrDefault(race.getRaceId(), 0L)
+                        entryCountByRaceId.getOrDefault(race.getRaceId(), 0L),
+                        resultCountByRaceId.getOrDefault(race.getRaceId(), 0L)
                 ))
                 .toList();
 
@@ -950,7 +1044,8 @@ public class TournamentService {
     private RaceResponse toRaceResponseWithData(
             Race race,
             List<RacePrizeResponse> prizes,
-            long entryCount
+            long entryCount,
+            long resultCount
     ) {
         return RaceResponse.builder()
                 .raceId(race.getRaceId())
@@ -965,6 +1060,12 @@ public class TournamentService {
                 .status(race.getStatus())
                 .createdAt(race.getCreatedAt())
                 .updatedAt(race.getUpdatedAt())
+                .runStartedAt(race.getRunStartedAt())
+                .runStuck(raceRunWatchdogService.isStuck(race, resultCount))
+                .runElapsedMinutes(raceRunWatchdogService.getElapsedMinutes(race))
+                .runWatchdogTimeoutMinutes(
+                        raceRunWatchdogService.getTimeoutMinutes()
+                )
                 .entryCount(entryCount)
                 .availableStalls(Math.max(0, race.getMaxRunners() - entryCount))
                 .prizes(prizes)
