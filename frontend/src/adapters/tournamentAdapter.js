@@ -41,6 +41,13 @@ function adaptRace(race) {
     entries: toNumber(race.entryCount),
     availableStalls: toNumber(race.availableStalls),
     status: race.status || 'OPEN_FOR_REGISTRATION',
+    // Null until RaceEngineLaunchService actually launches Unity for this
+    // race — distinct from status flipping to IN_PROGRESS, which happens
+    // once raceStartTime passes regardless of whether anyone clicked "run".
+    runStartedAt: race.runStartedAt || null,
+    runStuck: Boolean(race.runStuck),
+    runElapsedMinutes: toNumber(race.runElapsedMinutes),
+    runWatchdogTimeoutMinutes: toNumber(race.runWatchdogTimeoutMinutes),
     prizes
   };
 }

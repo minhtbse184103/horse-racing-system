@@ -46,6 +46,7 @@ export function validateWizardStep(step, draft) {
       }
       if (Number(race.distance) <= 0) errors[`${prefix}-distance`] = 'Cự ly phải lớn hơn 0.';
       if (Number(race.maxRunners) <= 0) errors[`${prefix}-maxRunners`] = 'Sức chứa Race phải lớn hơn 0.';
+      if (Number(race.maxRunners) > 6) errors[`${prefix}-maxRunners`] = 'Unity hiện hỗ trợ tối đa 6 RaceEntry cho mỗi Race.';
     });
   }
 

@@ -11,6 +11,7 @@ export default function TournamentOperationsPanel({
   approveRegistration,
   rejectRegistration,
   onRaceEntryCountChange,
+  onRaceStatusChange,
   adminName
 }) {
   const [assignmentQueueRefreshKey, setAssignmentQueueRefreshKey] = useState(0);
@@ -26,6 +27,7 @@ export default function TournamentOperationsPanel({
       <RaceEntryAssignmentPanel
         tournament={tournament}
         onRaceEntryCountChange={onRaceEntryCountChange}
+        onRaceStatusChange={onRaceStatusChange}
         queueRefreshKey={assignmentQueueRefreshKey}
       />
       <RegistrationApprovalPanel

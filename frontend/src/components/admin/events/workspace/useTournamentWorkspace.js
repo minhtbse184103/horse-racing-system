@@ -263,6 +263,39 @@ export default function useTournamentWorkspace() {
     })));
   }, []);
 
+  // Patches a single race's status in local state when the WebSocket RESULT
+  // envelope arrives (see RaceLiveView/useRaceLiveView), so the workspace
+  // reflects IN_PROGRESS -> COMPLETED immediately instead of staying stale
+  // until the next full loadTournaments() (e.g. a save/delete/lifecycle
+  // action). status comes from the backend's RaceResultIngestResponse, not
+  // a hardcoded string, so this stays correct if that logic changes.
+  //
+  // Bails out (returns the same array reference) when the race already has
+  // this status. RaceLiveView's onResult callback is an inline function
+  // recreated on every render of its parent, so its useEffect can re-fire
+  // with an unchanged `result` whenever something unrelated re-renders the
+  // tree. Without this guard, every redundant call would still produce a
+  // new tournaments array -> re-render -> new onResult reference -> effect
+  // fires again, looping indefinitely.
+  const updateRaceStatus = useCallback((raceId, status) => {
+    setTournaments((current) => {
+      const race = current
+        .flatMap((tournament) => tournament.races)
+        .find((candidate) => candidate.id === raceId);
+
+      if (!race || race.status === status) {
+        return current;
+      }
+
+      return current.map((tournament) => ({
+        ...tournament,
+        races: tournament.races.map((candidate) => candidate.id === raceId
+          ? { ...candidate, status }
+          : candidate)
+      }));
+    });
+  }, []);
+
   return {
     tournaments,
     isLoading,
@@ -275,6 +308,7 @@ export default function useTournamentWorkspace() {
     approveRegistration,
     rejectRegistration,
     updateRaceEntryCount,
+    updateRaceStatus,
     search,
     setSearch,
     statusFilter,

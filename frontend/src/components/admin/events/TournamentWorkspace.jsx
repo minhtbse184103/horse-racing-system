@@ -17,6 +17,7 @@ export default function TournamentWorkspace({ adminName = 'Admin Test' }) {
     approveRegistration: workspace.approveRegistration,
     rejectRegistration: workspace.rejectRegistration,
     onRaceEntryCountChange: workspace.updateRaceEntryCount,
+    onRaceStatusChange: workspace.updateRaceStatus,
     adminName,
     onLifecycleAction: workspace.transitionTournament,
     lifecycleProcessingId: workspace.lifecycleProcessingId
