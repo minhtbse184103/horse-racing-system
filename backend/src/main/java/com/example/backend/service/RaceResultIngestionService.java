@@ -42,17 +42,20 @@ public class RaceResultIngestionService {
     private final RaceEntryRepository raceEntryRepository;
     private final RaceResultRepository raceResultRepository;
     private final RaceEngineTokenService raceEngineTokenService;
+    private final RacePrizeSettlementService racePrizeSettlementService;
 
     public RaceResultIngestionService(
             RaceRepository raceRepository,
             RaceEntryRepository raceEntryRepository,
             RaceResultRepository raceResultRepository,
-            RaceEngineTokenService raceEngineTokenService
+            RaceEngineTokenService raceEngineTokenService,
+            RacePrizeSettlementService racePrizeSettlementService
     ) {
         this.raceRepository = raceRepository;
         this.raceEntryRepository = raceEntryRepository;
         this.raceResultRepository = raceResultRepository;
         this.raceEngineTokenService = raceEngineTokenService;
+        this.racePrizeSettlementService = racePrizeSettlementService;
     }
 
     @Transactional
@@ -180,6 +183,14 @@ public class RaceResultIngestionService {
                     return result;
                 })
                 .toList();
+
+        Map<Integer, RaceEntry> entriesById = assignedEntries.stream()
+                .collect(Collectors.toMap(
+                        RaceEntry::getRaceEntryId,
+                        Function.identity()
+                ));
+
+        racePrizeSettlementService.settlePrizes(raceId, results, entriesById);
 
         raceResultRepository.saveAll(results);
 

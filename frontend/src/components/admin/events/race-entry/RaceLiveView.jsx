@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
-import { Radio, Trophy, WifiOff } from 'lucide-react';
+import { Radio, WifiOff } from 'lucide-react';
+import LiveRaceDisplay from '../live/LiveRaceDisplay';
 import useRaceLiveView from './useRaceLiveView';
 
 export default function RaceLiveView({ raceId, active, onResult }) {
@@ -33,18 +34,9 @@ export default function RaceLiveView({ raceId, active, onResult }) {
         </p>
       </div>
 
-      {result ? (
-        <div className="mt-3 flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-2 text-emerald-800">
-          <Trophy size={16} />
-          <p className="text-sm font-extrabold">Race đã kết thúc — kết quả đã được ghi nhận.</p>
-        </div>
-      ) : lastTick ? (
-        <pre className="mt-3 max-h-40 overflow-auto rounded-lg bg-brown-900/5 p-3 text-xs font-mono text-brown-900">
-          {JSON.stringify(lastTick, null, 2)}
-        </pre>
-      ) : connectionState === 'connected' ? (
-        <p className="mt-3 text-xs font-semibold text-slate-500">Chưa nhận được dữ liệu vị trí nào.</p>
-      ) : null}
+      {(lastTick || result || connectionState === 'connected') && (
+        <LiveRaceDisplay tick={lastTick} result={result} />
+      )}
     </div>
   );
 }

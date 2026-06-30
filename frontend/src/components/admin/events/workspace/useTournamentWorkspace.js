@@ -34,6 +34,7 @@ export default function useTournamentWorkspace() {
   const [notice, setNotice] = useState('');
   const [mutationError, setMutationError] = useState('');
   const [lifecycleProcessingId, setLifecycleProcessingId] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
   const loadSequence = useRef(0);
   const registrationLoadSequence = useRef(0);
 
@@ -250,6 +251,20 @@ export default function useTournamentWorkspace() {
     }
   }
 
+  async function refreshWorkspace() {
+    setRefreshing(true);
+    setMutationError('');
+    try {
+      await Promise.all([
+        loadTournaments(),
+        loadRegistrations()
+      ]);
+      setNotice('Đã làm mới dữ liệu Tournament.');
+    } finally {
+      setRefreshing(false);
+    }
+  }
+
   function toggleExpanded(tournamentId) {
     setExpandedId((current) => (current === tournamentId ? null : tournamentId));
   }
@@ -301,6 +316,8 @@ export default function useTournamentWorkspace() {
     isLoading,
     loadError,
     retryLoad: loadTournaments,
+    refreshWorkspace,
+    refreshing,
     registrations,
     registrationsLoading,
     registrationsError,

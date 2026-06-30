@@ -46,6 +46,8 @@ class RaceResultIngestionServiceTest {
     private RaceResultRepository raceResultRepository;
     @Mock
     private RaceEngineTokenService raceEngineTokenService;
+    @Mock
+    private RacePrizeSettlementService racePrizeSettlementService;
 
     private RaceResultIngestionService raceResultIngestionService;
 
@@ -55,7 +57,8 @@ class RaceResultIngestionServiceTest {
                 raceRepository,
                 raceEntryRepository,
                 raceResultRepository,
-                raceEngineTokenService
+                raceEngineTokenService,
+                racePrizeSettlementService
         );
     }
 
@@ -87,6 +90,11 @@ class RaceResultIngestionServiceTest {
         assertEquals(1, savedResults.get(0).getFinishPosition());
         assertEquals(ADMIN_ID, savedResults.get(0).getRecordedBy());
         assertNotNull(savedResults.get(0).getRecordedAt());
+        verify(racePrizeSettlementService).settlePrizes(
+                any(),
+                any(),
+                any()
+        );
         assertEquals(EventStatus.COMPLETED, race.getStatus());
         assertEquals(null, race.getRaceEngineToken());
         verify(raceRepository).save(race);

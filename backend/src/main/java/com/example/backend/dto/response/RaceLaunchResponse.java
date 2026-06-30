@@ -13,10 +13,4 @@ public class RaceLaunchResponse {
     private String status;
     private LocalDateTime launchedAt;
     private String raceEngineToken;
-
-    // false when race.engine.unity-executable-path isn't configured: the
-    // race is still marked live (runStartedAt set) but no process was
-    // spawned, so an admin/tester needs to start Unity manually (e.g.
-    // Editor Play mode) pointed at this raceId.
-    private boolean engineProcessStarted;
 }

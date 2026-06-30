@@ -5,6 +5,7 @@ import java.util.Collections;
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.http.HttpMethod;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import jakarta.servlet.FilterChain;
@@ -31,6 +32,11 @@ public class RaceEngineTokenHeaderFilter extends OncePerRequestFilter {
             HttpServletRequest request,
             HttpServletResponse response,
             FilterChain filterChain) throws ServletException, IOException {
+
+        if (HttpMethod.OPTIONS.matches(request.getMethod())) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         String providedToken = request.getHeader(HEADER_NAME);
 

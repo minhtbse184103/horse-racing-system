@@ -7,6 +7,7 @@ import com.example.backend.dto.request.RacePrizeRequest;
 import com.example.backend.dto.request.UpdateRaceRequest;
 import com.example.backend.dto.response.RacePrizeResponse;
 import com.example.backend.dto.response.RaceResponse;
+import com.example.backend.dto.response.RaceResultPrizeResponse;
 import com.example.backend.entity.Race;
 import com.example.backend.entity.RacePrize;
 import com.example.backend.entity.Tournament;
@@ -137,6 +138,41 @@ public class RaceService {
                 .findByTournamentIdOrderByRaceOrderAsc(tournamentId)
                 .stream()
                 .map(this::refreshAndMap)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<RaceResultPrizeResponse> getRaceResults(Integer raceId) {
+        if (!raceRepository.existsById(raceId)) {
+            throw new ApiException(
+                    HttpStatus.NOT_FOUND,
+                    "Race does not exist."
+            );
+        }
+
+        return raceResultRepository.findPrizeResultsByRaceId(raceId)
+                .stream()
+                .map(result -> RaceResultPrizeResponse.builder()
+                        .resultId(result.getResultId())
+                        .raceEntryId(result.getRaceEntryId())
+                        .startingStall(result.getStartingStall())
+                        .finishPosition(result.getFinishPosition())
+                        .finishTime(result.getFinishTime())
+                        .points(result.getPoints())
+                        .prizeMoney(result.getPrizeMoney())
+                        .recordedAt(result.getRecordedAt())
+                        .horseId(result.getHorseId())
+                        .horseName(result.getHorseName())
+                        .ownerId(result.getOwnerId())
+                        .ownerName(result.getOwnerName())
+                        .jockeyId(result.getJockeyId())
+                        .jockeyName(result.getJockeyName())
+                        .prizeDistributionId(result.getPrizeDistributionId())
+                        .totalPrize(result.getTotalPrize())
+                        .ownerAmount(result.getOwnerAmount())
+                        .jockeyAmount(result.getJockeyAmount())
+                        .distributionStatus(result.getDistributionStatus())
+                        .build())
                 .toList();
     }
 

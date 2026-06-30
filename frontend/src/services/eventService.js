@@ -104,3 +104,7 @@ export function failRaceRun(raceId, reason) {
     body: { reason }
   });
 }
+
+export function getRaceResults(raceId) {
+  return httpRequest(`/api/races/${raceId}/results`);
+}

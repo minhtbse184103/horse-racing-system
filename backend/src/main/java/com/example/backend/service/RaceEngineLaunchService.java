@@ -14,12 +14,12 @@ import com.example.backend.repository.RaceRepository;
 import com.example.backend.repository.RaceResultRepository;
 import com.example.backend.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
-import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -27,8 +27,8 @@ import java.util.List;
  * Launches the Unity race engine for a single Race. This is the
  * "Run Race" action: gated on the race's scheduled raceStartTime
  * having already passed, and on every entry slot already being
- * assigned. The backend (not the admin's browser) starts the Unity
- * process directly via ProcessBuilder.
+ * assigned. The backend owns the launch token and starts one Unity
+ * executable process for the race; frontend only watches backend live data.
  */
 @Slf4j
 @Service
@@ -41,25 +41,22 @@ public class RaceEngineLaunchService {
     private final RaceResultRepository raceResultRepository;
     private final UserRepository userRepository;
     private final RaceEngineTokenService raceEngineTokenService;
-
-    @Value("${race.engine.unity-executable-path:}")
-    private String unityExecutablePath;
-
-    @Value("${race.engine.backend-base-url:http://localhost:8080}")
-    private String backendBaseUrl;
+    private final RaceEngineProcessLauncher raceEngineProcessLauncher;
 
     public RaceEngineLaunchService(
             RaceRepository raceRepository,
             RaceEntryRepository raceEntryRepository,
             RaceResultRepository raceResultRepository,
             UserRepository userRepository,
-            RaceEngineTokenService raceEngineTokenService
+            RaceEngineTokenService raceEngineTokenService,
+            RaceEngineProcessLauncher raceEngineProcessLauncher
     ) {
         this.raceRepository = raceRepository;
         this.raceEntryRepository = raceEntryRepository;
         this.raceResultRepository = raceResultRepository;
         this.userRepository = userRepository;
         this.raceEngineTokenService = raceEngineTokenService;
+        this.raceEngineProcessLauncher = raceEngineProcessLauncher;
     }
 
     @Transactional
@@ -84,38 +81,30 @@ public class RaceEngineLaunchService {
         race.setRaceEngineTokenIssuedAt(now);
         raceRepository.saveAndFlush(race);
 
-        // "Launched" (runStartedAt set, race live for tick/result ingestion)
-        // is intentionally decoupled from "backend spawned a Unity process".
-        // Without race.engine.unity-executable-path configured, there's no
-        // automated build to spawn, so this falls back to manual mode: the
-        // race is marked live and an admin/tester runs Unity (e.g. Editor
-        // Play mode) by hand, pointed at this raceId. Previously this method
-        // threw a 409 here, which made it impossible to ever set
-        // runStartedAt without a real executable path — the only available
-        // workaround was pointing the path at an arbitrary unrelated
-        // executable just to satisfy this check, which is not something we
-        // want as a supported, ongoing setup.
-        boolean engineProcessStarted = false;
-
-        if (unityExecutablePath != null && !unityExecutablePath.isBlank()) {
-            startUnityProcess(race, raceEngineToken);
-            engineProcessStarted = true;
-        } else {
-            log.info(
-                    "race.engine.unity-executable-path is not configured;"
-                            + " raceId={} marked as launched without spawning a"
-                            + " process (manual/Editor-mode testing).",
-                    race.getRaceId()
-            );
-        }
+        launchAfterCommit(race.getRaceId(), raceEngineToken);
 
         return RaceLaunchResponse.builder()
                 .raceId(race.getRaceId())
                 .status(race.getStatus())
                 .launchedAt(now)
                 .raceEngineToken(raceEngineToken)
-                .engineProcessStarted(engineProcessStarted)
                 .build();
+    }
+
+    private void launchAfterCommit(Integer raceId, String raceEngineToken) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            raceEngineProcessLauncher.launch(raceId, raceEngineToken);
+            log.info("raceId={} marked as launched and Unity executable process requested.", raceId);
+            return;
+        }
+
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                raceEngineProcessLauncher.launch(raceId, raceEngineToken);
+                log.info("raceId={} marked as launched and Unity executable process requested.", raceId);
+            }
+        });
     }
 
     @Transactional
@@ -262,31 +251,6 @@ public class RaceEngineLaunchService {
                 && !LocalDateTime.now().isBefore(race.getRaceStartTime())) {
             race.setStatus(EventStatus.IN_PROGRESS);
             raceRepository.save(race);
-        }
-    }
-
-    private void startUnityProcess(Race race, String raceEngineToken) {
-        try {
-            ProcessBuilder processBuilder = new ProcessBuilder(
-                    unityExecutablePath,
-                    "--raceId=" + race.getRaceId(),
-                    "--apiKey=" + raceEngineToken,
-                    "--backendUrl=" + backendBaseUrl
-            );
-            processBuilder.redirectErrorStream(true);
-            processBuilder.start();
-
-            log.info("Launched Unity race engine for raceId={}", race.getRaceId());
-        } catch (IOException exception) {
-            log.error(
-                    "Failed to launch Unity race engine for raceId={}: {}",
-                    race.getRaceId(),
-                    exception.getMessage()
-            );
-            throw new ApiException(
-                    HttpStatus.INTERNAL_SERVER_ERROR,
-                    "Failed to launch the race engine process."
-            );
         }
     }
 

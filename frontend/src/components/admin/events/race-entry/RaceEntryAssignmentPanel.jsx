@@ -1,10 +1,11 @@
 import { Fragment, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertTriangle, ChevronDown, ChevronRight, Copy, Flag, KeyRound, LoaderCircle, PlayCircle, Radio, RefreshCw, Trophy, UserPlus, XCircle } from 'lucide-react';
+import { AlertTriangle, ChevronDown, ChevronRight, Flag, LoaderCircle, Medal, PlayCircle, Radio, RefreshCw, Trophy, UserPlus, XCircle } from 'lucide-react';
 import AssignmentDialog from './AssignmentDialog';
 import CancellationDialog from './CancellationDialog';
 import OfficialEntries from './OfficialEntries';
 import PrizeRuleDialog from './PrizeRuleDialog';
+import RaceResultPrizeDialog from './RaceResultPrizeDialog';
 import RaceLiveView from './RaceLiveView';
 import useRaceEntryAssignment from './useRaceEntryAssignment';
 import TournamentStatusBadge from '../TournamentStatusBadge';
@@ -16,6 +17,7 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
   const [assignmentRace, setAssignmentRace] = useState(null);
   const [cancellationEntry, setCancellationEntry] = useState(null);
   const [prizeRuleRace, setPrizeRuleRace] = useState(null);
+  const [resultPrizeRace, setResultPrizeRace] = useState(null);
   // Launches recorded in this session so the button flips to "Xem trực
   // tiếp" immediately, without waiting on the parent to refetch the
   // tournament workspace. race.runStartedAt (from the backend) is the
@@ -24,13 +26,6 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
   const [runningRaceId, setRunningRaceId] = useState(null);
   const [failingRaceId, setFailingRaceId] = useState(null);
   const [runErrors, setRunErrors] = useState({});
-  // Tracks races launched without a spawned Unity process (engine path not
-  // configured on the backend), so the admin knows to start Unity manually
-  // pointed at that raceId instead of expecting it to appear on its own.
-  const [manualLaunchRaceIds, setManualLaunchRaceIds] = useState(() => new Set());
-  const [launchTokensByRaceId, setLaunchTokensByRaceId] = useState(() => new Map());
-  const [launchTokenNotice, setLaunchTokenNotice] = useState(null);
-  const [tokenCopied, setTokenCopied] = useState(false);
   const [liveRaceId, setLiveRaceId] = useState(null);
   const assignment = useRaceEntryAssignment(
     tournament.id,
@@ -52,32 +47,8 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
     setRunningRaceId(raceId);
     setRunErrors((current) => ({ ...current, [raceId]: '' }));
     try {
-      const response = await runRace(raceId);
+      await runRace(raceId);
       setLaunchedRaceIds((current) => new Set(current).add(raceId));
-      setLaunchTokensByRaceId((current) => {
-        const next = new Map(current);
-        if (response?.raceEngineToken) {
-          next.set(raceId, response.raceEngineToken);
-          setLaunchTokenNotice({
-            raceId,
-            token: response.raceEngineToken,
-            engineProcessStarted: Boolean(response.engineProcessStarted)
-          });
-          setTokenCopied(false);
-        } else {
-          next.delete(raceId);
-        }
-        return next;
-      });
-      setManualLaunchRaceIds((current) => {
-        const next = new Set(current);
-        if (response?.engineProcessStarted) {
-          next.delete(raceId);
-        } else {
-          next.add(raceId);
-        }
-        return next;
-      });
       setLiveRaceId(raceId);
       // Auto-expand the row so RaceLiveView (rendered inside the expanded
       // section below) is visible immediately, no extra click needed.
@@ -112,16 +83,6 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
         next.delete(race.id);
         return next;
       });
-      setManualLaunchRaceIds((current) => {
-        const next = new Set(current);
-        next.delete(race.id);
-        return next;
-      });
-      setLaunchTokensByRaceId((current) => {
-        const next = new Map(current);
-        next.delete(race.id);
-        return next;
-      });
       setLiveRaceId((current) => current === race.id ? null : current);
       onRaceStatusChange?.(race.id, response?.status || 'CANCELLED');
     } catch (error) {
@@ -134,13 +95,6 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
   function toggleLiveView(raceId) {
     setLiveRaceId((current) => current === raceId ? null : raceId);
     setSelectedRaceId(raceId);
-  }
-
-  async function copyLaunchToken() {
-    if (!launchTokenNotice?.token) return;
-
-    await navigator.clipboard.writeText(launchTokenNotice.token);
-    setTokenCopied(true);
   }
 
   return (
@@ -159,8 +113,6 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
           const isFull = runnerCount >= race.maxRunners;
           const isLive = Boolean(race.runStartedAt) || launchedRaceIds.has(race.id);
           const runError = runErrors[race.id];
-          const isManualLaunch = manualLaunchRaceIds.has(race.id);
-          const launchToken = launchTokensByRaceId.get(race.id);
 
           return (
             <Fragment key={race.id}>
@@ -183,7 +135,7 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
                   </div>
                   {runError && <p className="mt-2 text-xs font-bold text-danger">{runError}</p>}
                   {!runError && race.runStuck && <p className="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-extrabold text-red-700">Race có thể bị kẹt: đã chạy {race.runElapsedMinutes} phút, vượt ngưỡng {race.runWatchdogTimeoutMinutes} phút nhưng chưa có kết quả. Hãy kiểm tra Unity hoặc dùng Đánh dấu lỗi.</p>}
-                  {!runError && isManualLaunch && <div className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-700"><p>Race đã được đánh dấu khởi chạy — engine Unity chưa được cấu hình, hãy mở Unity thủ công cho Race này.</p>{launchToken && <p className="mt-1 break-all font-mono text-[0.68rem] text-amber-900">Token: {launchToken}</p>}</div>}
+                  {!runError && launchedRaceIds.has(race.id) && <div className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700"><p>Race đã được khởi chạy bằng Unity Engine. Theo dõi dữ liệu live từ backend tại đây.</p></div>}
                 </div>
                 <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end lg:max-w-[26rem]">
                   {race.status === 'IN_PROGRESS' && (
@@ -205,6 +157,9 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
                     )
                   )}
                   <button type="button" onClick={() => setPrizeRuleRace(race)} className="inline-flex min-h-10 min-w-[7rem] items-center justify-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 text-xs font-extrabold text-amber-800 hover:bg-amber-100"><Trophy size={15} />Prize rule</button>
+                  {race.status === 'COMPLETED' && (
+                    <button type="button" onClick={() => setResultPrizeRace(race)} className="inline-flex min-h-10 min-w-[7rem] items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-xs font-extrabold text-emerald-800 hover:bg-emerald-100"><Medal size={15} />Kết quả</button>
+                  )}
                   <button type="button" disabled={isFull || assignment.queueLoading} onClick={() => openAssignment(race)} className={`inline-flex min-h-10 min-w-[12.25rem] items-center justify-center gap-2 rounded-lg border px-3 text-xs font-extrabold ${isFull ? 'cursor-not-allowed border-red-200 bg-red-50 text-red-700' : 'border-brown-700/15 bg-white text-brown-700 hover:bg-cream-200 disabled:cursor-not-allowed disabled:opacity-60'}`}><UserPlus size={15} />{isFull ? 'Race đã đầy' : 'Phân công RaceEntry'}</button>
                 </div>
               </motion.div>
@@ -251,75 +206,19 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
       </AnimatePresence>
 
       <AnimatePresence>
-        {launchTokenNotice && (
-          <motion.div
-            className="fixed inset-0 z-50 grid place-items-center bg-brown-900/45 p-4 backdrop-blur-sm"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="launch-token-title"
-          >
-            <motion.div
-              initial={{ y: 16, scale: 0.98 }}
-              animate={{ y: 0, scale: 1 }}
-              exit={{ y: 12, scale: 0.98 }}
-              transition={{ duration: 0.2 }}
-              className="w-full max-w-xl rounded-lg border border-white/80 bg-cream-100 p-5 shadow-[0_28px_70px_rgba(43,23,16,0.28)]"
-            >
-              <div className="flex items-start gap-4">
-                <span className="grid size-11 shrink-0 place-items-center rounded-lg bg-amber-100 text-amber-800">
-                  <KeyRound size={21} />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-black uppercase text-brown-500">Unity launch token</p>
-                  <h3 id="launch-token-title" className="mt-1 text-xl font-black text-brown-900">
-                    Race đã được khởi chạy
-                  </h3>
-                  <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">
-                    Copy token này vào ô <strong>Token</strong> trong Unity rồi bấm <strong>Load + Start</strong>.
-                    Token chỉ hiện ngay sau lần khởi chạy này.
-                  </p>
-
-                  <div className="mt-4 rounded-lg border border-brown-700/10 bg-white px-3 py-3">
-                    <p className="break-all font-mono text-xs font-black text-brown-900">{launchTokenNotice.token}</p>
-                  </div>
-
-                  {launchTokenNotice.engineProcessStarted && (
-                    <p className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-extrabold text-emerald-700">
-                      Backend đã tự mở Unity process. Bạn chỉ cần dùng token này nếu chạy Unity thủ công.
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="mt-5 flex flex-col gap-2 border-t border-brown-700/10 pt-4 sm:flex-row sm:justify-end">
-                <button
-                  type="button"
-                  onClick={() => setLaunchTokenNotice(null)}
-                  className="min-h-10 rounded-lg border border-brown-700/15 bg-white px-4 text-sm font-extrabold text-brown-700 hover:bg-cream-200"
-                >
-                  Đóng
-                </button>
-                <button
-                  type="button"
-                  onClick={copyLaunchToken}
-                  className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-brown-700 px-4 text-sm font-extrabold text-white hover:bg-brown-900"
-                >
-                  <Copy size={15} /> {tokenCopied ? 'Đã copy' : 'Copy token'}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
         {prizeRuleRace && (
           <PrizeRuleDialog
             race={prizeRuleRace}
             onClose={() => setPrizeRuleRace(null)}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {resultPrizeRace && (
+          <RaceResultPrizeDialog
+            race={resultPrizeRace}
+            onClose={() => setResultPrizeRace(null)}
           />
         )}
       </AnimatePresence>

@@ -5,6 +5,7 @@ import com.example.backend.dto.request.FailRaceRunRequest;
 import com.example.backend.dto.request.UpdateRaceRequest;
 import com.example.backend.dto.response.RaceLaunchResponse;
 import com.example.backend.dto.response.RaceResponse;
+import com.example.backend.dto.response.RaceResultPrizeResponse;
 import com.example.backend.dto.response.RaceRunRecoveryResponse;
 import com.example.backend.service.RaceEngineLaunchService;
 import com.example.backend.service.RaceService;
@@ -41,6 +42,13 @@ public class RaceController {
             @PathVariable Integer raceId
     ) {
         return raceService.getRaceById(raceId);
+    }
+
+    @GetMapping("/{raceId}/results")
+    public List<RaceResultPrizeResponse> getRaceResults(
+            @PathVariable Integer raceId
+    ) {
+        return raceService.getRaceResults(raceId);
     }
 
     @GetMapping("/by-tournament/{tournamentId}")

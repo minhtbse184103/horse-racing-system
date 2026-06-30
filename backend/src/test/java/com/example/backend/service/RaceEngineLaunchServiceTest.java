@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -52,6 +51,8 @@ class RaceEngineLaunchServiceTest {
     private UserRepository userRepository;
     @Mock
     private RaceEngineTokenService raceEngineTokenService;
+    @Mock
+    private RaceEngineProcessLauncher raceEngineProcessLauncher;
 
     private RaceEngineLaunchService raceEngineLaunchService;
 
@@ -62,12 +63,13 @@ class RaceEngineLaunchServiceTest {
                 raceEntryRepository,
                 raceResultRepository,
                 userRepository,
-                raceEngineTokenService
+                raceEngineTokenService,
+                raceEngineProcessLauncher
         );
     }
 
     @Test
-    void launchRaceManualModeMarksRaceLaunchedWithoutEngineProcess() {
+    void launchRaceMarksRaceLaunchedAndStartsUnityEngine() {
         Race race = launchableRace();
         stubAdmin();
         when(raceRepository.findByIdForUpdate(RACE_ID))
@@ -95,7 +97,7 @@ class RaceEngineLaunchServiceTest {
         assertEquals(EventStatus.IN_PROGRESS, response.getStatus());
         assertEquals("launch-token", response.getRaceEngineToken());
         assertNotNull(response.getLaunchedAt());
-        assertFalse(response.isEngineProcessStarted());
+        verify(raceEngineProcessLauncher).launch(RACE_ID, "launch-token");
     }
 
     @Test
@@ -113,6 +115,7 @@ class RaceEngineLaunchServiceTest {
 
         assertEquals(HttpStatus.CONFLICT, exception.getStatus());
         verify(raceRepository, never()).saveAndFlush(any());
+        verify(raceEngineProcessLauncher, never()).launch(any(), any());
     }
 
     @Test

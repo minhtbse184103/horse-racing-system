@@ -23,6 +23,10 @@ public interface RaceEntryRepository
             Integer registrationId,
             String status
     );
+    List<RaceEntry> findByRegistrationIdInAndStatus(
+            Collection<Integer> registrationIds,
+            String status
+    );
     boolean existsByRegistrationIdAndStatus(
             Integer registrationId,
             String status

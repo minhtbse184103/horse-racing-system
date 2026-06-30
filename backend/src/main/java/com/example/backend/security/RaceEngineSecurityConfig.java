@@ -7,6 +7,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfigurationSource;
 
 /**
  * Separate, narrowly-scoped security chain for Unity's race-engine
@@ -20,8 +21,12 @@ public class RaceEngineSecurityConfig {
 
     @Bean
     @Order(1)
-    public SecurityFilterChain raceEngineSecurityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain raceEngineSecurityFilterChain(
+            HttpSecurity http,
+            CorsConfigurationSource corsConfigurationSource
+    ) throws Exception {
         http.securityMatcher("/api/race-engine/**")
+                .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())

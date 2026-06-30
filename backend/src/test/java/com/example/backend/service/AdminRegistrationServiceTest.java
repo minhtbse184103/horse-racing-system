@@ -12,6 +12,8 @@ import com.example.backend.entity.Tournament;
 import com.example.backend.entity.User;
 import com.example.backend.exception.ApiException;
 import com.example.backend.repository.HorseRepository;
+import com.example.backend.repository.JockeyProfileRepository;
+import com.example.backend.repository.OwnerApplicationRepository;
 import com.example.backend.repository.RaceEntryRepository;
 import com.example.backend.repository.RaceRepository;
 import com.example.backend.repository.RegistrationRepository;
@@ -45,11 +47,18 @@ class AdminRegistrationServiceTest {
     @Mock private RaceEntryRepository raceEntryRepository;
     @Mock private RaceRepository raceRepository;
     @Mock private RegistrationEligibilityService eligibilityService;
+    @Mock private OwnerApplicationRepository ownerApplicationRepository;
+    @Mock private JockeyProfileRepository jockeyProfileRepository;
 
     private AdminRegistrationService service;
+    private DisplayNameResolver displayNameResolver;
 
     @BeforeEach
     void setUp() {
+        displayNameResolver = new DisplayNameResolver(
+                ownerApplicationRepository,
+                jockeyProfileRepository
+        );
         service = new AdminRegistrationService(
                 registrationRepository,
                 tournamentRepository,
@@ -57,7 +66,8 @@ class AdminRegistrationServiceTest {
                 userRepository,
                 raceEntryRepository,
                 raceRepository,
-                eligibilityService
+                eligibilityService,
+                displayNameResolver
         );
     }
 
@@ -67,7 +77,7 @@ class AdminRegistrationServiceTest {
         when(registrationRepository.findByApprovalStatusOrderBySubmittedAtAsc(
                 RegistrationStatus.PENDING
         )).thenReturn(List.of(registration));
-        stubResponseLookups(registration);
+        stubBatchResponseLookups(registration);
 
         List<RegistrationResponse> result = service.getPendingRegistrations();
 
@@ -285,5 +295,24 @@ class AdminRegistrationServiceTest {
                 registration.getRegistrationId(),
                 RaceEntryStatus.ASSIGNED
         )).thenReturn(Optional.empty());
+    }
+
+    private void stubBatchResponseLookups(Registration registration) {
+        when(tournamentRepository.findAllById(any()))
+                .thenReturn(List.of(tournament()));
+        when(horseRepository.findAllById(any()))
+                .thenReturn(List.of());
+        when(userRepository.findAllById(any()))
+                .thenReturn(List.of());
+        when(ownerApplicationRepository.findLatestByUserIds(any()))
+                .thenReturn(List.of());
+        when(jockeyProfileRepository.findByJockeyIdIn(any()))
+                .thenReturn(List.of());
+        when(raceEntryRepository.findByRegistrationIdInAndStatus(
+                any(),
+                any()
+        )).thenReturn(List.of());
+        when(raceRepository.findAllById(any()))
+                .thenReturn(List.of());
     }
 }

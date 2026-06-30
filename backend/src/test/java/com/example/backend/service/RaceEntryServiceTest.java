@@ -17,6 +17,8 @@ import com.example.backend.entity.Tournament;
 import com.example.backend.entity.User;
 import com.example.backend.exception.ApiException;
 import com.example.backend.repository.HorseRepository;
+import com.example.backend.repository.JockeyProfileRepository;
+import com.example.backend.repository.OwnerApplicationRepository;
 import com.example.backend.repository.RaceEntryRepository;
 import com.example.backend.repository.RaceRepository;
 import com.example.backend.repository.RegistrationRepository;
@@ -73,18 +75,28 @@ class RaceEntryServiceTest {
     private HorseRepository horseRepository;
     @Mock
     private UserRepository userRepository;
+    @Mock
+    private OwnerApplicationRepository ownerApplicationRepository;
+    @Mock
+    private JockeyProfileRepository jockeyProfileRepository;
 
     private RaceEntryService raceEntryService;
+    private DisplayNameResolver displayNameResolver;
 
     @BeforeEach
     void setUp() {
+        displayNameResolver = new DisplayNameResolver(
+                ownerApplicationRepository,
+                jockeyProfileRepository
+        );
         raceEntryService = new RaceEntryService(
                 raceEntryRepository,
                 raceRepository,
                 registrationRepository,
                 tournamentRepository,
                 horseRepository,
-                userRepository
+                userRepository,
+                displayNameResolver
         );
     }
 
@@ -144,8 +156,8 @@ class RaceEntryServiceTest {
                 .findByRaceIdAndStatusOrderByStartingStallAsc(
                         RACE_ID,
                         RaceEntryStatus.ASSIGNED
-                )).thenReturn(List.of(entry));
-        stubResponseMapping(race, registration);
+        )).thenReturn(List.of(entry));
+        stubBatchResponseMapping(race, registration);
 
         List<RaceEntryResponse> result =
                 raceEntryService.getEntriesByRace(RACE_ID);
@@ -440,12 +452,16 @@ class RaceEntryServiceTest {
     }
 
     private void stubCandidateMapping(Registration registration) {
-        when(tournamentRepository.findById(TOURNAMENT_ID))
-                .thenReturn(Optional.of(tournament()));
-        when(horseRepository.findById(HORSE_ID))
-                .thenReturn(Optional.of(horse()));
-        when(userRepository.findById(OWNER_ID))
-                .thenReturn(Optional.of(owner()));
+        when(tournamentRepository.findAllById(any()))
+                .thenReturn(List.of(tournament()));
+        when(horseRepository.findAllById(any()))
+                .thenReturn(List.of(horse()));
+        when(userRepository.findAllById(any()))
+                .thenReturn(List.of(owner()));
+        when(ownerApplicationRepository.findLatestByUserIds(any()))
+                .thenReturn(List.of());
+        when(jockeyProfileRepository.findByJockeyIdIn(any()))
+                .thenReturn(List.of());
         assertNull(registration.getJockeyId());
     }
 
@@ -528,6 +544,26 @@ class RaceEntryServiceTest {
                 .thenReturn(Optional.of(owner()));
         when(userRepository.findById(ADMIN_ID))
                 .thenReturn(Optional.of(admin()));
+    }
+
+    private void stubBatchResponseMapping(
+            Race race,
+            Registration registration
+    ) {
+        when(raceRepository.findAllById(any()))
+                .thenReturn(List.of(race));
+        when(registrationRepository.findAllById(any()))
+                .thenReturn(List.of(registration));
+        when(tournamentRepository.findAllById(any()))
+                .thenReturn(List.of(tournament()));
+        when(horseRepository.findAllById(any()))
+                .thenReturn(List.of(horse()));
+        when(userRepository.findAllById(any()))
+                .thenReturn(List.of(owner(), admin()));
+        when(ownerApplicationRepository.findLatestByUserIds(any()))
+                .thenReturn(List.of());
+        when(jockeyProfileRepository.findByJockeyIdIn(any()))
+                .thenReturn(List.of());
     }
 
     private Race futureRace() {

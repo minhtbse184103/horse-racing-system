@@ -4,12 +4,14 @@ import com.example.backend.constant.RaceEntryStatus;
 import com.example.backend.dto.response.RaceLineupEntryResponse;
 import com.example.backend.dto.response.RaceLineupResponse;
 import com.example.backend.entity.Horse;
+import com.example.backend.entity.JockeyProfile;
 import com.example.backend.entity.Race;
 import com.example.backend.entity.RaceEntry;
 import com.example.backend.entity.Registration;
 import com.example.backend.entity.User;
 import com.example.backend.exception.ApiException;
 import com.example.backend.repository.HorseRepository;
+import com.example.backend.repository.JockeyProfileRepository;
 import com.example.backend.repository.RaceEntryRepository;
 import com.example.backend.repository.RaceRepository;
 import com.example.backend.repository.RegistrationRepository;
@@ -39,6 +41,7 @@ public class RaceEngineQueryService {
     private final RegistrationRepository registrationRepository;
     private final HorseRepository horseRepository;
     private final UserRepository userRepository;
+    private final JockeyProfileRepository jockeyProfileRepository;
     private final RaceEngineTokenService raceEngineTokenService;
 
     public RaceEngineQueryService(
@@ -47,6 +50,7 @@ public class RaceEngineQueryService {
             RegistrationRepository registrationRepository,
             HorseRepository horseRepository,
             UserRepository userRepository,
+            JockeyProfileRepository jockeyProfileRepository,
             RaceEngineTokenService raceEngineTokenService
     ) {
         this.raceRepository = raceRepository;
@@ -54,6 +58,7 @@ public class RaceEngineQueryService {
         this.registrationRepository = registrationRepository;
         this.horseRepository = horseRepository;
         this.userRepository = userRepository;
+        this.jockeyProfileRepository = jockeyProfileRepository;
         this.raceEngineTokenService = raceEngineTokenService;
     }
 
@@ -112,6 +117,14 @@ public class RaceEngineQueryService {
                                 Function.identity()
                         ));
 
+        Map<Integer, JockeyProfile> jockeyProfilesById =
+                jockeyProfileRepository.findByJockeyIdIn(jockeysById.keySet())
+                        .stream()
+                        .collect(Collectors.toMap(
+                                JockeyProfile::getJockeyId,
+                                Function.identity()
+                        ));
+
         List<RaceLineupEntryResponse> runners = entries.stream()
                 .map(entry -> {
                     Registration registration =
@@ -131,7 +144,10 @@ public class RaceEngineQueryService {
                                     horse != null ? horse.getHorseName() : null
                             )
                             .jockeyName(
-                                    jockey != null ? jockey.getUsername() : null
+                                    getJockeyDisplayName(
+                                            jockey,
+                                            jockeyProfilesById
+                                    )
                             )
                             .build();
                 })
@@ -145,5 +161,23 @@ public class RaceEngineQueryService {
                 .status(race.getStatus())
                 .runners(runners)
                 .build();
+    }
+
+    private String getJockeyDisplayName(
+            User jockey,
+            Map<Integer, JockeyProfile> jockeyProfilesById
+    ) {
+        if (jockey == null) {
+            return null;
+        }
+
+        JockeyProfile profile = jockeyProfilesById.get(jockey.getUserID());
+        if (profile != null
+                && profile.getFullName() != null
+                && !profile.getFullName().isBlank()) {
+            return profile.getFullName();
+        }
+
+        return jockey.getUsername();
     }
 }

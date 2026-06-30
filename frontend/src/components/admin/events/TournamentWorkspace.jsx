@@ -37,13 +37,28 @@ export default function TournamentWorkspace({ adminName = 'Admin Test' }) {
             Lập kế hoạch sự kiện, cấu hình Race và theo dõi sức chứa Registration trong một khu vực quản lý thống nhất.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={workspace.openCreate}
-          className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-brown-700 px-5 text-sm font-extrabold text-white shadow-[0_12px_28px_rgba(108,63,36,0.24)] transition hover:-translate-y-0.5 hover:bg-brown-900 hover:shadow-[0_16px_34px_rgba(43,23,16,0.25)]"
-        >
-          <Plus size={18} strokeWidth={2.5} /> Tạo Tournament
-        </button>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <button
+            type="button"
+            onClick={workspace.refreshWorkspace}
+            disabled={workspace.refreshing}
+            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg border border-brown-700/15 bg-white px-5 text-sm font-extrabold text-brown-700 shadow-[0_10px_24px_rgba(78,44,25,0.08)] transition hover:-translate-y-0.5 hover:bg-cream-200 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <RefreshCw
+              size={17}
+              strokeWidth={2.5}
+              className={workspace.refreshing ? 'animate-spin' : ''}
+            />
+            {workspace.refreshing ? 'Đang làm mới' : 'Làm mới'}
+          </button>
+          <button
+            type="button"
+            onClick={workspace.openCreate}
+            className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-brown-700 px-5 text-sm font-extrabold text-white shadow-[0_12px_28px_rgba(108,63,36,0.24)] transition hover:-translate-y-0.5 hover:bg-brown-900 hover:shadow-[0_16px_34px_rgba(43,23,16,0.25)]"
+          >
+            <Plus size={18} strokeWidth={2.5} /> Tạo Tournament
+          </button>
+        </div>
       </header>
 
       <AnimatePresence>
