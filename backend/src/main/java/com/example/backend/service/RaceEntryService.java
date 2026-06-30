@@ -18,8 +18,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 @Service
@@ -37,6 +40,7 @@ public class RaceEntryService {
     private final TournamentRepository tournamentRepository;
     private final HorseRepository horseRepository;
     private final UserRepository userRepository;
+    private final DisplayNameResolver displayNameResolver;
 
     public RaceEntryService(
             RaceEntryRepository raceEntryRepository,
@@ -44,7 +48,8 @@ public class RaceEntryService {
             RegistrationRepository registrationRepository,
             TournamentRepository tournamentRepository,
             HorseRepository horseRepository,
-            UserRepository userRepository
+            UserRepository userRepository,
+            DisplayNameResolver displayNameResolver
     ) {
         this.raceEntryRepository = raceEntryRepository;
         this.raceRepository = raceRepository;
@@ -52,19 +57,19 @@ public class RaceEntryService {
         this.tournamentRepository = tournamentRepository;
         this.horseRepository = horseRepository;
         this.userRepository = userRepository;
+        this.displayNameResolver = displayNameResolver;
     }
 
     @Transactional(readOnly = true)
     public List<RaceEntryCandidateResponse> getAssignmentQueue() {
-        return registrationRepository
+        List<Registration> registrations = registrationRepository
                 .findApprovedAndUnassigned(
                         RegistrationStatus.APPROVED,
                         PaymentStatus.PAID,
                         RaceEntryStatus.ASSIGNED
-                )
-                .stream()
-                .map(this::toCandidateResponse)
-                .toList();
+                );
+
+        return toCandidateResponses(registrations);
     }
 
     @Transactional(readOnly = true)
@@ -78,16 +83,15 @@ public class RaceEntryService {
             );
         }
 
-        return registrationRepository
+        List<Registration> registrations = registrationRepository
                 .findApprovedAndUnassignedByTournament(
                         tournamentId,
                         RegistrationStatus.APPROVED,
                         PaymentStatus.PAID,
                         RaceEntryStatus.ASSIGNED
-                )
-                .stream()
-                .map(this::toCandidateResponse)
-                .toList();
+                );
+
+        return toCandidateResponses(registrations);
     }
 
     @Transactional(readOnly = true)
@@ -101,13 +105,12 @@ public class RaceEntryService {
             );
         }
 
-        return raceEntryRepository
+        List<RaceEntry> entries = raceEntryRepository
                 .findByRaceIdAndStatusOrderByStartingStallAsc(
                         raceId,
-                        RaceEntryStatus.ASSIGNED)
-                .stream()
-                .map(this::toResponse)
-                .toList();
+                        RaceEntryStatus.ASSIGNED);
+
+        return toResponses(entries);
     }
 
     @Transactional
@@ -402,11 +405,71 @@ public class RaceEntryService {
                 )
                 .ownerId(registration.getOwnerId())
                 .ownerName(
-                        owner != null ? owner.getUsername() : null
+                        displayNameResolver.getOwnerDisplayName(owner)
                 )
                 .jockeyId(registration.getJockeyId())
                 .jockeyName(
-                        jockey != null ? jockey.getUsername() : null
+                        displayNameResolver.getJockeyDisplayName(jockey)
+                )
+                .paymentStatus(registration.getPaymentStatus())
+                .approvalStatus(registration.getApprovalStatus())
+                .approvedAt(registration.getReviewedAt())
+                .build();
+    }
+
+    private List<RaceEntryCandidateResponse> toCandidateResponses(
+            List<Registration> registrations
+    ) {
+        CandidateLookupContext context = buildCandidateLookupContext(
+                registrations
+        );
+
+        return registrations.stream()
+                .map(registration -> toCandidateResponse(
+                        registration,
+                        context
+                ))
+                .toList();
+    }
+
+    private RaceEntryCandidateResponse toCandidateResponse(
+            Registration registration,
+            CandidateLookupContext context
+    ) {
+        Tournament tournament = context.tournaments()
+                .get(registration.getTournamentId());
+        Horse horse = context.horses().get(registration.getHorseId());
+        User owner = context.users().get(registration.getOwnerId());
+        User jockey = registration.getJockeyId() == null
+                ? null
+                : context.users().get(registration.getJockeyId());
+
+        return RaceEntryCandidateResponse.builder()
+                .registrationId(registration.getRegistrationId())
+                .registrationNo(registration.getRegistrationNo())
+                .tournamentId(registration.getTournamentId())
+                .tournamentName(
+                        tournament != null
+                                ? tournament.getTournamentName()
+                                : null
+                )
+                .horseId(registration.getHorseId())
+                .horseName(
+                        horse != null ? horse.getHorseName() : null
+                )
+                .ownerId(registration.getOwnerId())
+                .ownerName(
+                        displayNameResolver.getOwnerDisplayName(
+                                owner,
+                                context.ownerNames()
+                        )
+                )
+                .jockeyId(registration.getJockeyId())
+                .jockeyName(
+                        displayNameResolver.getJockeyDisplayName(
+                                jockey,
+                                context.jockeyNames()
+                        )
                 )
                 .paymentStatus(registration.getPaymentStatus())
                 .approvalStatus(registration.getApprovalStatus())
@@ -469,11 +532,11 @@ public class RaceEntryService {
                 )
                 .ownerId(registration.getOwnerId())
                 .ownerName(
-                        owner != null ? owner.getUsername() : null
+                        displayNameResolver.getOwnerDisplayName(owner)
                 )
                 .jockeyId(registration.getJockeyId())
                 .jockeyName(
-                        jockey != null ? jockey.getUsername() : null
+                        displayNameResolver.getJockeyDisplayName(jockey)
                 )
                 .startingStall(entry.getStartingStall())
                 .status(entry.getStatus())
@@ -488,5 +551,249 @@ public class RaceEntryService {
                 .cancelledBy(entry.getCancelledBy())
                 .cancellationReason(entry.getCancellationReason())
                 .build();
+    }
+
+    private List<RaceEntryResponse> toResponses(List<RaceEntry> entries) {
+        RaceEntryLookupContext context = buildRaceEntryLookupContext(entries);
+
+        return entries.stream()
+                .map(entry -> toResponse(entry, context))
+                .toList();
+    }
+
+    private RaceEntryResponse toResponse(
+            RaceEntry entry,
+            RaceEntryLookupContext context
+    ) {
+        Race race = context.races().get(entry.getRaceId());
+        Registration registration = context.registrations()
+                .get(entry.getRegistrationId());
+
+        if (race == null) {
+            throw new ApiException(
+                    HttpStatus.NOT_FOUND,
+                    "Assigned race does not exist."
+            );
+        }
+
+        if (registration == null) {
+            throw new ApiException(
+                    HttpStatus.NOT_FOUND,
+                    "Assigned registration does not exist."
+            );
+        }
+
+        Tournament tournament = context.tournaments()
+                .get(race.getTournamentId());
+        Horse horse = context.horses().get(registration.getHorseId());
+        User owner = context.users().get(registration.getOwnerId());
+        User jockey = registration.getJockeyId() == null
+                ? null
+                : context.users().get(registration.getJockeyId());
+        User assignedBy = context.users().get(entry.getAssignedBy());
+
+        return RaceEntryResponse.builder()
+                .raceEntryId(entry.getRaceEntryId())
+                .raceId(race.getRaceId())
+                .raceName(race.getRaceName())
+                .trackName(race.getTrackName())
+                .tournamentId(race.getTournamentId())
+                .tournamentName(
+                        tournament != null
+                                ? tournament.getTournamentName()
+                                : null
+                )
+                .registrationId(registration.getRegistrationId())
+                .registrationNo(registration.getRegistrationNo())
+                .horseId(registration.getHorseId())
+                .horseName(
+                        horse != null ? horse.getHorseName() : null
+                )
+                .ownerId(registration.getOwnerId())
+                .ownerName(
+                        displayNameResolver.getOwnerDisplayName(
+                                owner,
+                                context.ownerNames()
+                        )
+                )
+                .jockeyId(registration.getJockeyId())
+                .jockeyName(
+                        displayNameResolver.getJockeyDisplayName(
+                                jockey,
+                                context.jockeyNames()
+                        )
+                )
+                .startingStall(entry.getStartingStall())
+                .status(entry.getStatus())
+                .assignedBy(entry.getAssignedBy())
+                .assignedByName(
+                        assignedBy != null
+                                ? assignedBy.getUsername()
+                                : null
+                )
+                .assignedAt(entry.getAssignedAt())
+                .cancelledAt(entry.getCancelledAt())
+                .cancelledBy(entry.getCancelledBy())
+                .cancellationReason(entry.getCancellationReason())
+                .build();
+    }
+
+    private CandidateLookupContext buildCandidateLookupContext(
+            List<Registration> registrations
+    ) {
+        if (registrations.isEmpty()) {
+            return new CandidateLookupContext(
+                    Map.of(),
+                    Map.of(),
+                    Map.of(),
+                    Map.of(),
+                    Map.of()
+            );
+        }
+
+        Set<Integer> tournamentIds = registrations.stream()
+                .map(Registration::getTournamentId)
+                .collect(Collectors.toSet());
+        Set<Integer> horseIds = registrations.stream()
+                .map(Registration::getHorseId)
+                .collect(Collectors.toSet());
+        Set<Integer> userIds = registrationUserIds(registrations);
+
+        return new CandidateLookupContext(
+                mapById(
+                        tournamentRepository.findAllById(tournamentIds),
+                        Tournament::getTournamentId
+                ),
+                mapById(
+                        horseRepository.findAllById(horseIds),
+                        Horse::getHorseId
+                ),
+                mapById(
+                        userRepository.findAllById(userIds),
+                        User::getUserID
+                ),
+                displayNameResolver.resolveOwnerNames(userIds),
+                displayNameResolver.resolveJockeyNames(userIds)
+        );
+    }
+
+    private RaceEntryLookupContext buildRaceEntryLookupContext(
+            List<RaceEntry> entries
+    ) {
+        if (entries.isEmpty()) {
+            return new RaceEntryLookupContext(
+                    Map.of(),
+                    Map.of(),
+                    Map.of(),
+                    Map.of(),
+                    Map.of(),
+                    Map.of(),
+                    Map.of()
+            );
+        }
+
+        Set<Integer> raceIds = entries.stream()
+                .map(RaceEntry::getRaceId)
+                .collect(Collectors.toSet());
+        Set<Integer> registrationIds = entries.stream()
+                .map(RaceEntry::getRegistrationId)
+                .collect(Collectors.toSet());
+        Map<Integer, Race> races = mapById(
+                raceRepository.findAllById(raceIds),
+                Race::getRaceId
+        );
+        Map<Integer, Registration> registrations = mapById(
+                registrationRepository.findAllById(registrationIds),
+                Registration::getRegistrationId
+        );
+        Set<Integer> tournamentIds = races.values()
+                .stream()
+                .map(Race::getTournamentId)
+                .collect(Collectors.toSet());
+        Set<Integer> horseIds = registrations.values()
+                .stream()
+                .map(Registration::getHorseId)
+                .collect(Collectors.toSet());
+        Set<Integer> userIds = registrations.values()
+                .stream()
+                .flatMap(registration -> java.util.stream.Stream.of(
+                        registration.getOwnerId(),
+                        registration.getJockeyId()
+                ))
+                .filter(id -> id != null)
+                .collect(Collectors.toSet());
+        entries.stream()
+                .flatMap(entry -> java.util.stream.Stream.of(
+                        entry.getAssignedBy(),
+                        entry.getCancelledBy()
+                ))
+                .filter(id -> id != null)
+                .forEach(userIds::add);
+
+        return new RaceEntryLookupContext(
+                races,
+                registrations,
+                mapById(
+                        tournamentRepository.findAllById(tournamentIds),
+                        Tournament::getTournamentId
+                ),
+                mapById(
+                        horseRepository.findAllById(horseIds),
+                        Horse::getHorseId
+                ),
+                mapById(
+                        userRepository.findAllById(userIds),
+                        User::getUserID
+                ),
+                displayNameResolver.resolveOwnerNames(userIds),
+                displayNameResolver.resolveJockeyNames(userIds)
+        );
+    }
+
+    private Set<Integer> registrationUserIds(
+            List<Registration> registrations
+    ) {
+        return registrations.stream()
+                .flatMap(registration -> java.util.stream.Stream.of(
+                        registration.getOwnerId(),
+                        registration.getJockeyId()
+                ))
+                .filter(id -> id != null)
+                .collect(Collectors.toSet());
+    }
+
+    private <T> Map<Integer, T> mapById(
+            Iterable<T> values,
+            Function<T, Integer> idExtractor
+    ) {
+        return java.util.stream.StreamSupport.stream(
+                        values.spliterator(),
+                        false
+                )
+                .collect(Collectors.toMap(
+                        idExtractor,
+                        Function.identity(),
+                        (current, ignored) -> current
+                ));
+    }
+
+    private record CandidateLookupContext(
+            Map<Integer, Tournament> tournaments,
+            Map<Integer, Horse> horses,
+            Map<Integer, User> users,
+            Map<Integer, String> ownerNames,
+            Map<Integer, String> jockeyNames
+    ) {
+    }
+
+    private record RaceEntryLookupContext(
+            Map<Integer, Race> races,
+            Map<Integer, Registration> registrations,
+            Map<Integer, Tournament> tournaments,
+            Map<Integer, Horse> horses,
+            Map<Integer, User> users,
+            Map<Integer, String> ownerNames,
+            Map<Integer, String> jockeyNames
+    ) {
     }
 }

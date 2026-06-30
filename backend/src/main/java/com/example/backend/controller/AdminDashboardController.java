@@ -1,5 +1,6 @@
 package com.example.backend.controller;
 
+import com.example.backend.dto.response.AdminOverviewResponse;
 import com.example.backend.dto.response.AdminDashboardSummaryResponse;
 import com.example.backend.service.AdminDashboardService;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,5 +19,10 @@ public class AdminDashboardController {
     @GetMapping("/summary")
     public AdminDashboardSummaryResponse getSummary() {
         return adminDashboardService.getSummary();
+    }
+
+    @GetMapping("/overview")
+    public AdminOverviewResponse getOverview() {
+        return adminDashboardService.getOverview();
     }
 }

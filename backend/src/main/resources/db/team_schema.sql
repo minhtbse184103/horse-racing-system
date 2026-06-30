@@ -214,6 +214,10 @@ CREATE TABLE `Race` (
   `maxRunners` int NOT NULL,
   `raceOrder` int,
   `status` varchar(50) NOT NULL DEFAULT 'OPEN_FOR_REGISTRATION',
+  `runTriggeredBy` int,
+  `runStartedAt` datetime,
+  `raceEngineToken` varchar(128),
+  `raceEngineTokenIssuedAt` datetime,
   `createdAt` datetime,
   `updatedAt` datetime,
   CONSTRAINT `chk_race_time`
@@ -568,6 +572,8 @@ ALTER TABLE `Tournament` ADD FOREIGN KEY (`createdBy`) REFERENCES `Users` (`user
 ALTER TABLE `TournamentCondition` ADD FOREIGN KEY (`tournamentID`) REFERENCES `Tournament` (`tournamentID`);
 
 ALTER TABLE `Race` ADD FOREIGN KEY (`tournamentID`) REFERENCES `Tournament` (`tournamentID`);
+
+ALTER TABLE `Race` ADD FOREIGN KEY (`runTriggeredBy`) REFERENCES `Users` (`userID`);
 
 ALTER TABLE `RacePrize` ADD FOREIGN KEY (`raceID`) REFERENCES `Race` (`raceID`);
 

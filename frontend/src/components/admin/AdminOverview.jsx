@@ -19,17 +19,7 @@ import {
 } from 'lucide-react';
 import { formatDisplayLabel } from '../../lib';
 import { useLanguage } from '../../context/LanguageContext';
-import { getPendingHorses } from '../../services/adminHorseReviewService';
-import { getJockeyProfilesUnderReview } from '../../services/adminProfileReviewService';
-import {
-  getPendingRegistrations,
-  getRegistrationHistory
-} from '../../services/adminRegistrationService';
-import { getTournaments } from '../../services/eventService';
-import { getAssignmentQueue } from '../../services/raceEntryService';
-import { getRefereeAssignments } from '../../services/refereeAssignmentService';
-import { getUsers } from '../../services/userService';
-import { getAllOwnerApplications } from '../../services/ownerApplicationService';
+import { getAdminOverview } from '../../services/adminService';
 import {
   fadeSlideItem,
   hoverLift,
@@ -163,15 +153,19 @@ function WorkQueueCard({ icon: Icon, label, count, note, tone, onClick, isLoadin
 export default function AdminOverview({ onNavigate }) {
   const { language, t } = useLanguage();
   const [data, setData] = useState({
-    users: [],
-    tournaments: [],
-    pendingRegistrations: [],
-    registrationHistory: [],
-    pendingHorses: [],
-    pendingJockeys: [],
-    ownerApplications: [],
-    raceEntryQueue: [],
-    refereeAssignments: []
+    totalUsers: 0,
+    activeUsers: 0,
+    totalTournaments: 0,
+    openTournaments: 0,
+    pendingRegistrations: 0,
+    approvedRegistrations: 0,
+    pendingHorses: 0,
+    jockeyReviewProfiles: 0,
+    pendingOwnerApplications: 0,
+    raceEntryQueue: 0,
+    refereeAssignments: 0,
+    upcomingTournaments: [],
+    tournamentStatuses: []
   });
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState('');
@@ -185,45 +179,25 @@ export default function AdminOverview({ onNavigate }) {
     setError('');
 
     try {
-      const [
-        users,
-        tournaments,
-        pendingRegistrations,
-        registrationHistory,
-        pendingHorses,
-        pendingJockeys,
-        ownerApplications,
-        raceEntryQueue,
-        refereeAssignments
-      ] = await Promise.all([
-        getUsers(),
-        getTournaments(),
-        getPendingRegistrations(),
-        getRegistrationHistory(),
-        getPendingHorses(),
-        getJockeyProfilesUnderReview(),
-        getAllOwnerApplications(),
-        getAssignmentQueue(),
-        getRefereeAssignments()
-      ]);
+      const overview = await getAdminOverview();
 
       setData({
-        users: Array.isArray(users) ? users : [],
-        tournaments: Array.isArray(tournaments) ? tournaments : [],
-        pendingRegistrations: Array.isArray(pendingRegistrations)
-          ? pendingRegistrations
+        totalUsers: Number(overview?.totalUsers || 0),
+        activeUsers: Number(overview?.activeUsers || 0),
+        totalTournaments: Number(overview?.totalTournaments || 0),
+        openTournaments: Number(overview?.openTournaments || 0),
+        pendingRegistrations: Number(overview?.pendingRegistrations || 0),
+        approvedRegistrations: Number(overview?.approvedRegistrations || 0),
+        pendingHorses: Number(overview?.pendingHorses || 0),
+        jockeyReviewProfiles: Number(overview?.jockeyReviewProfiles || 0),
+        pendingOwnerApplications: Number(overview?.pendingOwnerApplications || 0),
+        raceEntryQueue: Number(overview?.raceEntryQueue || 0),
+        refereeAssignments: Number(overview?.refereeAssignments || 0),
+        upcomingTournaments: Array.isArray(overview?.upcomingTournaments)
+          ? overview.upcomingTournaments
           : [],
-        registrationHistory: Array.isArray(registrationHistory)
-          ? registrationHistory
-          : [],
-        pendingHorses: Array.isArray(pendingHorses) ? pendingHorses : [],
-        pendingJockeys: Array.isArray(pendingJockeys) ? pendingJockeys : [],
-        ownerApplications: Array.isArray(ownerApplications)
-          ? ownerApplications
-          : [],
-        raceEntryQueue: Array.isArray(raceEntryQueue) ? raceEntryQueue : [],
-        refereeAssignments: Array.isArray(refereeAssignments)
-          ? refereeAssignments
+        tournamentStatuses: Array.isArray(overview?.tournamentStatuses)
+          ? overview.tournamentStatuses
           : []
       });
     } catch (err) {
@@ -233,29 +207,15 @@ export default function AdminOverview({ onNavigate }) {
     }
   }
 
-  const approvedRegistrations = data.registrationHistory.filter(
-    (registration) => registration.approvalStatus === 'APPROVED'
-  ).length;
-  const activeUsers = data.users.filter((user) => user.status === 'ACTIVE').length;
-  const openTournaments = data.tournaments.filter(
-    (tournament) => tournament.status === 'OPEN_FOR_REGISTRATION'
-  ).length;
-  const pendingOwnerApplications = data.ownerApplications.filter(
-    (application) => application.status === 'PENDING'
-  ).length;
   const totalReviewQueue =
-    data.pendingRegistrations.length +
-    data.pendingHorses.length +
-    data.pendingJockeys.length +
-    pendingOwnerApplications;
+    data.pendingRegistrations +
+    data.pendingHorses +
+    data.jockeyReviewProfiles +
+    data.pendingOwnerApplications;
 
   const upcomingTournaments = useMemo(
-    () =>
-      [...data.tournaments]
-        .filter((tournament) => tournament.status !== 'CANCELLED')
-        .sort((a, b) => String(a.startDate).localeCompare(String(b.startDate)))
-        .slice(0, 5),
-    [data.tournaments]
+    () => [...data.upcomingTournaments],
+    [data.upcomingTournaments]
   );
 
   const tournamentStatuses = useMemo(() => {
@@ -267,18 +227,21 @@ export default function AdminOverview({ onNavigate }) {
       'CANCELLED'
     ];
 
+    const statusCountMap = new Map(
+      data.tournamentStatuses.map((item) => [item.status, Number(item.count || 0)])
+    );
+
     return statuses.map((status) => ({
       status,
-      count: data.tournaments.filter((tournament) => tournament.status === status)
-        .length
+      count: statusCountMap.get(status) || 0
     }));
-  }, [data.tournaments]);
+  }, [data.tournamentStatuses]);
 
   const workQueues = [
     {
       key: 'ownerApplications',
       label: t('ownerApproval'),
-      count: pendingOwnerApplications,
+      count: data.pendingOwnerApplications,
       note: t('ownerApprovalNote'),
       icon: FileText,
       tone: 'bg-rose-100 text-rose-700'
@@ -287,7 +250,7 @@ export default function AdminOverview({ onNavigate }) {
       key: 'registrations',
       target: 'events',
       label: t('registrationApproval'),
-      count: data.pendingRegistrations.length,
+      count: data.pendingRegistrations,
       note: t('registrationApprovalNote'),
       icon: UserCheck,
       tone: 'bg-blue-100 text-blue-700'
@@ -295,7 +258,7 @@ export default function AdminOverview({ onNavigate }) {
     {
       key: 'horseReviews',
       label: t('horseApproval'),
-      count: data.pendingHorses.length,
+      count: data.pendingHorses,
       note: t('horseApprovalNote'),
       icon: ShieldCheck,
       tone: 'bg-green-100 text-green-700'
@@ -303,7 +266,7 @@ export default function AdminOverview({ onNavigate }) {
     {
       key: 'jockeyReviews',
       label: t('jockeyApproval'),
-      count: data.pendingJockeys.length,
+      count: data.jockeyReviewProfiles,
       note: t('jockeyApprovalNote'),
       icon: ClipboardCheck,
       tone: 'bg-amber-100 text-amber-700'
@@ -312,7 +275,7 @@ export default function AdminOverview({ onNavigate }) {
       key: 'raceEntries',
       target: 'events',
       label: t('raceQueueSetup'),
-      count: data.raceEntryQueue.length,
+      count: data.raceEntryQueue,
       note: t('raceQueueSetupNote'),
       icon: Flag,
       tone: 'bg-purple-100 text-purple-700'
@@ -329,19 +292,19 @@ export default function AdminOverview({ onNavigate }) {
     {
       key: 'ownerApplications',
       label: t('ownerApproval'),
-      note: t('waitingCount', { count: pendingOwnerApplications }),
+      note: t('waitingCount', { count: data.pendingOwnerApplications }),
       icon: FileText
     },
     {
       key: 'refereeAssignments',
       label: t('refereeAssignments'),
-      note: t('refereeAssignmentNote', { count: data.refereeAssignments.length }),
+      note: t('refereeAssignmentNote', { count: data.refereeAssignments }),
       icon: Gavel
     },
     {
       key: 'users',
       label: t('manageUsers'),
-      note: t('activeAccountNote', { count: activeUsers }),
+      note: t('activeAccountNote', { count: data.activeUsers }),
       icon: Users
     }
   ];
@@ -361,10 +324,10 @@ export default function AdminOverview({ onNavigate }) {
           </p>
           <div className="mt-4 flex flex-wrap gap-2">
             <span className="inline-flex items-center gap-2 rounded-full border border-emerald-700/10 bg-emerald-50 px-3 py-1.5 text-xs font-extrabold text-emerald-800">
-              <Activity size={14} /> {isLoading ? t('syncing') : t('activeAccountCount', { count: activeUsers })}
+              <Activity size={14} /> {isLoading ? t('syncing') : t('activeAccountCount', { count: data.activeUsers })}
             </span>
             <span className="inline-flex items-center gap-2 rounded-full border border-brown-700/10 bg-cream-200/70 px-3 py-1.5 text-xs font-extrabold text-brown-700">
-              <Trophy size={14} /> {isLoading ? t('loadingTournaments') : t('tournamentCount', { count: data.tournaments.length })}
+              <Trophy size={14} /> {isLoading ? t('loadingTournaments') : t('tournamentCount', { count: data.totalTournaments })}
             </span>
           </div>
         </div>
@@ -402,8 +365,8 @@ export default function AdminOverview({ onNavigate }) {
         <MetricCard
           icon={Trophy}
           label={t('openTournaments')}
-          value={openTournaments}
-          note={t('tournamentsInSystem', { count: data.tournaments.length })}
+          value={data.openTournaments}
+          note={t('tournamentsInSystem', { count: data.totalTournaments })}
           tone="brown"
           isLoading={isLoading}
           onClick={() => onNavigate('events')}
@@ -420,8 +383,8 @@ export default function AdminOverview({ onNavigate }) {
         <MetricCard
           icon={Flag}
           label={t('raceEntryQueue')}
-          value={data.raceEntryQueue.length}
-          note={t('approvedRegistrationCount', { count: approvedRegistrations })}
+          value={data.raceEntryQueue}
+          note={t('approvedRegistrationCount', { count: data.approvedRegistrations })}
           tone="green"
           isLoading={isLoading}
           onClick={() => onNavigate('events')}
@@ -429,7 +392,7 @@ export default function AdminOverview({ onNavigate }) {
         <MetricCard
           icon={Gavel}
           label={t('assignedReferees')}
-          value={data.refereeAssignments.length}
+          value={data.refereeAssignments}
           note={t('assignedRefereesNote')}
           tone="cream"
           isLoading={isLoading}
@@ -447,7 +410,7 @@ export default function AdminOverview({ onNavigate }) {
               <h2 className="mt-1 text-2xl font-black">{t('adminWorkQueue')}</h2>
             </div>
             <span className="shrink-0 rounded-full bg-danger-bg px-3 py-1 text-sm font-black text-danger">
-              {isLoading ? '...' : t('waitingCount', { count: totalReviewQueue + data.raceEntryQueue.length })}
+              {isLoading ? '...' : t('waitingCount', { count: totalReviewQueue + data.raceEntryQueue })}
             </span>
           </div>
 
@@ -592,8 +555,8 @@ export default function AdminOverview({ onNavigate }) {
                       initial={{ width: 0 }}
                       animate={{
                         width: `${
-                          data.tournaments.length
-                            ? Math.max((count / data.tournaments.length) * 100, count ? 8 : 0)
+                          data.totalTournaments
+                            ? Math.max((count / data.totalTournaments) * 100, count ? 8 : 0)
                             : 0
                         }%`
                       }}

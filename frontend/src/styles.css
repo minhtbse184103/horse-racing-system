@@ -1542,15 +1542,6 @@ select {
   color: var(--slate-500);
 }
 
-.event-draft-count {
-  border-radius: 999px;
-  background: var(--cream-200);
-  color: var(--brown-700);
-  padding: 7px 11px;
-  font-size: 0.82rem;
-  font-weight: 850;
-}
-
 .event-table td strong,
 .event-table td small {
   display: block;
@@ -2155,11 +2146,6 @@ select {
   color: #69472f;
 }
 
-.pretty-select-status.draft {
-  background: rgba(217, 164, 65, 0.18);
-  color: #805e18;
-}
-
 .race-entry-assignment {
   display: grid;
   grid-template-columns: minmax(180px, 0.7fr) minmax(260px, 1fr) auto;
@@ -2323,11 +2309,6 @@ select {
 
 .event-create-button:not(:disabled):hover {
   background: linear-gradient(135deg, #59321d, #7e4b2c);
-}
-
-.status-badge.draft {
-  background: rgba(217, 164, 65, 0.18);
-  color: #805e18;
 }
 
 .status-badge.openforregistration,
@@ -2627,8 +2608,7 @@ select {
 
 .status-badge.pending,
 .status-badge.pending_jockey,
-.status-badge.under_review,
-.status-badge.draft {
+.status-badge.under_review {
   background: rgba(217, 164, 65, 0.16);
   color: #9a681d;
 }

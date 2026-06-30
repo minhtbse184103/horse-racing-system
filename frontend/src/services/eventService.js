@@ -91,3 +91,20 @@ export function cancelRace(raceId) {
     method: 'DELETE'
   });
 }
+
+export function runRace(raceId) {
+  return httpRequest(`/api/races/${raceId}/run`, {
+    method: 'POST'
+  });
+}
+
+export function failRaceRun(raceId, reason) {
+  return httpRequest(`/api/races/${raceId}/run/fail`, {
+    method: 'PUT',
+    body: { reason }
+  });
+}
+
+export function getRaceResults(raceId) {
+  return httpRequest(`/api/races/${raceId}/results`);
+}

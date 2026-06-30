@@ -7,6 +7,7 @@ import com.example.backend.dto.request.RacePrizeRequest;
 import com.example.backend.dto.request.UpdateRaceRequest;
 import com.example.backend.dto.response.RacePrizeResponse;
 import com.example.backend.dto.response.RaceResponse;
+import com.example.backend.dto.response.RaceResultPrizeResponse;
 import com.example.backend.entity.Race;
 import com.example.backend.entity.RacePrize;
 import com.example.backend.entity.Tournament;
@@ -40,21 +41,27 @@ public class RaceService {
     private final RaceRepository raceRepository;
     private final RacePrizeRepository racePrizeRepository;
     private final RaceEntryRepository raceEntryRepository;
+    private final RaceResultRepository raceResultRepository;
     private final TournamentRepository tournamentRepository;
     private final UserRepository userRepository;
+    private final RaceRunWatchdogService raceRunWatchdogService;
 
     public RaceService(
             RaceRepository raceRepository,
             RacePrizeRepository racePrizeRepository,
             RaceEntryRepository raceEntryRepository,
+            RaceResultRepository raceResultRepository,
             TournamentRepository tournamentRepository,
-            UserRepository userRepository
+            UserRepository userRepository,
+            RaceRunWatchdogService raceRunWatchdogService
     ) {
         this.raceRepository = raceRepository;
         this.racePrizeRepository = racePrizeRepository;
         this.raceEntryRepository = raceEntryRepository;
+        this.raceResultRepository = raceResultRepository;
         this.tournamentRepository = tournamentRepository;
         this.userRepository = userRepository;
+        this.raceRunWatchdogService = raceRunWatchdogService;
     }
 
     @Transactional(readOnly = true)
@@ -131,6 +138,41 @@ public class RaceService {
                 .findByTournamentIdOrderByRaceOrderAsc(tournamentId)
                 .stream()
                 .map(this::refreshAndMap)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<RaceResultPrizeResponse> getRaceResults(Integer raceId) {
+        if (!raceRepository.existsById(raceId)) {
+            throw new ApiException(
+                    HttpStatus.NOT_FOUND,
+                    "Race does not exist."
+            );
+        }
+
+        return raceResultRepository.findPrizeResultsByRaceId(raceId)
+                .stream()
+                .map(result -> RaceResultPrizeResponse.builder()
+                        .resultId(result.getResultId())
+                        .raceEntryId(result.getRaceEntryId())
+                        .startingStall(result.getStartingStall())
+                        .finishPosition(result.getFinishPosition())
+                        .finishTime(result.getFinishTime())
+                        .points(result.getPoints())
+                        .prizeMoney(result.getPrizeMoney())
+                        .recordedAt(result.getRecordedAt())
+                        .horseId(result.getHorseId())
+                        .horseName(result.getHorseName())
+                        .ownerId(result.getOwnerId())
+                        .ownerName(result.getOwnerName())
+                        .jockeyId(result.getJockeyId())
+                        .jockeyName(result.getJockeyName())
+                        .prizeDistributionId(result.getPrizeDistributionId())
+                        .totalPrize(result.getTotalPrize())
+                        .ownerAmount(result.getOwnerAmount())
+                        .jockeyAmount(result.getJockeyAmount())
+                        .distributionStatus(result.getDistributionStatus())
+                        .build())
                 .toList();
     }
 
@@ -370,6 +412,8 @@ public class RaceService {
         }
 
         race.setStatus(EventStatus.COMPLETED);
+        race.setRaceEngineToken(null);
+        race.setRaceEngineTokenIssuedAt(null);
 
         return toResponse(raceRepository.save(race));
     }
@@ -403,6 +447,8 @@ public class RaceService {
         }
 
         race.setStatus(EventStatus.CANCELLED);
+        race.setRaceEngineToken(null);
+        race.setRaceEngineTokenIssuedAt(null);
 
         return toResponse(raceRepository.save(race));
     }
@@ -567,6 +613,8 @@ public class RaceService {
     private RaceResponse toResponse(Race race) {
         long entryCount =
                 raceEntryRepository.countByRaceIdAndStatus(race.getRaceId(),RaceEntryStatus.ASSIGNED);
+        long resultCount = getResultCountsByRaceId(List.of(race.getRaceId()))
+                .getOrDefault(race.getRaceId(), 0L);
 
         List<RacePrizeResponse> prizes = racePrizeRepository
                 .findByRaceIdOrderByRankPositionAsc(race.getRaceId())
@@ -596,11 +644,30 @@ public class RaceService {
                 .status(race.getStatus())
                 .createdAt(race.getCreatedAt())
                 .updatedAt(race.getUpdatedAt())
+                .runStartedAt(race.getRunStartedAt())
+                .runStuck(raceRunWatchdogService.isStuck(race, resultCount))
+                .runElapsedMinutes(raceRunWatchdogService.getElapsedMinutes(race))
+                .runWatchdogTimeoutMinutes(
+                        raceRunWatchdogService.getTimeoutMinutes()
+                )
                 .entryCount(entryCount)
                 .availableStalls(
                         Math.max(0, race.getMaxRunners() - entryCount)
                 )
                 .prizes(prizes)
                 .build();
+    }
+
+    private Map<Integer, Long> getResultCountsByRaceId(List<Integer> raceIds) {
+        if (raceIds.isEmpty()) {
+            return Map.of();
+        }
+
+        return raceResultRepository.countResultsByRaceIds(raceIds)
+                .stream()
+                .collect(Collectors.toMap(
+                        RaceResultRepository.RaceResultCountProjection::getRaceId,
+                        RaceResultRepository.RaceResultCountProjection::getResultCount
+                ));
     }
 }

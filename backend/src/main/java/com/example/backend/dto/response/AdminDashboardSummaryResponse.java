@@ -12,10 +12,10 @@ public class AdminDashboardSummaryResponse {
     private long totalHorses;
 
     private long totalTournaments;
-    private long draftTournaments;
+    private long openRegistrationTournaments;
     private long cancelledTournaments;
 
     private long totalRaces;
-    private long draftRaces;
+    private long openRegistrationRaces;
     private long cancelledRaces;
 }

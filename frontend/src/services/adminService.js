@@ -35,6 +35,12 @@ export async function getAdminSummary() {
   };
 }
 
+export async function getAdminOverview() {
+  return httpRequest('/api/admin/dashboard/overview', {
+    fallbackError: 'Khong the tai du lieu tong quan admin.'
+  });
+}
+
 export async function getOwnerApplications(status = 'PENDING') {
   const applications = await getAllOwnerApplications(status);
   return applications.map(normalizeApplication);

@@ -31,7 +31,7 @@ export const DEFAULT_CONDITION = {
 };
 
 export const DEFAULT_RACE_DISTANCE = 1600;
-export const DEFAULT_RACE_MAX_RUNNERS = 12;
+export const DEFAULT_RACE_MAX_RUNNERS = 6;
 export const DEFAULT_RACE_PRIZES = [
   { amount: 50000, ownerPercent: 80, jockeyPercent: 20 },
   { amount: 25000, ownerPercent: 80, jockeyPercent: 20 },

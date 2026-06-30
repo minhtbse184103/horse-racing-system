@@ -14,6 +14,7 @@ import com.example.backend.exception.ApiException;
 import com.example.backend.repository.RaceEntryRepository;
 import com.example.backend.repository.RacePrizeRepository;
 import com.example.backend.repository.RaceRepository;
+import com.example.backend.repository.RaceResultRepository;
 import com.example.backend.repository.TournamentRepository;
 import com.example.backend.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -45,7 +46,9 @@ class RaceServiceTest {
     @Mock private TournamentRepository tournamentRepository;
     @Mock private RacePrizeRepository racePrizeRepository;
     @Mock private RaceEntryRepository raceEntryRepository;
+    @Mock private RaceResultRepository raceResultRepository;
     @Mock private UserRepository userRepository;
+    @Mock private RaceRunWatchdogService raceRunWatchdogService;
 
     private RaceService service;
 
@@ -55,8 +58,10 @@ class RaceServiceTest {
                 raceRepository,
                 racePrizeRepository,
                 raceEntryRepository,
+                raceResultRepository,
                 tournamentRepository,
-                userRepository
+                userRepository,
+                raceRunWatchdogService
         );
     }
 

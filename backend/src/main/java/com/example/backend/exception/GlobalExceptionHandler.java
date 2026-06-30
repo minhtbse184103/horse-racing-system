@@ -55,7 +55,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleAllException(Exception ex) {
         log.error("Unhandled exception: ", ex);
-        ErrorResponse error = new ErrorResponse(500, "Lỗi máy chủ nội bộ: " + ex.getMessage());
+        ErrorResponse error = new ErrorResponse(500, "Lỗi máy chủ nội bộ. Vui lòng thử lại sau.");
         return ResponseEntity.status(500).body(error);
     }
 }

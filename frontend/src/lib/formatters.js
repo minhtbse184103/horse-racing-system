@@ -24,7 +24,6 @@ const DISPLAY_LABELS = {
     CANCELLED: 'CANCELLED',
     EXPIRED: 'EXPIRED',
     ASSIGNED: 'ASSIGNED',
-    DRAFT: 'Draft',
     OPEN_FOR_REGISTRATION: 'OpenForRegistration',
     OPENFORREGISTRATION: 'OpenForRegistration',
     CLOSED_REGISTRATION: 'ClosedRegistration',
