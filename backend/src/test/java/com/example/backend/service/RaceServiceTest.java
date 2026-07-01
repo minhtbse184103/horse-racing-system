@@ -187,6 +187,125 @@ class RaceServiceTest {
     }
 
     @Test
+    void createRaceRejectsSameTrackOverlap() {
+        CreateRaceRequest request = createRequest();
+
+        stubAdmin();
+        when(tournamentRepository.findByIdForUpdate(12))
+                .thenReturn(Optional.of(tournament()));
+        when(raceRepository.existsOverlappingRaceOnTrack(
+                12,
+                "Test 1",
+                request.getRaceStartTime(),
+                request.getRaceEndTime(),
+                EventStatus.CANCELLED
+        )).thenReturn(true);
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.createRace(request, "admin@example.com")
+        );
+
+        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
+        assertEquals(
+                "Race schedule overlaps with another race on the same track.",
+                exception.getMessage()
+        );
+        verify(raceRepository, never()).saveAndFlush(any());
+        verify(racePrizeRepository, never()).saveAll(any());
+    }
+
+    @Test
+    void createRaceAllowsDifferentTrackOverlap() {
+        CreateRaceRequest request = createRequest();
+        request.setRaceName("Race test 2");
+        request.setTrackName("Test 2");
+        Race savedRace = race();
+        savedRace.setRaceName("Race test 2");
+        savedRace.setTrackName("Test 2");
+        RacePrize storedPrize = prize();
+
+        stubAdmin();
+        when(tournamentRepository.findByIdForUpdate(12))
+                .thenReturn(Optional.of(tournament()));
+        when(raceRepository.saveAndFlush(any(Race.class))).thenReturn(savedRace);
+        when(racePrizeRepository.saveAll(any())).thenReturn(List.of(storedPrize));
+        when(racePrizeRepository.findByRaceIdOrderByRankPositionAsc(8))
+                .thenReturn(List.of(storedPrize));
+
+        RaceResponse response = service.createRace(request, "admin@example.com");
+
+        assertEquals("Race test 2", response.getRaceName());
+        assertEquals("Test 2", response.getTrackName());
+        verify(raceRepository).existsOverlappingRaceOnTrack(
+                12,
+                "Test 2",
+                request.getRaceStartTime(),
+                request.getRaceEndTime(),
+                EventStatus.CANCELLED
+        );
+    }
+
+    @Test
+    void updateRaceRejectsSameTrackOverlapExcludingSelf() {
+        Race race = race();
+        UpdateRaceRequest request = updateRequest();
+
+        stubAdmin();
+        when(raceRepository.findByIdForUpdate(8)).thenReturn(Optional.of(race));
+        when(tournamentRepository.findByIdForUpdate(12))
+                .thenReturn(Optional.of(tournament()));
+        when(raceRepository.existsOverlappingRaceOnTrackExcludingRace(
+                12,
+                8,
+                "Test 1",
+                request.getRaceStartTime(),
+                request.getRaceEndTime(),
+                EventStatus.CANCELLED
+        )).thenReturn(true);
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.updateRace(8, request, "admin@example.com")
+        );
+
+        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
+        assertEquals(
+                "Race schedule overlaps with another race on the same track.",
+                exception.getMessage()
+        );
+        verify(raceRepository, never()).saveAndFlush(any());
+        verify(racePrizeRepository, never()).saveAll(any());
+    }
+
+    @Test
+    void createRaceAllowsOverlapWithCancelledRace() {
+        CreateRaceRequest request = createRequest();
+        Race savedRace = race();
+        RacePrize storedPrize = prize();
+
+        stubAdmin();
+        when(tournamentRepository.findByIdForUpdate(12))
+                .thenReturn(Optional.of(tournament()));
+        when(raceRepository.existsOverlappingRaceOnTrack(
+                12,
+                "Test 1",
+                request.getRaceStartTime(),
+                request.getRaceEndTime(),
+                EventStatus.CANCELLED
+        )).thenReturn(false);
+        when(raceRepository.saveAndFlush(any(Race.class))).thenReturn(savedRace);
+        when(racePrizeRepository.saveAll(any())).thenReturn(List.of(storedPrize));
+        when(racePrizeRepository.findByRaceIdOrderByRankPositionAsc(8))
+                .thenReturn(List.of(storedPrize));
+
+        RaceResponse response = service.createRace(request, "admin@example.com");
+
+        assertEquals("Race test 1", response.getRaceName());
+        verify(raceRepository).saveAndFlush(any(Race.class));
+    }
+
+    @Test
     void updateRaceRejectsReadyRace() {
         Race race = race();
         race.setStatus(EventStatus.READY);

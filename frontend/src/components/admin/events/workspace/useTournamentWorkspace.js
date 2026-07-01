@@ -13,8 +13,8 @@ import {
   getTournamentWorkspace
 } from '../../../../services/eventService';
 import {
-  createTournamentProgramme,
-  updateTournamentProgramme
+  createTournamentProgram,
+  updateTournamentProgram
 } from '../../../../services/tournamentPersistenceService';
 import { buildRegistrationCounts } from './tournamentWorkspaceUtils';
 
@@ -200,8 +200,8 @@ export default function useTournamentWorkspace() {
     setMutationError('');
     try {
       const tournamentId = tournament.id
-        ? await updateTournamentProgramme(wizardTournament, tournament)
-        : await createTournamentProgramme(tournament);
+        ? await updateTournamentProgram(wizardTournament, tournament)
+        : await createTournamentProgram(tournament);
       await loadTournaments();
       setExpandedId(tournamentId);
       setWizardOpen(false);

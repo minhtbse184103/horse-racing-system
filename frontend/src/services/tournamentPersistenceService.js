@@ -1,13 +1,14 @@
 import {
   isPersistedRace,
   toCreateRaceRequest,
+  toCreateTournamentProgramRequest,
   toTournamentRequest,
   toUpdateRaceRequest
 } from '../adapters/tournamentPersistenceAdapter';
 import {
   cancelRace,
   createRace,
-  createTournament,
+  createTournamentProgram as createTournamentProgramRequest,
   removeTournamentVenueImage,
   uploadTournamentVenueImage,
   updateRace,
@@ -20,29 +21,18 @@ function persistenceError(message, cause, partialTournamentId = null) {
   return error;
 }
 
-export async function createTournamentProgramme(draft) {
-  const tournament = await createTournament(toTournamentRequest(draft));
+export async function createTournamentProgram(draft) {
+  const tournament = await createTournamentProgramRequest(
+    toCreateTournamentProgramRequest(draft)
+  );
   const tournamentId = tournament.tournamentId;
-
-  for (let index = 0; index < draft.races.length; index += 1) {
-    const race = draft.races[index];
-    try {
-      await createRace(toCreateRaceRequest(race, tournamentId, index + 1));
-    } catch (error) {
-      throw persistenceError(
-        `Đã tạo ${draft.name} với mã Tournament #${tournamentId}, nhưng không thể tạo Race ${index + 1} (${race.name}). Tournament đã lưu được tải lại; hãy chỉnh sửa để hoàn tất chương trình Race.`,
-        error,
-        tournamentId
-      );
-    }
-  }
 
   if (draft.venueImageFile) {
     try {
       await uploadTournamentVenueImage(tournamentId, draft.venueImageFile);
     } catch (error) {
       throw persistenceError(
-        `Đã tạo ${draft.name} và các Race, nhưng không thể tải hình địa điểm lên. Hãy chỉnh sửa Tournament đã lưu để thử tải hình lại.`,
+        `Đã tạo ${draft.name} và chương trình Race, nhưng không thể tải hình địa điểm lên. Hãy chỉnh sửa Tournament đã lưu để thử tải hình lại.`,
         error,
         tournamentId
       );
@@ -52,7 +42,7 @@ export async function createTournamentProgramme(draft) {
   return tournamentId;
 }
 
-export async function updateTournamentProgramme(original, draft) {
+export async function updateTournamentProgram(original, draft) {
   await updateTournament(draft.id, toTournamentRequest(draft));
 
   const originalRaces = original.races.filter(isPersistedRace);

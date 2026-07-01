@@ -1,7 +1,6 @@
 package com.example.backend.service;
 
 import com.example.backend.constant.EventStatus;
-import com.example.backend.dto.request.CreateTournamentRequest;
 import com.example.backend.dto.request.UpdateTournamentRequest;
 import com.example.backend.dto.response.TournamentDetailResponse;
 import com.example.backend.entity.Race;
@@ -72,54 +71,6 @@ class TournamentServiceTest {
                 venueImageStorageService,
                 raceRunWatchdogService
         );
-    }
-
-    @Test
-    void createTournamentStartsOpenForRegistration() {
-        CreateTournamentRequest request = validCreateRequest();
-        User admin = activeAdmin();
-        when(userRepository.findByEmail("admin@example.com"))
-                .thenReturn(Optional.of(admin));
-        when(tournamentRepository.save(any(Tournament.class)))
-                .thenAnswer(invocation -> {
-                    Tournament saved = invocation.getArgument(0);
-                    saved.setTournamentId(1);
-                    return saved;
-                });
-        stubDetailCollections(1, List.of());
-
-        TournamentDetailResponse response = service.createTournament(
-                request,
-                "admin@example.com"
-        );
-
-        ArgumentCaptor<Tournament> captor =
-                ArgumentCaptor.forClass(Tournament.class);
-        verify(tournamentRepository).save(captor.capture());
-        assertEquals(EventStatus.OPEN_FOR_REGISTRATION,
-                captor.getValue().getStatus());
-        assertEquals(admin.getUserID(), captor.getValue().getCreatedBy());
-        assertEquals("Summer Championship",
-                captor.getValue().getTournamentName());
-        assertEquals(EventStatus.OPEN_FOR_REGISTRATION,
-                response.getStatus());
-        verify(conditionRepository).saveAll(List.of());
-    }
-
-    @Test
-    void createTournamentRejectsInvalidRegistrationWindow() {
-        CreateTournamentRequest request = validCreateRequest();
-        request.setRegistrationOpenAt(LocalDateTime.now().plusDays(2));
-        request.setRegistrationCloseAt(LocalDateTime.now().plusDays(1));
-
-        ApiException exception = assertThrows(
-                ApiException.class,
-                () -> service.createTournament(request, "admin@example.com")
-        );
-
-        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
-        verify(userRepository, never()).findByEmail(any());
-        verify(tournamentRepository, never()).save(any());
     }
 
     @Test
@@ -424,9 +375,9 @@ class TournamentServiceTest {
         verify(tournamentRepository, never()).save(any());
     }
 
-    private CreateTournamentRequest validCreateRequest() {
+    private UpdateTournamentRequest validUpdateRequest() {
         LocalDate start = LocalDate.now().plusDays(5);
-        CreateTournamentRequest request = new CreateTournamentRequest();
+        UpdateTournamentRequest request = new UpdateTournamentRequest();
         request.setTournamentName(" Summer Championship ");
         request.setDescription("Season opener");
         request.setVenue("Bangkok Track");
@@ -437,22 +388,6 @@ class TournamentServiceTest {
         request.setMaxRegistrations(24);
         request.setEntryFee(new BigDecimal("1500.00"));
         request.setConditions(List.of());
-        return request;
-    }
-
-    private UpdateTournamentRequest validUpdateRequest() {
-        CreateTournamentRequest create = validCreateRequest();
-        UpdateTournamentRequest request = new UpdateTournamentRequest();
-        request.setTournamentName(create.getTournamentName());
-        request.setDescription(create.getDescription());
-        request.setVenue(create.getVenue());
-        request.setRegistrationOpenAt(create.getRegistrationOpenAt());
-        request.setRegistrationCloseAt(create.getRegistrationCloseAt());
-        request.setStartDate(create.getStartDate());
-        request.setEndDate(create.getEndDate());
-        request.setMaxRegistrations(create.getMaxRegistrations());
-        request.setEntryFee(create.getEntryFee());
-        request.setConditions(create.getConditions());
         return request;
     }
 
