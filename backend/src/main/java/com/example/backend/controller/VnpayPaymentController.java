@@ -32,7 +32,7 @@ public class VnpayPaymentController {
         if (!result.isValidSignature()) {
             return vnpayResponse("97", "Invalid signature");
         }
-        if (result.getRegistrationId() == null) {
+        if (result.getRegistrationId() == null && result.getWalletId() == null) {
             return vnpayResponse("01", "Order not found");
         }
         if (!result.isSuccess()) {

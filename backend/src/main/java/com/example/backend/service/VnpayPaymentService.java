@@ -5,14 +5,21 @@ import com.example.backend.constant.PaymentPurpose;
 import com.example.backend.constant.PaymentStatus;
 import com.example.backend.constant.PaymentTransactionStatus;
 import com.example.backend.constant.RegistrationStatus;
+import com.example.backend.constant.WalletReferenceType;
+import com.example.backend.constant.WalletStatus;
+import com.example.backend.constant.WalletTransactionType;
 import com.example.backend.dto.response.PaymentTransactionResponse;
 import com.example.backend.dto.response.VnpayPaymentResultResponse;
 import com.example.backend.entity.PaymentTransaction;
 import com.example.backend.entity.Registration;
 import com.example.backend.entity.Tournament;
+import com.example.backend.entity.Wallet;
+import com.example.backend.entity.WalletTransaction;
 import com.example.backend.exception.ApiException;
 import com.example.backend.repository.PaymentTransactionRepository;
 import com.example.backend.repository.RegistrationRepository;
+import com.example.backend.repository.WalletRepository;
+import com.example.backend.repository.WalletTransactionRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -49,15 +56,21 @@ public class VnpayPaymentService {
     private final VnpayProperties properties;
     private final PaymentTransactionRepository paymentTransactionRepository;
     private final RegistrationRepository registrationRepository;
+    private final WalletRepository walletRepository;
+    private final WalletTransactionRepository walletTransactionRepository;
 
     public VnpayPaymentService(
             VnpayProperties properties,
             PaymentTransactionRepository paymentTransactionRepository,
-            RegistrationRepository registrationRepository
+            RegistrationRepository registrationRepository,
+            WalletRepository walletRepository,
+            WalletTransactionRepository walletTransactionRepository
     ) {
         this.properties = properties;
         this.paymentTransactionRepository = paymentTransactionRepository;
         this.registrationRepository = registrationRepository;
+        this.walletRepository = walletRepository;
+        this.walletTransactionRepository = walletTransactionRepository;
     }
 
     @Transactional
@@ -84,7 +97,50 @@ public class VnpayPaymentService {
         paymentTransaction.setTxnRef(generateTxnRef(registration));
         paymentTransaction.setStatus(PaymentTransactionStatus.PENDING);
 
-        String paymentUrl = buildPaymentUrl(paymentTransaction, registration, clientIp);
+        String paymentUrl = buildPaymentUrl(
+                paymentTransaction,
+                "Tournament registration fee " + registration.getRegistrationNo(),
+                clientIp
+        );
+        paymentTransaction.setPayUrl(paymentUrl);
+
+        return paymentTransactionRepository.save(paymentTransaction);
+    }
+
+    @Transactional
+    public PaymentTransaction createWalletDepositPayment(
+            Wallet wallet,
+            BigDecimal amount,
+            String clientIp
+    ) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Wallet deposit amount must be greater than zero."
+            );
+        }
+        if (!WalletStatus.ACTIVE.equals(wallet.getStatus())) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "Wallet is not active."
+            );
+        }
+
+        PaymentTransaction paymentTransaction = new PaymentTransaction();
+        paymentTransaction.setUserId(wallet.getUserId());
+        paymentTransaction.setWalletId(wallet.getWalletId());
+        paymentTransaction.setPurpose(PaymentPurpose.WALLET_DEPOSIT);
+        paymentTransaction.setProvider(PROVIDER_VNPAY);
+        paymentTransaction.setAmount(amount);
+        paymentTransaction.setCurrency(VNPAY_CURRENCY);
+        paymentTransaction.setTxnRef(generateWalletDepositTxnRef(wallet));
+        paymentTransaction.setStatus(PaymentTransactionStatus.PENDING);
+
+        String paymentUrl = buildPaymentUrl(
+                paymentTransaction,
+                "Wallet deposit " + wallet.getWalletId(),
+                clientIp
+        );
         paymentTransaction.setPayUrl(paymentUrl);
 
         return paymentTransactionRepository.save(paymentTransaction);
@@ -119,6 +175,15 @@ public class VnpayPaymentService {
                     .responseCode(responseCode)
                     .transactionStatus(transactionStatus)
                     .build();
+        }
+
+        if (PaymentPurpose.WALLET_DEPOSIT.equals(paymentTransaction.getPurpose())) {
+            return processWalletDepositCallback(
+                    paymentTransaction,
+                    requestParams,
+                    responseCode,
+                    transactionStatus
+            );
         }
 
         Registration registration = registrationRepository
@@ -199,6 +264,7 @@ public class VnpayPaymentService {
         return PaymentTransactionResponse.builder()
                 .paymentTransactionId(paymentTransaction.getPaymentTransactionId())
                 .registrationId(paymentTransaction.getRegistrationId())
+                .walletId(paymentTransaction.getWalletId())
                 .purpose(paymentTransaction.getPurpose())
                 .provider(paymentTransaction.getProvider())
                 .amount(paymentTransaction.getAmount())
@@ -214,7 +280,7 @@ public class VnpayPaymentService {
 
     private String buildPaymentUrl(
             PaymentTransaction paymentTransaction,
-            Registration registration,
+            String orderInfo,
             String clientIp
     ) {
         LocalDateTime now = LocalDateTime.now();
@@ -228,10 +294,7 @@ public class VnpayPaymentService {
         );
         params.put("vnp_CurrCode", VNPAY_CURRENCY);
         params.put("vnp_TxnRef", paymentTransaction.getTxnRef());
-        params.put(
-                "vnp_OrderInfo",
-                "Tournament registration fee " + registration.getRegistrationNo()
-        );
+        params.put("vnp_OrderInfo", orderInfo);
         params.put("vnp_OrderType", VNPAY_ORDER_TYPE);
         params.put("vnp_Locale", VNPAY_LOCALE);
         params.put("vnp_ReturnUrl", properties.getReturnUrl());
@@ -249,6 +312,10 @@ public class VnpayPaymentService {
 
     private String generateTxnRef(Registration registration) {
         return "REG-" + registration.getRegistrationId() + "-" + System.currentTimeMillis();
+    }
+
+    private String generateWalletDepositTxnRef(Wallet wallet) {
+        return "WALLET-" + wallet.getWalletId() + "-" + System.currentTimeMillis();
     }
 
     private String normalizeClientIp(String clientIp) {
@@ -370,6 +437,114 @@ public class VnpayPaymentService {
         registrationRepository.save(registration);
     }
 
+    private VnpayPaymentResultResponse processWalletDepositCallback(
+            PaymentTransaction paymentTransaction,
+            Map<String, String> requestParams,
+            String responseCode,
+            String transactionStatus
+    ) {
+        if (!isCallbackAmountValid(requestParams, paymentTransaction)) {
+            markWalletPaymentFailed(paymentTransaction, responseCode, requestParams);
+            return buildWalletResult(
+                    paymentTransaction,
+                    false,
+                    "Payment amount does not match wallet deposit.",
+                    responseCode,
+                    transactionStatus
+            );
+        }
+
+        if (PaymentTransactionStatus.SUCCESS.equals(paymentTransaction.getStatus())) {
+            return buildWalletResult(
+                    paymentTransaction,
+                    true,
+                    "Payment was already confirmed.",
+                    responseCode,
+                    transactionStatus
+            );
+        }
+
+        boolean success =
+                VNPAY_SUCCESS_CODE.equals(responseCode)
+                        && VNPAY_SUCCESS_CODE.equals(transactionStatus);
+
+        paymentTransaction.setProviderTransactionNo(
+                requestParams.get("vnp_TransactionNo")
+        );
+        paymentTransaction.setResponseCode(responseCode);
+        paymentTransaction.setRawResponse(toRawResponse(requestParams));
+
+        if (success) {
+            paymentTransaction.setStatus(PaymentTransactionStatus.SUCCESS);
+            paymentTransaction.setPaidAt(LocalDateTime.now());
+            applyWalletDeposit(paymentTransaction);
+        } else {
+            paymentTransaction.setStatus(PaymentTransactionStatus.FAILED);
+        }
+
+        paymentTransactionRepository.save(paymentTransaction);
+
+        return buildWalletResult(
+                paymentTransaction,
+                success,
+                success ? "Wallet deposit confirmed successfully." : "Payment failed.",
+                responseCode,
+                transactionStatus
+        );
+    }
+
+    private void applyWalletDeposit(PaymentTransaction paymentTransaction) {
+        Wallet wallet = walletRepository
+                .findByWalletIdForUpdate(paymentTransaction.getWalletId())
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "Wallet does not exist."
+                ));
+
+        if (!WalletStatus.ACTIVE.equals(wallet.getStatus())) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "Wallet is not active."
+            );
+        }
+
+        BigDecimal balanceBefore = valueOrZero(wallet.getBalance());
+        BigDecimal lockedBefore = valueOrZero(wallet.getLockedBalance());
+        BigDecimal balanceAfter = balanceBefore.add(paymentTransaction.getAmount());
+
+        wallet.setBalance(balanceAfter);
+        walletRepository.save(wallet);
+
+        WalletTransaction walletTransaction = new WalletTransaction();
+        walletTransaction.setWalletId(wallet.getWalletId());
+        walletTransaction.setUserId(wallet.getUserId());
+        walletTransaction.setType(WalletTransactionType.DEPOSIT);
+        walletTransaction.setAmount(paymentTransaction.getAmount());
+        walletTransaction.setBalanceBefore(balanceBefore);
+        walletTransaction.setBalanceAfter(balanceAfter);
+        walletTransaction.setLockedBefore(lockedBefore);
+        walletTransaction.setLockedAfter(lockedBefore);
+        walletTransaction.setReferenceType(WalletReferenceType.PAYMENT_TRANSACTION);
+        walletTransaction.setReferenceId(paymentTransaction.getPaymentTransactionId());
+        walletTransaction.setDescription("VNPAY wallet deposit");
+        walletTransactionRepository.save(walletTransaction);
+    }
+
+    private void markWalletPaymentFailed(
+            PaymentTransaction paymentTransaction,
+            String responseCode,
+            Map<String, String> requestParams
+    ) {
+        paymentTransaction.setStatus(PaymentTransactionStatus.FAILED);
+        paymentTransaction.setResponseCode(responseCode);
+        paymentTransaction.setRawResponse(toRawResponse(requestParams));
+        paymentTransactionRepository.save(paymentTransaction);
+    }
+
+    private BigDecimal valueOrZero(BigDecimal value) {
+        return value != null ? value : BigDecimal.ZERO;
+    }
+
     private String toRawResponse(Map<String, String> requestParams) {
         return requestParams.entrySet()
                 .stream()
@@ -411,6 +586,25 @@ public class VnpayPaymentService {
                 .transactionStatus(transactionStatus)
                 .registrationId(registration.getRegistrationId())
                 .registrationPaymentStatus(registration.getPaymentStatus())
+                .amount(paymentTransaction.getAmount())
+                .build();
+    }
+
+    private VnpayPaymentResultResponse buildWalletResult(
+            PaymentTransaction paymentTransaction,
+            boolean success,
+            String message,
+            String responseCode,
+            String transactionStatus
+    ) {
+        return VnpayPaymentResultResponse.builder()
+                .validSignature(true)
+                .success(success)
+                .message(message)
+                .txnRef(paymentTransaction.getTxnRef())
+                .responseCode(responseCode)
+                .transactionStatus(transactionStatus)
+                .walletId(paymentTransaction.getWalletId())
                 .amount(paymentTransaction.getAmount())
                 .build();
     }

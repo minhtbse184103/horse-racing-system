@@ -16,6 +16,7 @@ public class VnpayPaymentResultResponse {
     private String responseCode;
     private String transactionStatus;
     private Integer registrationId;
+    private Integer walletId;
     private String registrationPaymentStatus;
     private BigDecimal amount;
 }
