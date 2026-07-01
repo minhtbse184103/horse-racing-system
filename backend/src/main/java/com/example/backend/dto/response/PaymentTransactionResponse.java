@@ -12,6 +12,7 @@ public class PaymentTransactionResponse {
 
     private Integer paymentTransactionId;
     private Integer registrationId;
+    private Integer walletId;
     private String purpose;
     private String provider;
     private BigDecimal amount;
