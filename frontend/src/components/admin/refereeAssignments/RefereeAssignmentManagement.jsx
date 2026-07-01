@@ -52,7 +52,8 @@ function refereeId(referee) {
 
 const ASSIGNABLE_RACE_STATUSES = new Set([
   'OPEN_FOR_REGISTRATION',
-  'REGISTRATION_CLOSED'
+  'REGISTRATION_CLOSED',
+  'READY'
 ]);
 
 function normalizeStatus(status) {

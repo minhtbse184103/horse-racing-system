@@ -108,8 +108,8 @@ public class TournamentService {
         // Batch load races
         List<Race> allRaces = raceRepository.findByTournamentIds(tournamentIds);
 
-        // Transition any race whose raceStartTime has passed, and cascade
-        // its tournament to IN_PROGRESS. Mutates the same Race/Tournament
+        // Transition any race whose raceStartTime has passed to READY, and
+        // cascade its tournament to IN_PROGRESS. Mutates the same Race/Tournament
         // instances used below, so the rest of this method (grouping,
         // response mapping) sees the post-transition status without a
         // second query.
@@ -249,7 +249,7 @@ public class TournamentService {
     // Same transition rules as RaceService.refreshRaceStatus /
     // RaceEngineLaunchService's mirror of it: a race past its
     // raceStartTime moves OPEN_FOR_REGISTRATION/REGISTRATION_CLOSED ->
-    // IN_PROGRESS, and the first race to do so cascades its tournament
+    // READY, and the first race to do so cascades its tournament
     // to IN_PROGRESS (other races in the same tournament are untouched
     // until their own raceStartTime passes — intentional, each race is
     // gated independently for Run Race). Batched: one saveAll per
@@ -273,7 +273,7 @@ public class TournamentService {
             return;
         }
 
-        racesToTransition.forEach(race -> race.setStatus(EventStatus.IN_PROGRESS));
+        racesToTransition.forEach(race -> race.setStatus(EventStatus.READY));
         raceRepository.saveAll(racesToTransition);
 
         Set<Integer> tournamentIdsToTransition = racesToTransition.stream()

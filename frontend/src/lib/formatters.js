@@ -28,6 +28,7 @@ const DISPLAY_LABELS = {
     OPENFORREGISTRATION: 'OpenForRegistration',
     CLOSED_REGISTRATION: 'ClosedRegistration',
     CLOSEDREGISTRATION: 'ClosedRegistration',
+    READY: 'Ready',
     ONGOING: 'Ongoing',
     FINISHED: 'Finished',
     OWNER: 'Owner',

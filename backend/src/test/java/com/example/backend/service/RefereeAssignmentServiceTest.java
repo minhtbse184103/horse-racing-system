@@ -132,6 +132,51 @@ class RefereeAssignmentServiceTest {
     }
 
     @Test
+    void createAssignmentAllowsReadyRaceInInProgressTournament() {
+        Race race = futureRace();
+        race.setStatus(EventStatus.READY);
+        race.setRaceStartTime(LocalDateTime.now().minusMinutes(5));
+        race.setRaceEndTime(LocalDateTime.now().plusMinutes(55));
+        Tournament tournament = openTournament();
+        tournament.setStatus(EventStatus.IN_PROGRESS);
+        User referee = activeReferee(22);
+        CreateRefereeAssignmentRequest request = request(10, 22);
+
+        stubAdmin();
+        when(raceRepository.findByIdForUpdate(10))
+                .thenReturn(Optional.of(race));
+        when(tournamentRepository.findById(40))
+                .thenReturn(Optional.of(tournament));
+        when(assignmentRepository.existsByRaceId(10)).thenReturn(false);
+        when(userRepository.findById(22)).thenReturn(Optional.of(referee));
+        when(assignmentRepository.existsOverlappingAssignment(
+                22,
+                10,
+                race.getRaceStartTime(),
+                race.getRaceEndTime(),
+                RefereeAssignmentStatus.ASSIGNED,
+                EventStatus.CANCELLED
+        )).thenReturn(false);
+        when(assignmentRepository.saveAndFlush(any(RefereeAssignment.class)))
+                .thenAnswer(invocation -> {
+                    RefereeAssignment saved = invocation.getArgument(0);
+                    saved.setAssignmentId(51);
+                    return saved;
+                });
+        stubResponseLookups(race, tournament, referee);
+
+        RefereeAssignmentResponse response = service.createAssignment(
+                request,
+                "admin@example.com"
+        );
+
+        assertEquals(51, response.getAssignmentId());
+        assertEquals(EventStatus.READY, response.getRaceStatus());
+        assertEquals(EventStatus.IN_PROGRESS, response.getTournamentStatus());
+        assertEquals(22, response.getRefereeUserId());
+    }
+
+    @Test
     void createAssignmentRejectsOverlappingSchedule() {
         Race race = futureRace();
         User referee = activeReferee(22);

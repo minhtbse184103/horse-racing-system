@@ -29,7 +29,7 @@ public class RaceResponse {
 
     // Set once RaceEngineLaunchService launches the Unity process; null
     // means the race hasn't been run yet even if status is IN_PROGRESS
-    // (status flips to IN_PROGRESS once raceStartTime passes, which can
+    // (status flips to READY once raceStartTime passes, which can
     // happen before an admin actually clicks "Run Race").
     private LocalDateTime runStartedAt;
     private boolean runStuck;

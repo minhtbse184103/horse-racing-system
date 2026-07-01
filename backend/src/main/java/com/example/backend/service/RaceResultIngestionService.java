@@ -219,6 +219,12 @@ public class RaceResultIngestionService {
                     "Race has been cancelled."
             );
         }
+        if (!EventStatus.IN_PROGRESS.equals(race.getStatus())) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "Race must be in progress before results can be recorded."
+            );
+        }
         if (race.getRunStartedAt() == null) {
             throw new ApiException(
                     HttpStatus.CONFLICT,

@@ -42,8 +42,8 @@ function adaptRace(race) {
     availableStalls: toNumber(race.availableStalls),
     status: race.status || 'OPEN_FOR_REGISTRATION',
     // Null until RaceEngineLaunchService actually launches Unity for this
-    // race — distinct from status flipping to IN_PROGRESS, which happens
-    // once raceStartTime passes regardless of whether anyone clicked "run".
+    // race — distinct from status moving to READY when raceStartTime passes.
+    // IN_PROGRESS now means the Unity race engine was launched.
     runStartedAt: race.runStartedAt || null,
     runStuck: Boolean(race.runStuck),
     runElapsedMinutes: toNumber(race.runElapsedMinutes),

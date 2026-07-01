@@ -9,7 +9,7 @@ export default function RaceLiveView({ raceId, active, onResult }) {
   // result.status is the real backend status (RaceResultIngestResponse),
   // not a hardcoded "COMPLETED" string — bubble it up so the workspace's
   // local race.status can be patched immediately instead of staying
-  // IN_PROGRESS until the next full tournament reload (see
+  // IN_PROGRESS / runStartedAt until the next full tournament reload (see
   // useTournamentWorkspace.updateRaceStatus).
   useEffect(() => {
     if (result?.status) {

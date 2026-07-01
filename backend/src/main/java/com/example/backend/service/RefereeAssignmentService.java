@@ -23,7 +23,8 @@ public class RefereeAssignmentService {
     private static final Set<String> ASSIGNABLE_RACE_STATUSES =
             Set.of(
                     EventStatus.OPEN_FOR_REGISTRATION,
-                    EventStatus.REGISTRATION_CLOSED
+                    EventStatus.REGISTRATION_CLOSED,
+                    EventStatus.READY
             );
 
     private final RefereeAssignmentRepository assignmentRepository;
@@ -238,8 +239,8 @@ public class RefereeAssignmentService {
             );
         }
 
-        if (!LocalDateTime.now().isBefore(
-                race.getRaceStartTime())) {
+        if (!EventStatus.READY.equals(race.getStatus())
+                && !LocalDateTime.now().isBefore(race.getRaceStartTime())) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
                     "Referee cannot be changed after the race starts."
@@ -261,8 +262,7 @@ public class RefereeAssignmentService {
                 ));
 
         if (EventStatus.CANCELLED.equals(tournament.getStatus())
-                || EventStatus.COMPLETED.equals(tournament.getStatus())
-                || EventStatus.IN_PROGRESS.equals(tournament.getStatus())) {
+                || EventStatus.COMPLETED.equals(tournament.getStatus())) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
                     "Tournament does not allow referee assignment."

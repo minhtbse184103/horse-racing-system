@@ -35,6 +35,8 @@ public interface RaceEntryRepository
             Integer raceId,
             String status
     );
+    boolean existsByRaceId(Integer raceId);
+
     @Query("""
         select entry.startingStall
         from RaceEntry entry

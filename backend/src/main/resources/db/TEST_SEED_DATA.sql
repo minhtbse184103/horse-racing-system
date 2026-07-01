@@ -99,7 +99,8 @@ VALUES
   (5, 2, 'Heritage Classic', 'Chiang Mai Main', TIMESTAMP(DATE_SUB(@seed_today, INTERVAL 119 DAY), '14:00:00'), TIMESTAMP(DATE_SUB(@seed_today, INTERVAL 119 DAY), '14:45:00'), 1800, 6, 2, 'COMPLETED', DATE_SUB(@seed_now, INTERVAL 190 DAY), DATE_SUB(@seed_now, INTERVAL 119 DAY)),
   -- Manual-mode launch test race: raceStartTime is already in the past and
   -- status is OPEN_FOR_REGISTRATION, so RaceEngineLaunchService.refreshRaceStatus
-  -- flips it to IN_PROGRESS the moment "Run Race" is clicked (no waiting on
+  -- flips it to READY the moment the workspace or launch flow refreshes it;
+  -- "Run Race" then moves it to IN_PROGRESS after Unity launch succeeds (no waiting on
   -- the clock). Has 6 ASSIGNED RaceEntry rows below, matching the Unity
   -- simulator capacity and satisfying
   -- MIN_RUNNERS_TO_LAUNCH, and no RaceResult yet, so it's launchable and

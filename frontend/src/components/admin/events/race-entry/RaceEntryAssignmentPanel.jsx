@@ -111,7 +111,7 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
             ? assignment.entries.length
             : Number(race.entries || 0);
           const isFull = runnerCount >= race.maxRunners;
-          const isLive = Boolean(race.runStartedAt) || launchedRaceIds.has(race.id);
+          const isLive = race.status === 'IN_PROGRESS' || Boolean(race.runStartedAt) || launchedRaceIds.has(race.id);
           const runError = runErrors[race.id];
 
           return (
@@ -138,7 +138,7 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
                   {!runError && launchedRaceIds.has(race.id) && <div className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700"><p>Race đã được khởi chạy bằng Unity Engine. Theo dõi dữ liệu live từ backend tại đây.</p></div>}
                 </div>
                 <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end lg:max-w-[26rem]">
-                  {race.status === 'IN_PROGRESS' && (
+                  {(race.status === 'READY' || isLive) && (
                     isLive ? (
                       <>
                         <button type="button" onClick={() => toggleLiveView(race.id)} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-xs font-extrabold text-emerald-700 hover:bg-emerald-100">

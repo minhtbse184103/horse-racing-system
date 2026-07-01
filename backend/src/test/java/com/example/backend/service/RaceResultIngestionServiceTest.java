@@ -263,6 +263,31 @@ class RaceResultIngestionServiceTest {
                 .findByRaceIdAndStatusOrderByStartingStallAsc(any(), any());
     }
 
+    @Test
+    void ingestResultRejectsRaceThatIsReadyButNotInProgress() {
+        Race race = launchedRace();
+        race.setStatus(EventStatus.READY);
+        when(raceRepository.findByIdForUpdate(RACE_ID))
+                .thenReturn(Optional.of(race));
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> raceResultIngestionService.ingestResult(
+                        RACE_ID,
+                        "launch-token",
+                        resultRequest(resultEntry(1, 1))
+                )
+        );
+
+        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
+        assertEquals(
+                "Race must be in progress before results can be recorded.",
+                exception.getMessage()
+        );
+        verify(raceEntryRepository, never())
+                .findByRaceIdAndStatusOrderByStartingStallAsc(any(), any());
+    }
+
     private void stubRaceAndEntries(Race race, List<RaceEntry> entries) {
         when(raceRepository.findByIdForUpdate(RACE_ID))
                 .thenReturn(Optional.of(race));

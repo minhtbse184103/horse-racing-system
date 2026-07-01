@@ -6,6 +6,7 @@ import com.example.backend.dto.request.RacePrizeRequest;
 import com.example.backend.dto.request.UpdateRaceRequest;
 import com.example.backend.dto.response.RaceResponse;
 import com.example.backend.entity.Race;
+import com.example.backend.entity.RaceEntry;
 import com.example.backend.entity.RacePrize;
 import com.example.backend.entity.Role;
 import com.example.backend.entity.Tournament;
@@ -143,6 +144,26 @@ class RaceServiceTest {
     }
 
     @Test
+    void updateRaceRejectsReadyRace() {
+        Race race = race();
+        race.setStatus(EventStatus.READY);
+        UpdateRaceRequest request = updateRequest();
+
+        stubAdmin();
+        when(raceRepository.findByIdForUpdate(8)).thenReturn(Optional.of(race));
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.updateRace(8, request, "admin@example.com")
+        );
+
+        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
+        assertEquals("Race can no longer be modified.", exception.getMessage());
+        verify(tournamentRepository, never()).findByIdForUpdate(any());
+        verify(raceRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
     void updateRaceRejectsNonAdmin() {
         UpdateRaceRequest request = updateRequest();
 
@@ -197,6 +218,54 @@ class RaceServiceTest {
 
         assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
         verify(raceRepository, never()).findByIdForUpdate(any());
+        verify(raceRepository, never()).save(any());
+    }
+
+    @Test
+    void cancelRaceAllowsReadyRaceWithNoRaceEntryHistory() {
+        Race race = race();
+        race.setStatus(EventStatus.READY);
+
+        stubAdmin();
+        when(raceRepository.findByIdForUpdate(8)).thenReturn(Optional.of(race));
+        when(raceEntryRepository.existsByRaceId(8)).thenReturn(false);
+        when(raceRepository.save(race)).thenReturn(race);
+        when(raceEntryRepository.countByRaceIdAndStatus(8, RaceEntryStatus.ASSIGNED))
+                .thenReturn(0L);
+        when(racePrizeRepository.findByRaceIdOrderByRankPositionAsc(8))
+                .thenReturn(List.of());
+
+        RaceResponse response = service.cancelRace(8, "admin@example.com");
+
+        assertEquals(EventStatus.CANCELLED, response.getStatus());
+        verify(raceEntryRepository, never()).saveAll(any());
+    }
+
+    @Test
+    void cancelRaceRejectsReadyRaceWithRaceEntryHistory() {
+        Race race = race();
+        race.setStatus(EventStatus.READY);
+        RaceEntry entry = new RaceEntry();
+        entry.setRaceEntryId(44);
+        entry.setRaceId(8);
+        entry.setStatus(RaceEntryStatus.ASSIGNED);
+
+        stubAdmin();
+        when(raceRepository.findByIdForUpdate(8)).thenReturn(Optional.of(race));
+        when(raceEntryRepository.existsByRaceId(8)).thenReturn(true);
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.cancelRace(8, "admin@example.com")
+        );
+
+        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
+        assertEquals(
+                "Race cannot be cancelled after entries have been assigned.",
+                exception.getMessage()
+        );
+        assertEquals(RaceEntryStatus.ASSIGNED, entry.getStatus());
+        verify(raceEntryRepository, never()).saveAll(any());
         verify(raceRepository, never()).save(any());
     }
 

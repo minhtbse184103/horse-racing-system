@@ -69,7 +69,8 @@ public class RaceService {
         List<Race> races = raceRepository.findByStatusIn(
                 List.of(
                         EventStatus.OPEN_FOR_REGISTRATION,
-                        EventStatus.REGISTRATION_CLOSED
+                        EventStatus.REGISTRATION_CLOSED,
+                        EventStatus.READY
                 )
         );
 
@@ -430,7 +431,8 @@ public class RaceService {
 
         refreshRaceStatus(race);
 
-        if (EventStatus.IN_PROGRESS.equals(race.getStatus())
+        if (race.getRunStartedAt() != null
+                || EventStatus.IN_PROGRESS.equals(race.getStatus())
                 || EventStatus.COMPLETED.equals(race.getStatus())
                 || EventStatus.CANCELLED.equals(race.getStatus())) {
             throw new ApiException(
@@ -439,10 +441,10 @@ public class RaceService {
             );
         }
 
-        if (raceEntryRepository.countByRaceIdAndStatus(raceId, RaceEntryStatus.ASSIGNED) > 0) {
+        if (raceEntryRepository.existsByRaceId(raceId)) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
-                    "Race cannot be cancelled after entries are assigned."
+                    "Race cannot be cancelled after entries have been assigned."
             );
         }
 
@@ -458,7 +460,7 @@ public class RaceService {
                 || EventStatus.REGISTRATION_CLOSED.equals(race.getStatus()))
                 && !LocalDateTime.now().isBefore(race.getRaceStartTime())) {
 
-            race.setStatus(EventStatus.IN_PROGRESS);
+            race.setStatus(EventStatus.READY);
             raceRepository.save(race);
 
             updateTournamentToInProgress(race.getTournamentId());
@@ -482,7 +484,8 @@ public class RaceService {
     }
 
     private void validateRaceCanBeModified(Race race) {
-        if (EventStatus.IN_PROGRESS.equals(race.getStatus())
+        if (EventStatus.READY.equals(race.getStatus())
+                || EventStatus.IN_PROGRESS.equals(race.getStatus())
                 || EventStatus.COMPLETED.equals(race.getStatus())
                 || EventStatus.CANCELLED.equals(race.getStatus())) {
             throw new ApiException(
@@ -573,7 +576,7 @@ public class RaceService {
         racePrizeRepository.saveAll(prizes);
     }
 
-    private void getAdmin(String adminEmail) {
+    private User getAdmin(String adminEmail) {
         User admin = userRepository.findByEmail(adminEmail)
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.UNAUTHORIZED,
@@ -595,6 +598,8 @@ public class RaceService {
                     "Administrator account is not active."
             );
         }
+
+        return admin;
     }
 
     private Race getRace(Integer raceId) {

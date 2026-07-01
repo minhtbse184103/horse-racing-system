@@ -232,6 +232,7 @@ CREATE TABLE `Race` (
     CHECK (`status` IN (
       'OPEN_FOR_REGISTRATION',
       'REGISTRATION_CLOSED',
+      'READY',
       'IN_PROGRESS',
       'COMPLETED',
       'CANCELLED'

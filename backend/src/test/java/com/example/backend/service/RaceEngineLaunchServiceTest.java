@@ -13,6 +13,7 @@ import com.example.backend.exception.ApiException;
 import com.example.backend.repository.RaceEntryRepository;
 import com.example.backend.repository.RaceRepository;
 import com.example.backend.repository.RaceResultRepository;
+import com.example.backend.repository.RefereeAssignmentRepository;
 import com.example.backend.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -48,6 +49,8 @@ class RaceEngineLaunchServiceTest {
     @Mock
     private RaceResultRepository raceResultRepository;
     @Mock
+    private RefereeAssignmentRepository refereeAssignmentRepository;
+    @Mock
     private UserRepository userRepository;
     @Mock
     private RaceEngineTokenService raceEngineTokenService;
@@ -62,6 +65,7 @@ class RaceEngineLaunchServiceTest {
                 raceRepository,
                 raceEntryRepository,
                 raceResultRepository,
+                refereeAssignmentRepository,
                 userRepository,
                 raceEngineTokenService,
                 raceEngineProcessLauncher
@@ -78,6 +82,8 @@ class RaceEngineLaunchServiceTest {
                 RACE_ID,
                 RaceEntryStatus.ASSIGNED
         )).thenReturn(2L);
+        when(refereeAssignmentRepository.existsByRaceId(RACE_ID))
+                .thenReturn(true);
         when(raceEngineTokenService.generateToken())
                 .thenReturn("launch-token");
 
@@ -98,6 +104,54 @@ class RaceEngineLaunchServiceTest {
         assertEquals("launch-token", response.getRaceEngineToken());
         assertNotNull(response.getLaunchedAt());
         verify(raceEngineProcessLauncher).launch(RACE_ID, "launch-token");
+    }
+
+    @Test
+    void launchRaceRejectsMissingRefereeAssignment() {
+        Race race = launchableRace();
+        stubAdmin();
+        when(raceRepository.findByIdForUpdate(RACE_ID))
+                .thenReturn(Optional.of(race));
+        when(refereeAssignmentRepository.existsByRaceId(RACE_ID))
+                .thenReturn(false);
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> raceEngineLaunchService.launchRace(RACE_ID, ADMIN_EMAIL)
+        );
+
+        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
+        assertEquals(
+                "Please assign a referee before launching this race.",
+                exception.getMessage()
+        );
+        verify(raceRepository, never()).saveAndFlush(any());
+        verify(raceEngineProcessLauncher, never()).launch(any(), any());
+        verify(raceEntryRepository, never()).countByRaceIdAndStatus(
+                any(),
+                any()
+        );
+    }
+
+    @Test
+    void launchRaceRejectsBeforeRaceIsReady() {
+        Race race = launchableRace();
+        race.setRaceStartTime(LocalDateTime.now().plusMinutes(10));
+        stubAdmin();
+        when(raceRepository.findByIdForUpdate(RACE_ID))
+                .thenReturn(Optional.of(race));
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> raceEngineLaunchService.launchRace(RACE_ID, ADMIN_EMAIL)
+        );
+
+        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
+        assertEquals("Race cannot be run before it is ready.", exception.getMessage());
+        verify(refereeAssignmentRepository, never()).existsByRaceId(any());
+        verify(raceEntryRepository, never()).countByRaceIdAndStatus(any(), any());
+        verify(raceRepository, never()).saveAndFlush(any());
+        verify(raceEngineProcessLauncher, never()).launch(any(), any());
     }
 
     @Test

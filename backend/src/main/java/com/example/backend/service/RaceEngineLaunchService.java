@@ -12,6 +12,7 @@ import com.example.backend.exception.ApiException;
 import com.example.backend.repository.RaceEntryRepository;
 import com.example.backend.repository.RaceRepository;
 import com.example.backend.repository.RaceResultRepository;
+import com.example.backend.repository.RefereeAssignmentRepository;
 import com.example.backend.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -39,6 +40,7 @@ public class RaceEngineLaunchService {
     private final RaceRepository raceRepository;
     private final RaceEntryRepository raceEntryRepository;
     private final RaceResultRepository raceResultRepository;
+    private final RefereeAssignmentRepository refereeAssignmentRepository;
     private final UserRepository userRepository;
     private final RaceEngineTokenService raceEngineTokenService;
     private final RaceEngineProcessLauncher raceEngineProcessLauncher;
@@ -47,6 +49,7 @@ public class RaceEngineLaunchService {
             RaceRepository raceRepository,
             RaceEntryRepository raceEntryRepository,
             RaceResultRepository raceResultRepository,
+            RefereeAssignmentRepository refereeAssignmentRepository,
             UserRepository userRepository,
             RaceEngineTokenService raceEngineTokenService,
             RaceEngineProcessLauncher raceEngineProcessLauncher
@@ -54,6 +57,7 @@ public class RaceEngineLaunchService {
         this.raceRepository = raceRepository;
         this.raceEntryRepository = raceEntryRepository;
         this.raceResultRepository = raceResultRepository;
+        this.refereeAssignmentRepository = refereeAssignmentRepository;
         this.userRepository = userRepository;
         this.raceEngineTokenService = raceEngineTokenService;
         this.raceEngineProcessLauncher = raceEngineProcessLauncher;
@@ -75,6 +79,7 @@ public class RaceEngineLaunchService {
 
         LocalDateTime now = LocalDateTime.now();
         String raceEngineToken = raceEngineTokenService.generateToken();
+        race.setStatus(EventStatus.IN_PROGRESS);
         race.setRunTriggeredBy(admin.getUserID());
         race.setRunStartedAt(now);
         race.setRaceEngineToken(raceEngineToken);
@@ -209,10 +214,10 @@ public class RaceEngineLaunchService {
             );
         }
 
-        if (!EventStatus.IN_PROGRESS.equals(race.getStatus())) {
+        if (!EventStatus.READY.equals(race.getStatus())) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
-                    "Race cannot be run before its scheduled start time."
+                    "Race cannot be run before it is ready."
             );
         }
 
@@ -220,6 +225,13 @@ public class RaceEngineLaunchService {
             throw new ApiException(
                     HttpStatus.CONFLICT,
                     "Race has already been launched."
+            );
+        }
+
+        if (!refereeAssignmentRepository.existsByRaceId(race.getRaceId())) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "Please assign a referee before launching this race."
             );
         }
 
@@ -239,7 +251,7 @@ public class RaceEngineLaunchService {
 
     /**
      * Mirrors RaceService's private refreshRaceStatus: flips
-     * OPEN_FOR_REGISTRATION/REGISTRATION_CLOSED to IN_PROGRESS once
+     * OPEN_FOR_REGISTRATION/REGISTRATION_CLOSED to READY once
      * raceStartTime has passed. Duplicated here (rather than calling
      * RaceService) because the Race row is already locked
      * (findByIdForUpdate) in this transaction and re-fetching through
@@ -249,7 +261,7 @@ public class RaceEngineLaunchService {
         if ((EventStatus.OPEN_FOR_REGISTRATION.equals(race.getStatus())
                 || EventStatus.REGISTRATION_CLOSED.equals(race.getStatus()))
                 && !LocalDateTime.now().isBefore(race.getRaceStartTime())) {
-            race.setStatus(EventStatus.IN_PROGRESS);
+            race.setStatus(EventStatus.READY);
             raceRepository.save(race);
         }
     }
