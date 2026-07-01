@@ -535,6 +535,13 @@ public class RaceService {
     }
 
     private void validatePrizes(List<RacePrizeRequest> prizes) {
+        if (prizes == null || prizes.isEmpty()) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Race must contain at least one prize."
+            );
+        }
+
         Set<Integer> usedRanks = new HashSet<>();
         BigDecimal oneHundred = new BigDecimal("100");
 

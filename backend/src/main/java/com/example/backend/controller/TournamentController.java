@@ -93,16 +93,24 @@ public class TournamentController {
 
     @PutMapping("/{tournamentId}/close-registration")
     public TournamentDetailResponse closeRegistration(
-            @PathVariable Integer tournamentId
+            @PathVariable Integer tournamentId,
+            Authentication authentication
     ) {
-        return tournamentService.closeRegistration(tournamentId);
+        return tournamentService.closeRegistration(
+                tournamentId,
+                authentication.getName()
+        );
     }
 
     @PutMapping("/{tournamentId}/complete")
     public TournamentDetailResponse completeTournament(
-            @PathVariable Integer tournamentId
+            @PathVariable Integer tournamentId,
+            Authentication authentication
     ) {
-        return tournamentService.completeTournament(tournamentId);
+        return tournamentService.completeTournament(
+                tournamentId,
+                authentication.getName()
+        );
     }
 
     @DeleteMapping("/{tournamentId}")

@@ -2,6 +2,7 @@ package com.example.backend.service;
 
 import com.example.backend.constant.EventStatus;
 import com.example.backend.constant.RaceEntryStatus;
+import com.example.backend.dto.request.CreateRaceRequest;
 import com.example.backend.dto.request.RacePrizeRequest;
 import com.example.backend.dto.request.UpdateRaceRequest;
 import com.example.backend.dto.response.RaceResponse;
@@ -140,6 +141,48 @@ class RaceServiceTest {
         );
 
         assertEquals(org.springframework.http.HttpStatus.BAD_REQUEST, exception.getStatus());
+        verify(racePrizeRepository, never()).saveAll(any());
+    }
+
+    @Test
+    void createRaceRejectsEmptyPrizeList() {
+        CreateRaceRequest request = createRequest();
+        request.setPrizes(List.of());
+
+        stubAdmin();
+        when(tournamentRepository.findByIdForUpdate(12))
+                .thenReturn(Optional.of(tournament()));
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.createRace(request, "admin@example.com")
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        assertEquals("Race must contain at least one prize.", exception.getMessage());
+        verify(raceRepository, never()).saveAndFlush(any());
+        verify(racePrizeRepository, never()).saveAll(any());
+    }
+
+    @Test
+    void updateRaceRejectsEmptyPrizeList() {
+        Race race = race();
+        UpdateRaceRequest request = updateRequest();
+        request.setPrizes(List.of());
+
+        stubAdmin();
+        when(raceRepository.findByIdForUpdate(8)).thenReturn(Optional.of(race));
+        when(tournamentRepository.findByIdForUpdate(12))
+                .thenReturn(Optional.of(tournament()));
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.updateRace(8, request, "admin@example.com")
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        assertEquals("Race must contain at least one prize.", exception.getMessage());
+        verify(raceRepository, never()).saveAndFlush(any());
         verify(racePrizeRepository, never()).saveAll(any());
     }
 
@@ -301,6 +344,26 @@ class RaceServiceTest {
         firstPrize.setJockeyPercent(new BigDecimal("20"));
 
         UpdateRaceRequest request = new UpdateRaceRequest();
+        request.setRaceName("Race test 1");
+        request.setTrackName("Test 1");
+        request.setRaceStartTime(LocalDate.now().plusDays(1).atTime(9, 0));
+        request.setRaceEndTime(LocalDate.now().plusDays(1).atTime(10, 0));
+        request.setDistance(1600);
+        request.setMaxRunners(5);
+        request.setRaceOrder(1);
+        request.setPrizes(List.of(firstPrize));
+        return request;
+    }
+
+    private CreateRaceRequest createRequest() {
+        RacePrizeRequest firstPrize = new RacePrizeRequest();
+        firstPrize.setRankPosition(1);
+        firstPrize.setAmount(new BigDecimal("50000"));
+        firstPrize.setOwnerPercent(new BigDecimal("80"));
+        firstPrize.setJockeyPercent(new BigDecimal("20"));
+
+        CreateRaceRequest request = new CreateRaceRequest();
+        request.setTournamentId(12);
         request.setRaceName("Race test 1");
         request.setTrackName("Test 1");
         request.setRaceStartTime(LocalDate.now().plusDays(1).atTime(9, 0));

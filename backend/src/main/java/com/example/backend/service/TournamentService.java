@@ -563,7 +563,12 @@ public class TournamentService {
         return toDetailResponse(tournamentRepository.save(tournament));
     }
     @Transactional
-    public TournamentDetailResponse closeRegistration(Integer tournamentId) {
+    public TournamentDetailResponse closeRegistration(
+            Integer tournamentId,
+            String adminEmail
+    ) {
+        getAdmin(adminEmail);
+
         Tournament tournament = tournamentRepository
                 .findByIdForUpdate(tournamentId)
                 .orElseThrow(() -> new ApiException(
@@ -598,7 +603,12 @@ public class TournamentService {
         return toDetailResponse(tournamentRepository.save(tournament));
     }
     @Transactional
-    public TournamentDetailResponse completeTournament(Integer tournamentId) {
+    public TournamentDetailResponse completeTournament(
+            Integer tournamentId,
+            String adminEmail
+    ) {
+        getAdmin(adminEmail);
+
         Tournament tournament = tournamentRepository
                 .findByIdForUpdate(tournamentId)
                 .orElseThrow(() -> new ApiException(
