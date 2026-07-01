@@ -81,7 +81,7 @@ class RaceEngineLaunchServiceTest {
         when(raceEntryRepository.countByRaceIdAndStatus(
                 RACE_ID,
                 RaceEntryStatus.ASSIGNED
-        )).thenReturn(2L);
+        )).thenReturn(3L);
         when(refereeAssignmentRepository.existsByRaceId(RACE_ID))
                 .thenReturn(true);
         when(raceEngineTokenService.generateToken())
@@ -168,6 +168,33 @@ class RaceEngineLaunchServiceTest {
         );
 
         assertEquals(HttpStatus.CONFLICT, exception.getStatus());
+        verify(raceRepository, never()).saveAndFlush(any());
+        verify(raceEngineProcessLauncher, never()).launch(any(), any());
+    }
+
+    @Test
+    void launchRaceRejectsWhenAssignedEntriesAreLessThanThree() {
+        Race race = launchableRace();
+        stubAdmin();
+        when(raceRepository.findByIdForUpdate(RACE_ID))
+                .thenReturn(Optional.of(race));
+        when(refereeAssignmentRepository.existsByRaceId(RACE_ID))
+                .thenReturn(true);
+        when(raceEntryRepository.countByRaceIdAndStatus(
+                RACE_ID,
+                RaceEntryStatus.ASSIGNED
+        )).thenReturn(2L);
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> raceEngineLaunchService.launchRace(RACE_ID, ADMIN_EMAIL)
+        );
+
+        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
+        assertEquals(
+                "Race needs at least 3 assigned entries before it can be run.",
+                exception.getMessage()
+        );
         verify(raceRepository, never()).saveAndFlush(any());
         verify(raceEngineProcessLauncher, never()).launch(any(), any());
     }

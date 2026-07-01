@@ -39,7 +39,7 @@ public class UpdateTournamentRequest {
     private LocalDate endDate;
 
     @NotNull(message = "Maximum registrations is required.")
-    @Min(value = 1, message = "Maximum registrations must be greater than zero.")
+    @Min(value = 3, message = "Maximum registrations must be at least 3.")
     private Integer maxRegistrations;
 
     @NotNull(message = "Entry fee is required.")

@@ -35,7 +35,7 @@ import java.util.List;
 @Service
 public class RaceEngineLaunchService {
 
-    private static final long MIN_RUNNERS_TO_LAUNCH = 2;
+    private static final long MIN_RUNNERS_TO_LAUNCH = 3;
 
     private final RaceRepository raceRepository;
     private final RaceEntryRepository raceEntryRepository;

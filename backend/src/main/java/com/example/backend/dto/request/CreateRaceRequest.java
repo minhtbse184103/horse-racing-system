@@ -35,7 +35,7 @@ public class CreateRaceRequest {
     private Integer distance;
 
     @NotNull(message = "Maximum runners is required.")
-    @Min(value = 1, message = "Maximum runners must be greater than zero.")
+    @Min(value = 3, message = "Maximum runners must be at least 3.")
     @Max(value = 6, message = "Maximum runners cannot exceed 6 for the Unity race simulator.")
     private Integer maxRunners;
 
