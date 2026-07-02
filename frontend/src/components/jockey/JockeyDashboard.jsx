@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import defaultJockeyAvatar from '../../assets/default-jockey-avatar.svg';
 import AppShell from '../common/AppShell';
+import WalletTransferPanel from '../payment/WalletTransferPanel';
 import {
   acceptJockeyInvitation,
   createJockeyProfile,
@@ -17,7 +18,8 @@ import { formatDate, formatDisplayLabel } from '../../lib';
 const jockeyNavItems = [
   { key: 'overview', label: 'Tổng quan', icon: '📊' },
   { key: 'profile', label: 'Hồ sơ', icon: '🧑‍✈️' },
-  { key: 'invitations', label: 'Lời mời', icon: '✉️' }
+  { key: 'invitations', label: 'Lời mời', icon: '✉️' },
+  { key: 'wallet', label: 'Chuyen tien', icon: 'VND' }
 ];
 
 const rankingOptions = ['BEGINNER', 'INTERMEDIATE', 'PROFESSIONAL', 'ELITE'];
@@ -50,7 +52,7 @@ function getErrorText(error, fallback) {
 }
 
 function isJockeySection(section) {
-  return section === 'overview' || section === 'profile' || section === 'invitations';
+  return section === 'overview' || section === 'profile' || section === 'invitations' || section === 'wallet';
 }
 
 function isMissingProfileError(error) {
@@ -1289,6 +1291,10 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
             {renderInvitationList()}
           </section>
         </section>
+      )}
+
+      {activeSection === 'wallet' && (
+        <WalletTransferPanel currentUser={currentUser} role="JOCKEY" />
       )}
 
       <InvitationDetailModal

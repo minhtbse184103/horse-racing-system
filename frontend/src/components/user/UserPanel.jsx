@@ -8,10 +8,12 @@ import {
   Medal,
   Search,
   Trophy,
-  UserRound
+  UserRound,
+  Wallet
 } from 'lucide-react';
 import OwnerApplicationForm from '../profile/OwnerApplicationForm';
 import JockeyApplicationForm from '../profile/JockeyApplicationForm';
+import WalletTransferPanel from '../payment/WalletTransferPanel';
 import StatCard from '../common/StatCard';
 import LanguageToggle from '../common/LanguageToggle';
 import { formatDate, formatDisplayLabel, getUserRole } from '../../lib';
@@ -27,6 +29,7 @@ const navItems = [
   { key: 'horses', label: 'Horses', icon: Trophy },
   { key: 'races', label: 'Races', icon: Flag },
   { key: 'betting', label: 'Betting', icon: CircleDollarSign },
+  { key: 'wallet', label: 'Chuyen tien', icon: Wallet, roles: ['SPECTATOR'] },
   { key: 'results', label: 'Results', icon: Medal },
   { key: 'profile', label: 'Profile', icon: UserRound }
 ];
@@ -424,6 +427,10 @@ export default function UserPanel({ user, onLogout }) {
 
   const profileName = user?.fullName || user?.email || 'Spectator';
   const role = getUserRole(user) || 'SPECTATOR';
+  const visibleNavItems = useMemo(
+    () => navItems.filter((item) => !item.roles || item.roles.includes(role)),
+    [role]
+  );
 
   const notifications = useMemo(() => {
     if (ownerApplication?.status === 'APPROVED') {
@@ -558,6 +565,10 @@ export default function UserPanel({ user, onLogout }) {
       return <PlaceholderSection title="Betting" message="Betting overview placeholder for the future backend." icon="💰" />;
     }
 
+    if (activeSection === 'wallet' && role === 'SPECTATOR') {
+      return <WalletTransferPanel currentUser={user} role={role} />;
+    }
+
     return <PlaceholderSection title="Results" message="Race results and standings will be connected later." icon="🏆" />;
   }
 
@@ -573,7 +584,7 @@ export default function UserPanel({ user, onLogout }) {
         </div>
 
         <nav className="owner-nav" aria-label="Spectator navigation">
-          {navItems.map((item) => {
+          {visibleNavItems.map((item) => {
             const Icon = item.icon;
             const active = activeSection === item.key;
 
