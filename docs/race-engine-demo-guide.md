@@ -13,7 +13,7 @@ $env:DB_PASSWORD="h123@"
 $env:VNPAY_TMN_CODE="..."
 $env:VNPAY_HASH_SECRET="..."
 $env:VNPAY_PAY_URL="https://sandbox.vnpayment.vn/paymentv2/vpcpay.html"
-$env:VNPAY_RETURN_URL="http://localhost:5173/payment/vnpay-return"
+$env:VNPAY_RETURN_URL="http://localhost:5173/dashboard"
 $env:UNITY_EXECUTABLE_PATH="C:\Users\ACER\Documents\GAME\horse-racing-simulator\Horse Race.exe"
 ```
 

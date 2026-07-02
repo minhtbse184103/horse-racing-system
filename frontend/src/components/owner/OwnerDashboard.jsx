@@ -1,10 +1,12 @@
 import { useState } from 'react';
+import { Wallet } from 'lucide-react';
 import AppShell from '../common/AppShell';
 import OwnerOverview from './OwnerOverview';
 import OwnerHorseForm from './OwnerHorseForm';
 import OwnerHorseTable from './OwnerHorseTable';
 import OwnerRegisterRace from './OwnerRegisterRace';
 import OwnerProfile from './OwnerProfile';
+import WalletTransferPanel from '../payment/WalletTransferPanel';
 import { useHorses } from '../../hooks/useHorses';
 import { useOwnerDashboard } from '../../hooks/useOwnerDashboard';
 import { emptyHorseForm, formatDisplayLabel, getHorseId, getHorseName, toHorsePayload } from '../../lib';
@@ -16,6 +18,8 @@ const ownerNavItems = [
   { key: 'horses', label: 'Ngựa của tôi', icon: '🐎' },
   { key: 'register', label: 'Đăng ký thi đấu', icon: '📝' },
   { key: 'profile', label: 'Profile', icon: '👤' }
+  ,
+  { key: 'wallet', labelKey: 'wallet', icon: Wallet },
 ];
 
 function getErrorText(error, fallback) {
@@ -23,7 +27,7 @@ function getErrorText(error, fallback) {
 }
 
 function isOwnerSection(section) {
-  return section === 'overview' || section === 'horses' || section === 'register' || section === 'profile';
+  return section === 'overview' || section === 'horses' || section === 'register' || section === 'wallet' || section === 'profile';
 }
 
 function readImageFile(file) {
@@ -58,7 +62,12 @@ function getHorseDocumentUrl(file) {
 }
 
 export default function OwnerDashboard({ currentUser, onLogout, onUserUpdated }) {
-  const [activeSection, setActiveSection] = useState('overview');
+  const [activeSection, setActiveSection] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('vnp_TxnRef') || params.has('vnp_SecureHash')) return 'wallet';
+    const section = params.get('section');
+    return isOwnerSection(section) ? section : 'overview';
+  });
   const [isHorseFormOpen, setIsHorseFormOpen] = useState(false);
   const [formValues, setFormValues] = useState(emptyHorseForm());
   const [formErrors, setFormErrors] = useState({});
@@ -535,6 +544,10 @@ export default function OwnerDashboard({ currentUser, onLogout, onUserUpdated })
           user={currentUser}
           onUserUpdated={onUserUpdated}
         />
+      )}
+
+      {activeSection === 'wallet' && (
+        <WalletTransferPanel currentUser={currentUser} role="OWNER" />
       )}
     </AppShell>
   );

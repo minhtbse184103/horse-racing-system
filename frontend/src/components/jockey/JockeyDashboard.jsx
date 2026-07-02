@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Wallet } from 'lucide-react';
 import defaultJockeyAvatar from '../../assets/default-jockey-avatar.svg';
 import AppShell from '../common/AppShell';
+import WalletTransferPanel from '../payment/WalletTransferPanel';
 import {
   acceptJockeyInvitation,
   createJockeyProfile,
@@ -17,7 +19,8 @@ import { formatDate, formatDisplayLabel } from '../../lib';
 const jockeyNavItems = [
   { key: 'overview', label: 'Tổng quan', icon: '📊' },
   { key: 'profile', label: 'Hồ sơ', icon: '🧑‍✈️' },
-  { key: 'invitations', label: 'Lời mời', icon: '✉️' }
+  { key: 'invitations', label: 'Lời mời', icon: '✉️' },
+  { key: 'wallet', labelKey: 'wallet', icon: Wallet }
 ];
 
 const rankingOptions = ['BEGINNER', 'INTERMEDIATE', 'PROFESSIONAL', 'ELITE'];
@@ -50,7 +53,7 @@ function getErrorText(error, fallback) {
 }
 
 function isJockeySection(section) {
-  return section === 'overview' || section === 'profile' || section === 'invitations';
+  return section === 'overview' || section === 'profile' || section === 'invitations' || section === 'wallet';
 }
 
 function isMissingProfileError(error) {
@@ -333,7 +336,12 @@ function mergeProfileWithUser(profile, currentUser = {}) {
 }
 
 export default function JockeyDashboard({ currentUser, onLogout }) {
-  const [activeSection, setActiveSection] = useState('overview');
+  const [activeSection, setActiveSection] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('vnp_TxnRef') || params.has('vnp_SecureHash')) return 'wallet';
+    const section = params.get('section');
+    return isJockeySection(section) ? section : 'overview';
+  });
   const [profile, setProfile] = useState(null);
   const [profileForm, setProfileForm] = useState(() => emptyProfileForm(currentUser));
   const [profileErrors, setProfileErrors] = useState({});
@@ -1289,6 +1297,10 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
             {renderInvitationList()}
           </section>
         </section>
+      )}
+
+      {activeSection === 'wallet' && (
+        <WalletTransferPanel currentUser={currentUser} role="JOCKEY" />
       )}
 
       <InvitationDetailModal

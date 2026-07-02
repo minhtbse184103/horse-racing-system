@@ -7,6 +7,6 @@ export function confirmVnpayReturn(searchParams) {
 
   return httpRequest(`/api/payments/vnpay/return${query}`, {
     auth: false,
-    fallbackError: 'Khong the xac nhan ket qua thanh toan VNPAY.'
+    fallbackError: 'Unable to confirm the VNPAY payment result.'
   });
 }
