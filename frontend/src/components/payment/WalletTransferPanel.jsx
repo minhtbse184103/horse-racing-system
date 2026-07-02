@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowRight, CircleDollarSign, CreditCard, RefreshCw, ShieldCheck, Wallet, X } from 'lucide-react';
 import { getUserRole } from '../../lib';
+import { useLanguage } from '../../context/LanguageContext';
 import { confirmVnpayReturn } from '../../services/paymentService';
 import { createWalletDeposit, getMyWallet } from '../../services/walletService';
 
@@ -19,6 +20,7 @@ function normalizeAmount(value) {
 }
 
 export default function WalletTransferPanel({ currentUser, role: roleOverride }) {
+  const { t } = useLanguage();
   const role = String(roleOverride || getUserRole(currentUser) || '').toUpperCase();
   const [wallet, setWallet] = useState(null);
   const [amount, setAmount] = useState('200000');
@@ -31,14 +33,14 @@ export default function WalletTransferPanel({ currentUser, role: roleOverride })
   const amountValue = useMemo(() => normalizeAmount(amount), [amount]);
   const canSubmit = ALLOWED_ROLES.has(role) && amountValue > 0 && !submitting;
 
-async function loadWallet() {
+  async function loadWallet() {
     if (!ALLOWED_ROLES.has(role)) return;
     setLoading(true);
     setError('');
     try {
       setWallet(await getMyWallet());
     } catch (err) {
-      setError(err.message || 'Unable to load wallet information.');
+      setError(err.message || t('walletLoadError'));
     } finally {
       setLoading(false);
     }
@@ -65,10 +67,9 @@ async function loadWallet() {
           const result = await confirmVnpayReturn(window.location.search);
           if (ignore) return;
 
-          const nextStatus = result?.success ? 'success' : 'failed';
           setNotice({
             type: result?.success ? 'success' : 'error',
-            text: result?.success ? 'Top-up successful.' : 'Top-up failed.'
+            key: result?.success ? 'walletTopUpSuccessful' : 'walletTopUpFailed'
           });
 
           if (result?.success) {
@@ -79,18 +80,18 @@ async function loadWallet() {
         } catch {
           if (ignore) return;
 
-          setNotice({ type: 'error', text: 'Top-up failed.' });
+          setNotice({ type: 'error', key: 'walletTopUpFailed' });
           replaceWalletUrl();
         }
         return;
       }
 
       if (topupStatus === 'success') {
-        setNotice({ type: 'success', text: 'Top-up successful.' });
+        setNotice({ type: 'success', key: 'walletTopUpSuccessful' });
         loadWallet();
         replaceWalletUrl();
       } else if (topupStatus === 'failed') {
-        setNotice({ type: 'error', text: 'Top-up failed.' });
+        setNotice({ type: 'error', key: 'walletTopUpFailed' });
         replaceWalletUrl();
       }
     }
@@ -107,12 +108,12 @@ async function loadWallet() {
     setError('');
 
     if (!ALLOWED_ROLES.has(role)) {
-      setError('This account cannot use wallet top-ups.');
+      setError(t('walletTopupsUnavailable'));
       return;
     }
 
     if (amountValue <= 0) {
-      setError('Amount must be greater than 0.');
+      setError(t('walletAmountGreaterThanZero'));
       return;
     }
 
@@ -123,10 +124,10 @@ async function loadWallet() {
       if (paymentUrl) {
         window.location.assign(paymentUrl);
       } else {
-        setError('The top-up transaction was created, but no payment URL was returned.');
+        setError(t('walletNoPaymentUrl'));
       }
     } catch (err) {
-      setError(err.message || 'Unable to create the top-up transaction.');
+      setError(err.message || t('walletCreateTopUpError'));
     } finally {
       setSubmitting(false);
     }
@@ -155,9 +156,9 @@ async function loadWallet() {
       <section className="owner-panel">
         <div className="owner-panel-header">
           <div>
-            <p className="eyebrow">Wallet access</p>
-            <h2>Access denied</h2>
-            <p>Wallet top-ups are not available for this account.</p>
+            <p className="eyebrow">{t('walletAccess')}</p>
+            <h2>{t('walletAccessDenied')}</h2>
+            <p>{t('walletTopupsUnavailable')}</p>
           </div>
           <ShieldCheck size={24} />
         </div>
@@ -165,26 +166,29 @@ async function loadWallet() {
     );
   }
 
+  const roleTranslation = t(`role_${role}`);
+  const roleLabel = roleTranslation === `role_${role}` ? t('walletGenericUser') : roleTranslation.toLowerCase();
+
   return (
     <section className="owner-stack">
       <section className="owner-panel">
         <div className="owner-panel-header">
           <div>
-            <p className="eyebrow">Wallet</p>
-            <h2>Current balance</h2>
-            <p>Track the wallet balance for this {role ? role.toLowerCase() : 'user'} account.</p>
+            <p className="eyebrow">{t('wallet')}</p>
+            <h2>{t('walletCurrentBalance')}</h2>
+            <p>{t('walletBalanceDescription', { role: role ? roleLabel : t('walletGenericUser') })}</p>
           </div>
           <button className="outline-button compact-button inline-flex items-center justify-center gap-2" type="button" onClick={handleRefreshWallet} disabled={loading}>
-            <RefreshCw size={15} /> {loading ? 'Loading' : 'Refresh'}
+            <RefreshCw size={15} /> {loading ? t('loading') : t('refresh')}
           </button>
         </div>
 
         {!isDepositOpen && error && <div className="admin-alert error" role="alert">{error}</div>}
-        {!isDepositOpen && notice && <div className={`admin-alert ${notice.type}`} role="status">{notice.text}</div>}
+        {!isDepositOpen && notice && <div className={`admin-alert ${notice.type}`} role="status">{notice.key ? t(notice.key) : notice.text}</div>}
 
         <div className="rounded-lg border border-brown-700/10 bg-white/75 p-5">
           <span className="flex items-center gap-2 text-xs font-black uppercase text-slate-500">
-            <Wallet size={15} /> Balance
+            <Wallet size={15} /> {t('walletBalance')}
           </span>
           <strong className="mt-3 block text-3xl font-black text-brown-900">{formatVnd(wallet?.balance)}</strong>
         </div>
@@ -192,13 +196,13 @@ async function loadWallet() {
         <div className="mt-5 rounded-lg border border-brown-700/10 bg-cream-200/70 p-4">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <span className="text-xs font-black uppercase text-slate-500">Top up</span>
+              <span className="text-xs font-black uppercase text-slate-500">{t('walletTopUp')}</span>
               <strong className="mt-1 flex items-center gap-2 text-brown-900">
                 <CreditCard size={17} /> VNPAY
               </strong>
             </div>
             <button className="primary-button compact-button inline-flex items-center justify-center gap-2" type="button" onClick={openDepositDialog}>
-              Top up <ArrowRight size={16} />
+              {t('walletTopUp')} <ArrowRight size={16} />
             </button>
           </div>
         </div>
@@ -209,16 +213,16 @@ async function loadWallet() {
           <form className="w-full max-w-md rounded-lg bg-white p-5 shadow-2xl" onSubmit={handleSubmit}>
             <div className="flex items-start justify-between gap-4">
               <div>
-                <p className="text-xs font-black uppercase text-slate-500">Top up</p>
-                <h3 className="mt-1 text-xl font-black text-brown-900">Enter top-up amount</h3>
-                <p className="mt-1 text-sm font-semibold text-slate-600">Payment will be processed through VNPAY.</p>
+                <p className="text-xs font-black uppercase text-slate-500">{t('walletTopUp')}</p>
+                <h3 className="mt-1 text-xl font-black text-brown-900">{t('walletEnterTopUpAmount')}</h3>
+                <p className="mt-1 text-sm font-semibold text-slate-600">{t('walletPaymentThroughProvider', { provider: 'VNPAY' })}</p>
               </div>
               <button
                 className="grid size-9 shrink-0 place-items-center rounded-lg border border-brown-700/10 text-brown-700 transition hover:border-gold-400 hover:bg-gold-400/15"
                 type="button"
                 onClick={closeDepositDialog}
-                aria-label="Close"
-                title="Close"
+                aria-label={t('close')}
+                title={t('close')}
                 disabled={submitting}
               >
                 <X size={16} />
@@ -228,7 +232,7 @@ async function loadWallet() {
             {error && <div className="admin-alert error mt-4" role="alert">{error}</div>}
 
             <div className="mt-5">
-              <label className="text-xs font-black uppercase text-slate-500" htmlFor="wallet-transfer-amount">Amount</label>
+              <label className="text-xs font-black uppercase text-slate-500" htmlFor="wallet-transfer-amount">{t('walletAmount')}</label>
               <div className="mt-2 flex min-h-12 items-center gap-3 rounded-lg border border-brown-700/15 bg-white px-4 focus-within:border-gold-400">
                 <CircleDollarSign size={18} className="text-brown-500" />
                 <input
@@ -239,7 +243,7 @@ async function loadWallet() {
                   type="number"
                   value={amount}
                   onChange={(event) => setAmount(event.target.value)}
-                  placeholder="Enter amount"
+                  placeholder={t('walletEnterAmount')}
                   autoFocus
                 />
                 <span className="text-sm font-black text-slate-500">VND</span>
@@ -265,11 +269,11 @@ async function loadWallet() {
             <div className="mt-5 rounded-lg border border-brown-700/10 bg-cream-200/70 p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <span className="text-xs font-black uppercase text-slate-500">Payment method</span>
+                  <span className="text-xs font-black uppercase text-slate-500">{t('walletPaymentMethod')}</span>
                   <strong className="mt-1 flex items-center gap-2 text-brown-900"><CreditCard size={17} /> VNPAY</strong>
                 </div>
                 <div className="text-right">
-                  <span className="text-xs font-black uppercase text-slate-500">Total</span>
+                  <span className="text-xs font-black uppercase text-slate-500">{t('walletTotal')}</span>
                   <strong className="mt-1 block text-brown-900">{formatVnd(amountValue)}</strong>
                 </div>
               </div>
@@ -277,10 +281,10 @@ async function loadWallet() {
 
             <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
               <button className="outline-button compact-button inline-flex items-center justify-center" type="button" onClick={closeDepositDialog} disabled={submitting}>
-                Cancel
+                {t('cancel')}
               </button>
               <button className="primary-button compact-button inline-flex items-center justify-center gap-2" type="submit" disabled={!canSubmit}>
-                {submitting ? 'Redirecting...' : 'Top up'} <ArrowRight size={16} />
+                {submitting ? t('walletRedirecting') : t('walletTopUp')} <ArrowRight size={16} />
               </button>
             </div>
           </form>

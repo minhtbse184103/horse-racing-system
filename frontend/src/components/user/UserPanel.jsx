@@ -16,6 +16,7 @@ import JockeyApplicationForm from '../profile/JockeyApplicationForm';
 import WalletTransferPanel from '../payment/WalletTransferPanel';
 import StatCard from '../common/StatCard';
 import LanguageToggle from '../common/LanguageToggle';
+import { useLanguage } from '../../context/LanguageContext';
 import { formatDate, formatDisplayLabel, getUserRole } from '../../lib';
 import { getMyOwnerApplication, submitOwnerApplication } from '../../services/ownerApplicationService';
 import {
@@ -31,7 +32,7 @@ const navItems = [
   { key: 'betting', label: 'Betting', icon: CircleDollarSign },
   { key: 'results', label: 'Results', icon: Medal },
   { key: 'profile', label: 'Profile', icon: UserRound },
-  { key: 'wallet', label: 'Wallet', icon: Wallet, roles: ['SPECTATOR'] }
+  { key: 'wallet', labelKey: 'wallet', icon: Wallet, roles: ['SPECTATOR'] }
 ];
 
 const sampleRaces = [
@@ -413,6 +414,7 @@ function ProfileSection({ user, ownerApplication, jockeyApplication, isLoading, 
 }
 
 export default function UserPanel({ user, onLogout }) {
+  const { t } = useLanguage();
   const [activeSection, setActiveSection] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.has('vnp_TxnRef') || params.has('vnp_SecureHash')) return 'wallet';
@@ -591,6 +593,7 @@ export default function UserPanel({ user, onLogout }) {
           {visibleNavItems.map((item) => {
             const Icon = item.icon;
             const active = activeSection === item.key;
+            const label = item.labelKey ? t(item.labelKey) : item.label;
 
             return (
               <button
@@ -600,7 +603,7 @@ export default function UserPanel({ user, onLogout }) {
                 onClick={() => setActiveSection(item.key)}
               >
                 <span><Icon size={16} /></span>
-                {item.label}
+                {label}
               </button>
             );
           })}

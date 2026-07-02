@@ -19,7 +19,7 @@ const ownerNavItems = [
   { key: 'register', label: 'Đăng ký thi đấu', icon: '📝' },
   { key: 'profile', label: 'Profile', icon: '👤' }
   ,
-  { key: 'wallet', label: 'Wallet', icon: Wallet },
+  { key: 'wallet', labelKey: 'wallet', icon: Wallet },
 ];
 
 function getErrorText(error, fallback) {

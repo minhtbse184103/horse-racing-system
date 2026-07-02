@@ -20,7 +20,7 @@ const jockeyNavItems = [
   { key: 'overview', label: 'Tổng quan', icon: '📊' },
   { key: 'profile', label: 'Hồ sơ', icon: '🧑‍✈️' },
   { key: 'invitations', label: 'Lời mời', icon: '✉️' },
-  { key: 'wallet', label: 'Wallet', icon: Wallet }
+  { key: 'wallet', labelKey: 'wallet', icon: Wallet }
 ];
 
 const rankingOptions = ['BEGINNER', 'INTERMEDIATE', 'PROFESSIONAL', 'ELITE'];

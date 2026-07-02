@@ -47,6 +47,7 @@ export default function AppShell({
         <nav className={navClass} aria-label={`${variant} navigation`}>
           {navItems.map((item) => {
             const Icon = item.icon;
+            const label = item.labelKey ? t(item.labelKey) : item.label;
             return (
               <button
                 key={item.key}
@@ -55,7 +56,7 @@ export default function AppShell({
                 onClick={() => onNavigate?.(item.key)}
               >
                 {typeof Icon === 'string' ? <span>{Icon}</span> : Icon ? <Icon size={18} aria-hidden="true" /> : null}
-                {item.label}
+                {label}
               </button>
             );
           })}
