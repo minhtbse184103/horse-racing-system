@@ -29,15 +29,15 @@ import {
 
 function MetricCard({ icon: Icon, label, value, note }) {
   return (
-    <article className="rounded-lg border border-white/80 bg-[linear-gradient(145deg,rgba(255,255,255,0.96),rgba(255,248,238,0.86))] p-4 shadow-[0_12px_32px_rgba(78,44,25,0.08)]">
-      <div className="flex items-center gap-3">
-        <div className="grid size-10 place-items-center rounded-lg bg-cream-200 text-brown-700">
-          <Icon size={18} strokeWidth={2.5} />
-        </div>
+    <article className="rounded-lg border border-white/80 bg-cream-100/90 p-5 shadow-[0_18px_45px_rgba(78,44,25,0.1)]">
+      <div className="flex items-center justify-between gap-3">
         <div className="min-w-0">
           <p className="text-xs font-black uppercase tracking-wide text-slate-500">{label}</p>
-          <strong className="mt-1 block truncate text-2xl font-black text-brown-900">{value}</strong>
-          {note && <span className="mt-0.5 block truncate text-xs font-semibold text-slate-500">{note}</span>}
+          <strong className="mt-2 block truncate text-3xl font-black text-brown-900">{value}</strong>
+          {note && <span className="mt-1 block truncate text-xs font-semibold text-slate-500">{note}</span>}
+        </div>
+        <div className="grid size-11 shrink-0 place-items-center rounded-lg border border-brown-700/10 bg-cream-200 text-brown-700">
+          <Icon size={18} strokeWidth={2.5} />
         </div>
       </div>
     </article>
@@ -46,7 +46,7 @@ function MetricCard({ icon: Icon, label, value, note }) {
 
 function EmptyState({ onRefresh }) {
   return (
-    <section className="rounded-lg border border-dashed border-brown-700/20 bg-white/80 p-10 text-center shadow-[0_10px_28px_rgba(78,44,25,0.06)]">
+    <section className="rounded-lg border border-dashed border-brown-700/20 bg-white/75 p-10 text-center shadow-[0_10px_30px_rgba(78,44,25,0.06)]">
       <div className="mx-auto grid size-14 place-items-center rounded-lg bg-cream-200 text-brown-700">
         <CheckCircle2 size={26} />
       </div>
@@ -57,7 +57,7 @@ function EmptyState({ onRefresh }) {
       <button
         type="button"
         onClick={onRefresh}
-        className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-lg border border-brown-700/15 bg-white px-5 text-sm font-black text-brown-700 shadow-sm hover:bg-cream-100"
+        className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-lg border border-brown-700/15 bg-white px-5 text-sm font-black text-brown-700 shadow-[0_8px_18px_rgba(78,44,25,0.06)] transition hover:-translate-y-0.5 hover:bg-cream-100"
       >
         <RefreshCw size={16} />
         Làm mới
@@ -83,7 +83,7 @@ function ReviewDialog({
   return (
     <div className="fixed inset-0 z-[1200] grid place-items-center bg-brown-900/60 p-4 backdrop-blur-sm" onClick={onClose}>
       <section className="w-full max-w-xl overflow-hidden rounded-lg border border-white/60 bg-cream-100 shadow-[0_32px_90px_rgba(43,23,16,0.46)]" onClick={(event) => event.stopPropagation()}>
-        <header className="flex items-start justify-between gap-4 border-b border-brown-700/10 bg-white/75 p-6">
+        <header className="flex items-start justify-between gap-4 border-b border-brown-700/10 bg-[linear-gradient(135deg,rgba(255,248,238,0.96),rgba(247,234,216,0.88))] p-6">
           <div>
             <p className="text-xs font-black uppercase tracking-wide text-brown-500">
               {isFlag ? 'Flag kết quả' : 'Xác nhận kết quả'}
@@ -96,16 +96,17 @@ function ReviewDialog({
           <button
             type="button"
             onClick={onClose}
-            className="grid size-11 place-items-center rounded-lg border border-brown-700/10 bg-white text-brown-700 hover:bg-cream-200"
+            className="grid size-10 shrink-0 place-items-center rounded-lg border border-brown-700/10 bg-white text-brown-700 shadow-[0_8px_18px_rgba(78,44,25,0.06)] hover:bg-cream-200"
             disabled={isSubmitting}
+            aria-label="Đóng hộp thoại"
           >
             <X size={18} />
           </button>
         </header>
 
         <div className="grid gap-4 p-6">
-          <div className={`rounded-lg border p-4 ${isFlag ? 'border-rose-200 bg-rose-50 text-rose-800' : 'border-emerald-200 bg-emerald-50 text-emerald-800'}`}>
-            <p className="text-sm font-bold">
+          <div className={`rounded-lg border p-4 shadow-[0_8px_22px_rgba(78,44,25,0.05)] ${isFlag ? 'border-rose-200 bg-rose-50 text-rose-800' : 'border-emerald-200 bg-emerald-50 text-emerald-800'}`}>
+            <p className="text-sm font-bold leading-6">
               {isFlag
                 ? 'Nhập lý do để báo lỗi kết quả này cho Admin.'
                 : 'Bạn có thể để lại ghi chú tùy chọn trước khi xác nhận kết quả.'}
@@ -118,7 +119,7 @@ function ReviewDialog({
               {isFlag && <span className="text-rose-600"> *</span>}
             </span>
             <textarea
-              className="min-h-32 rounded-lg border border-brown-700/15 bg-white px-4 py-3 text-sm font-semibold text-brown-900 outline-none transition focus:border-brown-500 focus:ring-4 focus:ring-brown-500/10"
+              className="min-h-32 rounded-lg border border-brown-700/15 bg-white px-4 py-3 text-sm font-semibold text-brown-900 shadow-[0_8px_20px_rgba(78,44,25,0.06)] outline-none transition focus:border-brown-500 focus:ring-4 focus:ring-brown-500/10"
               value={comment}
               onChange={(event) => onCommentChange(event.target.value)}
               placeholder={isFlag ? 'Mô tả vấn đề cần Admin kiểm tra...' : 'Ghi chú cho Admin nếu cần...'}
@@ -126,14 +127,14 @@ function ReviewDialog({
             />
           </label>
 
-          {error && <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">{error}</div>}
+          {error && <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700 shadow-[0_8px_24px_rgba(185,28,28,0.08)]">{error}</div>}
         </div>
 
         <footer className="flex flex-col-reverse gap-3 border-t border-brown-700/10 p-6 sm:flex-row sm:justify-end">
           <button
             type="button"
             onClick={onClose}
-            className="min-h-11 rounded-lg border border-brown-700/15 bg-white px-5 text-sm font-black text-brown-700 hover:bg-cream-100"
+            className="min-h-11 rounded-lg border border-brown-700/15 bg-white px-5 text-sm font-black text-brown-700 transition hover:bg-cream-100 disabled:opacity-60"
             disabled={isSubmitting}
           >
             Đóng
@@ -141,7 +142,7 @@ function ReviewDialog({
           <button
             type="button"
             onClick={onSubmit}
-            className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-5 text-sm font-black text-white shadow-lg disabled:cursor-not-allowed disabled:opacity-60 ${
+            className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-5 text-sm font-black text-white shadow-lg transition hover:-translate-y-0.5 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 ${
               isFlag ? 'bg-rose-600 hover:bg-rose-700' : 'bg-emerald-700 hover:bg-emerald-800'
             }`}
             disabled={isSubmitting}
@@ -158,7 +159,7 @@ function ReviewDialog({
 function SubmissionDetail({ submission, onBack, onConfirm, onFlag, isLoading, error, onRetry }) {
   if (isLoading) {
     return (
-      <section className="rounded-lg border border-white/80 bg-white/85 p-10 text-center shadow-[0_12px_32px_rgba(78,44,25,0.08)]">
+      <section className="rounded-lg border border-white/80 bg-cream-100/90 p-10 text-center shadow-[0_20px_52px_rgba(78,44,25,0.12)]">
         <Loader2 className="mx-auto animate-spin text-brown-700" size={32} />
         <p className="mt-4 font-bold text-slate-500">Đang tải chi tiết submission...</p>
       </section>
@@ -167,14 +168,14 @@ function SubmissionDetail({ submission, onBack, onConfirm, onFlag, isLoading, er
 
   if (error) {
     return (
-      <section className="rounded-lg border border-rose-200 bg-rose-50 p-6">
+      <section className="rounded-lg border border-rose-200 bg-rose-50 p-6 shadow-[0_12px_34px_rgba(185,28,28,0.08)]">
         <h3 className="text-lg font-black text-rose-800">Không thể tải chi tiết kết quả</h3>
         <p className="mt-2 font-semibold text-rose-700">{error}</p>
         <div className="mt-5 flex flex-wrap gap-3">
-          <button className="rounded-lg bg-rose-700 px-4 py-2 text-sm font-black text-white" type="button" onClick={onRetry}>
+          <button className="rounded-lg bg-rose-700 px-4 py-2 text-sm font-black text-white shadow-[0_8px_18px_rgba(185,28,28,0.12)]" type="button" onClick={onRetry}>
             Thử lại
           </button>
-          <button className="rounded-lg border border-rose-200 bg-white px-4 py-2 text-sm font-black text-rose-700" type="button" onClick={onBack}>
+          <button className="rounded-lg border border-rose-200 bg-white px-4 py-2 text-sm font-black text-rose-700 shadow-[0_8px_18px_rgba(78,44,25,0.06)]" type="button" onClick={onBack}>
             Quay lại danh sách
           </button>
         </div>
@@ -186,22 +187,22 @@ function SubmissionDetail({ submission, onBack, onConfirm, onFlag, isLoading, er
 
   return (
     <section className="grid gap-5">
-      <div className="overflow-hidden rounded-lg border border-white/80 bg-white/85 shadow-[0_16px_44px_rgba(43,23,16,0.08)]">
-        <header className="flex flex-col gap-4 border-b border-brown-700/10 bg-[linear-gradient(135deg,rgba(255,255,255,0.92),rgba(247,234,216,0.58))] p-5 lg:flex-row lg:items-start lg:justify-between">
+      <div className="overflow-hidden rounded-lg border border-white/80 bg-cream-100/90 shadow-[0_20px_52px_rgba(78,44,25,0.12)]">
+        <header className="flex flex-col gap-4 border-b border-brown-700/10 bg-[linear-gradient(135deg,rgba(255,248,238,0.96),rgba(247,234,216,0.78))] p-5 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <p className="text-xs font-black uppercase tracking-wide text-brown-500">Submission #{submission.submissionId}</p>
             <h2 className="mt-2 text-2xl font-black text-brown-900">{submission.raceName}</h2>
             <p className="mt-1 font-semibold text-slate-500">{submission.tournamentName} · {submission.trackName}</p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button className="min-h-10 rounded-lg border border-brown-700/15 bg-white px-4 text-sm font-black text-brown-700 hover:bg-cream-100" type="button" onClick={onBack}>
+            <button className="min-h-10 rounded-lg border border-brown-700/15 bg-white px-4 text-sm font-black text-brown-700 shadow-[0_8px_18px_rgba(78,44,25,0.06)] transition hover:-translate-y-0.5 hover:bg-cream-100" type="button" onClick={onBack}>
               Quay lại
             </button>
-            <button className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 text-sm font-black text-rose-700 hover:bg-rose-100" type="button" onClick={onFlag}>
+            <button className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 text-sm font-black text-rose-700 shadow-[0_8px_18px_rgba(185,28,28,0.06)] transition hover:-translate-y-0.5 hover:bg-rose-100" type="button" onClick={onFlag}>
               <Flag size={16} />
               Flag kết quả
             </button>
-            <button className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-emerald-700 px-4 text-sm font-black text-white shadow-lg shadow-emerald-900/10 hover:bg-emerald-800" type="button" onClick={onConfirm}>
+            <button className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-emerald-700 px-4 text-sm font-black text-white shadow-[0_12px_28px_rgba(5,150,105,0.18)] transition hover:-translate-y-0.5 hover:bg-emerald-800" type="button" onClick={onConfirm}>
               <CheckCircle2 size={16} />
               Xác nhận kết quả
             </button>
@@ -209,38 +210,47 @@ function SubmissionDetail({ submission, onBack, onConfirm, onFlag, isLoading, er
         </header>
 
         <div className="grid gap-4 p-5 lg:grid-cols-4">
-          <div className="rounded-lg border border-brown-700/10 bg-cream-100 p-4">
+          <div className="rounded-lg border border-white/80 bg-white p-4 shadow-[0_10px_24px_rgba(78,44,25,0.06)]">
             <span className="text-xs font-black uppercase tracking-wide text-slate-500">Status</span>
             <div className="mt-2"><ReviewStatusBadge status={submission.status} /></div>
           </div>
-          <div className="rounded-lg border border-brown-700/10 bg-cream-100 p-4">
+          <div className="rounded-lg border border-white/80 bg-white p-4 shadow-[0_10px_24px_rgba(78,44,25,0.06)]">
             <span className="text-xs font-black uppercase tracking-wide text-slate-500">Thời gian Race</span>
             <strong className="mt-2 block text-brown-900">{formatReviewDateTime(submission.raceStartTime)}</strong>
           </div>
-          <div className="rounded-lg border border-brown-700/10 bg-cream-100 p-4">
+          <div className="rounded-lg border border-white/80 bg-white p-4 shadow-[0_10px_24px_rgba(78,44,25,0.06)]">
             <span className="text-xs font-black uppercase tracking-wide text-slate-500">Thời gian gửi</span>
             <strong className="mt-2 block text-brown-900">{formatReviewDateTime(submission.submittedAt)}</strong>
           </div>
-          <div className="rounded-lg border border-brown-700/10 bg-cream-100 p-4">
+          <div className="rounded-lg border border-white/80 bg-white p-4 shadow-[0_10px_24px_rgba(78,44,25,0.06)]">
             <span className="text-xs font-black uppercase tracking-wide text-slate-500">Referee</span>
             <strong className="mt-2 block text-brown-900">{submission.refereeName}</strong>
           </div>
         </div>
       </div>
 
-      <section className="overflow-hidden rounded-lg border border-white/80 bg-white/85 shadow-[0_12px_32px_rgba(78,44,25,0.08)]">
-        <div className="flex flex-col gap-2 border-b border-brown-700/10 bg-cream-100/80 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+      <section className="overflow-hidden rounded-lg border border-white/80 bg-cream-100/90 shadow-[0_20px_52px_rgba(78,44,25,0.1)]">
+        <div className="flex flex-col gap-2 border-b border-brown-700/10 bg-[linear-gradient(135deg,rgba(255,248,238,0.96),rgba(247,234,216,0.72))] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h3 className="text-lg font-black text-brown-900">Danh sách RaceEntry</h3>
             <p className="text-sm font-semibold text-slate-500">Kết quả provisional từ Unity, chờ referee duyệt.</p>
           </div>
-          <span className="rounded-full bg-white px-3 py-1 text-sm font-black text-brown-700">{submission.entries.length} horses</span>
+          <span className="rounded-full border border-brown-700/10 bg-white px-3 py-1 text-sm font-black text-brown-700 shadow-[0_6px_16px_rgba(78,44,25,0.06)]">{submission.entries.length} Horse</span>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="min-w-[62rem] w-full text-left">
-            <thead>
-              <tr className="border-b border-brown-700/10 bg-cream-200/65 text-xs font-black uppercase tracking-wide text-brown-700">
+          <table className="min-w-[62rem] w-full table-fixed text-left">
+            <colgroup>
+              <col className="w-[11%]" />
+              <col className="w-[22%]" />
+              <col className="w-[17%]" />
+              <col className="w-[17%]" />
+              <col className="w-[12%]" />
+              <col className="w-[14%]" />
+              <col className="w-[7%]" />
+            </colgroup>
+            <thead className="bg-cream-200/55">
+              <tr className="border-b border-brown-700/10 text-xs font-black uppercase tracking-wide text-brown-700">
                 <th className="px-5 py-3">Thứ hạng</th>
                 <th className="px-5 py-3">Horse</th>
                 <th className="px-5 py-3">Owner</th>
@@ -252,16 +262,16 @@ function SubmissionDetail({ submission, onBack, onConfirm, onFlag, isLoading, er
             </thead>
             <tbody>
               {submission.entries.map((entry) => (
-                <tr className="border-b border-brown-700/10 last:border-b-0 hover:bg-cream-100/60" key={entry.id}>
+                <tr className="border-b border-brown-700/10 bg-white/55 last:border-b-0 hover:bg-white" key={entry.id}>
                   <td className="px-5 py-4">
                     <span className="inline-grid size-10 place-items-center rounded-lg bg-cream-200 text-base font-black text-brown-700">#{entry.finishPosition}</span>
                   </td>
                   <td className="px-5 py-4">
-                    <strong className="block text-brown-900">{entry.horseName}</strong>
+                    <strong className="block truncate text-brown-900">{entry.horseName}</strong>
                     <span className="text-xs font-bold text-slate-500">RaceEntry #{entry.raceEntryId || 'N/A'}</span>
                   </td>
-                  <td className="px-5 py-4 font-bold text-brown-900">{entry.ownerName}</td>
-                  <td className="px-5 py-4 font-bold text-brown-900">{entry.jockeyName}</td>
+                  <td className="truncate px-5 py-4 font-bold text-brown-900">{entry.ownerName}</td>
+                  <td className="truncate px-5 py-4 font-bold text-brown-900">{entry.jockeyName}</td>
                   <td className="px-5 py-4 font-black text-brown-900">{entry.startingStall || 'N/A'}</td>
                   <td className="px-5 py-4 font-black text-brown-900">{entry.finishTime}</td>
                   <td className="px-5 py-4 font-black text-brown-900">{entry.points}</td>
@@ -273,11 +283,11 @@ function SubmissionDetail({ submission, onBack, onConfirm, onFlag, isLoading, er
       </section>
 
       {submission.reviewActions.length > 0 && (
-        <section className="rounded-lg border border-white/80 bg-white/80 p-5 shadow-[0_12px_32px_rgba(78,44,25,0.08)]">
+        <section className="rounded-lg border border-white/80 bg-cream-100/90 p-5 shadow-[0_20px_52px_rgba(78,44,25,0.1)]">
           <h3 className="text-lg font-black text-brown-900">Lịch sử review</h3>
           <div className="mt-4 grid gap-3">
             {submission.reviewActions.map((action) => (
-              <article className="rounded-lg border border-brown-700/10 bg-cream-100 p-4" key={action.id}>
+              <article className="rounded-lg border border-white/80 bg-white p-4 shadow-[0_10px_24px_rgba(78,44,25,0.06)]" key={action.id}>
                 <div className="flex flex-wrap items-center gap-2">
                   <ReviewStatusBadge status={action.action} />
                   <strong className="text-brown-900">{action.actorRole || 'Reviewer'} #{action.actorUserId || 'N/A'}</strong>
@@ -409,8 +419,8 @@ export default function RefereeResultReview() {
 
   if (selectedId) {
     return (
-      <>
-        {toast && <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800">{toast}</div>}
+      <section className="space-y-5 text-brown-900">
+        {toast && <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800 shadow-[0_8px_24px_rgba(5,150,105,0.1)]">{toast}</div>}
         <SubmissionDetail
           submission={detail}
           onBack={() => returnToList()}
@@ -430,13 +440,13 @@ export default function RefereeResultReview() {
           onClose={closeReviewDialog}
           onSubmit={submitReview}
         />
-      </>
+      </section>
     );
   }
 
   return (
-    <section className="grid gap-5">
-      {toast && <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800">{toast}</div>}
+    <section className="space-y-5 text-brown-900">
+      {toast && <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800 shadow-[0_8px_24px_rgba(5,150,105,0.1)]">{toast}</div>}
 
       <section className="grid gap-4 md:grid-cols-3">
         <MetricCard icon={Trophy} label="Submission chờ duyệt" value={submissions.length} note="Chỉ Status SUBMITTED" />
@@ -444,18 +454,18 @@ export default function RefereeResultReview() {
         <MetricCard icon={AlertTriangle} label="Cần xử lý" value={submissions.length} note="Xác nhận hoặc flag" />
       </section>
 
-      <section className="overflow-hidden rounded-lg border border-white/80 bg-white/85 shadow-[0_16px_44px_rgba(43,23,16,0.08)]">
-        <header className="flex flex-col gap-4 border-b border-brown-700/10 bg-[linear-gradient(135deg,rgba(255,255,255,0.92),rgba(247,234,216,0.58))] p-5 lg:flex-row lg:items-center lg:justify-between">
+      <section className="overflow-hidden rounded-lg border border-white/80 bg-cream-100/90 shadow-[0_20px_52px_rgba(78,44,25,0.12)]">
+        <header className="flex flex-col gap-4 border-b border-brown-700/10 bg-[linear-gradient(135deg,rgba(255,248,238,0.96),rgba(247,234,216,0.78))] p-5 lg:flex-row lg:items-center lg:justify-between">
           <div>
             <p className="text-xs font-black uppercase tracking-wide text-brown-500">Duyệt kết quả Referee</p>
             <h2 className="mt-1 text-2xl font-black text-brown-900">Danh sách chờ duyệt</h2>
             <p className="mt-1 font-semibold text-slate-500">Duyệt kết quả provisional do Unity gửi trước khi Admin phê duyệt chính thức.</p>
           </div>
-          <div className="flex flex-col gap-2 sm:flex-row">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <label className="relative">
               <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
               <input
-                className="min-h-11 w-full rounded-lg border border-brown-700/15 bg-white pl-10 pr-4 text-sm font-bold text-brown-900 outline-none transition focus:border-brown-500 focus:ring-4 focus:ring-brown-500/10 sm:w-72"
+                className="min-h-11 w-full rounded-lg border border-brown-700/15 bg-white pl-10 pr-4 text-sm font-bold text-brown-900 shadow-[0_8px_20px_rgba(78,44,25,0.06)] outline-none transition focus:border-brown-500 focus:ring-4 focus:ring-brown-500/10 sm:w-80"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder="Tìm Tournament, Race, đường đua..."
@@ -465,7 +475,7 @@ export default function RefereeResultReview() {
               type="button"
               onClick={loadPendingSubmissions}
               disabled={isLoadingList}
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-brown-700 px-4 text-sm font-black text-white shadow-lg shadow-brown-900/10 hover:bg-brown-800 disabled:cursor-not-allowed disabled:opacity-60"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-brown-700 px-4 text-sm font-black text-white shadow-[0_12px_28px_rgba(108,63,36,0.24)] transition hover:-translate-y-0.5 hover:bg-brown-800 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isLoadingList ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
               Làm mới
@@ -474,7 +484,7 @@ export default function RefereeResultReview() {
         </header>
 
         {listError && (
-          <div className="m-5 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700">
+          <div className="m-5 rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-bold text-rose-700 shadow-[0_8px_24px_rgba(185,28,28,0.08)]">
             {listError}
             {submissions.length > 0 && (
               <p className="mt-1 text-xs font-extrabold text-rose-800">
@@ -495,9 +505,19 @@ export default function RefereeResultReview() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="min-w-[68rem] w-full text-left">
-              <thead>
-                <tr className="border-b border-brown-700/10 bg-cream-200/65 text-xs font-black uppercase tracking-wide text-brown-700">
+            <table className="min-w-[76rem] w-full table-fixed text-left">
+              <colgroup>
+                <col className="w-[10%]" />
+                <col className="w-[17%]" />
+                <col className="w-[16%]" />
+                <col className="w-[12%]" />
+                <col className="w-[14%]" />
+                <col className="w-[14%]" />
+                <col className="w-[9%]" />
+                <col className="w-[8%]" />
+              </colgroup>
+              <thead className="bg-cream-200/55">
+                <tr className="border-b border-brown-700/10 text-xs font-black uppercase tracking-wide text-brown-700">
                   <th className="px-5 py-3">Mã Submission</th>
                   <th className="px-5 py-3">Tournament</th>
                   <th className="px-5 py-3">Race</th>
@@ -505,35 +525,35 @@ export default function RefereeResultReview() {
                   <th className="px-5 py-3">Thời gian Race</th>
                   <th className="px-5 py-3">Thời gian gửi</th>
                   <th className="px-5 py-3">Status Submission</th>
-                  <th className="px-5 py-3">Số Horse</th>
+                  <th className="px-5 py-3 text-center">Số Horse</th>
                   <th className="px-5 py-3 text-right">Thao tác</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredSubmissions.map((submission) => (
-                  <tr className="border-b border-brown-700/10 last:border-b-0 hover:bg-cream-100/60" key={submission.submissionId}>
+                  <tr className="border-b border-brown-700/10 bg-white/55 last:border-b-0 hover:bg-white" key={submission.submissionId}>
                     <td className="px-5 py-4 font-black text-brown-900">#{submission.submissionId}</td>
                     <td className="px-5 py-4">
-                      <strong className="block text-brown-900">{submission.tournamentName}</strong>
+                      <strong className="block truncate text-brown-900">{submission.tournamentName}</strong>
                       <span className="text-xs font-bold text-slate-500">ID #{submission.tournamentId || 'N/A'}</span>
                     </td>
                     <td className="px-5 py-4">
-                      <strong className="block text-brown-900">{submission.raceName}</strong>
+                      <strong className="block truncate text-brown-900">{submission.raceName}</strong>
                       <span className="text-xs font-bold text-slate-500">Race #{submission.raceId || 'N/A'}</span>
                     </td>
-                    <td className="px-5 py-4 font-bold text-brown-900">{submission.trackName}</td>
+                    <td className="truncate px-5 py-4 font-bold text-brown-900">{submission.trackName}</td>
                     <td className="px-5 py-4 font-bold text-brown-900">{formatReviewDateTime(submission.raceStartTime)}</td>
                     <td className="px-5 py-4 font-bold text-brown-900">{formatReviewDateTime(submission.submittedAt)}</td>
                     <td className="px-5 py-4"><ReviewStatusBadge status={submission.status} /></td>
-                    <td className="px-5 py-4 font-black text-brown-900">{submission.horseCount}</td>
+                    <td className="px-5 py-4 text-center font-black text-brown-900">{submission.horseCount}</td>
                     <td className="px-5 py-4 text-right">
                       <button
                         type="button"
                         onClick={() => loadDetail(submission.submissionId)}
-                        className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-brown-700/15 bg-white px-4 text-sm font-black text-brown-700 shadow-sm hover:bg-cream-100"
+                        className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-brown-700/15 bg-white px-4 text-sm font-black text-brown-700 shadow-[0_8px_18px_rgba(78,44,25,0.06)] transition hover:-translate-y-0.5 hover:border-brown-500 hover:bg-cream-100"
                       >
                         <Eye size={16} />
-                        Xem xét
+                        Duyệt
                       </button>
                     </td>
                   </tr>

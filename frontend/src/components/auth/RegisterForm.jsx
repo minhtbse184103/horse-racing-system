@@ -62,6 +62,9 @@ export default function RegisterForm({ onGoHome, onGoLogin }) {
         phone: '',
         password: ''
       });
+      window.setTimeout(() => {
+        onGoLogin?.();
+      }, 700);
     } catch (error) {
       setApiError(error.message || t('registerError'));
     } finally {
