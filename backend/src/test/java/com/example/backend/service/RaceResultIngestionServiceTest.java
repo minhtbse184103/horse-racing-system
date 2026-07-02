@@ -2,16 +2,20 @@ package com.example.backend.service;
 
 import com.example.backend.constant.EventStatus;
 import com.example.backend.constant.RaceEntryStatus;
+import com.example.backend.constant.RaceResultSubmissionStatus;
 import com.example.backend.dto.request.RaceResultEntryRequest;
 import com.example.backend.dto.request.RaceResultIngestRequest;
 import com.example.backend.dto.response.RaceResultIngestResponse;
 import com.example.backend.entity.Race;
 import com.example.backend.entity.RaceEntry;
-import com.example.backend.entity.RaceResult;
+import com.example.backend.entity.RaceResultSubmission;
+import com.example.backend.entity.RaceResultSubmissionEntry;
 import com.example.backend.exception.ApiException;
 import com.example.backend.repository.RaceEntryRepository;
 import com.example.backend.repository.RaceRepository;
 import com.example.backend.repository.RaceResultRepository;
+import com.example.backend.repository.RaceResultSubmissionEntryRepository;
+import com.example.backend.repository.RaceResultSubmissionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -47,7 +51,9 @@ class RaceResultIngestionServiceTest {
     @Mock
     private RaceEngineTokenService raceEngineTokenService;
     @Mock
-    private RacePrizeSettlementService racePrizeSettlementService;
+    private RaceResultSubmissionRepository submissionRepository;
+    @Mock
+    private RaceResultSubmissionEntryRepository submissionEntryRepository;
 
     private RaceResultIngestionService raceResultIngestionService;
 
@@ -58,20 +64,28 @@ class RaceResultIngestionServiceTest {
                 raceEntryRepository,
                 raceResultRepository,
                 raceEngineTokenService,
-                racePrizeSettlementService
+                submissionRepository,
+                submissionEntryRepository
         );
     }
 
     @Test
-    void ingestResultSuccessSavesResultsAndCompletesRace() {
+    void ingestResultSuccessSavesSubmissionAndMovesRaceToPendingReview() {
         Race race = launchedRace();
         List<RaceEntry> entries = List.of(
                 assignedEntry(1, 1),
                 assignedEntry(2, 2)
         );
         stubRaceAndEntries(race, entries);
+        when(submissionRepository.existsByRaceId(RACE_ID)).thenReturn(false);
         when(raceResultRepository.existsByRaceEntryIdIn(List.of(1, 2)))
                 .thenReturn(false);
+        when(submissionRepository.save(any(RaceResultSubmission.class)))
+                .thenAnswer(invocation -> {
+                    RaceResultSubmission submission = invocation.getArgument(0);
+                    submission.setSubmissionId(50);
+                    return submission;
+                });
 
         RaceResultIngestResponse response =
                 raceResultIngestionService.ingestResult(
@@ -80,25 +94,34 @@ class RaceResultIngestionServiceTest {
                         resultRequest(resultEntry(1, 1), resultEntry(2, 2))
                 );
 
-        ArgumentCaptor<List<RaceResult>> captor =
-                ArgumentCaptor.forClass(List.class);
-        verify(raceResultRepository).saveAll(captor.capture());
+        ArgumentCaptor<RaceResultSubmission> submissionCaptor =
+                ArgumentCaptor.forClass(RaceResultSubmission.class);
+        verify(submissionRepository).save(submissionCaptor.capture());
+        RaceResultSubmission savedSubmission = submissionCaptor.getValue();
+        assertEquals(RACE_ID, savedSubmission.getRaceId());
+        assertEquals(ADMIN_ID, savedSubmission.getSubmittedBy());
+        assertEquals(RaceResultSubmissionStatus.SUBMITTED,
+                savedSubmission.getStatus());
+        assertNotNull(savedSubmission.getSubmittedAt());
 
-        List<RaceResult> savedResults = captor.getValue();
-        assertEquals(2, savedResults.size());
-        assertEquals(1, savedResults.get(0).getRaceEntryId());
-        assertEquals(1, savedResults.get(0).getFinishPosition());
-        assertEquals(ADMIN_ID, savedResults.get(0).getRecordedBy());
-        assertNotNull(savedResults.get(0).getRecordedAt());
-        verify(racePrizeSettlementService).settlePrizes(
-                any(),
-                any(),
-                any()
-        );
-        assertEquals(EventStatus.COMPLETED, race.getStatus());
+        ArgumentCaptor<List<RaceResultSubmissionEntry>> captor =
+                ArgumentCaptor.forClass(List.class);
+        verify(submissionEntryRepository).saveAll(captor.capture());
+
+        List<RaceResultSubmissionEntry> savedEntries = captor.getValue();
+        assertEquals(2, savedEntries.size());
+        assertEquals(50, savedEntries.get(0).getSubmissionId());
+        assertEquals(1, savedEntries.get(0).getRaceEntryId());
+        assertEquals(1, savedEntries.get(0).getStartingStall());
+        assertEquals(1, savedEntries.get(0).getFinishPosition());
+        verify(raceResultRepository, never()).saveAll(any());
+        assertEquals(EventStatus.PENDING_REVIEW, race.getStatus());
         assertEquals(null, race.getRaceEngineToken());
         verify(raceRepository).save(race);
-        assertEquals(EventStatus.COMPLETED, response.getStatus());
+        assertEquals(50, response.getSubmissionId());
+        assertEquals(EventStatus.PENDING_REVIEW, response.getStatus());
+        assertEquals(RaceResultSubmissionStatus.SUBMITTED,
+                response.getReviewStatus());
         assertNotNull(response.getRecordedAt());
     }
 
@@ -120,6 +143,7 @@ class RaceResultIngestionServiceTest {
         );
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        verify(submissionRepository, never()).save(any());
         verify(raceResultRepository, never()).saveAll(any());
     }
 
@@ -141,6 +165,7 @@ class RaceResultIngestionServiceTest {
         );
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        verify(submissionRepository, never()).save(any());
         verify(raceResultRepository, never()).saveAll(any());
     }
 
@@ -162,6 +187,7 @@ class RaceResultIngestionServiceTest {
         );
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        verify(submissionRepository, never()).save(any());
         verify(raceResultRepository, never()).saveAll(any());
     }
 
@@ -180,6 +206,7 @@ class RaceResultIngestionServiceTest {
         );
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        verify(submissionRepository, never()).save(any());
         verify(raceResultRepository, never()).saveAll(any());
     }
 
@@ -201,6 +228,7 @@ class RaceResultIngestionServiceTest {
         );
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        verify(submissionRepository, never()).save(any());
         verify(raceResultRepository, never()).saveAll(any());
     }
 
@@ -219,14 +247,15 @@ class RaceResultIngestionServiceTest {
         );
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        verify(submissionRepository, never()).save(any());
         verify(raceResultRepository, never()).saveAll(any());
     }
 
     @Test
-    void ingestResultRejectsResubmissionWhenResultExists() {
+    void ingestResultRejectsResubmissionWhenSubmissionExists() {
         Race race = launchedRace();
         stubRaceAndEntries(race, List.of(assignedEntry(1, 1)));
-        when(raceResultRepository.existsByRaceEntryIdIn(List.of(1)))
+        when(submissionRepository.existsByRaceId(RACE_ID))
                 .thenReturn(true);
 
         ApiException exception = assertThrows(
@@ -239,6 +268,8 @@ class RaceResultIngestionServiceTest {
         );
 
         assertEquals(HttpStatus.CONFLICT, exception.getStatus());
+        verify(raceResultRepository, never()).existsByRaceEntryIdIn(any());
+        verify(submissionRepository, never()).save(any());
         verify(raceResultRepository, never()).saveAll(any());
     }
 

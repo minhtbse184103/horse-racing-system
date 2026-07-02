@@ -20,8 +20,8 @@ export function getPublicTournamentConditions() {
   return httpRequest('/api/tournament-conditions', { auth: false });
 }
 
-export function createTournament(payload) {
-  return httpRequest('/api/tournaments', {
+export function createTournamentProgram(payload) {
+  return httpRequest('/api/tournaments/program', {
     method: 'POST',
     body: payload
   });

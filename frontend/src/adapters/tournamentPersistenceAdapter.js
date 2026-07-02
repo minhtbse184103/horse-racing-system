@@ -58,6 +58,15 @@ export function toCreateRaceRequest(race, tournamentId, raceOrder) {
   };
 }
 
+export function toCreateTournamentProgramRequest(tournament) {
+  return {
+    tournament: toTournamentRequest(tournament),
+    races: tournament.races.map((race, index) =>
+      toRaceRequest(race, Number(race.raceOrder || index + 1))
+    )
+  };
+}
+
 export function toUpdateRaceRequest(race, raceOrder) {
   return toRaceRequest(race, raceOrder);
 }

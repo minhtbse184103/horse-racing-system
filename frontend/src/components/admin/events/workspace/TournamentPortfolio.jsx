@@ -37,7 +37,7 @@ export default function TournamentPortfolio({
 }) {
   return (
     <section className="overflow-hidden rounded-lg border border-white/80 bg-cream-100/90 shadow-[0_20px_52px_rgba(78,44,25,0.12),0_1px_2px_rgba(43,23,16,0.08)]">
-      <div className="border-b border-brown-700/10 bg-white/65 p-4 md:p-5">
+      <div className="border-b border-brown-700/10 bg-[linear-gradient(135deg,rgba(255,255,255,0.86),rgba(247,234,216,0.54))] p-4 md:p-5">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div>
             <h2 className="text-xl font-black text-brown-900 md:text-2xl">Danh sách Tournament</h2>
@@ -128,14 +128,14 @@ export default function TournamentPortfolio({
             <col className="w-[14%]" />
             <col className="w-[12%]" />
           </colgroup>
-          <thead className="bg-cream-200/60 text-left text-[11px] font-black uppercase text-brown-700">
+          <thead className="bg-cream-200/70 text-left text-[11px] font-black uppercase text-brown-700">
             <tr>
-              <th className="px-5 py-4">Tournament</th>
-              <th className="px-4 py-4">Địa điểm</th>
-              <th className="px-4 py-4">Lịch trình</th>
-              <th className="px-4 py-4">Sức chứa</th>
-              <th className="px-4 py-4">Status</th>
-              <th className="px-4 py-4 text-right">Thao tác</th>
+              <th className="px-5 py-3.5">Tournament</th>
+              <th className="px-4 py-3.5">Địa điểm</th>
+              <th className="px-4 py-3.5">Lịch trình</th>
+              <th className="px-4 py-3.5">Sức chứa</th>
+              <th className="px-4 py-3.5">Status</th>
+              <th className="px-4 py-3.5 text-right">Thao tác</th>
             </tr>
           </thead>
           <tbody>
@@ -144,7 +144,7 @@ export default function TournamentPortfolio({
 
               return (
                 <Fragment key={tournament.id}>
-                  <motion.tr layout className={`border-t border-brown-700/10 align-middle transition-colors ${expanded ? 'bg-white/85 shadow-[inset_3px_0_0_#d9a441]' : 'hover:bg-white/70'}`}>
+                  <motion.tr layout className={`border-t border-brown-700/10 align-middle transition-colors ${expanded ? 'bg-white/90 shadow-[inset_3px_0_0_#d9a441]' : 'hover:bg-white/70'}`}>
                     <td className="px-4 py-4">
                       <button
                         type="button"
@@ -174,7 +174,11 @@ export default function TournamentPortfolio({
                     <td className="px-3 py-4">
                       <RegistrationCapacity value={registrationCounts.get(tournament.id) || 0} max={tournament.maxRegistration} />
                     </td>
-                    <td className="px-3 py-4"><TournamentStatusBadge status={tournament.status} /></td>
+                    <td className="px-3 py-4">
+                      <div className="flex min-w-0">
+                        <TournamentStatusBadge status={tournament.status} />
+                      </div>
+                    </td>
                     <td className="px-3 py-4">
                       <TournamentActions tournament={tournament} onEdit={onEdit} onClone={onClone} onDelete={onDelete} />
                     </td>

@@ -5,7 +5,6 @@ import com.example.backend.constant.ConditionType;
 import com.example.backend.constant.EventStatus;
 import com.example.backend.constant.RaceEntryStatus;
 import com.example.backend.constant.RegistrationStatus;
-import com.example.backend.dto.request.CreateTournamentRequest;
 import com.example.backend.dto.request.TournamentConditionRequest;
 import com.example.backend.dto.request.UpdateTournamentRequest;
 import com.example.backend.dto.response.*;
@@ -420,49 +419,6 @@ public class TournamentService {
 
         Tournament savedTournament = tournamentRepository.save(tournament);
         venueImageStorageService.delete(tournamentId);
-
-        return toDetailResponse(savedTournament);
-    }
-
-    @Transactional
-    public TournamentDetailResponse createTournament(
-            CreateTournamentRequest request,
-            String adminEmail
-    ) {
-        validateTournamentDates(
-                request.getRegistrationOpenAt(),
-                request.getRegistrationCloseAt(),
-                request.getStartDate(),
-                request.getEndDate()
-        );
-
-        validateConditions(request.getConditions());
-
-        User admin = getAdmin(adminEmail);
-
-        Tournament tournament = new Tournament();
-        applyTournamentFields(
-                tournament,
-                request.getTournamentName(),
-                request.getDescription(),
-                request.getVenue(),
-                request.getRegistrationOpenAt(),
-                request.getRegistrationCloseAt(),
-                request.getStartDate(),
-                request.getEndDate(),
-                request.getMaxRegistrations(),
-                request.getEntryFee()
-        );
-
-        tournament.setStatus(EventStatus.OPEN_FOR_REGISTRATION);
-        tournament.setCreatedBy(admin.getUserID());
-
-        Tournament savedTournament = tournamentRepository.save(tournament);
-
-        saveConditions(
-                savedTournament.getTournamentId(),
-                request.getConditions()
-        );
 
         return toDetailResponse(savedTournament);
     }

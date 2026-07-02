@@ -33,6 +33,7 @@ const STATUS_STYLES = {
   REGISTRATION_CLOSED: 'bg-stone-200 text-stone-700',
   READY: 'bg-amber-100 text-amber-800',
   IN_PROGRESS: 'bg-blue-100 text-blue-800',
+  PENDING_REVIEW: 'bg-violet-100 text-violet-800',
   COMPLETED: 'bg-emerald-100 text-emerald-800',
   CANCELLED: 'bg-red-100 text-red-700'
 };
@@ -349,7 +350,12 @@ export default function AdminOverview({ onNavigate }) {
         <div className="flex flex-col gap-3 rounded-lg border border-danger/20 bg-danger-bg px-4 py-3 text-danger sm:flex-row sm:items-center sm:justify-between">
           <span className="flex items-center gap-2 text-sm font-bold">
             <AlertCircle size={18} className="shrink-0" />
-            {error}
+            <span>
+              {error}
+              <small className="mt-1 block font-extrabold">
+                Dữ liệu tổng quan bên dưới có thể chưa được cập nhật.
+              </small>
+            </span>
           </span>
           <button className="rounded-md border border-danger/20 bg-white px-3 py-2 text-xs font-extrabold transition hover:bg-danger-bg" type="button" onClick={loadOverview}>
             {t('retry')}
@@ -370,7 +376,7 @@ export default function AdminOverview({ onNavigate }) {
           note={t('tournamentsInSystem', { count: data.totalTournaments })}
           tone="brown"
           isLoading={isLoading}
-          onClick={() => onNavigate('events')}
+          onClick={() => onNavigate('events', 'registrations')}
         />
         <MetricCard
           icon={ClipboardCheck}
@@ -379,7 +385,7 @@ export default function AdminOverview({ onNavigate }) {
           note={t('reviewQueueProfilesNote')}
           tone="gold"
           isLoading={isLoading}
-          onClick={() => onNavigate('events')}
+          onClick={() => onNavigate('events', 'registrations')}
         />
         <MetricCard
           icon={Flag}
@@ -388,7 +394,7 @@ export default function AdminOverview({ onNavigate }) {
           note={t('approvedRegistrationCount', { count: data.approvedRegistrations })}
           tone="green"
           isLoading={isLoading}
-          onClick={() => onNavigate('events')}
+          onClick={() => onNavigate('events', 'raceEntries')}
         />
         <MetricCard
           icon={Gavel}
@@ -421,7 +427,7 @@ export default function AdminOverview({ onNavigate }) {
                 key={key}
                 {...queue}
                 isLoading={isLoading}
-                onClick={() => onNavigate(queue.target || key)}
+                onClick={() => onNavigate(queue.target || key, queue.target === 'events' ? key : null)}
               />
             ))}
           </div>

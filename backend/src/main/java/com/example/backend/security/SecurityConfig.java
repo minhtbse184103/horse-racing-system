@@ -62,6 +62,7 @@ public class SecurityConfig {
                                 "/api/tournaments/**",
                                 "/api/races/**").hasRole("ADMIN")
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/api/referee/**").hasRole("REFEREE")
                         .requestMatchers("/api/owner/**").hasRole("OWNER")
                         .requestMatchers("/api/user/me").authenticated()
                         .requestMatchers("/api/user/all").permitAll()

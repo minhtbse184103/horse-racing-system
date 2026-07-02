@@ -13,8 +13,8 @@ import {
   getTournamentWorkspace
 } from '../../../../services/eventService';
 import {
-  createTournamentProgramme,
-  updateTournamentProgramme
+  createTournamentProgram,
+  updateTournamentProgram
 } from '../../../../services/tournamentPersistenceService';
 import { buildRegistrationCounts } from './tournamentWorkspaceUtils';
 
@@ -200,8 +200,8 @@ export default function useTournamentWorkspace() {
     setMutationError('');
     try {
       const tournamentId = tournament.id
-        ? await updateTournamentProgramme(wizardTournament, tournament)
-        : await createTournamentProgramme(tournament);
+        ? await updateTournamentProgram(wizardTournament, tournament)
+        : await createTournamentProgram(tournament);
       await loadTournaments();
       setExpandedId(tournamentId);
       setWizardOpen(false);
@@ -280,10 +280,11 @@ export default function useTournamentWorkspace() {
 
   // Patches a single race's status in local state when the WebSocket RESULT
   // envelope arrives (see RaceLiveView/useRaceLiveView), so the workspace
-  // reflects IN_PROGRESS -> COMPLETED immediately instead of staying stale
-  // until the next full loadTournaments() (e.g. a save/delete/lifecycle
-  // action). status comes from the backend's RaceResultIngestResponse, not
-  // a hardcoded string, so this stays correct if that logic changes.
+  // reflects the current lifecycle (READY -> IN_PROGRESS -> PENDING_REVIEW
+  // -> COMPLETED) without waiting for the next full loadTournaments()
+  // (e.g. a save/delete/lifecycle action). status comes from the backend's
+  // RaceResultIngestResponse, not a hardcoded string, so this stays correct
+  // if that logic changes.
   //
   // Bails out (returns the same array reference) when the race already has
   // this status. RaceLiveView's onResult callback is an inline function

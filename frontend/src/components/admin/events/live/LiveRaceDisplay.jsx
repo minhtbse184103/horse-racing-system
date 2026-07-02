@@ -87,7 +87,7 @@ export default function LiveRaceDisplay({ tick, result }) {
               <div>
                 <p className="font-black">Race đã kết thúc</p>
                 <p className="mt-1 text-sm font-semibold">
-                  Kết quả đã được backend ghi nhận. Nhấn Làm mới trong Tournament Workspace để cập nhật nút kết quả nếu cần.
+                  Kết quả provisional đã được backend ghi nhận và đang chờ Referee/Admin review trước khi trở thành kết quả chính thức.
                 </p>
               </div>
             </div>
@@ -131,7 +131,7 @@ export default function LiveRaceDisplay({ tick, result }) {
                               </span>
                               {horse.finished && (
                                 <span className="rounded-full bg-emerald-50 px-2 py-1 text-[0.66rem] font-black text-emerald-700">
-                                  FINISHED
+                                  VỀ ĐÍCH
                                 </span>
                               )}
                             </div>

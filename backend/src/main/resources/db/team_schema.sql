@@ -234,6 +234,7 @@ CREATE TABLE `Race` (
       'REGISTRATION_CLOSED',
       'READY',
       'IN_PROGRESS',
+      'PENDING_REVIEW',
       'COMPLETED',
       'CANCELLED'
     ))
@@ -399,6 +400,60 @@ CREATE TABLE `RaceResult` (
   `recordedBy` int NOT NULL
 );
 
+CREATE TABLE `RaceResultSubmission` (
+  `submissionID` int PRIMARY KEY AUTO_INCREMENT,
+  `raceID` int UNIQUE NOT NULL,
+  `submittedAt` datetime NOT NULL,
+  `submittedBy` int,
+  `engineTokenIssuedAt` datetime,
+  `status` varchar(50) NOT NULL DEFAULT 'SUBMITTED',
+  `refereeReviewedAt` datetime,
+  `refereeReviewedBy` int,
+  `refereeComment` varchar(1000),
+  `adminReviewedAt` datetime,
+  `adminReviewedBy` int,
+  `adminComment` varchar(1000),
+  `createdAt` datetime NOT NULL,
+  `updatedAt` datetime NOT NULL,
+  CONSTRAINT `chk_race_result_submission_status`
+    CHECK (`status` IN (
+      'SUBMITTED',
+      'REFEREE_CONFIRMED',
+      'REFEREE_FLAGGED',
+      'ADMIN_APPROVED',
+      'ADMIN_REJECTED'
+    ))
+);
+
+CREATE TABLE `RaceResultSubmissionEntry` (
+  `submissionEntryID` int PRIMARY KEY AUTO_INCREMENT,
+  `submissionID` int NOT NULL,
+  `raceEntryID` int NOT NULL,
+  `startingStall` int NOT NULL,
+  `finishPosition` int NOT NULL,
+  `finishTime` varchar(50) NOT NULL,
+  `points` int DEFAULT 0,
+  `createdAt` datetime NOT NULL,
+  CONSTRAINT `chk_submission_entry_stall`
+    CHECK (`startingStall` > 0),
+  CONSTRAINT `chk_submission_entry_position`
+    CHECK (`finishPosition` > 0)
+);
+
+CREATE TABLE `RaceResultReviewAction` (
+  `reviewActionID` int PRIMARY KEY AUTO_INCREMENT,
+  `submissionID` int NOT NULL,
+  `actorUserID` int NOT NULL,
+  `actorRole` varchar(50) NOT NULL,
+  `action` varchar(50) NOT NULL,
+  `comment` varchar(1000),
+  `createdAt` datetime NOT NULL,
+  CONSTRAINT `chk_review_action_actor_role`
+    CHECK (`actorRole` IN ('REFEREE', 'ADMIN')),
+  CONSTRAINT `chk_review_action_type`
+    CHECK (`action` IN ('CONFIRM', 'FLAG', 'APPROVE', 'REJECT'))
+);
+
 CREATE TABLE `WalletTransaction` (
   `walletTransactionID` int PRIMARY KEY AUTO_INCREMENT,
   `walletID` int NOT NULL,
@@ -545,6 +600,24 @@ ON `Bet` (`raceEntryID`);
 CREATE INDEX `PrizeDistribution_race_status_idx`
 ON `PrizeDistribution` (`raceID`, `status`);
 
+CREATE INDEX `RaceResultSubmission_status_submitted_idx`
+ON `RaceResultSubmission` (`status`, `submittedAt`);
+
+CREATE INDEX `RaceResultSubmissionEntry_submission_position_idx`
+ON `RaceResultSubmissionEntry` (`submissionID`, `finishPosition`);
+
+CREATE UNIQUE INDEX `RaceResultSubmissionEntry_submission_race_entry_idx`
+ON `RaceResultSubmissionEntry` (`submissionID`, `raceEntryID`);
+
+CREATE UNIQUE INDEX `RaceResultSubmissionEntry_submission_stall_idx`
+ON `RaceResultSubmissionEntry` (`submissionID`, `startingStall`);
+
+CREATE UNIQUE INDEX `RaceResultSubmissionEntry_submission_finish_idx`
+ON `RaceResultSubmissionEntry` (`submissionID`, `finishPosition`);
+
+CREATE INDEX `RaceResultReviewAction_submission_created_idx`
+ON `RaceResultReviewAction` (`submissionID`, `createdAt`);
+
 CREATE INDEX `Race_index_7`
 ON `Race` (`tournamentID`, `status`, `raceStartTime`);
 
@@ -607,6 +680,22 @@ ALTER TABLE `RaceEntry` ADD FOREIGN KEY (`cancelledBy`) REFERENCES `Users` (`use
 ALTER TABLE `RaceResult` ADD FOREIGN KEY (`raceEntryID`) REFERENCES `RaceEntry` (`raceEntryID`);
 
 ALTER TABLE `RaceResult` ADD FOREIGN KEY (`recordedBy`) REFERENCES `Users` (`userID`);
+
+ALTER TABLE `RaceResultSubmission` ADD FOREIGN KEY (`raceID`) REFERENCES `Race` (`raceID`);
+
+ALTER TABLE `RaceResultSubmission` ADD FOREIGN KEY (`submittedBy`) REFERENCES `Users` (`userID`);
+
+ALTER TABLE `RaceResultSubmission` ADD FOREIGN KEY (`refereeReviewedBy`) REFERENCES `Users` (`userID`);
+
+ALTER TABLE `RaceResultSubmission` ADD FOREIGN KEY (`adminReviewedBy`) REFERENCES `Users` (`userID`);
+
+ALTER TABLE `RaceResultSubmissionEntry` ADD FOREIGN KEY (`submissionID`) REFERENCES `RaceResultSubmission` (`submissionID`);
+
+ALTER TABLE `RaceResultSubmissionEntry` ADD FOREIGN KEY (`raceEntryID`) REFERENCES `RaceEntry` (`raceEntryID`);
+
+ALTER TABLE `RaceResultReviewAction` ADD FOREIGN KEY (`submissionID`) REFERENCES `RaceResultSubmission` (`submissionID`);
+
+ALTER TABLE `RaceResultReviewAction` ADD FOREIGN KEY (`actorUserID`) REFERENCES `Users` (`userID`);
 
 ALTER TABLE `WalletTransaction` ADD FOREIGN KEY (`walletID`) REFERENCES `Wallet` (`walletID`);
 

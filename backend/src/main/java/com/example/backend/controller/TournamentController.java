@@ -1,9 +1,10 @@
 package com.example.backend.controller;
 
-import com.example.backend.dto.request.CreateTournamentRequest;
+import com.example.backend.dto.request.CreateTournamentProgramRequest;
 import com.example.backend.dto.request.UpdateTournamentRequest;
 import com.example.backend.dto.response.TournamentDetailResponse;
 import com.example.backend.dto.response.TournamentResponse;
+import com.example.backend.service.TournamentProgramService;
 import com.example.backend.service.TournamentService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -19,11 +20,14 @@ import java.util.List;
 public class TournamentController {
 
     private final TournamentService tournamentService;
+    private final TournamentProgramService tournamentProgramService;
 
     public TournamentController(
-            TournamentService tournamentService
+            TournamentService tournamentService,
+            TournamentProgramService tournamentProgramService
     ) {
         this.tournamentService = tournamentService;
+        this.tournamentProgramService = tournamentProgramService;
     }
 
     @GetMapping
@@ -62,13 +66,13 @@ public class TournamentController {
         );
     }
 
-    @PostMapping
-    public ResponseEntity<TournamentDetailResponse> createTournament(
-            @Valid @RequestBody CreateTournamentRequest request,
+    @PostMapping("/program")
+    public ResponseEntity<TournamentDetailResponse> createTournamentProgram(
+            @Valid @RequestBody CreateTournamentProgramRequest request,
             Authentication authentication
     ) {
         TournamentDetailResponse response =
-                tournamentService.createTournament(
+                tournamentProgramService.createTournamentProgram(
                         request,
                         authentication.getName()
                 );

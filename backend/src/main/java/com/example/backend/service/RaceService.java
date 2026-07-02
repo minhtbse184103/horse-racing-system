@@ -199,6 +199,7 @@ public class RaceService {
         validatePrizes(request.getPrizes());
 
         String raceName = request.getRaceName().trim();
+        String trackName = request.getTrackName().trim();
 
         if (raceRepository.existsByTournamentIdAndRaceNameIgnoreCase(
                 tournament.getTournamentId(),
@@ -225,10 +226,18 @@ public class RaceService {
             );
         }
 
+        validateRaceDoesNotOverlapOnTrack(
+                tournament.getTournamentId(),
+                null,
+                trackName,
+                request.getRaceStartTime(),
+                request.getRaceEndTime()
+        );
+
         Race race = new Race();
         race.setTournamentId(tournament.getTournamentId());
         race.setRaceName(raceName);
-        race.setTrackName(request.getTrackName().trim());
+        race.setTrackName(trackName);
         race.setRaceStartTime(request.getRaceStartTime());
         race.setRaceEndTime(request.getRaceEndTime());
         race.setDistance(request.getDistance());
@@ -285,6 +294,7 @@ public class RaceService {
         validatePrizes(request.getPrizes());
 
         String raceName = request.getRaceName().trim();
+        String trackName = request.getTrackName().trim();
 
         if (raceRepository
                 .existsByTournamentIdAndRaceNameIgnoreCaseAndRaceIdNot(
@@ -314,6 +324,14 @@ public class RaceService {
             );
         }
 
+        validateRaceDoesNotOverlapOnTrack(
+                tournament.getTournamentId(),
+                raceId,
+                trackName,
+                request.getRaceStartTime(),
+                request.getRaceEndTime()
+        );
+
         long entryCount = raceEntryRepository.countByRaceIdAndStatus(raceId, RaceEntryStatus.ASSIGNED);
 
         if (request.getMaxRunners() < entryCount) {
@@ -324,7 +342,7 @@ public class RaceService {
         }
 
         race.setRaceName(raceName);
-        race.setTrackName(request.getTrackName().trim());
+        race.setTrackName(trackName);
         race.setRaceStartTime(request.getRaceStartTime());
         race.setRaceEndTime(request.getRaceEndTime());
         race.setDistance(request.getDistance());
@@ -409,6 +427,16 @@ public class RaceService {
             throw new ApiException(
                     HttpStatus.CONFLICT,
                     "Race cannot be completed before its scheduled end time."
+            );
+        }
+
+        long officialResultCount = getResultCountsByRaceId(List.of(raceId))
+                .getOrDefault(raceId, 0L);
+
+        if (officialResultCount == 0) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "Race cannot be manually completed before official results exist."
             );
         }
 
@@ -561,6 +589,38 @@ public class RaceService {
                         "Owner and jockey prize percentages must total 100."
                 );
             }
+        }
+    }
+
+    private void validateRaceDoesNotOverlapOnTrack(
+            Integer tournamentId,
+            Integer raceId,
+            String trackName,
+            LocalDateTime startTime,
+            LocalDateTime endTime
+    ) {
+        boolean overlaps = raceId == null
+                ? raceRepository.existsOverlappingRaceOnTrack(
+                        tournamentId,
+                        trackName,
+                        startTime,
+                        endTime,
+                        EventStatus.CANCELLED
+                )
+                : raceRepository.existsOverlappingRaceOnTrackExcludingRace(
+                        tournamentId,
+                        raceId,
+                        trackName,
+                        startTime,
+                        endTime,
+                        EventStatus.CANCELLED
+                );
+
+        if (overlaps) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "Race schedule overlaps with another race on the same track."
+            );
         }
     }
 

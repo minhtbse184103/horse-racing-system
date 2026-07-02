@@ -17,7 +17,8 @@ export default function TournamentDetails({
   onRaceEntryCountChange,
   onLifecycleAction,
   lifecycleProcessingId,
-  adminName
+  adminName,
+  onNavigateToResultReview
 }) {
   return (
     <motion.div
@@ -56,6 +57,7 @@ export default function TournamentDetails({
         approveRegistration={approveRegistration}
         rejectRegistration={rejectRegistration}
         onRaceEntryCountChange={onRaceEntryCountChange}
+        onNavigateToResultReview={onNavigateToResultReview}
         adminName={adminName}
       />
 
