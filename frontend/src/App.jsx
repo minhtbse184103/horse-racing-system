@@ -4,6 +4,7 @@ import RegisterForm from './components/auth/RegisterForm';
 import AdminDashboard from './components/admin/AdminDashboard';
 import OwnerDashboard from './components/owner/OwnerDashboard';
 import JockeyDashboard from './components/jockey/JockeyDashboard';
+import RefereeDashboard from './components/referee/RefereeDashboard';
 import UserPanel from './components/user/UserPanel';
 import AccessDenied from './components/common/AccessDenied';
 import VnpayReturnPage from './components/payment/VnpayReturnPage';
@@ -65,6 +66,10 @@ export default function App() {
 
   if (userRole === 'JOCKEY') {
     return <JockeyDashboard currentUser={user} onLogout={handleLogout} />;
+  }
+
+  if (userRole === 'REFEREE') {
+    return <RefereeDashboard currentUser={user} onLogout={handleLogout} />;
   }
 
   if (user) {

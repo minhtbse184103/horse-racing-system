@@ -430,6 +430,16 @@ public class RaceService {
             );
         }
 
+        long officialResultCount = getResultCountsByRaceId(List.of(raceId))
+                .getOrDefault(raceId, 0L);
+
+        if (officialResultCount == 0) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "Race cannot be manually completed before official results exist."
+            );
+        }
+
         race.setStatus(EventStatus.COMPLETED);
         race.setRaceEngineToken(null);
         race.setRaceEngineTokenIssuedAt(null);

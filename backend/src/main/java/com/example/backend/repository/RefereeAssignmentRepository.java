@@ -15,6 +15,12 @@ public interface RefereeAssignmentRepository
 
     boolean existsByRaceId(Integer raceId);
 
+    boolean existsByRaceIdAndRefereeUserIdAndStatus(
+            Integer raceId,
+            Integer refereeUserId,
+            String status
+    );
+
     Optional<RefereeAssignment> findByRaceId(Integer raceId);
 
     @Query("""

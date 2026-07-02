@@ -10,6 +10,8 @@ import java.time.LocalDateTime;
 public class RaceResultIngestResponse {
 
     private Integer raceId;
+    private Integer submissionId;
     private String status;
+    private String reviewStatus;
     private LocalDateTime recordedAt;
 }

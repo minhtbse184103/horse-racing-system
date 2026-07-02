@@ -6,6 +6,7 @@ public final class EventStatus {
     public static final String REGISTRATION_CLOSED = "REGISTRATION_CLOSED";
     public static final String READY = "READY";
     public static final String IN_PROGRESS = "IN_PROGRESS";
+    public static final String PENDING_REVIEW = "PENDING_REVIEW";
     public static final String COMPLETED = "COMPLETED";
     public static final String CANCELLED = "CANCELLED";
 

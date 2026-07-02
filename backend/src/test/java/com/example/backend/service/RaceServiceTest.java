@@ -431,6 +431,100 @@ class RaceServiceTest {
         verify(raceRepository, never()).save(any());
     }
 
+    @Test
+    void completeRaceRejectsPendingReviewRace() {
+        Race race = race();
+        race.setStatus(EventStatus.PENDING_REVIEW);
+
+        stubAdmin();
+        when(raceRepository.findByIdForUpdate(8)).thenReturn(Optional.of(race));
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.completeRace(8, "admin@example.com")
+        );
+
+        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
+        assertEquals(
+                "Race must be in progress before it can be completed.",
+                exception.getMessage()
+        );
+        verify(raceRepository, never()).save(any());
+        verify(raceResultRepository, never()).countResultsByRaceIds(any());
+    }
+
+    @Test
+    void completeRaceRejectsInProgressRaceWithoutOfficialResult() {
+        Race race = race();
+        race.setStatus(EventStatus.IN_PROGRESS);
+        race.setRaceStartTime(LocalDateTime.now().minusHours(2));
+        race.setRaceEndTime(LocalDateTime.now().minusHours(1));
+
+        stubAdmin();
+        when(raceRepository.findByIdForUpdate(8)).thenReturn(Optional.of(race));
+        when(raceResultRepository.countResultsByRaceIds(List.of(8)))
+                .thenReturn(List.of());
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.completeRace(8, "admin@example.com")
+        );
+
+        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
+        assertEquals(
+                "Race cannot be manually completed before official results exist.",
+                exception.getMessage()
+        );
+        verify(raceRepository, never()).save(any());
+    }
+
+    @Test
+    void completeRaceAllowsInProgressRaceWithOfficialResult() {
+        Race race = race();
+        race.setStatus(EventStatus.IN_PROGRESS);
+        race.setRaceStartTime(LocalDateTime.now().minusHours(2));
+        race.setRaceEndTime(LocalDateTime.now().minusHours(1));
+        race.setRaceEngineToken("token");
+        race.setRaceEngineTokenIssuedAt(LocalDateTime.now().minusMinutes(20));
+
+        stubAdmin();
+        when(raceRepository.findByIdForUpdate(8)).thenReturn(Optional.of(race));
+        when(raceResultRepository.countResultsByRaceIds(List.of(8)))
+                .thenReturn(List.of(resultCount(8, 1)));
+        when(raceRepository.save(race)).thenReturn(race);
+        when(raceEntryRepository.countByRaceIdAndStatus(
+                8,
+                RaceEntryStatus.ASSIGNED
+        )).thenReturn(1L);
+        when(racePrizeRepository.findByRaceIdOrderByRankPositionAsc(8))
+                .thenReturn(List.of());
+
+        RaceResponse response = service.completeRace(8, "admin@example.com");
+
+        assertEquals(EventStatus.COMPLETED, response.getStatus());
+        assertEquals(EventStatus.COMPLETED, race.getStatus());
+        assertEquals(null, race.getRaceEngineToken());
+        assertEquals(null, race.getRaceEngineTokenIssuedAt());
+        verify(raceRepository).save(race);
+    }
+
+    private RaceResultRepository.RaceResultCountProjection resultCount(
+            Integer raceId,
+            long count
+    ) {
+        return new RaceResultRepository.RaceResultCountProjection() {
+            @Override
+            public Integer getRaceId() {
+                return raceId;
+            }
+
+            @Override
+            public long getResultCount() {
+                return count;
+            }
+        };
+    }
+
     private Tournament tournament() {
         Tournament tournament = new Tournament();
         tournament.setTournamentId(12);

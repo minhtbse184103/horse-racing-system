@@ -18,10 +18,9 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
   const [cancellationEntry, setCancellationEntry] = useState(null);
   const [prizeRuleRace, setPrizeRuleRace] = useState(null);
   const [resultPrizeRace, setResultPrizeRace] = useState(null);
-  // Launches recorded in this session so the button flips to "Xem trực
-  // tiếp" immediately, without waiting on the parent to refetch the
-  // tournament workspace. race.runStartedAt (from the backend) is the
-  // durable source of truth and still wins on the next refetch/reload.
+  // Launches recorded in this session are used only for the success note.
+  // Live controls follow race.status === 'IN_PROGRESS' so a race that moved
+  // to PENDING_REVIEW after Unity result submission no longer appears live.
   const [launchedRaceIds, setLaunchedRaceIds] = useState(() => new Set());
   const [runningRaceId, setRunningRaceId] = useState(null);
   const [failingRaceId, setFailingRaceId] = useState(null);
@@ -47,8 +46,9 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
     setRunningRaceId(raceId);
     setRunErrors((current) => ({ ...current, [raceId]: '' }));
     try {
-      await runRace(raceId);
+      const response = await runRace(raceId);
       setLaunchedRaceIds((current) => new Set(current).add(raceId));
+      onRaceStatusChange?.(raceId, response?.status || 'IN_PROGRESS');
       setLiveRaceId(raceId);
       // Auto-expand the row so RaceLiveView (rendered inside the expanded
       // section below) is visible immediately, no extra click needed.
@@ -97,6 +97,18 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
     setSelectedRaceId(raceId);
   }
 
+  function handleLiveResult(raceId, status) {
+    onRaceStatusChange?.(raceId, status);
+    if (status && status !== 'IN_PROGRESS') {
+      setLiveRaceId((current) => current === raceId ? null : current);
+      setLaunchedRaceIds((current) => {
+        const next = new Set(current);
+        next.delete(raceId);
+        return next;
+      });
+    }
+  }
+
   return (
     <section className="overflow-hidden rounded-lg border border-brown-700/10 bg-white/75 shadow-[0_10px_30px_rgba(78,44,25,0.07)]">
       <header className="flex flex-col gap-3 border-b border-brown-700/10 px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
@@ -111,7 +123,8 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
             ? assignment.entries.length
             : Number(race.entries || 0);
           const isFull = runnerCount >= race.maxRunners;
-          const isLive = race.status === 'IN_PROGRESS' || Boolean(race.runStartedAt) || launchedRaceIds.has(race.id);
+          const isLive = race.status === 'IN_PROGRESS';
+          const isPendingReview = race.status === 'PENDING_REVIEW';
           const runError = runErrors[race.id];
 
           return (
@@ -135,7 +148,8 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
                   </div>
                   {runError && <p className="mt-2 text-xs font-bold text-danger">{runError}</p>}
                   {!runError && race.runStuck && <p className="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-extrabold text-red-700">Race có thể bị kẹt: đã chạy {race.runElapsedMinutes} phút, vượt ngưỡng {race.runWatchdogTimeoutMinutes} phút nhưng chưa có kết quả. Hãy kiểm tra Unity hoặc dùng Đánh dấu lỗi.</p>}
-                  {!runError && launchedRaceIds.has(race.id) && <div className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700"><p>Race đã được khởi chạy bằng Unity Engine. Theo dõi dữ liệu live từ backend tại đây.</p></div>}
+                  {!runError && launchedRaceIds.has(race.id) && isLive && <div className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700"><p>Race đã được khởi chạy bằng Unity Engine. Theo dõi dữ liệu live từ backend tại đây.</p></div>}
+                  {isPendingReview && <div className="mt-2 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-bold text-violet-700"><p>Race đã có kết quả từ Unity và đang chờ Referee/Admin duyệt.</p></div>}
                 </div>
                 <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end lg:max-w-[26rem]">
                   {(race.status === 'READY' || isLive) && (
@@ -171,7 +185,7 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
                       <RaceLiveView
                         raceId={race.id}
                         active={liveRaceId === race.id}
-                        onResult={(status) => onRaceStatusChange?.(race.id, status)}
+                        onResult={(status) => handleLiveResult(race.id, status)}
                       />
                       {assignment.entriesLoading ? (
                         <div className="grid min-h-36 place-items-center rounded-lg border border-brown-700/10 bg-white/75 text-center"><div><LoaderCircle className="mx-auto animate-spin text-brown-500" size={23} /><p className="mt-3 text-sm font-black text-brown-900">Đang tải RaceEntry chính thức</p></div></div>

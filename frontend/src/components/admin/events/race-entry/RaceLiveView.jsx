@@ -9,8 +9,8 @@ export default function RaceLiveView({ raceId, active, onResult }) {
   // result.status is the real backend status (RaceResultIngestResponse),
   // not a hardcoded "COMPLETED" string — bubble it up so the workspace's
   // local race.status can be patched immediately instead of staying
-  // IN_PROGRESS / runStartedAt until the next full tournament reload (see
-  // useTournamentWorkspace.updateRaceStatus).
+  // IN_PROGRESS until the next full tournament reload. After the review
+  // workflow change, Unity result moves the race to PENDING_REVIEW.
   useEffect(() => {
     if (result?.status) {
       onResult?.(result.status);

@@ -30,6 +30,7 @@ const DISPLAY_LABELS = {
     CLOSEDREGISTRATION: 'ClosedRegistration',
     READY: 'Ready',
     ONGOING: 'Ongoing',
+    PENDING_REVIEW: 'Pending result review',
     FINISHED: 'Finished',
     OWNER: 'Owner',
     JOCKEY: 'Jockey',

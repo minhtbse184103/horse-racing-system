@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   ClipboardCheck,
+  FileCheck2,
   FileText,
   Gavel,
   LayoutDashboard,
@@ -16,6 +17,7 @@ import TournamentWorkspace from './events/TournamentWorkspace';
 import HorseReview from './horses/HorseReview';
 import JockeyReview from './reviews/JockeyReview';
 import RefereeAssignmentManagement from './refereeAssignments/RefereeAssignmentManagement';
+import AdminRaceResultReview from './raceResults/AdminRaceResultReview';
 import OwnerApplicationManagement from './ownerApplications/OwnerApplicationManagement';
 import UserManagement from './users/UserManagement';
 import { formatDisplayLabel } from '../../lib';
@@ -65,6 +67,12 @@ const adminNavItems = [
     labelKey: 'refereeAssignments',
     descriptionKey: 'refereeDescription',
     icon: Gavel
+  },
+  {
+    key: 'raceResultReviews',
+    labelKey: 'raceResultReviews',
+    descriptionKey: 'raceResultReviewDescription',
+    icon: FileCheck2
   }
 ];
 
@@ -82,6 +90,7 @@ export default function AdminDashboard({ currentUser, onLogout }) {
     ownerApplications: <OwnerApplicationManagement />,
     events: <TournamentWorkspace adminName={adminName} />,
     refereeAssignments: <RefereeAssignmentManagement />,
+    raceResultReviews: <AdminRaceResultReview />,
     jockeyReviews: <JockeyReview />,
     horseReviews: <HorseReview />
   }[activeSection];

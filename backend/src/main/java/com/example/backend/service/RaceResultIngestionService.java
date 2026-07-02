@@ -2,16 +2,20 @@ package com.example.backend.service;
 
 import com.example.backend.constant.EventStatus;
 import com.example.backend.constant.RaceEntryStatus;
+import com.example.backend.constant.RaceResultSubmissionStatus;
 import com.example.backend.dto.request.RaceResultEntryRequest;
 import com.example.backend.dto.request.RaceResultIngestRequest;
 import com.example.backend.dto.response.RaceResultIngestResponse;
 import com.example.backend.entity.Race;
 import com.example.backend.entity.RaceEntry;
-import com.example.backend.entity.RaceResult;
+import com.example.backend.entity.RaceResultSubmission;
+import com.example.backend.entity.RaceResultSubmissionEntry;
 import com.example.backend.exception.ApiException;
 import com.example.backend.repository.RaceEntryRepository;
 import com.example.backend.repository.RaceRepository;
 import com.example.backend.repository.RaceResultRepository;
+import com.example.backend.repository.RaceResultSubmissionEntryRepository;
+import com.example.backend.repository.RaceResultSubmissionRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,15 +29,15 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 /**
- * Ingests the final result Unity posts when a race finishes (via the
- * per-launch X-Race-Engine-Key token, not JWT). Writes RaceResult
- * rows and flips the Race straight to COMPLETED.
+ * Ingests the provisional result Unity posts when a race finishes
+ * (via the per-launch X-Race-Engine-Key token, not JWT). Writes
+ * RaceResultSubmission rows and moves the Race to PENDING_REVIEW.
  *
  * Deliberately NOT RaceService.completeRace(): that method gates on
  * raceEndTime having passed, but here completion is event-driven
- * (Unity reporting it actually finished). Betting/prize-payout
- * settlement (Bet, PrizeDistribution, WalletTransaction) is out of
- * scope — writing RaceResult rows and completing the race is enough.
+ * (Unity reporting it actually finished). Official RaceResult rows
+ * and PrizeDistribution rows are created only after Referee/Admin
+ * review in a later workflow.
  */
 @Service
 public class RaceResultIngestionService {
@@ -42,20 +46,23 @@ public class RaceResultIngestionService {
     private final RaceEntryRepository raceEntryRepository;
     private final RaceResultRepository raceResultRepository;
     private final RaceEngineTokenService raceEngineTokenService;
-    private final RacePrizeSettlementService racePrizeSettlementService;
+    private final RaceResultSubmissionRepository submissionRepository;
+    private final RaceResultSubmissionEntryRepository submissionEntryRepository;
 
     public RaceResultIngestionService(
             RaceRepository raceRepository,
             RaceEntryRepository raceEntryRepository,
             RaceResultRepository raceResultRepository,
             RaceEngineTokenService raceEngineTokenService,
-            RacePrizeSettlementService racePrizeSettlementService
+            RaceResultSubmissionRepository submissionRepository,
+            RaceResultSubmissionEntryRepository submissionEntryRepository
     ) {
         this.raceRepository = raceRepository;
         this.raceEntryRepository = raceEntryRepository;
         this.raceResultRepository = raceResultRepository;
         this.raceEngineTokenService = raceEngineTokenService;
-        this.racePrizeSettlementService = racePrizeSettlementService;
+        this.submissionRepository = submissionRepository;
+        this.submissionEntryRepository = submissionEntryRepository;
     }
 
     @Transactional
@@ -154,56 +161,61 @@ public class RaceResultIngestionService {
                 .map(RaceEntry::getRaceEntryId)
                 .toList();
 
-        if (raceResultRepository.existsByRaceEntryIdIn(raceEntryIds)) {
+        if (submissionRepository.existsByRaceId(raceId)
+                || raceResultRepository.existsByRaceEntryIdIn(raceEntryIds)) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
-                    "Results have already been recorded for this race."
+                    "Results have already been submitted for this race."
             );
         }
 
         LocalDateTime now = LocalDateTime.now();
 
-        // runStartedAt is non-null here (checked above), and the
-        // launcher always sets runTriggeredBy in the same write, so
-        // this is guaranteed non-null too — required by the NOT NULL
-        // recordedBy column.
-        Integer recordedBy = race.getRunTriggeredBy();
+        RaceResultSubmission submission = new RaceResultSubmission();
+        submission.setRaceId(raceId);
+        submission.setSubmittedAt(now);
+        submission.setSubmittedBy(race.getRunTriggeredBy());
+        submission.setEngineTokenIssuedAt(race.getRaceEngineTokenIssuedAt());
+        submission.setStatus(RaceResultSubmissionStatus.SUBMITTED);
+        RaceResultSubmission savedSubmission =
+                submissionRepository.save(submission);
 
-        List<RaceResult> results = submitted.stream()
-                .map(entryRequest -> {
-                    RaceEntry entry =
-                            entriesByStall.get(entryRequest.getStartingStall());
-
-                    RaceResult result = new RaceResult();
-                    result.setRaceEntryId(entry.getRaceEntryId());
-                    result.setFinishPosition(entryRequest.getFinishPosition());
-                    result.setFinishTime(entryRequest.getFinishTime());
-                    result.setRecordedAt(now);
-                    result.setRecordedBy(recordedBy);
-                    return result;
-                })
+        List<RaceResultSubmissionEntry> submissionEntries = submitted.stream()
+                .map(entryRequest -> toSubmissionEntry(
+                        savedSubmission.getSubmissionId(),
+                        entriesByStall.get(entryRequest.getStartingStall()),
+                        entryRequest
+                ))
                 .toList();
+        submissionEntryRepository.saveAll(submissionEntries);
 
-        Map<Integer, RaceEntry> entriesById = assignedEntries.stream()
-                .collect(Collectors.toMap(
-                        RaceEntry::getRaceEntryId,
-                        Function.identity()
-                ));
-
-        racePrizeSettlementService.settlePrizes(raceId, results, entriesById);
-
-        raceResultRepository.saveAll(results);
-
-        race.setStatus(EventStatus.COMPLETED);
+        race.setStatus(EventStatus.PENDING_REVIEW);
         race.setRaceEngineToken(null);
         race.setRaceEngineTokenIssuedAt(null);
         raceRepository.save(race);
 
         return RaceResultIngestResponse.builder()
                 .raceId(race.getRaceId())
+                .submissionId(savedSubmission.getSubmissionId())
                 .status(race.getStatus())
+                .reviewStatus(savedSubmission.getStatus())
                 .recordedAt(now)
                 .build();
+    }
+
+    private RaceResultSubmissionEntry toSubmissionEntry(
+            Integer submissionId,
+            RaceEntry entry,
+            RaceResultEntryRequest entryRequest
+    ) {
+        RaceResultSubmissionEntry submissionEntry =
+                new RaceResultSubmissionEntry();
+        submissionEntry.setSubmissionId(submissionId);
+        submissionEntry.setRaceEntryId(entry.getRaceEntryId());
+        submissionEntry.setStartingStall(entryRequest.getStartingStall());
+        submissionEntry.setFinishPosition(entryRequest.getFinishPosition());
+        submissionEntry.setFinishTime(entryRequest.getFinishTime());
+        return submissionEntry;
     }
 
     private void validateRaceCanReceiveResult(Race race) {
