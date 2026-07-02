@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertTriangle, CalendarDays, CheckCircle2, Flag, LoaderCircle, Plus, RefreshCw, Trophy, Users, X } from 'lucide-react';
+import { AlertTriangle, CalendarDays, CheckCircle2, Flag, Info, LoaderCircle, Plus, RefreshCw, Trophy, Users, X } from 'lucide-react';
 import TournamentWizard from './TournamentWizard';
 import DeleteTournamentDialog from './workspace/DeleteTournamentDialog';
 import TournamentPortfolio from './workspace/TournamentPortfolio';
@@ -7,7 +7,7 @@ import WorkspaceMetricCard from './workspace/WorkspaceMetricCard';
 import useTournamentWorkspace from './workspace/useTournamentWorkspace';
 import { pageTransition, staggerContainer } from '../ui/motion';
 
-export default function TournamentWorkspace({ adminName = 'Admin Test' }) {
+export default function TournamentWorkspace({ adminName = 'Admin Test', focus = null, onFocusHandled, onNavigateToResultReview }) {
   const workspace = useTournamentWorkspace();
   const operationsProps = {
     registrations: workspace.registrations,
@@ -18,6 +18,7 @@ export default function TournamentWorkspace({ adminName = 'Admin Test' }) {
     rejectRegistration: workspace.rejectRegistration,
     onRaceEntryCountChange: workspace.updateRaceEntryCount,
     onRaceStatusChange: workspace.updateRaceStatus,
+    onNavigateToResultReview,
     adminName,
     onLifecycleAction: workspace.transitionTournament,
     lifecycleProcessingId: workspace.lifecycleProcessingId
@@ -60,6 +61,32 @@ export default function TournamentWorkspace({ adminName = 'Admin Test' }) {
           </button>
         </div>
       </header>
+
+      <AnimatePresence>
+        {focus && (
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            className="flex items-start justify-between gap-4 rounded-lg border border-blue-200 bg-blue-50 px-4 py-3 text-sm font-bold text-blue-900 shadow-[0_8px_24px_rgba(37,99,235,0.08)]"
+          >
+            <span className="flex items-start gap-2">
+              <Info className="mt-0.5 shrink-0" size={17} />
+              {focus === 'raceEntries'
+                ? 'Từ danh sách Tournament, mở Tournament và chọn Race trong khu vực Phân công RaceEntry để xử lý queue.'
+                : 'Từ danh sách Tournament, mở Tournament liên quan rồi mở khu vực Duyệt Registration để xem hồ sơ đang chờ.'}
+            </span>
+            <button
+              type="button"
+              onClick={onFocusHandled}
+              className="grid size-7 shrink-0 place-items-center rounded-md text-blue-800 hover:bg-blue-100"
+              aria-label="Đóng hướng dẫn"
+            >
+              <X size={15} />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <AnimatePresence>
         {workspace.notice && (
@@ -112,7 +139,7 @@ export default function TournamentWorkspace({ adminName = 'Admin Test' }) {
         </div>
       ) : (
         <>
-          <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <WorkspaceMetricCard icon={Trophy} label="Tournament" value={workspace.metrics.tournamentCount} hint="Trong tất cả giai đoạn vận hành" />
             <WorkspaceMetricCard icon={Users} label="Registration" value={workspace.metrics.registrationCount} hint="Danh mục sự kiện hiện tại" tone="gold" />
             <WorkspaceMetricCard icon={Flag} label="Race đã cấu hình" value={workspace.metrics.raceCount} hint="Trong toàn bộ Tournament" tone="green" />

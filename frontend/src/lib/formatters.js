@@ -31,7 +31,7 @@ const DISPLAY_LABELS = {
     READY: 'Ready',
     ONGOING: 'Ongoing',
     PENDING_REVIEW: 'Pending result review',
-    FINISHED: 'Finished',
+    FINISHED: 'COMPLETED',
     OWNER: 'Owner',
     JOCKEY: 'Jockey',
     ADMIN: 'Admin',

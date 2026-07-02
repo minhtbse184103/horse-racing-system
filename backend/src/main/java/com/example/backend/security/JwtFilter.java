@@ -35,14 +35,12 @@ public class JwtFilter extends OncePerRequestFilter {
                 String email = claims.getSubject();
                 String role = claims.get("role", String.class);
 
-                System.out.println("JWT OK - Email: " + email + " Role: " + role);
-
                 // Set authentication in SecurityContext
                 UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken( email,null,
                         Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role)));
                 SecurityContextHolder.getContext().setAuthentication(authentication);
-            } catch (Exception e) {
-                System.out.println("Token Invalid: " + e.getMessage());
+            } catch (Exception ignored) {
+                // Invalid tokens are ignored here; protected endpoints reject unauthenticated requests.
             }
         }
         filterChain.doFilter(request, response);

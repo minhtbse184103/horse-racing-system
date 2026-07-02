@@ -400,6 +400,12 @@ export default function RefereeAssignmentManagement() {
     );
   }, [assignments, search]);
 
+  const assignDisabledReason = !isLoading && referees.length === 0
+    ? 'Cần có ít nhất một tài khoản REFEREE ACTIVE để phân công.'
+    : !isLoading && eligibleRaces.length === 0
+      ? 'Không có Race hợp lệ để phân công. Race phải ở trạng thái OPEN_FOR_REGISTRATION, REGISTRATION_CLOSED hoặc READY và chưa có Referee.'
+      : '';
+
   async function confirmAssignment(raceId, selectedRefereeId) {
     setIsProcessing(true);
     setActionError('');
@@ -471,24 +477,37 @@ export default function RefereeAssignmentManagement() {
             Làm mới
           </button>
 
-          <button
-            className="flex items-center gap-2 rounded-xl bg-brown-700 px-4 py-3 font-extrabold text-white shadow-lg transition hover:bg-brown-900 disabled:opacity-50"
-            type="button"
-            disabled={eligibleRaces.length === 0 || referees.length === 0}
-            onClick={() => {
-              setActionError('');
-              setAction({ type: 'assign' });
-            }}
-          >
-            <ShieldCheck size={18} />
-            Phân công Referee
-          </button>
+          <div className="max-w-xs">
+            <button
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-brown-700 px-4 py-3 font-extrabold text-white shadow-lg transition hover:bg-brown-900 disabled:cursor-not-allowed disabled:bg-stone-300 disabled:text-stone-600"
+              type="button"
+              disabled={eligibleRaces.length === 0 || referees.length === 0}
+              title={assignDisabledReason || undefined}
+              onClick={() => {
+                setActionError('');
+                setAction({ type: 'assign' });
+              }}
+            >
+              <ShieldCheck size={18} />
+              Phân công Referee
+            </button>
+            {assignDisabledReason && (
+              <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-extrabold text-amber-900">
+                {assignDisabledReason}
+              </p>
+            )}
+          </div>
         </div>
       </header>
 
       {error && (
         <div className="rounded-lg border border-danger/20 bg-danger-bg px-4 py-3 font-bold text-danger">
           {error}
+          {assignments.length > 0 && (
+            <p className="mt-1 text-xs font-extrabold text-red-700">
+              Dữ liệu phân công bên dưới có thể chưa được cập nhật.
+            </p>
+          )}
         </div>
       )}
 

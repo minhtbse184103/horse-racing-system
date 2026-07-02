@@ -4,7 +4,7 @@ import { hoverLift, tapPress } from '../../ui/motion';
 import OperationStatusBadge from '../operations/OperationStatusBadge';
 import { formatOperationDateTime } from '../operations/operationHelpers';
 
-export default function OfficialEntries({ race, entries, onCancel }) {
+export default function OfficialEntries({ race, entries, onCancel, canCancel = true, cancelDisabledReason = '' }) {
   return (
     <div className="rounded-lg border border-brown-700/10 bg-white/75 p-3.5">
       <div className="mb-3 flex items-center justify-between gap-3">
@@ -24,8 +24,13 @@ export default function OfficialEntries({ race, entries, onCancel }) {
               {entry.cancelledAt && (
                 <div className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-xs font-semibold text-red-900"><p>Đã hủy {formatOperationDateTime(entry.cancelledAt)}</p><p className="mt-1">Bởi {entry.cancelledByName || entry.cancelledBy || 'Admin không xác định'}</p><p className="mt-1 font-bold">{entry.cancellationReason || 'Không có lý do'}</p></div>
               )}
-              {entry.status === 'ASSIGNED' && (
+              {entry.status === 'ASSIGNED' && canCancel && (
                 <motion.button whileTap={tapPress} type="button" onClick={() => onCancel(entry)} className="mt-3 inline-flex min-h-9 w-full items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 text-xs font-extrabold text-red-700 hover:bg-red-100"><UserMinus size={14} /> Hủy RaceEntry</motion.button>
+              )}
+              {entry.status === 'ASSIGNED' && !canCancel && cancelDisabledReason && (
+                <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-extrabold text-amber-900">
+                  {cancelDisabledReason}
+                </p>
               )}
             </motion.article>
           );

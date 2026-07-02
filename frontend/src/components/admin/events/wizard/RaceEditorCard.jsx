@@ -50,8 +50,8 @@ export default function RaceEditorCard({ race, index, draft, errors, onChange, o
             <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-extrabold text-slate-500">m</span>
           </div>
         </WizardField>
-        <WizardField label="Số người tham gia tối đa" error={errors[`${prefix}-maxRunners`]} hint="Unity hiện hỗ trợ tối đa 6 RaceEntry" className="xl:col-span-4">
-          <input type="number" min="1" max="6" className={FIELD_CLASS} value={race.maxRunners} onChange={(event) => onChange({ maxRunners: Number(event.target.value) })} />
+        <WizardField label="Số người tham gia tối đa" error={errors[`${prefix}-maxRunners`]} hint="Unity hiện hỗ trợ từ 3 đến 6 RaceEntry" className="xl:col-span-4">
+          <input type="number" min="3" max="6" className={FIELD_CLASS} value={race.maxRunners} onChange={(event) => onChange({ maxRunners: Number(event.target.value) })} />
         </WizardField>
       </div>
     </motion.article>

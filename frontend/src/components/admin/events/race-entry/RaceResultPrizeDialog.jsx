@@ -33,7 +33,7 @@ export default function RaceResultPrizeDialog({ race, onClose }) {
 
   return (
     <motion.div
-      className="fixed inset-0 z-50 grid place-items-center bg-brown-900/45 p-4 backdrop-blur-sm"
+      className="fixed inset-0 z-50 grid place-items-center bg-brown-900/55 p-4 backdrop-blur-sm"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -46,9 +46,9 @@ export default function RaceResultPrizeDialog({ race, onClose }) {
         animate={{ y: 0, scale: 1 }}
         exit={{ y: 12, scale: 0.98 }}
         transition={{ duration: 0.2 }}
-        className="max-h-[88vh] w-full max-w-5xl overflow-hidden rounded-lg border border-white/80 bg-cream-100 shadow-[0_28px_70px_rgba(43,23,16,0.28)]"
+        className="max-h-[88vh] w-full max-w-5xl overflow-hidden rounded-lg border border-white/80 bg-cream-100 shadow-[0_32px_90px_rgba(43,23,16,0.34)]"
       >
-        <header className="flex items-start justify-between gap-4 border-b border-brown-700/10 bg-white/75 px-5 py-4">
+        <header className="flex items-start justify-between gap-4 border-b border-brown-700/10 bg-[linear-gradient(135deg,rgba(255,255,255,0.92),rgba(247,234,216,0.56))] px-5 py-4">
           <div>
             <p className="flex items-center gap-2 text-xs font-black uppercase text-brown-500">
               <Medal size={15} /> Kết quả & giải thưởng
@@ -95,12 +95,12 @@ export default function RaceResultPrizeDialog({ race, onClose }) {
                 <Trophy className="mx-auto text-brown-500" size={26} />
                 <p className="mt-3 font-black text-brown-900">Chưa có kết quả Race</p>
                 <p className="mt-1 text-sm font-semibold text-slate-500">
-                  Kết quả và giải thưởng sẽ hiển thị sau khi Unity gửi kết quả hoàn tất.
+                  Kết quả và giải thưởng chỉ hiển thị sau khi Referee review và Admin phê duyệt kết quả chính thức.
                 </p>
               </div>
             </div>
           ) : (
-            <div className="overflow-hidden rounded-lg border border-brown-700/10 bg-white/80">
+            <div className="overflow-x-auto rounded-lg border border-brown-700/10 bg-white/85 shadow-[0_10px_28px_rgba(78,44,25,0.06)]">
               <div className="grid grid-cols-[4.5rem_minmax(12rem,1fr)_minmax(9rem,0.7fr)_minmax(9rem,0.7fr)_7rem_8rem_8rem_8rem_7rem] gap-3 border-b border-brown-700/10 bg-cream-200/70 px-4 py-3 text-xs font-black uppercase text-brown-700">
                 <span>Hạng</span>
                 <span>Horse</span>

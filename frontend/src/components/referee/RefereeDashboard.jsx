@@ -6,7 +6,7 @@ import RefereeResultReview from './RefereeResultReview';
 const refereeNavItems = [
   {
     key: 'resultReview',
-    label: 'Result Review',
+    label: 'Duyệt kết quả',
     description: 'Duyệt kết quả Unity',
     icon: ClipboardCheck
   }
@@ -25,7 +25,7 @@ export default function RefereeDashboard({ currentUser, onLogout }) {
 
   return (
     <main className="min-h-screen bg-[linear-gradient(145deg,#fbf5eb_0%,#f4e7d5_55%,#efe0cd_100%)] text-brown-900 lg:grid lg:grid-cols-[17.5rem_minmax(0,1fr)]">
-      <aside className="relative z-20 flex flex-col overflow-hidden border-b border-white/10 bg-[linear-gradient(165deg,#28130d_0%,#432619_58%,#30180f_100%)] px-4 py-4 text-white shadow-[0_14px_42px_rgba(43,23,16,0.18)] lg:sticky lg:top-0 lg:h-screen lg:border-b-0 lg:border-r lg:shadow-[14px_0_42px_rgba(43,23,16,0.16)]">
+      <aside className="relative z-20 flex flex-col overflow-x-hidden overflow-y-auto border-b border-white/10 bg-[linear-gradient(165deg,#28130d_0%,#432619_58%,#30180f_100%)] px-4 py-4 text-white shadow-[0_14px_42px_rgba(43,23,16,0.18)] lg:sticky lg:top-0 lg:h-screen lg:border-b-0 lg:border-r lg:shadow-[14px_0_42px_rgba(43,23,16,0.16)]">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-[linear-gradient(180deg,rgba(217,164,65,0.12),transparent)]" />
 
         <div className="relative flex items-center gap-3 rounded-lg border border-white/10 bg-white/[0.06] p-3 shadow-inner">
@@ -35,7 +35,7 @@ export default function RefereeDashboard({ currentUser, onLogout }) {
           <div className="min-w-0">
             <strong className="block truncate text-sm font-black">Horse Racing</strong>
             <span className="mt-0.5 block truncate text-[0.7rem] font-bold uppercase text-white/55">
-              Referee Dashboard
+              Trung tâm Referee
             </span>
           </div>
         </div>
@@ -103,7 +103,7 @@ export default function RefereeDashboard({ currentUser, onLogout }) {
         <header className="mb-5 flex flex-col gap-4 rounded-lg border border-brown-700/10 bg-white/65 p-5 shadow-[0_12px_34px_rgba(43,23,16,0.07)] backdrop-blur lg:flex-row lg:items-center lg:justify-between">
           <div>
             <p className="text-xs font-black uppercase tracking-[0.18em] text-brown-500">
-              Referee Dashboard
+              Trung tâm Referee
             </p>
             <h1 className="mt-2 text-3xl font-black tracking-tight text-brown-900 lg:text-4xl">
               {activeNavItem.label}

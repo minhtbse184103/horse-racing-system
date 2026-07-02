@@ -13,7 +13,7 @@ export default function WorkspaceMetricCard({ icon: Icon, label, value, hint, to
     <motion.article
       variants={fadeSlideItem}
       whileHover={hoverLift}
-      className="group relative overflow-hidden rounded-lg border border-white/80 bg-[linear-gradient(145deg,rgba(255,255,255,0.98),rgba(255,248,238,0.9))] p-4 shadow-[0_10px_30px_rgba(78,44,25,0.08),0_1px_2px_rgba(43,23,16,0.07)] transition-colors hover:border-gold-400/40 hover:shadow-[0_18px_42px_rgba(78,44,25,0.13)]"
+      className="group relative min-h-36 overflow-hidden rounded-lg border border-white/80 bg-[linear-gradient(145deg,rgba(255,255,255,0.98),rgba(255,248,238,0.9))] p-4 shadow-[0_10px_30px_rgba(78,44,25,0.08),0_1px_2px_rgba(43,23,16,0.07)] transition-colors hover:border-gold-400/40 hover:shadow-[0_18px_42px_rgba(78,44,25,0.13)]"
     >
       <div className="flex items-start justify-between gap-4">
         <div>
@@ -24,7 +24,7 @@ export default function WorkspaceMetricCard({ icon: Icon, label, value, hint, to
           <Icon size={20} strokeWidth={2.2} />
         </div>
       </div>
-      <p className="mt-3 border-t border-brown-700/10 pt-2.5 text-xs font-semibold text-slate-500">
+      <p className="mt-3 border-t border-brown-700/10 pt-2.5 text-xs font-semibold leading-5 text-slate-500">
         {hint}
       </p>
       <span className="pointer-events-none absolute inset-x-0 bottom-0 h-0.5 origin-left scale-x-0 bg-gold-400 transition-transform duration-300 group-hover:scale-x-100" />

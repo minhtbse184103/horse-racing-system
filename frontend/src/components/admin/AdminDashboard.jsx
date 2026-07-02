@@ -79,16 +79,22 @@ const adminNavItems = [
 export default function AdminDashboard({ currentUser, onLogout }) {
   const { t } = useLanguage();
   const [activeSection, setActiveSection] = useState('overview');
+  const [eventFocus, setEventFocus] = useState(null);
   const adminName =
     currentUser?.username || currentUser?.fullName || currentUser?.email || 'Admin';
   const activeNavItem =
     adminNavItems.find((item) => item.key === activeSection) || adminNavItems[0];
 
+  function navigateAdmin(section, focus = null) {
+    setActiveSection(section);
+    setEventFocus(section === 'events' ? focus : null);
+  }
+
   const activeContent = {
-    overview: <AdminOverview onNavigate={setActiveSection} />,
+    overview: <AdminOverview onNavigate={navigateAdmin} />,
     users: <UserManagement />,
     ownerApplications: <OwnerApplicationManagement />,
-    events: <TournamentWorkspace adminName={adminName} />,
+    events: <TournamentWorkspace adminName={adminName} focus={eventFocus} onFocusHandled={() => setEventFocus(null)} onNavigateToResultReview={() => setActiveSection('raceResultReviews')} />,
     refereeAssignments: <RefereeAssignmentManagement />,
     raceResultReviews: <AdminRaceResultReview />,
     jockeyReviews: <JockeyReview />,
@@ -97,7 +103,7 @@ export default function AdminDashboard({ currentUser, onLogout }) {
 
   return (
     <main className="min-h-screen bg-[linear-gradient(145deg,#fbf5eb_0%,#f4e7d5_55%,#efe0cd_100%)] text-brown-900 lg:grid lg:grid-cols-[17.5rem_minmax(0,1fr)]">
-      <aside className="relative z-20 flex flex-col overflow-hidden border-b border-white/10 bg-[linear-gradient(165deg,#28130d_0%,#432619_58%,#30180f_100%)] px-4 py-4 text-white shadow-[0_14px_42px_rgba(43,23,16,0.18)] lg:sticky lg:top-0 lg:h-screen lg:border-b-0 lg:border-r lg:shadow-[14px_0_42px_rgba(43,23,16,0.16)]">
+      <aside className="relative z-20 flex flex-col overflow-x-hidden overflow-y-auto border-b border-white/10 bg-[linear-gradient(165deg,#28130d_0%,#432619_58%,#30180f_100%)] px-4 py-4 text-white shadow-[0_14px_42px_rgba(43,23,16,0.18)] lg:sticky lg:top-0 lg:h-screen lg:border-b-0 lg:border-r lg:shadow-[14px_0_42px_rgba(43,23,16,0.16)]">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-[linear-gradient(180deg,rgba(217,164,65,0.12),transparent)]" />
 
         <div className="relative flex items-center gap-3 rounded-lg border border-white/10 bg-white/[0.06] p-3 shadow-inner">
@@ -138,7 +144,7 @@ export default function AdminDashboard({ currentUser, onLogout }) {
                 }`}
                 type="button"
                 aria-current={active ? 'page' : undefined}
-                onClick={() => setActiveSection(item.key)}
+                onClick={() => navigateAdmin(item.key)}
               >
                 {active && (
                   <motion.span

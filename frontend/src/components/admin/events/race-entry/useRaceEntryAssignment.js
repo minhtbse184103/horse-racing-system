@@ -19,6 +19,7 @@ export default function useRaceEntryAssignment(
 ) {
   const [candidates, setCandidates] = useState([]);
   const [entries, setEntries] = useState([]);
+  const [entriesRaceId, setEntriesRaceId] = useState(raceId ?? null);
   const [queueLoading, setQueueLoading] = useState(true);
   const [queueError, setQueueError] = useState('');
   const [entriesLoading, setEntriesLoading] = useState(Boolean(raceId));
@@ -46,17 +47,20 @@ export default function useRaceEntryAssignment(
   const loadEntries = useCallback(async () => {
     if (raceId == null) {
       setEntries([]);
+      setEntriesRaceId(null);
       setEntriesLoading(false);
       setEntriesError('');
       return;
     }
     const sequence = ++entriesSequence.current;
     setEntriesLoading(true);
+    setEntriesRaceId(null);
     setEntriesError('');
     try {
       const adapted = adaptRaceEntries(await getRaceEntriesByRace(raceId));
       if (sequence === entriesSequence.current) {
         setEntries(adapted);
+        setEntriesRaceId(raceId);
         onEntryCountChange?.(raceId, adapted.length);
       }
     } catch (error) {
@@ -103,6 +107,7 @@ export default function useRaceEntryAssignment(
   return {
     candidates,
     entries,
+    entriesRaceId,
     queueLoading,
     queueError,
     entriesLoading,
