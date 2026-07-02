@@ -161,11 +161,20 @@ public class RaceResultIngestionService {
                 .map(RaceEntry::getRaceEntryId)
                 .toList();
 
-        if (submissionRepository.existsByRaceId(raceId)
-                || raceResultRepository.existsByRaceEntryIdIn(raceEntryIds)) {
+        if (raceResultRepository.existsByRaceEntryIdIn(raceEntryIds)) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
-                    "Results have already been submitted for this race."
+                    "Official race result already exists for this race."
+            );
+        }
+
+        if (submissionRepository.existsByRaceIdAndStatusIn(
+                raceId,
+                RaceResultSubmissionStatus.ACTIVE_SUBMISSION_STATUSES
+        )) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "Race already has a result submission under review."
             );
         }
 

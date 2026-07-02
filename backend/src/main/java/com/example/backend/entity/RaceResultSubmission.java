@@ -25,7 +25,7 @@ public class RaceResultSubmission {
     @Column(name = "submissionID")
     private Integer submissionId;
 
-    @Column(name = "raceID", nullable = false, unique = true)
+    @Column(name = "raceID", nullable = false)
     private Integer raceId;
 
     @Column(name = "submittedAt", nullable = false)
