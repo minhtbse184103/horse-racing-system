@@ -45,17 +45,20 @@ export default function AppShell({
         </div>
 
         <nav className={navClass} aria-label={`${variant} navigation`}>
-          {navItems.map((item) => (
-            <button
-              key={item.key}
-              className={activeSection === item.key ? `${navItemClass} active` : navItemClass}
-              type="button"
-              onClick={() => onNavigate?.(item.key)}
-            >
-              {item.icon && <span>{item.icon}</span>}
-              {item.label}
-            </button>
-          ))}
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.key}
+                className={activeSection === item.key ? `${navItemClass} active` : navItemClass}
+                type="button"
+                onClick={() => onNavigate?.(item.key)}
+              >
+                {typeof Icon === 'string' ? <span>{Icon}</span> : Icon ? <Icon size={18} aria-hidden="true" /> : null}
+                {item.label}
+              </button>
+            );
+          })}
         </nav>
 
         <div className={profileClass}>

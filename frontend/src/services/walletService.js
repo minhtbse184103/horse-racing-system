@@ -6,7 +6,7 @@ function unwrapApiResponse(response) {
 
 export async function getMyWallet() {
   const response = await httpRequest('/api/wallets/me', {
-    fallbackError: 'Khong the tai thong tin vi.'
+    fallbackError: 'Unable to load wallet information.'
   });
   return unwrapApiResponse(response);
 }
@@ -15,7 +15,7 @@ export async function createWalletDeposit(amount) {
   const response = await httpRequest('/api/wallets/me/deposits', {
     method: 'POST',
     body: { amount },
-    fallbackError: 'Khong the tao giao dich chuyen tien.'
+    fallbackError: 'Unable to create the top-up transaction.'
   });
   return unwrapApiResponse(response);
 }

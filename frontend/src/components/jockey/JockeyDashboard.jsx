@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { Wallet } from 'lucide-react';
 import defaultJockeyAvatar from '../../assets/default-jockey-avatar.svg';
 import AppShell from '../common/AppShell';
 import WalletTransferPanel from '../payment/WalletTransferPanel';
@@ -19,7 +20,7 @@ const jockeyNavItems = [
   { key: 'overview', label: 'Tổng quan', icon: '📊' },
   { key: 'profile', label: 'Hồ sơ', icon: '🧑‍✈️' },
   { key: 'invitations', label: 'Lời mời', icon: '✉️' },
-  { key: 'wallet', label: 'Chuyen tien', icon: 'VND' }
+  { key: 'wallet', label: 'Wallet', icon: Wallet }
 ];
 
 const rankingOptions = ['BEGINNER', 'INTERMEDIATE', 'PROFESSIONAL', 'ELITE'];
@@ -335,7 +336,12 @@ function mergeProfileWithUser(profile, currentUser = {}) {
 }
 
 export default function JockeyDashboard({ currentUser, onLogout }) {
-  const [activeSection, setActiveSection] = useState('overview');
+  const [activeSection, setActiveSection] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('vnp_TxnRef') || params.has('vnp_SecureHash')) return 'wallet';
+    const section = params.get('section');
+    return isJockeySection(section) ? section : 'overview';
+  });
   const [profile, setProfile] = useState(null);
   const [profileForm, setProfileForm] = useState(() => emptyProfileForm(currentUser));
   const [profileErrors, setProfileErrors] = useState({});

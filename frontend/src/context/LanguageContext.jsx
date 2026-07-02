@@ -5,6 +5,8 @@ const DEFAULT_LANGUAGE = 'vi';
 
 const translations = {
   vi: {
+    wallet: 'Wallet',
+    walletDescription: 'So du va nap tien',
     languageLabel: 'Ngôn ngữ',
     vietnamese: 'Tiếng Việt',
     english: 'English',
@@ -212,6 +214,8 @@ const translations = {
     featureRaceReadyDescription: 'Phân công suất thi đấu và theo dõi từng sự kiện đến khi kết thúc.'
   },
   en: {
+    wallet: 'Wallet',
+    walletDescription: 'Balance and top-ups',
     languageLabel: 'Language',
     vietnamese: 'Vietnamese',
     english: 'English',

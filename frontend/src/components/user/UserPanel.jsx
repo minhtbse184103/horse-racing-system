@@ -29,9 +29,9 @@ const navItems = [
   { key: 'horses', label: 'Horses', icon: Trophy },
   { key: 'races', label: 'Races', icon: Flag },
   { key: 'betting', label: 'Betting', icon: CircleDollarSign },
-  { key: 'wallet', label: 'Chuyen tien', icon: Wallet, roles: ['SPECTATOR'] },
   { key: 'results', label: 'Results', icon: Medal },
-  { key: 'profile', label: 'Profile', icon: UserRound }
+  { key: 'profile', label: 'Profile', icon: UserRound },
+  { key: 'wallet', label: 'Wallet', icon: Wallet, roles: ['SPECTATOR'] }
 ];
 
 const sampleRaces = [
@@ -413,7 +413,11 @@ function ProfileSection({ user, ownerApplication, jockeyApplication, isLoading, 
 }
 
 export default function UserPanel({ user, onLogout }) {
-  const [activeSection, setActiveSection] = useState('dashboard');
+  const [activeSection, setActiveSection] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('vnp_TxnRef') || params.has('vnp_SecureHash')) return 'wallet';
+    return params.get('section') || 'dashboard';
+  });
   const [ownerApplication, setOwnerApplication] = useState(null);
   const [jockeyApplication, setJockeyApplication] = useState(null);
   const [isLoadingApplication, setIsLoadingApplication] = useState(true);
