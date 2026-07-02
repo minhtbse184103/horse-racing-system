@@ -191,6 +191,7 @@ public class AdminRaceResultReviewService {
             );
         }
 
+        Race race = getRaceForUpdate(submission.getRaceId());
         LocalDateTime now = LocalDateTime.now();
         submission.setStatus(RaceResultSubmissionStatus.ADMIN_REJECTED);
         submission.setAdminReviewedAt(now);
@@ -203,6 +204,16 @@ public class AdminRaceResultReviewService {
                 reason,
                 now
         );
+
+        // READY after Admin rejection is a manual recovery state. It is not
+        // controlled by raceStartTime; Admin must launch Unity again to
+        // generate a new engine token and a new provisional submission.
+        race.setStatus(EventStatus.READY);
+        race.setRunStartedAt(null);
+        race.setRunTriggeredBy(null);
+        race.setRaceEngineToken(null);
+        race.setRaceEngineTokenIssuedAt(null);
+        raceRepository.save(race);
 
         RaceResultSubmission savedSubmission =
                 submissionRepository.save(submission);

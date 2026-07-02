@@ -77,7 +77,10 @@ class RaceResultIngestionServiceTest {
                 assignedEntry(2, 2)
         );
         stubRaceAndEntries(race, entries);
-        when(submissionRepository.existsByRaceId(RACE_ID)).thenReturn(false);
+        when(submissionRepository.existsByRaceIdAndStatusIn(
+                RACE_ID,
+                RaceResultSubmissionStatus.ACTIVE_SUBMISSION_STATUSES
+        )).thenReturn(false);
         when(raceResultRepository.existsByRaceEntryIdIn(List.of(1, 2)))
                 .thenReturn(false);
         when(submissionRepository.save(any(RaceResultSubmission.class)))
@@ -252,10 +255,15 @@ class RaceResultIngestionServiceTest {
     }
 
     @Test
-    void ingestResultRejectsResubmissionWhenSubmissionExists() {
+    void ingestResultRejectsResubmissionWhenActiveSubmissionExists() {
         Race race = launchedRace();
         stubRaceAndEntries(race, List.of(assignedEntry(1, 1)));
-        when(submissionRepository.existsByRaceId(RACE_ID))
+        when(raceResultRepository.existsByRaceEntryIdIn(List.of(1)))
+                .thenReturn(false);
+        when(submissionRepository.existsByRaceIdAndStatusIn(
+                RACE_ID,
+                RaceResultSubmissionStatus.ACTIVE_SUBMISSION_STATUSES
+        ))
                 .thenReturn(true);
 
         ApiException exception = assertThrows(
@@ -268,9 +276,65 @@ class RaceResultIngestionServiceTest {
         );
 
         assertEquals(HttpStatus.CONFLICT, exception.getStatus());
-        verify(raceResultRepository, never()).existsByRaceEntryIdIn(any());
         verify(submissionRepository, never()).save(any());
         verify(raceResultRepository, never()).saveAll(any());
+    }
+
+    @Test
+    void ingestResultAllowsRejectedSubmissionHistory() {
+        Race race = launchedRace();
+        List<RaceEntry> entries = List.of(assignedEntry(1, 1));
+        stubRaceAndEntries(race, entries);
+        when(raceResultRepository.existsByRaceEntryIdIn(List.of(1)))
+                .thenReturn(false);
+        when(submissionRepository.existsByRaceIdAndStatusIn(
+                RACE_ID,
+                RaceResultSubmissionStatus.ACTIVE_SUBMISSION_STATUSES
+        )).thenReturn(false);
+        when(submissionRepository.save(any(RaceResultSubmission.class)))
+                .thenAnswer(invocation -> {
+                    RaceResultSubmission submission = invocation.getArgument(0);
+                    submission.setSubmissionId(51);
+                    return submission;
+                });
+
+        RaceResultIngestResponse response =
+                raceResultIngestionService.ingestResult(
+                        RACE_ID,
+                        "new-launch-token",
+                        resultRequest(resultEntry(1, 1))
+                );
+
+        assertEquals(51, response.getSubmissionId());
+        assertEquals(EventStatus.PENDING_REVIEW, race.getStatus());
+        verify(submissionRepository).existsByRaceIdAndStatusIn(
+                RACE_ID,
+                RaceResultSubmissionStatus.ACTIVE_SUBMISSION_STATUSES
+        );
+    }
+
+    @Test
+    void ingestResultRejectsWhenOfficialResultExists() {
+        Race race = launchedRace();
+        stubRaceAndEntries(race, List.of(assignedEntry(1, 1)));
+        when(raceResultRepository.existsByRaceEntryIdIn(List.of(1)))
+                .thenReturn(true);
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> raceResultIngestionService.ingestResult(
+                        RACE_ID,
+                        "launch-token",
+                        resultRequest(resultEntry(1, 1))
+                )
+        );
+
+        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
+        verify(submissionRepository, never()).existsByRaceIdAndStatusIn(
+                any(),
+                any()
+        );
+        verify(submissionRepository, never()).save(any());
     }
 
     @Test

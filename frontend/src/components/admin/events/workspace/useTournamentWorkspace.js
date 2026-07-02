@@ -98,6 +98,17 @@ export default function useTournamentWorkspace() {
     };
   }, [loadRegistrations, loadTournaments]);
 
+  useEffect(() => {
+    function refreshAfterResultRejection() {
+      loadTournaments();
+    }
+
+    window.addEventListener('admin-event:race-result-rejected', refreshAfterResultRejection);
+    return () => {
+      window.removeEventListener('admin-event:race-result-rejected', refreshAfterResultRejection);
+    };
+  }, [loadTournaments]);
+
   async function approveRegistration(registrationId) {
     const updated = adaptRegistration(
       await approveRegistrationRequest(registrationId)

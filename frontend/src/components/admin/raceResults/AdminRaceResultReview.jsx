@@ -423,7 +423,10 @@ export default function AdminRaceResultReview() {
     try {
       if (dialogMode === 'reject') {
         await rejectRaceResultSubmission(detail.submissionId, reason);
-        returnToQueue('Đã từ chối kết quả.');
+        window.dispatchEvent(new CustomEvent('admin-event:race-result-rejected', {
+          detail: { raceId: detail.raceId, submissionId: detail.submissionId }
+        }));
+        returnToQueue('Kết quả đã bị từ chối. Race đã được đưa về READY để chạy lại.');
       } else {
         await approveRaceResultSubmission(detail.submissionId, reason);
         returnToQueue('Đã phê duyệt kết quả.');

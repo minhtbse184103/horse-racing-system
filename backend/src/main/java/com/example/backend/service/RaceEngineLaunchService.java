@@ -2,6 +2,7 @@ package com.example.backend.service;
 
 import com.example.backend.constant.EventStatus;
 import com.example.backend.constant.RaceEntryStatus;
+import com.example.backend.constant.RaceResultSubmissionStatus;
 import com.example.backend.dto.request.FailRaceRunRequest;
 import com.example.backend.dto.response.RaceLaunchResponse;
 import com.example.backend.dto.response.RaceRunRecoveryResponse;
@@ -12,6 +13,7 @@ import com.example.backend.exception.ApiException;
 import com.example.backend.repository.RaceEntryRepository;
 import com.example.backend.repository.RaceRepository;
 import com.example.backend.repository.RaceResultRepository;
+import com.example.backend.repository.RaceResultSubmissionRepository;
 import com.example.backend.repository.RefereeAssignmentRepository;
 import com.example.backend.repository.UserRepository;
 import lombok.extern.slf4j.Slf4j;
@@ -40,6 +42,7 @@ public class RaceEngineLaunchService {
     private final RaceRepository raceRepository;
     private final RaceEntryRepository raceEntryRepository;
     private final RaceResultRepository raceResultRepository;
+    private final RaceResultSubmissionRepository raceResultSubmissionRepository;
     private final RefereeAssignmentRepository refereeAssignmentRepository;
     private final UserRepository userRepository;
     private final RaceEngineTokenService raceEngineTokenService;
@@ -49,6 +52,7 @@ public class RaceEngineLaunchService {
             RaceRepository raceRepository,
             RaceEntryRepository raceEntryRepository,
             RaceResultRepository raceResultRepository,
+            RaceResultSubmissionRepository raceResultSubmissionRepository,
             RefereeAssignmentRepository refereeAssignmentRepository,
             UserRepository userRepository,
             RaceEngineTokenService raceEngineTokenService,
@@ -57,6 +61,7 @@ public class RaceEngineLaunchService {
         this.raceRepository = raceRepository;
         this.raceEntryRepository = raceEntryRepository;
         this.raceResultRepository = raceResultRepository;
+        this.raceResultSubmissionRepository = raceResultSubmissionRepository;
         this.refereeAssignmentRepository = refereeAssignmentRepository;
         this.userRepository = userRepository;
         this.raceEngineTokenService = raceEngineTokenService;
@@ -225,6 +230,16 @@ public class RaceEngineLaunchService {
             throw new ApiException(
                     HttpStatus.CONFLICT,
                     "Race has already been launched."
+            );
+        }
+
+        if (raceResultSubmissionRepository.existsByRaceIdAndStatusIn(
+                race.getRaceId(),
+                RaceResultSubmissionStatus.ACTIVE_SUBMISSION_STATUSES
+        )) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "Race already has a result submission under review."
             );
         }
 

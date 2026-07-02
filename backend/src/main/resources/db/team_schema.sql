@@ -402,7 +402,7 @@ CREATE TABLE `RaceResult` (
 
 CREATE TABLE `RaceResultSubmission` (
   `submissionID` int PRIMARY KEY AUTO_INCREMENT,
-  `raceID` int UNIQUE NOT NULL,
+  `raceID` int NOT NULL,
   `submittedAt` datetime NOT NULL,
   `submittedBy` int,
   `engineTokenIssuedAt` datetime,
@@ -602,6 +602,9 @@ ON `PrizeDistribution` (`raceID`, `status`);
 
 CREATE INDEX `RaceResultSubmission_status_submitted_idx`
 ON `RaceResultSubmission` (`status`, `submittedAt`);
+
+CREATE INDEX `RaceResultSubmission_race_status_idx`
+ON `RaceResultSubmission` (`raceID`, `status`);
 
 CREATE INDEX `RaceResultSubmissionEntry_submission_position_idx`
 ON `RaceResultSubmissionEntry` (`submissionID`, `finishPosition`);

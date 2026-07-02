@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -15,7 +16,14 @@ import java.util.Optional;
 public interface RaceResultSubmissionRepository
         extends JpaRepository<RaceResultSubmission, Integer> {
 
-    boolean existsByRaceId(Integer raceId);
+    boolean existsByRaceIdAndStatusIn(
+            Integer raceId,
+            Collection<String> statuses
+    );
+
+    List<RaceResultSubmission> findByRaceIdOrderBySubmittedAtDesc(
+            Integer raceId
+    );
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""

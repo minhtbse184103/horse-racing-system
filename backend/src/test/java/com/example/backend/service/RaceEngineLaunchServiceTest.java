@@ -2,6 +2,7 @@ package com.example.backend.service;
 
 import com.example.backend.constant.EventStatus;
 import com.example.backend.constant.RaceEntryStatus;
+import com.example.backend.constant.RaceResultSubmissionStatus;
 import com.example.backend.dto.request.FailRaceRunRequest;
 import com.example.backend.dto.response.RaceLaunchResponse;
 import com.example.backend.dto.response.RaceRunRecoveryResponse;
@@ -13,6 +14,7 @@ import com.example.backend.exception.ApiException;
 import com.example.backend.repository.RaceEntryRepository;
 import com.example.backend.repository.RaceRepository;
 import com.example.backend.repository.RaceResultRepository;
+import com.example.backend.repository.RaceResultSubmissionRepository;
 import com.example.backend.repository.RefereeAssignmentRepository;
 import com.example.backend.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -49,6 +51,8 @@ class RaceEngineLaunchServiceTest {
     @Mock
     private RaceResultRepository raceResultRepository;
     @Mock
+    private RaceResultSubmissionRepository raceResultSubmissionRepository;
+    @Mock
     private RefereeAssignmentRepository refereeAssignmentRepository;
     @Mock
     private UserRepository userRepository;
@@ -65,6 +69,7 @@ class RaceEngineLaunchServiceTest {
                 raceRepository,
                 raceEntryRepository,
                 raceResultRepository,
+                raceResultSubmissionRepository,
                 refereeAssignmentRepository,
                 userRepository,
                 raceEngineTokenService,
@@ -195,6 +200,33 @@ class RaceEngineLaunchServiceTest {
                 "Race needs at least 3 assigned entries before it can be run.",
                 exception.getMessage()
         );
+        verify(raceRepository, never()).saveAndFlush(any());
+        verify(raceEngineProcessLauncher, never()).launch(any(), any());
+    }
+
+    @Test
+    void launchRaceRejectsWhileResultSubmissionIsActive() {
+        Race race = launchableRace();
+        stubAdmin();
+        when(raceRepository.findByIdForUpdate(RACE_ID))
+                .thenReturn(Optional.of(race));
+        when(raceResultSubmissionRepository.existsByRaceIdAndStatusIn(
+                RACE_ID,
+                RaceResultSubmissionStatus.ACTIVE_SUBMISSION_STATUSES
+        )).thenReturn(true);
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> raceEngineLaunchService.launchRace(RACE_ID, ADMIN_EMAIL)
+        );
+
+        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
+        assertEquals(
+                "Race already has a result submission under review.",
+                exception.getMessage()
+        );
+        verify(refereeAssignmentRepository, never()).existsByRaceId(any());
+        verify(raceEntryRepository, never()).countByRaceIdAndStatus(any(), any());
         verify(raceRepository, never()).saveAndFlush(any());
         verify(raceEngineProcessLauncher, never()).launch(any(), any());
     }

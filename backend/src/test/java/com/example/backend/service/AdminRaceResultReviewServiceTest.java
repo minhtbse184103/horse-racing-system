@@ -188,13 +188,20 @@ class AdminRaceResultReviewServiceTest {
     }
 
     @Test
-    void rejectSubmissionDoesNotCreateOfficialResultsOrCompleteRace() {
+    void rejectSubmissionResetsRaceToReadyForRerun() {
         when(userRepository.findByEmail("admin@example.com"))
                 .thenReturn(Optional.of(activeAdmin()));
         when(submissionRepository.findByIdForUpdate(SUBMISSION_ID))
                 .thenReturn(Optional.of(submission(
                         RaceResultSubmissionStatus.REFEREE_FLAGGED
                 )));
+        Race race = race(EventStatus.PENDING_REVIEW);
+        race.setRunTriggeredBy(ADMIN_ID);
+        race.setRunStartedAt(LocalDateTime.now().minusMinutes(2));
+        race.setRaceEngineToken("old-token");
+        race.setRaceEngineTokenIssuedAt(LocalDateTime.now().minusMinutes(2));
+        when(raceRepository.findByIdForUpdate(RACE_ID))
+                .thenReturn(Optional.of(race));
         when(submissionRepository.save(any(RaceResultSubmission.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
         when(raceRepository.findById(RACE_ID)).thenReturn(Optional.of(race()));
@@ -214,7 +221,16 @@ class AdminRaceResultReviewServiceTest {
 
         verify(raceResultRepository, never()).saveAll(any());
         verify(prizeSettlementService, never()).settlePrizes(any(), any(), any());
-        verify(raceRepository, never()).save(any());
+        verify(raceEntryRepository, never()).findAllById(any());
+
+        ArgumentCaptor<Race> raceCaptor = ArgumentCaptor.forClass(Race.class);
+        verify(raceRepository).save(raceCaptor.capture());
+        Race savedRace = raceCaptor.getValue();
+        assertEquals(EventStatus.READY, savedRace.getStatus());
+        assertEquals(null, savedRace.getRunStartedAt());
+        assertEquals(null, savedRace.getRunTriggeredBy());
+        assertEquals(null, savedRace.getRaceEngineToken());
+        assertEquals(null, savedRace.getRaceEngineTokenIssuedAt());
 
         ArgumentCaptor<RaceResultSubmission> submissionCaptor =
                 ArgumentCaptor.forClass(RaceResultSubmission.class);
