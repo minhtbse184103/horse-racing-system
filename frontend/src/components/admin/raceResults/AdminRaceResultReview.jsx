@@ -177,7 +177,7 @@ function SubmissionDetail({ submission, isLoading, error, onBack, onRetry, onApp
             Thử lại
           </button>
           <button className="rounded-lg border border-rose-200 bg-white px-4 py-2 text-sm font-black text-rose-700 shadow-[0_8px_18px_rgba(78,44,25,0.06)]" type="button" onClick={onBack}>
-            Quay lại review queue
+            Đóng
           </button>
         </div>
       </section>
@@ -200,7 +200,7 @@ function SubmissionDetail({ submission, isLoading, error, onBack, onRetry, onApp
           </div>
           <div className="flex flex-wrap gap-2">
             <button className="min-h-10 rounded-lg border border-brown-700/15 bg-white px-4 text-sm font-black text-brown-700 shadow-[0_8px_18px_rgba(78,44,25,0.06)] transition hover:-translate-y-0.5 hover:bg-cream-100" type="button" onClick={onBack}>
-              Quay lại
+              Đóng
             </button>
             <button className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 text-sm font-black text-rose-700 shadow-[0_8px_18px_rgba(185,28,28,0.06)] transition hover:-translate-y-0.5 hover:bg-rose-100" type="button" onClick={onReject}>
               <ShieldAlert size={16} />
@@ -257,16 +257,15 @@ function SubmissionDetail({ submission, isLoading, error, onBack, onRetry, onApp
           <span className="rounded-full border border-brown-700/10 bg-white px-3 py-1 text-sm font-black text-brown-700 shadow-[0_6px_16px_rgba(78,44,25,0.06)]">{submission.entries.length} Horse</span>
         </div>
 
-        <div className="overflow-x-auto">
-          <table className="min-w-[62rem] w-full table-fixed text-left">
+        <div className="overflow-hidden">
+          <table className="w-full table-fixed text-left">
             <colgroup>
               <col className="w-[11%]" />
-              <col className="w-[22%]" />
+              <col className="w-[24%]" />
               <col className="w-[17%]" />
               <col className="w-[17%]" />
-              <col className="w-[12%]" />
               <col className="w-[14%]" />
-              <col className="w-[7%]" />
+              <col className="w-[17%]" />
             </colgroup>
             <thead className="bg-cream-200/55">
               <tr className="border-b border-brown-700/10 text-xs font-black uppercase tracking-wide text-brown-700">
@@ -276,7 +275,6 @@ function SubmissionDetail({ submission, isLoading, error, onBack, onRetry, onApp
                 <th className="px-5 py-3">Jockey</th>
                 <th className="px-5 py-3">Vị trí xuất phát</th>
                 <th className="px-5 py-3">Thời gian về đích</th>
-                <th className="px-5 py-3">Điểm</th>
               </tr>
             </thead>
             <tbody>
@@ -293,7 +291,6 @@ function SubmissionDetail({ submission, isLoading, error, onBack, onRetry, onApp
                   <td className="truncate px-5 py-4 font-bold text-brown-900">{entry.jockeyName}</td>
                   <td className="px-5 py-4 font-black text-brown-900">{entry.startingStall || 'N/A'}</td>
                   <td className="px-5 py-4 font-black text-brown-900">{entry.finishTime}</td>
-                  <td className="px-5 py-4 font-black text-brown-900">{entry.points}</td>
                 </tr>
               ))}
             </tbody>
@@ -324,6 +321,23 @@ function SubmissionDetail({ submission, isLoading, error, onBack, onRetry, onApp
         )}
       </section>
     </section>
+  );
+}
+
+function SubmissionDetailModal({ open, children, onClose }) {
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-[1100] grid place-items-center bg-brown-900/60 p-4 backdrop-blur-sm" onClick={onClose}>
+      <section
+        className="max-h-[92vh] w-full max-w-6xl overflow-hidden rounded-lg border border-white/60 bg-cream-100 shadow-[0_34px_100px_rgba(43,23,16,0.48)]"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="max-h-[92vh] overflow-y-auto p-4 sm:p-5">
+          {children}
+        </div>
+      </section>
+    </div>
   );
 }
 
@@ -405,6 +419,16 @@ export default function AdminRaceResultReview() {
     loadReviewQueue();
   }
 
+  function closeDetailModal() {
+    if (isSubmittingDecision) return;
+    setSelectedId(null);
+    setDetail(null);
+    setDetailError('');
+    setDialogMode(null);
+    setDecisionReason('');
+    setDecisionError('');
+  }
+
   function openDecisionDialog(mode) {
     setDialogMode(mode);
     setDecisionReason('');
@@ -446,33 +470,6 @@ export default function AdminRaceResultReview() {
     } finally {
       setIsSubmittingDecision(false);
     }
-  }
-
-  if (selectedId) {
-    return (
-      <section className="space-y-5 text-brown-900">
-        {toast && <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800 shadow-[0_8px_24px_rgba(5,150,105,0.1)]">{toast}</div>}
-        <SubmissionDetail
-          submission={detail}
-          isLoading={isLoadingDetail}
-          error={detailError}
-          onBack={() => returnToQueue()}
-          onRetry={() => loadDetail(selectedId)}
-          onApprove={() => openDecisionDialog('approve')}
-          onReject={() => openDecisionDialog('reject')}
-        />
-        <AdminDecisionDialog
-          mode={dialogMode}
-          submission={detail}
-          reason={decisionReason}
-          onReasonChange={setDecisionReason}
-          error={decisionError}
-          isSubmitting={isSubmittingDecision}
-          onClose={closeDecisionDialog}
-          onSubmit={submitDecision}
-        />
-      </section>
-    );
   }
 
   return (
@@ -549,8 +546,8 @@ export default function AdminRaceResultReview() {
             <EmptyState onRefresh={loadReviewQueue} />
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-[76rem] w-full table-fixed text-left">
+          <div className="overflow-hidden">
+            <table className="w-full table-fixed text-left">
               <colgroup>
                 <col className="w-[10%]" />
                 <col className="w-[17%]" />
@@ -593,10 +590,11 @@ export default function AdminRaceResultReview() {
                       <button
                         type="button"
                         onClick={() => loadDetail(submission.submissionId)}
-                        className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-brown-700/15 bg-white px-4 text-sm font-black text-brown-700 shadow-[0_8px_18px_rgba(78,44,25,0.06)] transition hover:-translate-y-0.5 hover:border-brown-500 hover:bg-cream-100"
+                        className="inline-grid size-10 place-items-center rounded-lg border border-brown-700/15 bg-white text-brown-700 shadow-[0_8px_18px_rgba(78,44,25,0.06)] transition hover:-translate-y-0.5 hover:border-brown-500 hover:bg-cream-100"
+                        aria-label={`Duyệt submission #${submission.submissionId}`}
+                        title="Duyệt"
                       >
                         <Eye size={16} />
-                        Duyệt
                       </button>
                     </td>
                   </tr>
@@ -612,6 +610,29 @@ export default function AdminRaceResultReview() {
           </div>
         )}
       </section>
+
+      <SubmissionDetailModal open={Boolean(selectedId)} onClose={closeDetailModal}>
+        <SubmissionDetail
+          submission={detail}
+          isLoading={isLoadingDetail}
+          error={detailError}
+          onBack={closeDetailModal}
+          onRetry={() => loadDetail(selectedId)}
+          onApprove={() => openDecisionDialog('approve')}
+          onReject={() => openDecisionDialog('reject')}
+        />
+      </SubmissionDetailModal>
+
+      <AdminDecisionDialog
+        mode={dialogMode}
+        submission={detail}
+        reason={decisionReason}
+        onReasonChange={setDecisionReason}
+        error={decisionError}
+        isSubmitting={isSubmittingDecision}
+        onClose={closeDecisionDialog}
+        onSubmit={submitDecision}
+      />
     </section>
   );
 }

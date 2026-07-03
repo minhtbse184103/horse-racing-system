@@ -15,7 +15,6 @@ public class RaceResultPrizeResponse {
     private Integer startingStall;
     private Integer finishPosition;
     private String finishTime;
-    private Integer points;
     private BigDecimal prizeMoney;
     private LocalDateTime recordedAt;
     private Integer horseId;

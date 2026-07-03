@@ -9,13 +9,13 @@ import com.example.backend.dto.response.RaceResultSubmissionSummaryResponse;
 import com.example.backend.entity.Race;
 import com.example.backend.entity.RaceResultReviewAction;
 import com.example.backend.entity.RaceResultSubmission;
-import com.example.backend.entity.RaceResultSubmissionEntry;
 import com.example.backend.entity.Role;
 import com.example.backend.entity.User;
 import com.example.backend.exception.ApiException;
 import com.example.backend.repository.RaceRepository;
 import com.example.backend.repository.RaceResultReviewActionRepository;
 import com.example.backend.repository.RaceResultSubmissionEntryRepository;
+import com.example.backend.repository.RaceResultSubmissionEntryRepository.RaceResultSubmissionEntryProjection;
 import com.example.backend.repository.RaceResultSubmissionRepository;
 import com.example.backend.repository.RefereeAssignmentRepository;
 import com.example.backend.repository.UserRepository;
@@ -254,9 +254,8 @@ class RefereeRaceResultReviewServiceTest {
         if (includeDetailMappingStubs) {
             when(raceRepository.findById(RACE_ID))
                     .thenReturn(Optional.of(race()));
-            when(entryRepository.findBySubmissionIdOrderByFinishPositionAsc(
-                    SUBMISSION_ID
-            )).thenReturn(List.of(submissionEntry()));
+            when(entryRepository.findEntryDetailsBySubmissionId(SUBMISSION_ID))
+                    .thenReturn(List.of(submissionEntryProjection()));
             when(reviewActionRepository.findBySubmissionIdOrderByCreatedAtAsc(
                     SUBMISSION_ID
             )).thenReturn(List.of());
@@ -277,16 +276,49 @@ class RefereeRaceResultReviewServiceTest {
         return submission;
     }
 
-    private RaceResultSubmissionEntry submissionEntry() {
-        RaceResultSubmissionEntry entry = new RaceResultSubmissionEntry();
-        entry.setSubmissionEntryId(100);
-        entry.setSubmissionId(SUBMISSION_ID);
-        entry.setRaceEntryId(200);
-        entry.setStartingStall(1);
-        entry.setFinishPosition(1);
-        entry.setFinishTime("00:00:55");
-        entry.setPoints(0);
-        return entry;
+    private RaceResultSubmissionEntryProjection submissionEntryProjection() {
+        return new RaceResultSubmissionEntryProjection() {
+            @Override
+            public Integer getSubmissionEntryId() {
+                return 100;
+            }
+
+            @Override
+            public Integer getRaceEntryId() {
+                return 200;
+            }
+
+            @Override
+            public Integer getStartingStall() {
+                return 1;
+            }
+
+            @Override
+            public Integer getFinishPosition() {
+                return 1;
+            }
+
+            @Override
+            public String getHorseName() {
+                return "Demo Horse";
+            }
+
+            @Override
+            public String getOwnerName() {
+                return "Owner Demo";
+            }
+
+            @Override
+            public String getJockeyName() {
+                return "Jockey Demo";
+            }
+
+            @Override
+            public String getFinishTime() {
+                return "00:00:55";
+            }
+
+        };
     }
 
     private Race race() {
