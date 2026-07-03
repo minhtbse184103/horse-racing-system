@@ -218,6 +218,51 @@ class OwnerTournamentRegistrationServiceTest {
     }
 
     @Test
+    void submitRejectsHorseRegistrationInOverlappingTournament() {
+        OwnerTournamentRegistrationRequest request = request();
+        User owner = user(30, "owner@example.com", "OWNER");
+        User jockey = user(40, "jockey@example.com", "JOCKEY");
+        Tournament tournament = openTournament();
+        Horse horse = activeHorse();
+
+        stubBaseLookups(owner, jockey, tournament, horse);
+        when(jockeyInvitationRepository.existsByTournamentIdAndHorseIdAndOwnerIdAndJockeyIdAndStatus(
+                10, 20, 30, 40, "ACCEPTED"
+        )).thenReturn(true);
+        when(registrationRepository.countByTournamentIdAndHorseIdAndStatusInExcludingRegistration(
+                eq(10),
+                eq(20),
+                any(Collection.class),
+                eq(null)
+        )).thenReturn(0L);
+        when(registrationRepository.countByTournamentIdAndOwnerIdAndStatusInExcludingRegistration(
+                eq(10),
+                eq(30),
+                any(Collection.class),
+                eq(null)
+        )).thenReturn(0L);
+        when(registrationRepository.countByOverlappingTournamentAndHorseIdAndStatusInExcludingRegistration(
+                eq(20),
+                eq(tournament.getStartDate()),
+                eq(tournament.getEndDate()),
+                any(Collection.class),
+                eq(null)
+        )).thenReturn(1L);
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.submitRegistration(request, "127.0.0.1")
+        );
+
+        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
+        assertEquals(
+                "Horse already has an active registration in an overlapping tournament.",
+                exception.getMessage()
+        );
+        verify(registrationRepository, never()).save(any());
+    }
+
+    @Test
     void submitRejectsTournamentNotOpen() {
         OwnerTournamentRegistrationRequest request = request();
         User owner = user(30, "owner@example.com", "OWNER");
@@ -367,9 +412,8 @@ class OwnerTournamentRegistrationServiceTest {
                 any(Collection.class),
                 eq(null)
         )).thenReturn(0L);
-        when(registrationRepository.countByOverlappingTournamentAndHorseIdAndJockeyIdAndStatusInExcludingRegistration(
+        when(registrationRepository.countByOverlappingTournamentAndHorseIdAndStatusInExcludingRegistration(
                 eq(horse.getHorseId()),
-                eq(jockey.getUserID()),
                 eq(tournament.getStartDate()),
                 eq(tournament.getEndDate()),
                 any(Collection.class),

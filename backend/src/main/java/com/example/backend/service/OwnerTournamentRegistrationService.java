@@ -98,8 +98,8 @@ public class OwnerTournamentRegistrationService {
         validateAcceptedInvitation(tournament, horse, owner, jockey);
         validateDuplicateHorseRegistration(tournament, horse);
         validateDuplicateOwnerRegistration(tournament, owner);
+        validateHorseAvailability(tournament, horse);
         validateJockeyAvailability(tournament, jockey);
-        validateHorseJockeyAvailability(tournament, horse, jockey);
 
         LocalDateTime now = LocalDateTime.now();
         Registration registration = new Registration();
@@ -355,16 +355,14 @@ public class OwnerTournamentRegistrationService {
         }
     }
 
-    private void validateHorseJockeyAvailability(
+    private void validateHorseAvailability(
             Tournament tournament,
-            Horse horse,
-            User jockey
+            Horse horse
     ) {
         long overlappingCount =
                 registrationRepository
-                        .countByOverlappingTournamentAndHorseIdAndJockeyIdAndStatusInExcludingRegistration(
+                        .countByOverlappingTournamentAndHorseIdAndStatusInExcludingRegistration(
                                 horse.getHorseId(),
-                                jockey.getUserID(),
                                 tournament.getStartDate(),
                                 tournament.getEndDate(),
                                 ACTIVE_REGISTRATION_STATUSES,
@@ -374,7 +372,7 @@ public class OwnerTournamentRegistrationService {
         if (overlappingCount > 0) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
-                    "Horse and jockey pair already has an active registration in an overlapping tournament."
+                    "Horse already has an active registration in an overlapping tournament."
             );
         }
     }

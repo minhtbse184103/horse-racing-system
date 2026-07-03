@@ -86,6 +86,23 @@ public interface JockeyInvitationRepository extends JpaRepository<JockeyInvitati
             from JockeyInvitation i
             join Tournament t on t.tournamentId = i.tournamentId
             where i.horseId = :horseId
+              and i.status = :invitationStatus
+              and (:excludedInvitationId is null or i.invitationId <> :excludedInvitationId)
+              and t.startDate <= :endDate
+              and t.endDate >= :startDate
+            """)
+    boolean existsPendingOverlappingInvitationForHorse(
+            @Param("horseId") Integer horseId,
+            @Param("startDate") java.time.LocalDate startDate,
+            @Param("endDate") java.time.LocalDate endDate,
+            @Param("invitationStatus") String invitationStatus,
+            @Param("excludedInvitationId") Integer excludedInvitationId);
+
+    @Query("""
+            select count(i) > 0
+            from JockeyInvitation i
+            join Tournament t on t.tournamentId = i.tournamentId
+            where i.horseId = :horseId
               and i.jockeyId = :jockeyId
               and i.status = :invitationStatus
               and (:excludedInvitationId is null or i.invitationId <> :excludedInvitationId)

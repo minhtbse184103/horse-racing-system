@@ -283,6 +283,30 @@ public interface RegistrationRepository
         join Tournament tournament
           on tournament.tournamentId = registration.tournamentId
         where registration.horseId = :horseId
+          and registration.approvalStatus in :statuses
+          and (
+                :excludedRegistrationId is null
+                or registration.registrationId
+                    <> :excludedRegistrationId
+              )
+          and tournament.startDate <= :endDate
+          and tournament.endDate >= :startDate
+        """)
+    long countByOverlappingTournamentAndHorseIdAndStatusInExcludingRegistration(
+            @Param("horseId") Integer horseId,
+            @Param("startDate") java.time.LocalDate startDate,
+            @Param("endDate") java.time.LocalDate endDate,
+            @Param("statuses") Collection<String> statuses,
+            @Param("excludedRegistrationId")
+            Integer excludedRegistrationId
+    );
+
+    @Query("""
+        select count(registration)
+        from Registration registration
+        join Tournament tournament
+          on tournament.tournamentId = registration.tournamentId
+        where registration.horseId = :horseId
           and registration.jockeyId = :jockeyId
           and registration.approvalStatus in :statuses
           and (

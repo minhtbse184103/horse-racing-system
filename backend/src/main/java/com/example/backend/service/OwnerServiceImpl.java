@@ -21,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import com.example.backend.constant.RegistrationStatus;
 import com.example.backend.dto.request.CreateHorseRequest;
 import com.example.backend.dto.request.InviteJockeyRequest;
 import com.example.backend.dto.request.UpdateHorseRequest;
@@ -225,6 +226,11 @@ public class OwnerServiceImpl implements OwnerService {
         validateInvitationExpiry(request.getExpiredAt(), tournament);
         validateOwnerCanRegisterForTournament(owner.getUserID(), tournament.tournamentId(), null);
         validateHorseActiveRegistrationForTournament(horse.getHorseId(), tournament.tournamentId(), null);
+        validateHorseAvailableForOverlappingTournament(
+                horse.getHorseId(),
+                tournament,
+                null,
+                null);
 
         User jockey = getJockey(request.getJockeyId());
         validateJockeyAvailableForTournament(tournament, jockey.getUserID(), null, null);
@@ -296,6 +302,35 @@ public class OwnerServiceImpl implements OwnerService {
         if (activeRegistrations > 0) {
             throw new ApiException(HttpStatus.CONFLICT,
                     "Ngựa này đã có đơn đăng ký đang hoạt động trong giải đấu.");
+        }
+    }
+
+    // Kiểm tra ngựa chưa có registration active hoặc lời mời pending trong tournament bị overlap.
+    private void validateHorseAvailableForOverlappingTournament(
+            Integer horseId,
+            TournamentSnapshot tournament,
+            Integer excludedRegistrationId,
+            Integer excludedInvitationId) {
+        long overlappingRegistrations = registrationRepository
+                .countByOverlappingTournamentAndHorseIdAndStatusInExcludingRegistration(
+                        horseId,
+                        tournament.startDate(),
+                        tournament.endDate(),
+                        List.of(RegistrationStatus.PENDING, RegistrationStatus.APPROVED),
+                        excludedRegistrationId);
+        if (overlappingRegistrations > 0) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Ngựa này đã có đơn đăng ký ở giải đấu trùng thời gian.");
+        }
+
+        if (jockeyInvitationRepository.existsPendingOverlappingInvitationForHorse(
+                horseId,
+                tournament.startDate(),
+                tournament.endDate(),
+                INVITATION_PENDING,
+                excludedInvitationId)) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Ngựa này đã có lời mời đang chờ xử lý ở giải đấu trùng thời gian.");
         }
     }
 
