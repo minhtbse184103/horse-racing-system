@@ -21,6 +21,7 @@ import com.example.backend.repository.RaceRepository;
 import com.example.backend.repository.RaceResultRepository;
 import com.example.backend.repository.RaceResultReviewActionRepository;
 import com.example.backend.repository.RaceResultSubmissionEntryRepository;
+import com.example.backend.repository.RaceResultSubmissionEntryRepository.RaceResultSubmissionEntryProjection;
 import com.example.backend.repository.RaceResultSubmissionRepository;
 import com.example.backend.repository.UserRepository;
 import org.springframework.http.HttpStatus;
@@ -229,7 +230,6 @@ public class AdminRaceResultReviewService {
         result.setRaceEntryId(entry.getRaceEntryId());
         result.setFinishPosition(entry.getFinishPosition());
         result.setFinishTime(entry.getFinishTime());
-        result.setPoints(entry.getPoints());
         result.setRecordedBy(adminId);
         result.setRecordedAt(recordedAt);
         return result;
@@ -359,6 +359,9 @@ public class AdminRaceResultReviewService {
                 .tournamentId(race.getTournamentId())
                 .status(submission.getStatus())
                 .submittedAt(submission.getSubmittedAt())
+                .horseCount(entryRepository.countBySubmissionId(
+                        submission.getSubmissionId()
+                ))
                 .build();
     }
 
@@ -367,9 +370,7 @@ public class AdminRaceResultReviewService {
     ) {
         Race race = getRace(submission.getRaceId());
         List<RaceResultSubmissionEntryResponse> entries = entryRepository
-                .findBySubmissionIdOrderByFinishPositionAsc(
-                        submission.getSubmissionId()
-                )
+                .findEntryDetailsBySubmissionId(submission.getSubmissionId())
                 .stream()
                 .map(this::toEntryResponse)
                 .toList();
@@ -405,15 +406,17 @@ public class AdminRaceResultReviewService {
     }
 
     private RaceResultSubmissionEntryResponse toEntryResponse(
-            RaceResultSubmissionEntry entry
+            RaceResultSubmissionEntryProjection entry
     ) {
         return RaceResultSubmissionEntryResponse.builder()
                 .submissionEntryId(entry.getSubmissionEntryId())
                 .raceEntryId(entry.getRaceEntryId())
                 .startingStall(entry.getStartingStall())
                 .finishPosition(entry.getFinishPosition())
+                .horseName(entry.getHorseName())
+                .ownerName(entry.getOwnerName())
+                .jockeyName(entry.getJockeyName())
                 .finishTime(entry.getFinishTime())
-                .points(entry.getPoints())
                 .build();
     }
 

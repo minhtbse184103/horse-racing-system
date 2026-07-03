@@ -154,9 +154,9 @@ VALUES
   (9, 6, 13, 6, 'ASSIGNED', @seed_now, 1, NULL, NULL, NULL);
 
 INSERT INTO `RaceResult`
-  (`resultID`, `raceEntryID`, `finishPosition`, `finishTime`, `points`, `prizeMoney`, `recordedAt`, `recordedBy`)
+  (`resultID`, `raceEntryID`, `finishPosition`, `finishTime`, `prizeMoney`, `recordedAt`, `recordedBy`)
 VALUES
-  (1, 3, 1, '00:01:12.450', 10, 40000000.00, DATE_SUB(@seed_now, INTERVAL 120 DAY), 8);
+  (1, 3, 1, '00:01:12.450', 40000000.00, DATE_SUB(@seed_now, INTERVAL 120 DAY), 8);
 
 INSERT INTO `RefereeAssignment`
   (`assignmentID`, `raceID`, `refereeUserID`, `assignedAt`, `status`)

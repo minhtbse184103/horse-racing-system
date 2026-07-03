@@ -46,8 +46,7 @@ export function adaptRaceResultSubmissionEntry(raw = {}) {
     horseName: firstDefined(raw.horseName, raw.horse?.horseName, raw.horse?.name, raceEntryId ? `RaceEntry #${raceEntryId}` : 'Chưa có dữ liệu'),
     ownerName: firstDefined(raw.ownerName, raw.ownerFullName, raw.owner?.fullName, raw.owner?.username, 'Chưa có dữ liệu'),
     jockeyName: firstDefined(raw.jockeyName, raw.jockeyFullName, raw.jockey?.fullName, raw.jockey?.username, 'Chưa có dữ liệu'),
-    finishTime: firstDefined(raw.finishTime, raw.time, 'N/A'),
-    points: toNumber(raw.points, 0)
+    finishTime: firstDefined(raw.finishTime, raw.time, 'N/A')
   };
 }
 

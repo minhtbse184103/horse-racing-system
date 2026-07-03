@@ -159,7 +159,6 @@ public class RaceService {
                         .startingStall(result.getStartingStall())
                         .finishPosition(result.getFinishPosition())
                         .finishTime(result.getFinishTime())
-                        .points(result.getPoints())
                         .prizeMoney(result.getPrizeMoney())
                         .recordedAt(result.getRecordedAt())
                         .horseId(result.getHorseId())

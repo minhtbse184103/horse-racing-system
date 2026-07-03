@@ -11,6 +11,8 @@ public class RaceResultSubmissionEntryResponse {
     private Integer raceEntryId;
     private Integer startingStall;
     private Integer finishPosition;
+    private String horseName;
+    private String ownerName;
+    private String jockeyName;
     private String finishTime;
-    private Integer points;
 }

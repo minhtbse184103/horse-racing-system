@@ -18,4 +18,5 @@ public class RaceResultSubmissionSummaryResponse {
     private Integer tournamentId;
     private String status;
     private LocalDateTime submittedAt;
+    private long horseCount;
 }

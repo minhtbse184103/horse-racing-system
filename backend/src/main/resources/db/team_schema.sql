@@ -394,7 +394,6 @@ CREATE TABLE `RaceResult` (
   `raceEntryID` int UNIQUE NOT NULL,
   `finishPosition` int NOT NULL,
   `finishTime` varchar(50),
-  `points` int DEFAULT 0,
   `prizeMoney` decimal(12,2) DEFAULT 0,
   `recordedAt` datetime,
   `recordedBy` int NOT NULL
@@ -432,7 +431,6 @@ CREATE TABLE `RaceResultSubmissionEntry` (
   `startingStall` int NOT NULL,
   `finishPosition` int NOT NULL,
   `finishTime` varchar(50) NOT NULL,
-  `points` int DEFAULT 0,
   `createdAt` datetime NOT NULL,
   CONSTRAINT `chk_submission_entry_stall`
     CHECK (`startingStall` > 0),

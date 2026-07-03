@@ -20,6 +20,7 @@ import com.example.backend.repository.RaceRepository;
 import com.example.backend.repository.RaceResultRepository;
 import com.example.backend.repository.RaceResultReviewActionRepository;
 import com.example.backend.repository.RaceResultSubmissionEntryRepository;
+import com.example.backend.repository.RaceResultSubmissionEntryRepository.RaceResultSubmissionEntryProjection;
 import com.example.backend.repository.RaceResultSubmissionRepository;
 import com.example.backend.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -205,9 +206,8 @@ class AdminRaceResultReviewServiceTest {
         when(submissionRepository.save(any(RaceResultSubmission.class)))
                 .thenAnswer(invocation -> invocation.getArgument(0));
         when(raceRepository.findById(RACE_ID)).thenReturn(Optional.of(race()));
-        when(entryRepository.findBySubmissionIdOrderByFinishPositionAsc(
-                SUBMISSION_ID
-        )).thenReturn(submissionEntries());
+        when(entryRepository.findEntryDetailsBySubmissionId(SUBMISSION_ID))
+                .thenReturn(submissionEntryProjections());
         when(reviewActionRepository.findBySubmissionIdOrderByCreatedAtAsc(
                 SUBMISSION_ID
         )).thenReturn(List.of());
@@ -338,9 +338,8 @@ class AdminRaceResultReviewServiceTest {
         if (includeDetailMappingStubs) {
             when(raceRepository.findById(RACE_ID))
                     .thenReturn(Optional.of(race(raceStatus)));
-            when(entryRepository.findBySubmissionIdOrderByFinishPositionAsc(
-                    SUBMISSION_ID
-            )).thenReturn(submissionEntries());
+            when(entryRepository.findEntryDetailsBySubmissionId(SUBMISSION_ID))
+                    .thenReturn(submissionEntryProjections());
             when(reviewActionRepository.findBySubmissionIdOrderByCreatedAtAsc(
                     SUBMISSION_ID
             )).thenReturn(List.of());
@@ -366,6 +365,63 @@ class AdminRaceResultReviewServiceTest {
         );
     }
 
+    private List<RaceResultSubmissionEntryProjection> submissionEntryProjections() {
+        return List.of(
+                submissionEntryProjection(1, FIRST_RACE_ENTRY_ID, 1, "00:00:55"),
+                submissionEntryProjection(2, SECOND_RACE_ENTRY_ID, 2, "00:00:59")
+        );
+    }
+
+    private RaceResultSubmissionEntryProjection submissionEntryProjection(
+            Integer position,
+            Integer raceEntryId,
+            Integer stall,
+            String finishTime
+    ) {
+        return new RaceResultSubmissionEntryProjection() {
+            @Override
+            public Integer getSubmissionEntryId() {
+                return 200 + position;
+            }
+
+            @Override
+            public Integer getRaceEntryId() {
+                return raceEntryId;
+            }
+
+            @Override
+            public Integer getStartingStall() {
+                return stall;
+            }
+
+            @Override
+            public Integer getFinishPosition() {
+                return position;
+            }
+
+            @Override
+            public String getHorseName() {
+                return "Demo Horse " + position;
+            }
+
+            @Override
+            public String getOwnerName() {
+                return "Owner Demo";
+            }
+
+            @Override
+            public String getJockeyName() {
+                return "Jockey Demo";
+            }
+
+            @Override
+            public String getFinishTime() {
+                return finishTime;
+            }
+
+        };
+    }
+
     private RaceResultSubmissionEntry submissionEntry(
             Integer position,
             Integer raceEntryId,
@@ -379,7 +435,6 @@ class AdminRaceResultReviewServiceTest {
         entry.setStartingStall(stall);
         entry.setFinishPosition(position);
         entry.setFinishTime(finishTime);
-        entry.setPoints(0);
         return entry;
     }
 

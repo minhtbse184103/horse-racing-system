@@ -38,7 +38,6 @@ public interface RaceResultRepository extends JpaRepository<RaceResult, Integer>
         Integer getStartingStall();
         Integer getFinishPosition();
         String getFinishTime();
-        Integer getPoints();
         BigDecimal getPrizeMoney();
         LocalDateTime getRecordedAt();
         Integer getHorseId();
@@ -60,7 +59,6 @@ public interface RaceResultRepository extends JpaRepository<RaceResult, Integer>
                entry.startingStall as startingStall,
                result.finishPosition as finishPosition,
                result.finishTime as finishTime,
-               result.points as points,
                result.prizeMoney as prizeMoney,
                result.recordedAt as recordedAt,
                horse.horseId as horseId,
