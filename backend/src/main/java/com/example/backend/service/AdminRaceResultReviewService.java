@@ -276,6 +276,12 @@ public class AdminRaceResultReviewService {
                     "Race has already been completed."
             );
         }
+        if (!EventStatus.PENDING_REVIEW.equals(race.getStatus())) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "Race must be pending result review before approval."
+            );
+        }
     }
 
     private User getAdmin(String adminEmail) {

@@ -32,7 +32,6 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.inOrder;
@@ -278,7 +277,7 @@ class TournamentServiceTest {
     }
 
     @Test
-    void cancelTournamentCancelsAssignedRaceEntries() {
+    void cancelTournamentDoesNotMutateRaceEntries() {
         Tournament tournament = tournament(1, EventStatus.OPEN_FOR_REGISTRATION);
         Race raceA = race(10, EventStatus.OPEN_FOR_REGISTRATION);
         Race raceB = race(11, EventStatus.REGISTRATION_CLOSED);
@@ -300,20 +299,19 @@ class TournamentServiceTest {
         when(registrationRepository.existsByTournamentId(1)).thenReturn(false);
         when(raceRepository.findByTournamentIdOrderByRaceOrderAsc(1))
                 .thenReturn(List.of(raceA, raceB));
-        when(raceEntryRepository.findByRaceIdInAndStatus(
-                List.of(10, 11),
-                com.example.backend.constant.RaceEntryStatus.ASSIGNED
-        )).thenReturn(List.of(entryA, entryB));
         when(tournamentRepository.save(tournament)).thenReturn(tournament);
         stubDetailCollections(1, List.of(raceA, raceB));
 
         service.cancelTournament(1, "admin@example.com");
 
-        assertEquals(com.example.backend.constant.RaceEntryStatus.CANCELLED, entryA.getStatus());
-        assertNotNull(entryA.getCancelledAt());
-        assertEquals("Tournament cancelled.", entryA.getCancellationReason());
-        assertEquals(com.example.backend.constant.RaceEntryStatus.CANCELLED, entryB.getStatus());
-        verify(raceEntryRepository).saveAll(List.of(entryA, entryB));
+        assertEquals(com.example.backend.constant.RaceEntryStatus.ASSIGNED, entryA.getStatus());
+        assertEquals(null, entryA.getCancelledAt());
+        assertEquals(null, entryA.getCancellationReason());
+        assertEquals(com.example.backend.constant.RaceEntryStatus.ASSIGNED, entryB.getStatus());
+        assertEquals(EventStatus.CANCELLED, raceA.getStatus());
+        assertEquals(EventStatus.CANCELLED, raceB.getStatus());
+        verify(raceEntryRepository, never()).findByRaceIdInAndStatus(any(), any());
+        verify(raceEntryRepository, never()).saveAll(any());
     }
 
     @Test

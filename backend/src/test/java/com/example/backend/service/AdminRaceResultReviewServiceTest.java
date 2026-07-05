@@ -288,6 +288,54 @@ class AdminRaceResultReviewServiceTest {
     }
 
     @Test
+    void approveRejectsReadyRace() {
+        stubApproveAccess(EventStatus.READY, false, false);
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.approveSubmission(
+                        SUBMISSION_ID,
+                        reviewRequest(null),
+                        "admin@example.com"
+                )
+        );
+
+        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
+        assertEquals(
+                "Race must be pending result review before approval.",
+                exception.getMessage()
+        );
+        verify(entryRepository, never())
+                .findBySubmissionIdOrderByFinishPositionAsc(any());
+        verify(raceResultRepository, never()).saveAll(any());
+        verify(prizeSettlementService, never()).settlePrizes(any(), any(), any());
+    }
+
+    @Test
+    void approveRejectsInProgressRace() {
+        stubApproveAccess(EventStatus.IN_PROGRESS, false, false);
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.approveSubmission(
+                        SUBMISSION_ID,
+                        reviewRequest(null),
+                        "admin@example.com"
+                )
+        );
+
+        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
+        assertEquals(
+                "Race must be pending result review before approval.",
+                exception.getMessage()
+        );
+        verify(entryRepository, never())
+                .findBySubmissionIdOrderByFinishPositionAsc(any());
+        verify(raceResultRepository, never()).saveAll(any());
+        verify(prizeSettlementService, never()).settlePrizes(any(), any(), any());
+    }
+
+    @Test
     void approveRequiresActiveAdmin() {
         User inactive = activeAdmin();
         inactive.setStatus("INACTIVE");
@@ -317,8 +365,7 @@ class AdminRaceResultReviewServiceTest {
         when(raceRepository.findByIdForUpdate(RACE_ID))
                 .thenReturn(Optional.of(race(raceStatus)));
 
-        if (!EventStatus.CANCELLED.equals(raceStatus)
-                && !EventStatus.COMPLETED.equals(raceStatus)) {
+        if (EventStatus.PENDING_REVIEW.equals(raceStatus)) {
             when(entryRepository.findBySubmissionIdOrderByFinishPositionAsc(
                     SUBMISSION_ID
             )).thenReturn(submissionEntries());
