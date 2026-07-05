@@ -91,6 +91,7 @@ class RaceServiceTest {
 
         stubAdmin();
         when(raceRepository.findByIdForUpdate(8)).thenReturn(Optional.of(race));
+        when(raceEntryRepository.existsByRaceId(8)).thenReturn(false);
         when(tournamentRepository.findByIdForUpdate(12))
                 .thenReturn(Optional.of(tournament));
         when(raceRepository
@@ -132,6 +133,7 @@ class RaceServiceTest {
 
         stubAdmin();
         when(raceRepository.findByIdForUpdate(8)).thenReturn(Optional.of(race));
+        when(raceEntryRepository.existsByRaceId(8)).thenReturn(false);
         when(tournamentRepository.findByIdForUpdate(12))
                 .thenReturn(Optional.of(tournament));
 
@@ -172,6 +174,7 @@ class RaceServiceTest {
 
         stubAdmin();
         when(raceRepository.findByIdForUpdate(8)).thenReturn(Optional.of(race));
+        when(raceEntryRepository.existsByRaceId(8)).thenReturn(false);
         when(tournamentRepository.findByIdForUpdate(12))
                 .thenReturn(Optional.of(tournament()));
 
@@ -253,6 +256,7 @@ class RaceServiceTest {
 
         stubAdmin();
         when(raceRepository.findByIdForUpdate(8)).thenReturn(Optional.of(race));
+        when(raceEntryRepository.existsByRaceId(8)).thenReturn(false);
         when(tournamentRepository.findByIdForUpdate(12))
                 .thenReturn(Optional.of(tournament()));
         when(raceRepository.existsOverlappingRaceOnTrackExcludingRace(
@@ -274,6 +278,30 @@ class RaceServiceTest {
                 "Race schedule overlaps with another race on the same track.",
                 exception.getMessage()
         );
+        verify(raceRepository, never()).saveAndFlush(any());
+        verify(racePrizeRepository, never()).saveAll(any());
+    }
+
+    @Test
+    void updateRaceRejectsRaceWithRaceEntryHistory() {
+        Race race = race();
+        UpdateRaceRequest request = updateRequest();
+
+        stubAdmin();
+        when(raceRepository.findByIdForUpdate(8)).thenReturn(Optional.of(race));
+        when(raceEntryRepository.existsByRaceId(8)).thenReturn(true);
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.updateRace(8, request, "admin@example.com")
+        );
+
+        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
+        assertEquals(
+                "Race cannot be modified after entries have been assigned.",
+                exception.getMessage()
+        );
+        verify(tournamentRepository, never()).findByIdForUpdate(any());
         verify(raceRepository, never()).saveAndFlush(any());
         verify(racePrizeRepository, never()).saveAll(any());
     }

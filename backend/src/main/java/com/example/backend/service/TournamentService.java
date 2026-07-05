@@ -492,27 +492,11 @@ public class TournamentService {
         List<Race> races =
                 raceRepository.findByTournamentIdOrderByRaceOrderAsc(tournamentId);
 
-        List<Integer> raceIds = races.stream()
-                .map(Race::getRaceId)
-                .toList();
-
         for (Race race : races) {
             race.setStatus(EventStatus.CANCELLED);
         }
 
         raceRepository.saveAll(races);
-
-        if (!raceIds.isEmpty()) {
-            LocalDateTime now = LocalDateTime.now();
-            List<RaceEntry> assignedEntries = raceEntryRepository
-                    .findByRaceIdInAndStatus(raceIds, RaceEntryStatus.ASSIGNED);
-            for (RaceEntry entry : assignedEntries) {
-                entry.setStatus(RaceEntryStatus.CANCELLED);
-                entry.setCancelledAt(now);
-                entry.setCancellationReason("Tournament cancelled.");
-            }
-            raceEntryRepository.saveAll(assignedEntries);
-        }
 
         tournament.setStatus(EventStatus.CANCELLED);
 

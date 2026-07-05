@@ -274,6 +274,7 @@ public class RaceService {
         refreshRaceStatus(race);
 
         validateRaceCanBeModified(race);
+        validateRaceHasNoEntryHistory(raceId);
 
         Tournament tournament = tournamentRepository
                 .findByIdForUpdate(race.getTournamentId())
@@ -518,6 +519,15 @@ public class RaceService {
             throw new ApiException(
                     HttpStatus.CONFLICT,
                     "Race can no longer be modified."
+            );
+        }
+    }
+
+    private void validateRaceHasNoEntryHistory(Integer raceId) {
+        if (raceEntryRepository.existsByRaceId(raceId)) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "Race cannot be modified after entries have been assigned."
             );
         }
     }
