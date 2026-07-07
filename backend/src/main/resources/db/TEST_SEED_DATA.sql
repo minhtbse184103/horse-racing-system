@@ -158,6 +158,25 @@ INSERT INTO `RaceResult`
 VALUES
   (1, 3, 1, '00:01:12.450', 40000000.00, DATE_SUB(@seed_now, INTERVAL 120 DAY), 8);
 
+INSERT INTO `HorsePerformanceSummary`
+  (`horseID`, `totalRaces`, `top1Count`, `top2Count`, `top3Count`, `violationCount`, `disqualifiedCount`, `lastUpdatedAt`)
+VALUES
+  (1, 12, 4, 3, 2, 0, 0, DATE_SUB(@seed_now, INTERVAL 15 DAY)),
+  (2, 9,  2, 2, 3, 1, 0, DATE_SUB(@seed_now, INTERVAL 18 DAY)),
+  (3, 15, 5, 4, 2, 0, 0, DATE_SUB(@seed_now, INTERVAL 20 DAY)),
+  (4, 7,  1, 3, 1, 0, 0, DATE_SUB(@seed_now, INTERVAL 22 DAY)),
+  (5, 18, 6, 5, 4, 1, 0, DATE_SUB(@seed_now, INTERVAL 12 DAY)),
+  (6, 1,  1, 0, 0, 0, 0, DATE_SUB(@seed_now, INTERVAL 120 DAY)),
+  (7, 0,  0, 0, 0, 0, 0, @seed_now),
+  (8, 4,  0, 1, 1, 0, 1, DATE_SUB(@seed_now, INTERVAL 35 DAY));
+
+INSERT INTO `JockeyPerformanceSummary`
+  (`jockeyID`, `totalRaces`, `top1Count`, `top2Count`, `top3Count`, `winRate`, `violationCount`, `disqualifiedCount`, `lastUpdatedAt`)
+VALUES
+  (5, 48, 13, 11, 8, 27.08, 1, 0, DATE_SUB(@seed_now, INTERVAL 12 DAY)),
+  (6, 39, 9,  10, 7, 23.08, 0, 0, DATE_SUB(@seed_now, INTERVAL 120 DAY)),
+  (7, 5,  1,  1,  1, 20.00, 0, 0, DATE_SUB(@seed_now, INTERVAL 30 DAY));
+
 INSERT INTO `RefereeAssignment`
   (`assignmentID`, `raceID`, `refereeUserID`, `assignedAt`, `status`)
 VALUES
@@ -192,5 +211,7 @@ UNION ALL SELECT 'RacePrize', COUNT(*) FROM `RacePrize`
 UNION ALL SELECT 'Registration', COUNT(*) FROM `Registration`
 UNION ALL SELECT 'RaceEntry', COUNT(*) FROM `RaceEntry`
 UNION ALL SELECT 'RaceResult', COUNT(*) FROM `RaceResult`
+UNION ALL SELECT 'HorsePerformanceSummary', COUNT(*) FROM `HorsePerformanceSummary`
+UNION ALL SELECT 'JockeyPerformanceSummary', COUNT(*) FROM `JockeyPerformanceSummary`
 UNION ALL SELECT 'RefereeAssignment', COUNT(*) FROM `RefereeAssignment`
 UNION ALL SELECT 'JockeyInvitation', COUNT(*) FROM `JockeyInvitation`;

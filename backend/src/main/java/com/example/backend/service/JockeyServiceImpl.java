@@ -5,6 +5,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.UUID;
 
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
@@ -14,11 +15,15 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.backend.constant.PaymentStatus;
 import com.example.backend.constant.RegistrationStatus;
 import com.example.backend.dto.request.JockeyProfileRequest;
+import com.example.backend.dto.response.HorseResponse;
+import com.example.backend.dto.response.JockeyInvitationDetailResponse;
 import com.example.backend.dto.response.JockeyInvitationResponse;
 import com.example.backend.dto.response.JockeyVerificationFileResponse;
 import com.example.backend.dto.response.JockeyProfileResponse;
+import com.example.backend.dto.response.TournamentDetailResponse;
 import com.example.backend.entity.Horse;
 import com.example.backend.entity.JockeyInvitation;
 import com.example.backend.entity.JockeyProfile;
@@ -41,10 +46,6 @@ public class JockeyServiceImpl implements JockeyService {
     private static final String STATUS_ACTIVE = "ACTIVE";
     private static final String STATUS_INACTIVE = "INACTIVE";
     private static final String STATUS_UNDER_REVIEW = "UNDER_REVIEW";
-    private static final String REGISTRATION_ACCEPTED = "ACCEPTED";
-    private static final String REGISTRATION_CONFIRMED = "CONFIRMED";
-    private static final String REGISTRATION_CANCELLED = "CANCELLED";
-    private static final String REGISTRATION_REJECTED = "REJECTED";
     private static final String INVITATION_PENDING = "PENDING";
     private static final String INVITATION_ACCEPTED = "ACCEPTED";
     private static final String INVITATION_REJECTED = "REJECTED";
@@ -57,6 +58,7 @@ public class JockeyServiceImpl implements JockeyService {
     private final RegistrationRepository registrationRepository;
     private final HorseRepository horseRepository;
     private final UserRepository userRepository;
+    private final TournamentService tournamentService;
     private final JdbcTemplate jdbcTemplate;
 
     public JockeyServiceImpl(
@@ -67,6 +69,7 @@ public class JockeyServiceImpl implements JockeyService {
             RegistrationRepository registrationRepository,
             HorseRepository horseRepository,
             UserRepository userRepository,
+            TournamentService tournamentService,
             JdbcTemplate jdbcTemplate) {
         this.jockeyProfileRepository = jockeyProfileRepository;
         this.jockeyInvitationRepository = jockeyInvitationRepository;
@@ -75,6 +78,7 @@ public class JockeyServiceImpl implements JockeyService {
         this.registrationRepository = registrationRepository;
         this.horseRepository = horseRepository;
         this.userRepository = userRepository;
+        this.tournamentService = tournamentService;
         this.jdbcTemplate = jdbcTemplate;
     }
 
@@ -156,7 +160,24 @@ public class JockeyServiceImpl implements JockeyService {
                 .toList();
     }
 
-    // Jockey chấp nhận lời mời.
+    // Lấy chi tiết lời mời mà jockey hiện tại được phép xem.
+    @Transactional(readOnly = true)
+    @Override
+    public JockeyInvitationDetailResponse getMyInvitationDetail(Integer invitationId) {
+        User jockey = getCurrentJockey();
+        JockeyInvitation invitation = getOwnedInvitation(invitationId, jockey.getUserID());
+        Horse horse = horseRepository.findById(invitation.getHorseId())
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Ngựa không tồn tại."));
+        TournamentDetailResponse tournament = tournamentService.getTournamentById(invitation.getTournamentId());
+
+        return JockeyInvitationDetailResponse.builder()
+                .invitation(mapInvitationToResponse(invitation))
+                .tournament(tournament)
+                .horse(mapHorseToResponse(horse))
+                .build();
+    }
+
+    // Jockey chấp nhận lời mời và tạo registration UNPAID/PENDING.
     @Transactional
     @Override
     public JockeyInvitationResponse acceptInvitation(Integer invitationId) {
@@ -166,6 +187,14 @@ public class JockeyServiceImpl implements JockeyService {
         validateInvitationNotExpired(invitation);
         Horse horse = validateOwnerHorseForInvitation(invitation);
         TournamentSnapshot tournament = getTournamentSnapshot(invitation.getTournamentId());
+        validateOwnerCanRegisterForTournament(
+                invitation.getOwnerId(),
+                tournament.tournamentId(),
+                invitation.getInvitationId());
+        validateHorseActiveRegistrationForTournament(
+                horse.getHorseId(),
+                tournament.tournamentId(),
+                null);
         validateHorseAvailableForOverlappingTournament(
                 horse.getHorseId(),
                 tournament,
@@ -177,7 +206,9 @@ public class JockeyServiceImpl implements JockeyService {
                 null,
                 invitation.getInvitationId());
 
+        Registration registration = createPendingRegistration(invitation);
         invitation.setStatus(INVITATION_ACCEPTED);
+        invitation.setRegistrationId(registration.getRegistrationId());
         invitation.setRespondedAt(LocalDateTime.now());
 
         return mapInvitationToResponse(jockeyInvitationRepository.save(invitation));
@@ -256,7 +287,7 @@ public class JockeyServiceImpl implements JockeyService {
     // Các hàm validate khác giữ nguyên logic...
     private void validateOwnerCanRegisterForTournament(Integer ownerId, Integer tournamentId, Integer excludedInvitationId) {
         long activeRegistrations = registrationRepository.countByTournamentIdAndOwnerIdAndStatusInExcludingRegistration(
-                tournamentId, ownerId, List.of(REGISTRATION_ACCEPTED, REGISTRATION_CONFIRMED), null);
+                tournamentId, ownerId, List.of(RegistrationStatus.PENDING, RegistrationStatus.APPROVED), null);
         if (activeRegistrations > 0) {
             throw new ApiException(HttpStatus.CONFLICT, "Chủ ngựa đã có một đơn đăng ký đang hoạt động trong giải đấu này.");
         }
@@ -268,7 +299,7 @@ public class JockeyServiceImpl implements JockeyService {
 
     private void validateHorseActiveRegistrationForTournament(Integer horseId, Integer tournamentId, Integer excludedRegistrationId) {
         long activeRegistrations = registrationRepository.countByTournamentIdAndHorseIdAndStatusInExcludingRegistration(
-                tournamentId, horseId, List.of(REGISTRATION_ACCEPTED, REGISTRATION_CONFIRMED), excludedRegistrationId);
+                tournamentId, horseId, List.of(RegistrationStatus.PENDING, RegistrationStatus.APPROVED), excludedRegistrationId);
         if (activeRegistrations > 0) {
             throw new ApiException(HttpStatus.CONFLICT, "Ngựa này đã có đơn đăng ký đang hoạt động trong giải đấu.");
         }
@@ -292,12 +323,12 @@ public class JockeyServiceImpl implements JockeyService {
 
     private void validateJockeyAvailableForTournament(TournamentSnapshot tournament, Integer jockeyId, Integer excludedRegistrationId, Integer excludedInvitationId) {
         long sameTournamentRegistrations = registrationRepository.countByTournamentIdAndJockeyIdAndStatusInExcludingRegistration(
-                tournament.tournamentId(), jockeyId, List.of(REGISTRATION_ACCEPTED, REGISTRATION_CONFIRMED), excludedRegistrationId);
+                tournament.tournamentId(), jockeyId, List.of(RegistrationStatus.PENDING, RegistrationStatus.APPROVED), excludedRegistrationId);
         if (sameTournamentRegistrations > 0) {
             throw new ApiException(HttpStatus.CONFLICT, "Nài ngựa này đã có đơn đăng ký đang hoạt động trong giải đấu.");
         }
         long overlappingRegistrations = registrationRepository.countByOverlappingTournamentAndJockeyIdAndStatusInExcludingRegistration(
-                        jockeyId, tournament.startDate(), tournament.endDate(), List.of(REGISTRATION_ACCEPTED, REGISTRATION_CONFIRMED), excludedRegistrationId);
+                        jockeyId, tournament.startDate(), tournament.endDate(), List.of(RegistrationStatus.PENDING, RegistrationStatus.APPROVED), excludedRegistrationId);
         if (overlappingRegistrations > 0) {
             throw new ApiException(HttpStatus.CONFLICT, "Nài ngựa này đã có đơn đăng ký ở giải đấu trùng thời gian.");
         }
@@ -309,7 +340,7 @@ public class JockeyServiceImpl implements JockeyService {
 
     private void validateHorseJockeyPairAvailableForOverlappingTournament(Integer horseId, Integer jockeyId, TournamentSnapshot tournament, Integer excludedRegistrationId, Integer excludedInvitationId) {
         long overlappingRegistrations = registrationRepository.countByOverlappingTournamentAndHorseIdAndJockeyIdAndStatusInExcludingRegistration(
-                        horseId, jockeyId, tournament.startDate(), tournament.endDate(), List.of(REGISTRATION_ACCEPTED, REGISTRATION_CONFIRMED), excludedRegistrationId);
+                        horseId, jockeyId, tournament.startDate(), tournament.endDate(), List.of(RegistrationStatus.PENDING, RegistrationStatus.APPROVED), excludedRegistrationId);
         if (overlappingRegistrations > 0) {
             throw new ApiException(HttpStatus.CONFLICT, "Cặp ngựa và nài ngựa này đã được đăng ký ở giải đấu trùng thời gian.");
         }
@@ -329,6 +360,59 @@ public class JockeyServiceImpl implements JockeyService {
             throw new ApiException(HttpStatus.CONFLICT, "Ngựa không ở trạng thái ACTIVE.");
         }
         return horse;
+    }
+
+    private Registration createPendingRegistration(JockeyInvitation invitation) {
+        Registration registration = new Registration();
+        registration.setTournamentId(invitation.getTournamentId());
+        registration.setHorseId(invitation.getHorseId());
+        registration.setOwnerId(invitation.getOwnerId());
+        registration.setJockeyId(invitation.getJockeyId());
+        registration.setRegistrationNo(generateRegistrationNo(invitation.getTournamentId()));
+        registration.setPaymentStatus(PaymentStatus.UNPAID);
+        registration.setApprovalStatus(RegistrationStatus.PENDING);
+        registration.setSubmittedAt(LocalDateTime.now());
+        return registrationRepository.save(registration);
+    }
+
+    private String generateRegistrationNo(Integer tournamentId) {
+        return "REG-T" + tournamentId + "-" + UUID.randomUUID()
+                .toString()
+                .replace("-", "")
+                .substring(0, 10)
+                .toUpperCase();
+    }
+
+    private HorseResponse mapHorseToResponse(Horse horse) {
+        List<Integer> registrationIds = registrationRepository.findRegistrationIdsByHorseId(horse.getHorseId());
+        return HorseResponse.builder()
+                .horseId(horse.getHorseId())
+                .ownerId(horse.getOwnerId())
+                .horseName(horse.getHorseName())
+                .age(horse.getAge())
+                .dayOfBirth(horse.getDayOfBirth())
+                .weight(horse.getWeight())
+                .colour(horse.getColour())
+                .sex(horse.getSex())
+                .breeding(horse.getBreeding())
+                .trainer(horse.getTrainer())
+                .healthCertExpiry(horse.getHealthCertExpiry())
+                .healthCertificateUrl(horse.getHealthCertificateUrl())
+                .officialHorseProfileUrl(horse.getOfficialHorseProfileUrl())
+                .status(horse.getStatus())
+                .rejectionReason(horse.getRejectionReason())
+                .createdAt(horse.getCreatedAt())
+                .updatedAt(horse.getUpdatedAt())
+                .registrationCount(registrationIds.size())
+                .participated(hasActiveRegistration(registrationIds))
+                .build();
+    }
+
+    private boolean hasActiveRegistration(List<Integer> registrationIds) {
+        return !registrationIds.isEmpty()
+                && registrationRepository.countByRegistrationIdInAndStatusIn(
+                        registrationIds,
+                        List.of(RegistrationStatus.PENDING, RegistrationStatus.APPROVED)) > 0;
     }
 
     // Chuyển entity JockeyProfile sang DTO.

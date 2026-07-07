@@ -3,6 +3,7 @@ package com.example.backend.service;
 import java.util.List;
 
 import com.example.backend.dto.request.JockeyProfileRequest;
+import com.example.backend.dto.response.JockeyInvitationDetailResponse;
 import com.example.backend.dto.response.JockeyInvitationResponse;
 import com.example.backend.dto.response.JockeyProfileResponse;
 
@@ -22,7 +23,10 @@ public interface JockeyService {
     // Lấy danh sách lời mời được gửi cho jockey.
     List<JockeyInvitationResponse> getMyInvitations();
 
-    // Chấp nhận lời mời và gắn jockey vào registration.
+    // Lấy chi tiết lời mời kèm thông tin giải đấu và ngựa được mời.
+    JockeyInvitationDetailResponse getMyInvitationDetail(Integer invitationId);
+
+    // Chấp nhận lời mời và tạo registration UNPAID/PENDING.
     JockeyInvitationResponse acceptInvitation(Integer invitationId);
 
     // Từ chối lời mời được gửi cho jockey.

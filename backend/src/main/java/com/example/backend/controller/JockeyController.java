@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.backend.dto.request.JockeyProfileRequest;
+import com.example.backend.dto.response.JockeyInvitationDetailResponse;
 import com.example.backend.dto.response.JockeyInvitationResponse;
 import com.example.backend.dto.response.JockeyProfileResponse;
 import com.example.backend.service.JockeyService;
@@ -61,13 +62,19 @@ public class JockeyController {
         return jockeyService.getMyInvitations();
     }
 
-    // Chấp nhận lời mời và chuyển registration sang trạng thái ACCEPTED.
+    // Lấy chi tiết lời mời kèm thông tin giải đấu và ngựa được mời.
+    @GetMapping("/invitations/{invitationId}")
+    public JockeyInvitationDetailResponse getMyInvitationDetail(@PathVariable Integer invitationId) {
+        return jockeyService.getMyInvitationDetail(invitationId);
+    }
+
+    // Chấp nhận lời mời và tạo registration UNPAID cho owner thanh toán.
     @PutMapping("/invitations/{invitationId}/accept")
     public JockeyInvitationResponse acceptInvitation(@PathVariable Integer invitationId) {
         return jockeyService.acceptInvitation(invitationId);
     }
 
-    // Từ chối lời mời và chuyển registration sang trạng thái REJECTED.
+    // Từ chối lời mời đang chờ xử lý.
     @PutMapping("/invitations/{invitationId}/reject")
     public JockeyInvitationResponse rejectInvitation(@PathVariable Integer invitationId) {
         return jockeyService.rejectInvitation(invitationId);

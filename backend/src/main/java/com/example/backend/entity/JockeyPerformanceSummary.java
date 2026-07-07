@@ -41,9 +41,6 @@ public class JockeyPerformanceSummary {
     @Column(name = "winRate")
     private BigDecimal winRate;
 
-    @Column(name = "bestFinishTime")
-    private BigDecimal bestFinishTime;
-
     @Column(name = "violationCount")
     private Integer violationCount;
 

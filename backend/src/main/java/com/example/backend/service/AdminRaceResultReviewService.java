@@ -50,6 +50,7 @@ public class AdminRaceResultReviewService {
     private final RaceRepository raceRepository;
     private final UserRepository userRepository;
     private final RacePrizeSettlementService prizeSettlementService;
+    private final PerformanceSummaryService performanceSummaryService;
 
     public AdminRaceResultReviewService(
             RaceResultSubmissionRepository submissionRepository,
@@ -59,7 +60,8 @@ public class AdminRaceResultReviewService {
             RaceEntryRepository raceEntryRepository,
             RaceRepository raceRepository,
             UserRepository userRepository,
-            RacePrizeSettlementService prizeSettlementService
+            RacePrizeSettlementService prizeSettlementService,
+            PerformanceSummaryService performanceSummaryService
     ) {
         this.submissionRepository = submissionRepository;
         this.entryRepository = entryRepository;
@@ -69,6 +71,7 @@ public class AdminRaceResultReviewService {
         this.raceRepository = raceRepository;
         this.userRepository = userRepository;
         this.prizeSettlementService = prizeSettlementService;
+        this.performanceSummaryService = performanceSummaryService;
     }
 
     @Transactional(readOnly = true)
@@ -150,6 +153,10 @@ public class AdminRaceResultReviewService {
 
         prizeSettlementService.settlePrizes(
                 race.getRaceId(),
+                savedResults,
+                entriesByRaceEntryId
+        );
+        performanceSummaryService.updateAfterRaceApproved(
                 savedResults,
                 entriesByRaceEntryId
         );

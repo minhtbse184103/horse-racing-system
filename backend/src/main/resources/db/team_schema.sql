@@ -522,6 +522,51 @@ CREATE TABLE `PrizeDistribution` (
     CHECK (`status` IN ('PENDING', 'PAID', 'FAILED', 'CANCELLED'))
 );
 
+CREATE TABLE `HorsePerformanceSummary` (
+  `horseID` int PRIMARY KEY,
+  `totalRaces` int NOT NULL DEFAULT 0,
+  `top1Count` int NOT NULL DEFAULT 0,
+  `top2Count` int NOT NULL DEFAULT 0,
+  `top3Count` int NOT NULL DEFAULT 0,
+  `violationCount` int NOT NULL DEFAULT 0,
+  `disqualifiedCount` int NOT NULL DEFAULT 0,
+  `lastUpdatedAt` datetime,
+  CONSTRAINT `chk_horse_performance_totals`
+    CHECK (
+      `totalRaces` >= 0
+      AND `top1Count` >= 0
+      AND `top2Count` >= 0
+      AND `top3Count` >= 0
+      AND `violationCount` >= 0
+      AND `disqualifiedCount` >= 0
+      AND `top1Count` + `top2Count` + `top3Count` <= `totalRaces`
+    )
+);
+
+CREATE TABLE `JockeyPerformanceSummary` (
+  `jockeyID` int PRIMARY KEY,
+  `totalRaces` int NOT NULL DEFAULT 0,
+  `top1Count` int NOT NULL DEFAULT 0,
+  `top2Count` int NOT NULL DEFAULT 0,
+  `top3Count` int NOT NULL DEFAULT 0,
+  `winRate` decimal(5,2) NOT NULL DEFAULT 0,
+  `violationCount` int NOT NULL DEFAULT 0,
+  `disqualifiedCount` int NOT NULL DEFAULT 0,
+  `lastUpdatedAt` datetime,
+  CONSTRAINT `chk_jockey_performance_totals`
+    CHECK (
+      `totalRaces` >= 0
+      AND `top1Count` >= 0
+      AND `top2Count` >= 0
+      AND `top3Count` >= 0
+      AND `winRate` >= 0
+      AND `winRate` <= 100
+      AND `violationCount` >= 0
+      AND `disqualifiedCount` >= 0
+      AND `top1Count` + `top2Count` + `top3Count` <= `totalRaces`
+    )
+);
+
 CREATE TABLE `RefereeAssignment` (
   `assignmentID` int PRIMARY KEY AUTO_INCREMENT,
   `raceID` int UNIQUE NOT NULL,
@@ -719,6 +764,10 @@ ALTER TABLE `PrizeDistribution` ADD FOREIGN KEY (`racePrizeID`) REFERENCES `Race
 ALTER TABLE `PrizeDistribution` ADD FOREIGN KEY (`ownerID`) REFERENCES `Users` (`userID`);
 
 ALTER TABLE `PrizeDistribution` ADD FOREIGN KEY (`jockeyID`) REFERENCES `Users` (`userID`);
+
+ALTER TABLE `HorsePerformanceSummary` ADD FOREIGN KEY (`horseID`) REFERENCES `Horse` (`horseID`);
+
+ALTER TABLE `JockeyPerformanceSummary` ADD FOREIGN KEY (`jockeyID`) REFERENCES `Users` (`userID`);
 
 ALTER TABLE `RefereeAssignment` ADD FOREIGN KEY (`raceID`) REFERENCES `Race` (`raceID`);
 

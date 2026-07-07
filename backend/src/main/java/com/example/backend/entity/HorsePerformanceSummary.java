@@ -1,6 +1,5 @@
 package com.example.backend.entity;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
@@ -37,9 +36,6 @@ public class HorsePerformanceSummary {
 
     @Column(name = "top3Count")
     private Integer top3Count;
-
-    @Column(name = "bestTime")
-    private BigDecimal bestTime;
 
     @Column(name = "violationCount")
     private Integer violationCount;
