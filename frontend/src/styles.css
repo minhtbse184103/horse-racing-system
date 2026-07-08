@@ -2865,8 +2865,7 @@ select {
   display: none !important;
 }
 
-.invite-flow-active .owner-registration-sidebar,
-.invite-flow-active .owner-registration-main > .overview-only {
+.invite-flow-active .owner-registration-sidebar {
   display: none !important;
 }
 
@@ -3070,6 +3069,18 @@ select {
   color: #2e7d32;
   font-size: 0.72rem;
   font-weight: 950;
+}
+
+.owner-application-style .registration-horse-card.unavailable::after {
+  content: "Không chọn";
+  background: rgba(176, 42, 42, 0.12);
+  color: #b02a2a;
+}
+
+.owner-application-style .registration-horse-card.unavailable::before {
+  content: "Đã tham gia";
+  background: rgba(176, 42, 42, 0.1);
+  color: #b02a2a;
 }
 
 .owner-application-style .owner-jockey-card {
@@ -3370,6 +3381,11 @@ select {
   cursor: not-allowed;
 }
 
+.registration-horse-card.unavailable {
+  border-color: rgba(176, 42, 42, 0.18);
+  background: rgba(255, 242, 242, 0.72);
+}
+
 .registration-horse-card.selected {
   border-color: rgba(0, 84, 75, 0.55);
   background: rgba(232, 253, 244, 0.68);
@@ -3538,9 +3554,7 @@ select {
 .owner-application-style .registration-selection-block,
 .owner-application-style .registration-default-status span,
 .owner-application-style .owner-invite-context-card,
-.owner-application-style .owner-jockey-card,
-.owner-application-style .jockey-compare-panel,
-.owner-application-style .jockey-compare-card {
+.owner-application-style .owner-jockey-card {
   border-radius: 18px;
   border-color: rgba(108, 63, 36, 0.1);
   background: rgba(255, 255, 255, 0.7);
@@ -3548,8 +3562,7 @@ select {
 }
 
 .owner-application-style .registration-horse-avatar,
-.owner-application-style .drawer-close-button,
-.owner-application-style .jockey-compare-toggle {
+.owner-application-style .drawer-close-button {
   border-radius: 12px;
 }
 
@@ -3561,8 +3574,7 @@ select {
   font-weight: 800;
 }
 
-.owner-application-style .owner-jockey-card-head,
-.owner-application-style .jockey-compare-header {
+.owner-application-style .owner-jockey-card-head {
   border-bottom: 1px solid rgba(108, 63, 36, 0.08);
   padding-bottom: 10px;
 }
@@ -3582,8 +3594,7 @@ select {
 }
 
 .owner-invite-context-card,
-.owner-jockey-card,
-.jockey-compare-panel {
+.owner-jockey-card {
   border: 1px solid rgba(108, 63, 36, 0.12);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.72);
@@ -3598,7 +3609,6 @@ select {
 
 .owner-invite-context-card h3,
 .owner-jockey-card h3,
-.jockey-compare-header h3,
 .jockey-detail-header h3 {
   margin: 0;
   color: var(--brown-900);
@@ -3615,8 +3625,7 @@ select {
 
 .owner-invite-context-list span,
 .owner-jockey-metrics span,
-.jockey-detail-metric-grid span,
-.jockey-compare-card span {
+.jockey-detail-metric-grid span {
   display: grid;
   gap: 3px;
   min-width: 0;
@@ -3633,7 +3642,6 @@ select {
 .owner-invite-context-list strong,
 .owner-jockey-metrics strong,
 .jockey-detail-metric-grid strong,
-.jockey-compare-card strong,
 .jockey-detail-list strong,
 .jockey-detail-split strong {
   color: var(--brown-900);
@@ -3656,14 +3664,31 @@ select {
   padding: 15px;
 }
 
-.owner-jockey-card.invited {
+.owner-jockey-card.pending-invite {
   border-color: rgba(0, 84, 75, 0.28);
   background: rgba(232, 253, 244, 0.48);
 }
 
+.owner-jockey-card.accepted-invite {
+  border-color: rgba(0, 84, 75, 0.28);
+  background: rgba(232, 253, 244, 0.48);
+  opacity: 0.68;
+}
+
+.owner-jockey-card.sending {
+  border-color: rgba(217, 164, 65, 0.36);
+  background: rgba(255, 248, 238, 0.76);
+  opacity: 0.62;
+  pointer-events: none;
+}
+
+.owner-jockey-card.accepted-invite .primary-button,
+.owner-jockey-card.sending .primary-button {
+  filter: grayscale(0.25);
+}
+
 .owner-jockey-card-head,
 .owner-jockey-actions,
-.jockey-compare-header,
 .jockey-detail-header {
   display: flex;
   align-items: flex-start;
@@ -3686,53 +3711,6 @@ select {
   align-items: center;
   flex-wrap: wrap;
   justify-content: flex-end;
-}
-
-.jockey-compare-toggle {
-  display: inline-flex;
-  min-height: 38px;
-  align-items: center;
-  gap: 8px;
-  border: 1px solid rgba(108, 63, 36, 0.12);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.68);
-  padding: 8px 10px;
-  color: var(--brown-700);
-  font-size: 0.84rem;
-  font-weight: 900;
-  cursor: pointer;
-}
-
-.jockey-compare-toggle.checked {
-  border-color: rgba(0, 84, 75, 0.44);
-  background: rgba(232, 253, 244, 0.72);
-  color: #00544b;
-}
-
-.jockey-compare-toggle input {
-  accent-color: #00544b;
-}
-
-.jockey-compare-panel {
-  display: grid;
-  gap: 13px;
-  margin-top: 12px;
-  padding: 15px;
-}
-
-.jockey-compare-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.jockey-compare-card {
-  display: grid;
-  gap: 7px;
-  border: 1px solid rgba(108, 63, 36, 0.1);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.66);
-  padding: 12px;
 }
 
 .jockey-detail-drawer-backdrop {
@@ -3836,7 +3814,6 @@ select {
   .owner-invite-context-grid,
   .owner-invite-context-list,
   .owner-jockey-metrics,
-  .jockey-compare-grid,
   .jockey-detail-split,
   .selected-tournament-grid,
   .registration-default-status {

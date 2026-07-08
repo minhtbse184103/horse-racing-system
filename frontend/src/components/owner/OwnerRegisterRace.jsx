@@ -35,13 +35,49 @@ import API_BASE_URL from '../../configs/apiConfig';
 import { formatDate, formatDisplayLabel, getHorseId, getHorseName, getUserId, getUserRole } from '../../lib';
 
 const INVITATION_STATUS_OPTIONS = ['ALL', 'PENDING', 'ACCEPTED', 'REJECTED', 'CANCELLED', 'EXPIRED'];
+const OWNER_CANCELLED_INVITATION_STORAGE_KEY = 'owner_cancelled_jockey_invitations';
 
 const vndFormatter = new Intl.NumberFormat('vi-VN', {
   maximumFractionDigits: 0
 });
 
 function getInvitationId(invitation) {
-  return invitation.invitationId ?? '';
+  return invitation?.invitationId ?? invitation?.invitationID ?? invitation?.id ?? '';
+}
+
+function readOwnerCancelledInvitationIds() {
+  if (typeof window === 'undefined') return new Set();
+
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(OWNER_CANCELLED_INVITATION_STORAGE_KEY) || '[]');
+    return new Set(Array.isArray(parsed) ? parsed.map((value) => String(value)) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function storeOwnerCancelledInvitationId(invitationId) {
+  if (typeof window === 'undefined' || !invitationId) return;
+
+  const ids = readOwnerCancelledInvitationIds();
+  ids.add(String(invitationId));
+  window.localStorage.setItem(OWNER_CANCELLED_INVITATION_STORAGE_KEY, JSON.stringify([...ids]));
+}
+
+function applyOwnerCancelledInvitationOverrides(invitations) {
+  const cancelledIds = readOwnerCancelledInvitationIds();
+  if (!cancelledIds.size) return invitations;
+
+  return invitations.map((invitation) => {
+    const invitationId = getInvitationId(invitation);
+    if (!cancelledIds.has(String(invitationId))) return invitation;
+
+    return {
+      ...invitation,
+      status: 'CANCELLED',
+      respondedAt: invitation.respondedAt || new Date().toISOString()
+    };
+  });
 }
 
 function getTournamentId(tournament) {
@@ -200,6 +236,64 @@ function hasRegistrationStatus(invitation) {
   return Boolean(invitation.registrationStatus);
 }
 
+function isLockedInvitationStatus(status) {
+  return ['PENDING', 'ACCEPTED'].includes(String(status || '').toUpperCase());
+}
+
+function isLockedRegistrationStatus(status) {
+  return ['PENDING', 'ACCEPTED', 'APPROVED', 'CONFIRMED', 'PAID', 'UNPAID'].includes(String(status || '').toUpperCase());
+}
+
+function getHorseTournamentLockKey(horseId, tournamentId) {
+  return `${tournamentId || ''}:${horseId || ''}`;
+}
+
+function isOverlappingHorseError(message) {
+  const normalized = String(message || '').toLowerCase();
+  return normalized.includes('ngựa này')
+    && (
+      normalized.includes('trùng thời gian')
+      || normalized.includes('trung thoi gian')
+      || normalized.includes('overlapping tournament')
+    );
+}
+
+function getHorseTournamentLockReason(horse, tournamentId, invitations = [], manualLocks = {}) {
+  if (!horse) return '';
+  const manualReason = manualLocks[getHorseTournamentLockKey(getHorseId(horse), tournamentId)];
+  if (manualReason) return manualReason;
+
+  if (horse.participated === true) return 'Ngựa đã tham gia giải';
+
+  const horseId = getHorseId(horse);
+  const horseRegistrations = firstDefined(horse.registrations, horse.raceRegistrations, horse.tournamentRegistrations, []);
+  const matchedRegistration = Array.isArray(horseRegistrations)
+    ? horseRegistrations.find((registration) => (
+      String(firstDefined(registration.tournamentId, registration.tournamentID, registration.tournament?.tournamentId)) === String(tournamentId)
+      && isLockedRegistrationStatus(registration.status)
+    ))
+    : null;
+
+  if (matchedRegistration) return 'Ngựa đã có đơn trong giải này';
+
+  const matchedInvitation = invitations.find((invitation) => (
+    String(getInvitationHorseId(invitation)) === String(horseId)
+    && String(getInvitationTournamentId(invitation)) === String(tournamentId)
+    && (
+      isLockedInvitationStatus(invitation.status)
+      || isLockedRegistrationStatus(invitation.registrationStatus)
+    )
+  ));
+
+  if (matchedInvitation) {
+    return isLockedInvitationStatus(matchedInvitation.status)
+      ? 'Ngựa đã có lời mời trong giải này'
+      : 'Ngựa đã có đơn trong giải này';
+  }
+
+  return '';
+}
+
 function firstDefined(...values) {
   return values.find((value) => value !== undefined && value !== null && value !== '');
 }
@@ -307,10 +401,11 @@ function getRaceCapacity(race, tournament) {
   return max ? `${entries} / ${max}` : `${entries}`;
 }
 
-function validateInvitationForm(formValues, horses, tournaments) {
+function validateInvitationForm(formValues, horses, tournaments, invitations = [], horseLockReasons = {}) {
   const errors = {};
   const selectedHorse = horses.find((horse) => String(getHorseId(horse)) === String(formValues.horseId));
   const selectedTournament = tournaments.find((tournament) => String(getTournamentId(tournament)) === String(formValues.tournamentId));
+  const selectedTournamentId = selectedTournament ? getTournamentId(selectedTournament) : formValues.tournamentId;
   const expiredAt = formValues.expiredAt ? getDateTime(formValues.expiredAt) : null;
 
   if (!formValues.tournamentId) {
@@ -327,6 +422,11 @@ function validateInvitationForm(formValues, horses, tournaments) {
     errors.horseId = 'Ngựa đã chọn không nằm trong danh sách ngựa ACTIVE của bạn.';
   } else if (!isActiveHorse(selectedHorse)) {
     errors.horseId = 'Chỉ có thể chọn ngựa ở trạng thái ACTIVE.';
+  }
+
+  if (selectedHorse && !errors.horseId) {
+    const lockReason = getHorseTournamentLockReason(selectedHorse, selectedTournamentId, invitations, horseLockReasons);
+    if (lockReason) errors.horseId = lockReason;
   }
 
   if (!formValues.jockeyId) {
@@ -413,6 +513,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
+  const [invitingJockeyId, setInvitingJockeyId] = useState(null);
   const [actingId, setActingId] = useState(null);
   const [loadError, setLoadError] = useState('');
   const [submitError, setSubmitError] = useState('');
@@ -420,7 +521,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
   const [registrationResult, setRegistrationResult] = useState(null);
   const [message, setMessage] = useState('');
   const [detailJockey, setDetailJockey] = useState(null);
-  const [compareJockeyIds, setCompareJockeyIds] = useState([]);
+  const [horseLockReasons, setHorseLockReasons] = useState({});
 
   const activeHorses = useMemo(
     () => (ownerHorses.length > 0 ? ownerHorses : horses).filter(isActiveHorse),
@@ -455,11 +556,15 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
       && String(getInvitationHorseId(invitation)) === String(formValues.horseId)
     ));
   }, [formValues.horseId, formValues.tournamentId, invitations]);
+  const activeInvitationsForSelection = useMemo(() => invitationsForSelection.filter((invitation) => (
+    isLockedInvitationStatus(invitation.status)
+    || isLockedRegistrationStatus(invitation.registrationStatus)
+  )), [invitationsForSelection]);
   const invitationByJockeyId = useMemo(() => new Map(
-    invitationsForSelection
+    activeInvitationsForSelection
       .filter((invitation) => getInvitationJockeyId(invitation))
       .map((invitation) => [String(getInvitationJockeyId(invitation)), invitation])
-  ), [invitationsForSelection]);
+  ), [activeInvitationsForSelection]);
   const enrichedJockeys = useMemo(() => jockeys.map((jockey) => {
     const jockeyId = String(getUserId(jockey));
     const invitation = invitationByJockeyId.get(jockeyId) || null;
@@ -471,12 +576,6 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
       invitationStatus: invitation ? String(invitation.status || '').toUpperCase() : ''
     };
   }), [invitationByJockeyId, jockeys]);
-  const comparedJockeys = useMemo(
-    () => compareJockeyIds
-      .map((id) => enrichedJockeys.find((item) => String(item.jockeyId) === String(id)))
-      .filter(Boolean),
-    [compareJockeyIds, enrichedJockeys]
-  );
   const acceptedJockeyInvitations = useMemo(() => {
     if (!registrationValues.tournamentId || !registrationValues.horseId) return [];
 
@@ -536,7 +635,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
       setOpenTournaments(Array.isArray(openTournamentData) ? openTournamentData : []);
       setOwnerHorses(Array.isArray(ownerHorseData) ? ownerHorseData : []);
       setJockeys((Array.isArray(userData) ? userData : []).filter((user) => getUserRole(user) === 'JOCKEY' && String(user.status || '').toUpperCase() === 'ACTIVE'));
-      setInvitations(Array.isArray(invitationData) ? invitationData : []);
+      setInvitations(applyOwnerCancelledInvitationOverrides(Array.isArray(invitationData) ? invitationData : []));
     } catch (err) {
       setLoadError(getErrorText(err, 'Không thể tải dữ liệu đăng ký giải đấu.'));
     } finally {
@@ -553,15 +652,21 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
 
   function selectTournament(tournament) {
     const tournamentId = String(getTournamentId(tournament));
-    setFormValues((current) => ({ ...current, tournamentId }));
-    setRegistrationValues((current) => ({ ...current, tournamentId, jockeyId: '' }));
-    setFormErrors((current) => ({ ...current, tournamentId: '' }));
-    setRegistrationErrors((current) => ({ ...current, tournamentId: '' }));
+    setFormValues((current) => ({ ...current, tournamentId, horseId: '', jockeyId: '' }));
+    setRegistrationValues((current) => ({ ...current, tournamentId, horseId: '', jockeyId: '' }));
+    setFormErrors((current) => ({ ...current, tournamentId: '', horseId: '' }));
+    setRegistrationErrors((current) => ({ ...current, tournamentId: '', horseId: '' }));
     resetFeedback();
   }
 
   function selectHorse(horse) {
     const horseId = String(getHorseId(horse));
+    const lockReason = getHorseTournamentLockReason(horse, formValues.tournamentId, invitations, horseLockReasons);
+    if (lockReason) {
+      setFormErrors((current) => ({ ...current, horseId: lockReason }));
+      setRegistrationErrors((current) => ({ ...current, horseId: lockReason }));
+      return;
+    }
     setFormValues((current) => ({ ...current, horseId }));
     setRegistrationValues((current) => ({ ...current, horseId, jockeyId: '' }));
     setFormErrors((current) => ({ ...current, horseId: '' }));
@@ -588,18 +693,8 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
     setRegistrationValues(emptyRegistrationForm());
     setFormErrors({});
     setRegistrationErrors({});
-    setCompareJockeyIds([]);
     setDetailJockey(null);
     resetFeedback();
-  }
-
-  function toggleCompareJockey(jockeyId) {
-    setCompareJockeyIds((current) => {
-      if (current.includes(jockeyId)) {
-        return current.filter((id) => id !== jockeyId);
-      }
-      return current.length >= 3 ? current : [...current, jockeyId];
-    });
   }
 
   function fillRegistrationFromInvitation(invitation) {
@@ -644,8 +739,10 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
   }
 
   async function submitInvitation(jockeyId) {
+    if (isSaving) return;
+
     const nextValues = { ...formValues, jockeyId };
-    const errors = validateInvitationForm(nextValues, activeHorses, availableTournaments);
+    const errors = validateInvitationForm(nextValues, activeHorses, availableTournaments, invitations, horseLockReasons);
     setFormErrors(errors);
     setSubmitError('');
     setMessage('');
@@ -653,6 +750,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
     if (Object.keys(errors).length > 0) return;
 
     setIsSaving(true);
+    setInvitingJockeyId(String(nextValues.jockeyId));
     try {
       const createdInvitation = await inviteJockey({
         tournamentId: Number(nextValues.tournamentId),
@@ -662,6 +760,14 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
         message: nextValues.message.trim() || null
       });
       setMessage('Đã gửi lời mời jockey. Khi jockey chấp nhận, bạn có thể đăng ký giải và thanh toán phí tham gia.');
+      setInvitations((current) => {
+        const createdInvitationId = getInvitationId(createdInvitation);
+        if (!createdInvitationId) return [createdInvitation, ...current];
+        return [
+          createdInvitation,
+          ...current.filter((invitation) => getInvitationId(invitation) !== createdInvitationId)
+        ];
+      });
       createJockeyInvitationNotification({
         invitation: createdInvitation,
         tournament: selectedTournament,
@@ -674,9 +780,17 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
       setFormErrors({});
       await loadPageData();
     } catch (err) {
-      setSubmitError(getErrorText(err, 'Không thể gửi lời mời jockey.'));
+      const errorText = getErrorText(err, 'Không thể gửi lời mời jockey.');
+      if (isOverlappingHorseError(errorText) && nextValues.horseId && nextValues.tournamentId) {
+        const lockKey = getHorseTournamentLockKey(nextValues.horseId, nextValues.tournamentId);
+        setHorseLockReasons((current) => ({ ...current, [lockKey]: errorText }));
+        setFormErrors((current) => ({ ...current, horseId: errorText }));
+        setRegistrationErrors((current) => ({ ...current, horseId: errorText }));
+      }
+      setSubmitError(errorText);
     } finally {
       setIsSaving(false);
+      setInvitingJockeyId(null);
     }
   }
 
@@ -738,6 +852,12 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
 
     try {
       await cancelOwnerInvitation(invitationId);
+      storeOwnerCancelledInvitationId(invitationId);
+      setInvitations((current) => current.map((item) => (
+        String(getInvitationId(item)) === String(invitationId)
+          ? { ...item, status: 'CANCELLED', respondedAt: item.respondedAt || new Date().toISOString() }
+          : item
+      )));
       setMessage('Đã hủy lời mời jockey.');
       await loadPageData();
     } catch (err) {
@@ -912,13 +1032,15 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
                 {activeHorses.map((horse) => {
                   const horseId = String(getHorseId(horse));
                   const selected = String(formValues.horseId) === horseId;
+                  const lockReason = selectedTournament ? getHorseTournamentLockReason(horse, getTournamentId(selectedTournament), invitations, horseLockReasons) : '';
+                  const disabled = !selectedTournament || Boolean(lockReason);
 
                   return (
-                    <button className={`registration-horse-card ${selected ? 'selected' : ''}`} type="button" key={horseId} onClick={() => selectHorse(horse)} disabled={!selectedTournament}>
+                    <button className={`registration-horse-card ${selected ? 'selected' : ''} ${lockReason ? 'unavailable' : ''}`} type="button" key={horseId} onClick={() => selectHorse(horse)} disabled={disabled}>
                       <span className="registration-horse-avatar">{selected ? <CheckCircle2 size={22} /> : '🐎'}</span>
                       <strong>{getHorseName(horse) || `Horse ${horseId}`}</strong>
                       <small>{horse.breeding || horse.sex || 'Thông tin giống chưa cập nhật'}</small>
-                      <em>{horse.healthCertificateExpiryDate || horse.healthCertExpiry ? `Health cert: ${formatDate(horse.healthCertificateExpiryDate || horse.healthCertExpiry)}` : 'Health cert chưa cập nhật'}</em>
+                      <em>{lockReason || (horse.healthCertificateExpiryDate || horse.healthCertExpiry ? `Health cert: ${formatDate(horse.healthCertificateExpiryDate || horse.healthCertExpiry)}` : 'Health cert chưa cập nhật')}</em>
                     </button>
                   );
                 })}
@@ -1038,31 +1160,6 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
               </div>
             </div>
 
-            {comparedJockeys.length > 0 && (
-              <div className="jockey-compare-panel">
-                <div className="jockey-compare-header">
-                  <div>
-                    <p className="eyebrow">So sánh nhanh</p>
-                    <h3>{comparedJockeys.length} jockey đã chọn</h3>
-                  </div>
-                  <button type="button" className="table-button" onClick={() => setCompareJockeyIds([])}>Xóa so sánh</button>
-                </div>
-                <div className="jockey-compare-grid">
-                  {comparedJockeys.map(({ jockey, jockeyId, stats }) => (
-                    <article className="jockey-compare-card" key={jockeyId}>
-                      <strong>{getJockeyName(jockey)}</strong>
-                      <span>Ranking: {stats.ranking}</span>
-                      <span>License: {stats.license}</span>
-                      <span>Total race: {stats.totalRaces}</span>
-                      <span>Win rate: {formatPercent(stats.winRate)}</span>
-                      <span>Top 3 rate: {formatPercent(stats.top3Rate)}</span>
-                      <span>Vi phạm: {stats.violationCount}</span>
-                    </article>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {!inviteReady ? (
               <p className="table-empty">Chọn tournament/race và ngựa trước khi xem danh sách jockey phù hợp.</p>
             ) : isLoading ? (
@@ -1072,20 +1169,22 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
             ) : (
               <div className="owner-jockey-picker">
                 {enrichedJockeys.map(({ jockey, jockeyId, stats, invitation, invitationStatus }) => {
-                  const isCompared = compareJockeyIds.includes(jockeyId);
+                  const isSendingInvite = invitingJockeyId === jockeyId;
                   const isPending = invitationStatus === 'PENDING';
                   const isAccepted = invitationStatus === 'ACCEPTED';
                   const canCancel = isPending && invitation;
+                  const hasActiveInvitationForHorse = Boolean(currentPendingInvitation || hasAcceptedInvitation);
+                  const isBlockedByAnotherInvitation = hasActiveInvitationForHorse && !isPending && !isAccepted;
 
                   return (
-                    <article className={`owner-jockey-card ${invitation ? 'invited' : ''}`} key={jockeyId}>
+                    <article className={`owner-jockey-card ${isPending ? 'pending-invite' : ''} ${isAccepted ? 'accepted-invite' : ''} ${isSendingInvite ? 'sending' : ''}`} key={jockeyId}>
                       <div className="owner-jockey-card-head">
                         <div>
                           <p className="eyebrow">{stats.ranking}</p>
                           <h3>{getJockeyName(jockey)}</h3>
                           <span><ShieldCheck size={14} /> {stats.license}</span>
                         </div>
-                        <StatusBadge status={invitationStatus || 'AVAILABLE'} />
+                        <StatusBadge status={isSendingInvite ? 'SENDING' : invitationStatus || 'AVAILABLE'} />
                       </div>
 
                       <div className="owner-jockey-metrics">
@@ -1094,19 +1193,10 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
                         <span>Top 3 rate <strong>{formatPercent(stats.top3Rate)}</strong></span>
                         <span>Vi phạm <strong>{stats.violationCount}</strong></span>
                         <span>Race gần nhất <strong>{stats.recentRace}</strong></span>
-                        <span>Availability <strong>{invitation ? formatStatus(invitationStatus) : 'Có thể mời'}</strong></span>
+                        <span>Availability <strong>{isSendingInvite ? 'Đang gửi lời mời' : invitation ? formatStatus(invitationStatus) : 'Có thể mời'}</strong></span>
                       </div>
 
                       <div className="owner-jockey-actions">
-                        <label className={`jockey-compare-toggle ${isCompared ? 'checked' : ''}`}>
-                          <input
-                            type="checkbox"
-                            checked={isCompared}
-                            onChange={() => toggleCompareJockey(jockeyId)}
-                            disabled={!isCompared && compareJockeyIds.length >= 3}
-                          />
-                          So sánh
-                        </label>
                         <button type="button" className="outline-button" onClick={() => setDetailJockey(jockey)}>
                           <Eye size={15} /> View details
                         </button>
@@ -1115,9 +1205,9 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
                             Cancel invite
                           </button>
                         ) : (
-                          <button type="button" className="primary-button compact-primary" onClick={() => handleInviteJockey(jockeyId)} disabled={isSaving || isAccepted || Boolean(invitation)}>
+                          <button type="button" className="primary-button compact-primary" onClick={() => handleInviteJockey(jockeyId)} disabled={isSaving || isSendingInvite || isAccepted || Boolean(invitation) || isBlockedByAnotherInvitation}>
                             {invitation ? <CheckCircle2 size={15} /> : <Send size={15} />}
-                            {invitation ? 'Invited' : 'Invite'}
+                            {isSendingInvite ? 'Đang gửi...' : invitation ? 'Invited' : 'Invite'}
                           </button>
                         )}
                       </div>

@@ -1,18 +1,19 @@
 import { useEffect, useMemo, useState } from 'react';
-import defaultJockeyAvatar from '../../../assets/default-jockey-avatar.svg';
+import { ArrowLeft, BadgeCheck, Eye, RefreshCw, Search, XCircle } from 'lucide-react';
 import UrlImagePreview from '../../common/UrlImagePreview';
-import {
-  BadgeCheck,
-  Eye,
-  RefreshCw,
-  Search,
-  XCircle
-} from 'lucide-react';
 import {
   approveJockeyProfile,
   getJockeyProfilesUnderReview,
   rejectJockeyProfile
 } from '../../../services/adminProfileReviewService';
+
+const PAGE_SIZE = 6;
+
+const STATUS_LABELS = {
+  PENDING: 'Pending',
+  APPROVED: 'Approved',
+  REJECTED: 'Rejected'
+};
 
 function isHttpUrl(value) {
   return /^https?:\/\/.+/i.test(String(value || '').trim());
@@ -32,103 +33,103 @@ function getVerificationLinks(profile) {
 }
 
 function displayValue(value) {
-  return value === null || value === undefined || value === '' ? 'Chưa cập nhật' : String(value);
+  return value === null || value === undefined || value === '' ? 'Not updated' : String(value);
 }
 
-function DetailItem({ label, value, children }) {
+function formatDate(value) {
+  if (!value) return 'Not updated';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString('vi-VN');
+}
+
+function getStatusLabel(status) {
+  const normalized = String(status || '').toUpperCase();
+  return STATUS_LABELS[normalized] || displayValue(status);
+}
+
+function StatusBadge({ status }) {
+  return <span className={`status-badge ${String(status || '').toLowerCase()}`}>{getStatusLabel(status)}</span>;
+}
+
+function InfoCard({ label, value, children }) {
   return (
-    <div>
-      <dt className="text-xs font-extrabold uppercase text-slate-500">{label}</dt>
-      <dd className="mt-1 break-words text-sm font-extrabold text-brown-900">
+    <div className="rounded-2xl border border-brown-700/10 bg-white/70 p-4">
+      <span className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">{label}</span>
+      <strong className="mt-1 block break-words text-brown-900">
         {children || displayValue(value)}
-      </dd>
+      </strong>
     </div>
   );
 }
 
-function ReviewModal({ review, onClose, onConfirm, isProcessing }) {
-  const [feedback, setFeedback] = useState('');
-  const isRejecting = review?.action === 'reject';
+function DocumentCard({ label, url }) {
+  return (
+    <div className="rounded-2xl border border-brown-700/10 bg-white/70 p-4">
+      <span className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">{label}</span>
+      {url ? (
+        <a className="outline-button compact-button mt-3 inline-flex max-w-full break-all" href={url} target="_blank" rel="noreferrer">
+          View document
+        </a>
+      ) : (
+        <strong className="mt-1 block text-brown-900">Not updated</strong>
+      )}
+    </div>
+  );
+}
 
-  useEffect(() => {
-    setFeedback('');
-  }, [review]);
+function EmptyState() {
+  return (
+    <div className="rounded-[24px] border border-dashed border-brown-700/20 bg-white/60 p-8 text-center">
+      <div className="mx-auto grid size-12 place-items-center rounded-2xl bg-cream-200 text-xl font-black text-brown-700">JR</div>
+      <h3 className="mt-4 text-xl font-black text-brown-900">No jockey profiles</h3>
+      <p className="mx-auto mt-2 max-w-xl font-medium text-slate-500">No jockey review records match the current search and status filter.</p>
+    </div>
+  );
+}
 
-  if (!review) return null;
+function ConfirmModal({ title, message, confirmLabel, confirmTone = 'primary', isLoading, onCancel, onConfirm }) {
+  return (
+    <div className="fixed inset-0 z-50 grid place-items-center bg-brown-900/45 px-4 backdrop-blur-sm">
+      <section className="w-full max-w-md rounded-[28px] border border-brown-700/10 bg-cream-100 p-6 shadow-[0_28px_80px_rgba(43,23,16,0.3)]">
+        <h2 className="text-2xl font-black text-brown-900">{title}</h2>
+        <p className="mt-3 font-medium leading-7 text-slate-500">{message}</p>
+        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <button className="outline-button" type="button" onClick={onCancel} disabled={isLoading}>Cancel</button>
+          <button className={confirmTone === 'danger' ? 'outline-button danger-action' : 'primary-button sm:w-auto'} type="button" onClick={onConfirm} disabled={isLoading}>
+            {isLoading ? 'Processing...' : confirmLabel}
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}
 
-  const licenseImageMissing = getValidImageUrls(review.profile).length === 0;
-  const approvalBlocked = !isRejecting && licenseImageMissing;
+function RejectModal({ profile, reason, setReason, isLoading, onCancel, onConfirm }) {
+  if (!profile) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-[1000] grid place-items-center bg-brown-900/60 p-4 backdrop-blur-sm"
-      onClick={onClose}
-    >
-      <section
-        className="w-full max-w-lg rounded-lg border border-brown-700/15 bg-cream-100 p-6 shadow-2xl"
-        onClick={(event) => event.stopPropagation()}
-      >
-        <p className="text-xs font-extrabold uppercase tracking-widest text-brown-500">
-          Jockey Review
+    <div className="fixed inset-0 z-50 grid place-items-center bg-brown-900/45 px-4 backdrop-blur-sm">
+      <section className="w-full max-w-lg rounded-[28px] border border-brown-700/10 bg-cream-100 p-6 shadow-[0_28px_80px_rgba(43,23,16,0.3)]">
+        <h2 className="text-2xl font-black text-brown-900">Reject jockey profile</h2>
+        <p className="mt-3 font-medium leading-7 text-slate-500">
+          Add feedback for {profile.fullName} so the jockey can update the profile and submit again.
         </p>
-        <h2 className="mt-2 text-2xl font-black text-brown-900">
-          {isRejecting ? 'Từ chối hồ sơ' : 'Phê duyệt hồ sơ'}
-        </h2>
-
-        <p className="mt-3 text-sm font-semibold text-slate-500">
-          {review.profile.fullName} · {review.profile.licenseNo}
-        </p>
-
-        {approvalBlocked && (
-          <div className="mt-5 rounded-lg border border-danger/20 bg-danger-bg px-4 py-3">
-            <strong className="block text-sm font-extrabold text-danger">Approval blocked</strong>
-            <p className="mt-1 text-sm font-semibold text-danger">
-              Jockey chưa gửi URL ảnh giấy phép hợp lệ. Hãy reject để jockey bổ sung license image URL.
-            </p>
-          </div>
-        )}
-
-        {isRejecting && (
-          <label className="mt-5 grid gap-2">
-            <span className="text-sm font-extrabold text-brown-900">
-              Rejection Feedback
-            </span>
-            <textarea
-              className="min-h-28 resize-none rounded-lg border border-brown-700/15 bg-white p-3 text-sm font-semibold text-brown-900 outline-none focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
-              maxLength={500}
-              value={feedback}
-              onChange={(event) => setFeedback(event.target.value)}
-              placeholder="Giải thích nội dung jockey cần chỉnh sửa..."
-            />
-            <span className="text-right text-xs font-bold text-slate-500">
-              {feedback.length}/500
-            </span>
-          </label>
-        )}
-
-        <div className="mt-6 grid grid-cols-2 gap-3">
-          <button
-            className="rounded-lg border border-brown-700/15 bg-white px-4 py-3 font-extrabold text-brown-700"
-            type="button"
-            disabled={isProcessing}
-            onClick={onClose}
-          >
-            Cancel
-          </button>
-
-          <button
-            className={`rounded-lg px-4 py-3 font-extrabold text-white ${
-              isRejecting ? 'bg-danger' : 'bg-green-700'
-            } disabled:opacity-50`}
-            type="button"
-            disabled={isProcessing || approvalBlocked || (isRejecting && !feedback.trim())}
-            onClick={() => onConfirm(feedback.trim())}
-          >
-            {isProcessing
-              ? 'Đang xử lý...'
-              : isRejecting
-                ? 'Từ chối hồ sơ'
-                : 'Phê duyệt hồ sơ'}
+        <label className="mt-5 grid gap-2">
+          <span className="text-sm font-extrabold text-brown-900">Rejection feedback</span>
+          <textarea
+            className="min-h-32 w-full rounded-lg border border-brown-700/15 bg-white px-4 py-3 text-sm font-bold text-brown-900 outline-none transition placeholder:text-slate-500/65 focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
+            maxLength={500}
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+            placeholder="Explain what the jockey needs to correct..."
+            disabled={isLoading}
+          />
+          <span className="text-right text-xs font-bold text-slate-500">{reason.length}/500</span>
+        </label>
+        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <button className="outline-button" type="button" onClick={onCancel} disabled={isLoading}>Cancel</button>
+          <button className="outline-button danger-action" type="button" onClick={onConfirm} disabled={isLoading || !reason.trim()}>
+            {isLoading ? 'Processing...' : 'Reject'}
           </button>
         </div>
       </section>
@@ -138,17 +139,17 @@ function ReviewModal({ review, onClose, onConfirm, isProcessing }) {
 
 export default function JockeyReview() {
   const [profiles, setProfiles] = useState([]);
-  const [search, setSearch] = useState('');
   const [selectedProfile, setSelectedProfile] = useState(null);
-  const [review, setReview] = useState(null);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
-
-  useEffect(() => {
-    loadProfiles();
-  }, []);
+  const [approveTarget, setApproveTarget] = useState(null);
+  const [rejectTarget, setRejectTarget] = useState(null);
+  const [rejectReason, setRejectReason] = useState('');
 
   async function loadProfiles() {
     setIsLoading(true);
@@ -158,318 +159,352 @@ export default function JockeyReview() {
       const data = await getJockeyProfilesUnderReview();
       setProfiles(Array.isArray(data) ? data : []);
     } catch (err) {
-      setError(err.message || 'Không thể tải danh sách duyệt jockey.');
+      setError(err.message || 'Cannot load jockey review profiles.');
     } finally {
       setIsLoading(false);
     }
   }
 
+  useEffect(() => {
+    loadProfiles();
+  }, []);
+
   const filteredProfiles = useMemo(() => {
-    const query = search.trim().toLowerCase();
+    const keyword = search.trim().toLowerCase();
 
-    if (!query) return profiles;
-
-    return profiles.filter((profile) =>
-      [
+    return profiles.filter((profile) => {
+      const status = String(profile.status || '').toUpperCase();
+      const matchesStatus = statusFilter === 'ALL' || status === statusFilter;
+      const haystack = [
         profile.jockeyId,
+        profile.reviewId,
         profile.fullName,
         profile.email,
         profile.licenseNo,
-        profile.ranking
+        profile.ranking,
+        profile.status
       ]
         .filter((value) => value !== null && value !== undefined)
-        .some((value) => String(value).toLowerCase().includes(query))
-    );
-  }, [profiles, search]);
+        .join(' ')
+        .toLowerCase();
 
-  async function confirmReview(feedback) {
-    const { action, profile } = review;
+      return matchesStatus && (!keyword || haystack.includes(keyword));
+    });
+  }, [profiles, search, statusFilter]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredProfiles.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const visibleProfiles = filteredProfiles.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+  const pendingCount = profiles.filter((profile) => String(profile.status || '').toUpperCase() === 'PENDING').length;
+  const approvedCount = profiles.filter((profile) => String(profile.status || '').toUpperCase() === 'APPROVED').length;
+  const rejectedCount = profiles.filter((profile) => String(profile.status || '').toUpperCase() === 'REJECTED').length;
+
+  function canReview(profile) {
+    return String(profile?.status || '').toUpperCase() === 'PENDING';
+  }
+
+  function canApprove(profile) {
+    return canReview(profile) && getValidImageUrls(profile).length > 0;
+  }
+
+  async function handleApprove() {
+    if (!approveTarget) return;
 
     setIsProcessing(true);
     setError('');
     setMessage('');
 
     try {
-      if (action === 'approve') {
-        await approveJockeyProfile(profile.reviewId);
-        setMessage(`${profile.fullName} was approved.`);
-      } else {
-        await rejectJockeyProfile(profile.reviewId, feedback);
-        setMessage(`${profile.fullName} was rejected.`);
-      }
-
-      setReview(null);
+      await approveJockeyProfile(approveTarget.reviewId);
+      setApproveTarget(null);
       setSelectedProfile(null);
+      setMessage(`${approveTarget.fullName} was approved.`);
       await loadProfiles();
     } catch (err) {
-      setError(err.message || 'Không thể xét duyệt hồ sơ jockey.');
+      setError(err.message || 'Cannot approve jockey profile.');
     } finally {
       setIsProcessing(false);
     }
+  }
+
+  async function handleReject() {
+    if (!rejectTarget) return;
+
+    setIsProcessing(true);
+    setError('');
+    setMessage('');
+
+    try {
+      await rejectJockeyProfile(rejectTarget.reviewId, rejectReason);
+      setRejectTarget(null);
+      setRejectReason('');
+      setSelectedProfile(null);
+      setMessage(`${rejectTarget.fullName} was rejected.`);
+      await loadProfiles();
+    } catch (err) {
+      setError(err.message || 'Cannot reject jockey profile.');
+    } finally {
+      setIsProcessing(false);
+    }
+  }
+
+  if (selectedProfile) {
+    const licenseUrls = getValidImageUrls(selectedProfile);
+    const verificationLinks = getVerificationLinks(selectedProfile);
+    const isPending = canReview(selectedProfile);
+
+    return (
+      <section className="space-y-6 text-brown-900">
+        <header className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div>
+            <p className="text-sm font-extrabold uppercase tracking-widest text-brown-500">Jockey profile detail</p>
+            <h1 className="mt-2 text-4xl font-black md:text-5xl">Jockey #{displayValue(selectedProfile.jockeyId)}</h1>
+            <p className="mt-3 max-w-2xl font-medium text-slate-500">Review license, ranking, contact information, and proof documents.</p>
+          </div>
+          <button className="inline-flex items-center gap-2 rounded-lg border border-brown-700/15 bg-white px-4 py-3 font-extrabold text-brown-700 shadow-sm transition hover:bg-cream-100" type="button" onClick={() => setSelectedProfile(null)}>
+            <ArrowLeft size={17} />
+            Back to list
+          </button>
+        </header>
+
+        {error && <div className="admin-alert error" role="alert">{error}</div>}
+        {message && <div className="admin-alert success" role="status">{message}</div>}
+
+        <section className="rounded-lg border border-brown-700/10 bg-cream-100 p-5 shadow-[0_18px_45px_rgba(78,44,25,0.1)]">
+          <div className="flex flex-col gap-3 border-b border-brown-700/10 pb-4 md:flex-row md:items-start md:justify-between">
+            <div>
+              <span className="text-xs font-extrabold uppercase text-brown-500">Profile information</span>
+              <h2 className="mt-1 text-2xl font-black">{displayValue(selectedProfile.fullName)}</h2>
+              <p className="mt-2 font-medium text-slate-500">Submitted at {formatDate(selectedProfile.submittedAt)}</p>
+            </div>
+            <StatusBadge status={selectedProfile.status} />
+          </div>
+
+          <div className="mt-5 grid gap-4 md:grid-cols-2">
+            <InfoCard label="Full name" value={selectedProfile.fullName} />
+            <InfoCard label="Email" value={selectedProfile.email} />
+            <InfoCard label="Jockey ID" value={selectedProfile.jockeyId} />
+            <InfoCard label="Review ID" value={selectedProfile.reviewId} />
+            <InfoCard label="License number" value={selectedProfile.licenseNo} />
+            <InfoCard label="License type" value={selectedProfile.licenceType || selectedProfile.licenseNo} />
+            <InfoCard label="Expiry date" value={formatDate(selectedProfile.expiryDate)} />
+            <InfoCard label="Issuing authority" value={selectedProfile.issuingAuthority} />
+            <InfoCard label="Weight" value={selectedProfile.weight ? `${selectedProfile.weight} kg` : ''} />
+            <InfoCard label="Ranking" value={selectedProfile.ranking} />
+            <InfoCard label="Trainer name" value={selectedProfile.trainerName} />
+            <InfoCard label="Trainer email" value={selectedProfile.trainerEmail} />
+            <InfoCard label="Academy / stable address" value={selectedProfile.academyStableAddress} />
+            <InfoCard label="Biography" value={selectedProfile.biography} />
+          </div>
+
+          <div className="mt-6">
+            <h3 className="text-xl font-black text-brown-900">Verification links</h3>
+            <div className="mt-3 grid gap-4 md:grid-cols-2">
+              {verificationLinks.length > 0 ? (
+                verificationLinks.map((link, index) => <DocumentCard label={`Verification link ${index + 1}`} url={link} key={`${link}-${index}`} />)
+              ) : (
+                <InfoCard label="Verification links" value="" />
+              )}
+            </div>
+          </div>
+
+          <div className="mt-6">
+            <h3 className="text-xl font-black text-brown-900">Jockey license images</h3>
+            <div className="mt-3 grid gap-4 md:grid-cols-2">
+              {licenseUrls.length > 0 ? (
+                licenseUrls.map((url, index) => (
+                  <div className="rounded-2xl border border-brown-700/10 bg-white/70 p-4" key={url}>
+                    <span className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">License image {index + 1}</span>
+                    <UrlImagePreview
+                      url={url}
+                      alt={`${selectedProfile.fullName} license ${index + 1}`}
+                      className="mt-3 max-h-[320px] w-full rounded-lg object-contain"
+                    />
+                    <a className="outline-button compact-button mt-3 inline-flex max-w-full break-all" href={url} target="_blank" rel="noreferrer">
+                      Open image
+                    </a>
+                  </div>
+                ))
+              ) : (
+                <div className="rounded-2xl border border-danger/20 bg-danger-bg p-4 font-bold text-danger md:col-span-2">
+                  No valid license image URL was submitted.
+                </div>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-6">
+            <h3 className="text-xl font-black text-brown-900">Review information</h3>
+            <div className="mt-3 grid gap-4 md:grid-cols-2">
+              <InfoCard label="Status" value={getStatusLabel(selectedProfile.status)} />
+              <InfoCard label="Submitted at" value={formatDate(selectedProfile.submittedAt)} />
+              <InfoCard label="Reviewed at" value={formatDate(selectedProfile.reviewedAt)} />
+              <InfoCard label="Reviewed by" value={selectedProfile.reviewedByName || selectedProfile.reviewedBy} />
+            </div>
+          </div>
+
+          {selectedProfile.feedback && (
+            <div className="mt-5 rounded-2xl border border-danger/20 bg-danger-bg p-4 font-bold text-danger">
+              Feedback: {selectedProfile.feedback}
+            </div>
+          )}
+
+          {isPending ? (
+            <div className="mt-6 flex flex-wrap gap-3 border-t border-brown-700/10 pt-5">
+              <button
+                className="inline-flex items-center gap-2 rounded-lg bg-green-700 px-5 py-3 font-extrabold text-white shadow-sm transition hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50"
+                type="button"
+                onClick={() => setApproveTarget(selectedProfile)}
+                disabled={isProcessing || !canApprove(selectedProfile)}
+                title={!canApprove(selectedProfile) ? 'A valid license image URL is required before approval.' : 'Approve jockey profile'}
+              >
+                <BadgeCheck size={18} />
+                Approve
+              </button>
+              <button className="outline-button danger-action inline-flex items-center gap-2" type="button" onClick={() => setRejectTarget(selectedProfile)} disabled={isProcessing}>
+                <XCircle size={18} />
+                Reject
+              </button>
+            </div>
+          ) : (
+            <div className="mt-6 border-t border-brown-700/10 pt-5">
+              <StatusBadge status={selectedProfile.status} />
+            </div>
+          )}
+        </section>
+
+        {approveTarget && (
+          <ConfirmModal
+            title="Approve jockey profile"
+            message={`Approve ${approveTarget.fullName} and mark this jockey profile as verified?`}
+            confirmLabel="Approve"
+            isLoading={isProcessing}
+            onCancel={() => setApproveTarget(null)}
+            onConfirm={handleApprove}
+          />
+        )}
+
+        <RejectModal
+          profile={rejectTarget}
+          reason={rejectReason}
+          setReason={setRejectReason}
+          isLoading={isProcessing}
+          onCancel={() => {
+            setRejectTarget(null);
+            setRejectReason('');
+          }}
+          onConfirm={handleReject}
+        />
+      </section>
+    );
   }
 
   return (
     <section className="space-y-6 text-brown-900">
       <header className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
-          <p className="text-sm font-extrabold uppercase tracking-widest text-brown-500">
-            Profile Reviews
-          </p>
-          <h1 className="mt-2 text-4xl font-black md:text-5xl">
-            Jockey Reviews
-          </h1>
-          <p className="mt-3 font-medium text-slate-500">
-            Verify jockey licenses, rankings, weight, and proof images.
-          </p>
+          <p className="text-sm font-extrabold uppercase tracking-widest text-brown-500">Manage jockeys</p>
+          <h1 className="mt-2 text-4xl font-black md:text-5xl">Jockey Reviews</h1>
+          <p className="mt-3 max-w-2xl font-medium text-slate-500">Review jockey license information, ranking, proof links, and submitted profile details.</p>
         </div>
-
-        <button
-          className="inline-flex items-center justify-center gap-2 rounded-lg border border-brown-700/15 bg-white px-4 py-3 font-extrabold text-brown-700 shadow-sm"
-          type="button"
-          disabled={isLoading}
-          onClick={loadProfiles}
-        >
+        <button className="inline-flex items-center justify-center gap-2 rounded-lg border border-brown-700/15 bg-white px-4 py-3 font-extrabold text-brown-700 shadow-sm transition hover:bg-cream-100 disabled:opacity-60" type="button" onClick={loadProfiles} disabled={isLoading}>
           <RefreshCw size={17} className={isLoading ? 'animate-spin' : ''} />
           Refresh
         </button>
       </header>
 
-      {error && (
-        <div className="rounded-lg border border-danger/20 bg-danger-bg px-4 py-3 font-bold text-danger">
-          {error}
-        </div>
-      )}
+      {error && <div className="admin-alert error" role="alert">{error}</div>}
+      {message && <div className="admin-alert success" role="status">{message}</div>}
 
-      {message && (
-        <div className="rounded-lg border border-green-700/20 bg-green-50 px-4 py-3 font-bold text-green-700">
-          {message}
-        </div>
-      )}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div className="rounded-lg border border-brown-700/10 bg-cream-100 p-5 shadow-[0_18px_45px_rgba(78,44,25,0.1)]"><span className="text-sm font-extrabold uppercase text-slate-500">Pending</span><strong className="mt-2 block text-3xl font-black">{pendingCount}</strong></div>
+        <div className="rounded-lg border border-brown-700/10 bg-cream-100 p-5 shadow-[0_18px_45px_rgba(78,44,25,0.1)]"><span className="text-sm font-extrabold uppercase text-slate-500">Approved</span><strong className="mt-2 block text-3xl font-black">{approvedCount}</strong></div>
+        <div className="rounded-lg border border-brown-700/10 bg-cream-100 p-5 shadow-[0_18px_45px_rgba(78,44,25,0.1)]"><span className="text-sm font-extrabold uppercase text-slate-500">Rejected</span><strong className="mt-2 block text-3xl font-black">{rejectedCount}</strong></div>
+      </div>
 
-      <section className="overflow-hidden rounded-lg border border-brown-700/10 bg-cream-100 shadow-lg">
-        <div className="flex items-center justify-between gap-4 border-b border-brown-700/10 bg-cream-200/50 p-5 max-sm:grid">
-          <div>
-            <h2 className="text-xl font-extrabold">Đang chờ xét duyệt</h2>
-            <p className="mt-1 text-sm text-slate-500">
-              {filteredProfiles.length} of {profiles.length} profiles, including approved records
-            </p>
-          </div>
-
-          <label className="relative block w-full max-w-md">
-            <Search
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500"
-              size={17}
-            />
+      <section className="rounded-lg border border-brown-700/10 bg-cream-100 p-5 shadow-[0_18px_45px_rgba(78,44,25,0.1)]">
+        <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_220px]">
+          <label className="relative block">
+            <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={17} />
             <input
-              className="w-full rounded-lg border border-brown-700/15 bg-white py-3 pl-10 pr-4 text-sm font-bold outline-none focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
-              placeholder="Tìm theo tên, email, giấy phép hoặc xếp hạng"
+              className="w-full rounded-lg border border-brown-700/15 bg-white py-3 pl-10 pr-4 text-sm font-bold text-brown-900 outline-none focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
               value={search}
-              onChange={(event) => setSearch(event.target.value)}
+              onChange={(event) => {
+                setSearch(event.target.value);
+                setPage(1);
+              }}
+              placeholder="Search by name, email, license, or ranking"
             />
           </label>
-        </div>
-
-        {isLoading ? (
-          <p className="px-5 py-10 text-slate-500">Đang tải hồ sơ...</p>
-        ) : filteredProfiles.length === 0 ? (
-          <p className="px-5 py-10 text-slate-500">
-            No jockey profiles are awaiting review.
-          </p>
-        ) : (
-          <div className="grid gap-4 p-5 lg:grid-cols-2">
-            {filteredProfiles.map((profile) => (
-              <article
-                className="rounded-lg border border-brown-700/10 bg-white p-5 shadow-sm"
-                key={profile.jockeyId}
-              >
-                <div className="flex items-start gap-4">
-                  <img
-                    className="size-20 rounded-lg border border-brown-700/10 object-cover"
-                    src={getValidImageUrls(profile)[0] || defaultJockeyAvatar}
-                    alt={`${profile.fullName} proof`}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <h3 className="break-words text-lg font-extrabold">
-                      {profile.fullName}
-                    </h3>
-                    <p className="mt-1 break-words text-sm font-semibold text-slate-500">
-                      {profile.email}
-                    </p>
-                    <span className="mt-3 inline-flex rounded-full bg-gold-400/20 px-3 py-1 text-xs font-extrabold text-brown-700">
-                      {profile.status}
-                    </span>
-                  </div>
-                </div>
-
-                <dl className="mt-5 grid grid-cols-3 gap-3">
-                  <div>
-                    <dt className="text-xs font-extrabold uppercase text-slate-500">
-                      License
-                    </dt>
-                    <dd className="mt-1 break-words text-sm font-extrabold">
-                      {profile.licenseNo}
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs font-extrabold uppercase text-slate-500">
-                      Weight
-                    </dt>
-                    <dd className="mt-1 text-sm font-extrabold">
-                      {profile.weight} kg
-                    </dd>
-                  </div>
-                  <div>
-                    <dt className="text-xs font-extrabold uppercase text-slate-500">
-                      Ranking
-                    </dt>
-                    <dd className="mt-1 break-words text-sm font-extrabold">
-                      {profile.ranking}
-                    </dd>
-                  </div>
-                  <div className="col-span-3">
-                    <dt className="text-xs font-extrabold uppercase text-slate-500">
-                      Jockey License Images
-                    </dt>
-                    <dd className="mt-1 break-words text-sm font-extrabold">
-                      {getValidImageUrls(profile).length > 0
-                        ? `${getValidImageUrls(profile).length} image(s) uploaded`
-                        : 'Chưa gửi URL hợp lệ'}
-                    </dd>
-                  </div>
-                </dl>
-
-                <div className="mt-5 grid grid-cols-3 gap-2">
-                  <button
-                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-brown-700/15 bg-white px-3 py-2.5 text-sm font-extrabold text-brown-700"
-                    type="button"
-                    onClick={() => setSelectedProfile(profile)}
-                  >
-                    <Eye size={16} />
-                    View
-                  </button>
-                  <button
-                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-green-700/20 bg-green-50 px-3 py-2.5 text-sm font-extrabold text-green-700 disabled:cursor-not-allowed disabled:border-brown-700/10 disabled:bg-stone-100 disabled:text-slate-500 disabled:opacity-60"
-                    type="button"
-                    disabled={getValidImageUrls(profile).length === 0 || String(profile.status || '').toUpperCase() !== 'PENDING'}
-                    title={String(profile.status || '').toUpperCase() !== 'PENDING' ? 'Hồ sơ này đã được xử lý.' : getValidImageUrls(profile).length === 0 ? 'Cần có URL ảnh giấy phép jockey hợp lệ trước khi phê duyệt.' : 'Phê duyệt hồ sơ jockey'}
-                    onClick={() => setReview({ action: 'approve', profile })}
-                  >
-                    <BadgeCheck size={16} />
-                    Approve
-                  </button>
-                  <button
-                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-danger/20 bg-danger-bg px-3 py-2.5 text-sm font-extrabold text-danger"
-                    type="button"
-                    disabled={String(profile.status || '').toUpperCase() !== 'PENDING'}
-                    onClick={() => setReview({ action: 'reject', profile })}
-                  >
-                    <XCircle size={16} />
-                    Reject
-                  </button>
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {selectedProfile && (
-        <div
-          className="fixed inset-0 z-[1000] grid place-items-center bg-brown-900/60 p-4 backdrop-blur-sm"
-          onClick={() => setSelectedProfile(null)}
-        >
-          <section
-            className="max-h-[92vh] w-full max-w-5xl overflow-y-auto rounded-lg bg-cream-100 p-6 shadow-2xl"
-            onClick={(event) => event.stopPropagation()}
+          <select
+            className="rounded-lg border border-brown-700/15 bg-white px-4 py-3 text-sm font-bold text-brown-900 outline-none focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
+            value={statusFilter}
+            onChange={(event) => {
+              setStatusFilter(event.target.value);
+              setPage(1);
+            }}
           >
-            <div className="flex items-start justify-between gap-4 max-sm:grid">
-              <div>
-                <p className="text-xs font-extrabold uppercase tracking-widest text-brown-500">
-                  Jockey Application Detail
-                </p>
-                <h2 className="mt-2 text-2xl font-black text-brown-900">
-                  {selectedProfile.fullName}
-                </h2>
-                <p className="mt-1 break-words text-sm font-semibold text-slate-500">
-                  {selectedProfile.email}
-                </p>
-              </div>
-              <span className="rounded-full bg-gold-400/20 px-3 py-1 text-xs font-extrabold text-brown-700">
-                {selectedProfile.status}
-              </span>
-            </div>
-
-            <dl className="mt-5 grid gap-4 rounded-lg border border-brown-700/10 bg-white p-4 sm:grid-cols-2 lg:grid-cols-3">
-              <DetailItem label="Jockey ID" value={selectedProfile.jockeyId} />
-              <DetailItem label="Licence Type" value={selectedProfile.licenceType || selectedProfile.licenseNo} />
-              <DetailItem label="Expiry Date" value={selectedProfile.expiryDate} />
-              <DetailItem label="Weight" value={selectedProfile.weight ? `${selectedProfile.weight} kg` : ''} />
-              <DetailItem label="Ranking" value={selectedProfile.ranking} />
-              <DetailItem label="Trainer Name" value={selectedProfile.trainerName} />
-              <DetailItem label="Trainer Email" value={selectedProfile.trainerEmail} />
-              <DetailItem label="Academy / Stable Address" value={selectedProfile.academyStableAddress} />
-              <DetailItem label="Issuing Authority" value={selectedProfile.issuingAuthority} />
-              <DetailItem label="Submitted At" value={selectedProfile.submittedAt} />
-              <DetailItem label="Reviewed At" value={selectedProfile.reviewedAt} />
-              <DetailItem label="Reviewed By" value={selectedProfile.reviewedByName || selectedProfile.reviewedBy} />
-              <div className="sm:col-span-2 lg:col-span-3">
-                <DetailItem label="Biography" value={selectedProfile.biography} />
-              </div>
-              <div className="sm:col-span-2 lg:col-span-3">
-                <DetailItem label="Verification Links">
-                  {getVerificationLinks(selectedProfile).length > 0 ? (
-                    <div className="grid gap-1">
-                      {getVerificationLinks(selectedProfile).map((link, index) => (
-                        <a className="break-all text-green-700 underline" href={link} target="_blank" rel="noreferrer" key={`${link}-${index}`}>
-                          {link}
-                        </a>
-                      ))}
-                    </div>
-                  ) : 'Chưa cập nhật'}
-                </DetailItem>
-              </div>
-            </dl>
-
-            <p className="mt-5 break-words text-sm font-semibold text-slate-500">
-              {getValidImageUrls(selectedProfile).length} licence image(s)
-            </p>
-            <div className="mt-4 grid gap-4 sm:grid-cols-2">
-              {getValidImageUrls(selectedProfile).length > 0 ? (
-                getValidImageUrls(selectedProfile).map((url, index) => (
-                  <div className="rounded-lg border border-brown-700/10 bg-white p-3" key={url}>
-                    <UrlImagePreview
-                      url={url}
-                      alt={`${selectedProfile.fullName} proof ${index + 1}`}
-                      className="max-h-[42vh] w-full rounded-lg object-contain"
-                    />
-                    <a className="mt-3 inline-flex max-w-full break-all text-sm font-bold text-green-700 underline" href={url} target="_blank" rel="noreferrer">
-                      Open image {index + 1}
-                    </a>
-                  </div>
-                ))
-              ) : (
-                <p className="rounded-lg border border-danger/20 bg-danger-bg px-4 py-6 text-center text-sm font-bold text-danger sm:col-span-2">
-                  Chưa gửi URL hợp lệ
-                </p>
-              )}
-            </div>
-            <button
-              className="mt-4 w-full rounded-lg border border-brown-700/15 bg-white px-4 py-3 font-extrabold text-brown-700"
-              type="button"
-              onClick={() => setSelectedProfile(null)}
-            >
-              Close
-            </button>
-          </section>
+            <option value="ALL">All statuses</option>
+            <option value="PENDING">Pending</option>
+            <option value="APPROVED">Approved</option>
+            <option value="REJECTED">Rejected</option>
+          </select>
         </div>
-      )}
 
-      <ReviewModal
-        review={review}
-        onClose={() => !isProcessing && setReview(null)}
-        onConfirm={confirmReview}
-        isProcessing={isProcessing}
-      />
+        <div className="mt-5 overflow-x-auto rounded-2xl border border-brown-700/10 bg-white/70">
+          <table className="w-full min-w-[860px] text-left text-sm">
+            <thead className="bg-cream-200/70 text-xs uppercase tracking-wide text-slate-500">
+              <tr>
+                <th className="px-4 py-3">Jockey ID</th>
+                <th className="px-4 py-3">Jockey</th>
+                <th className="px-4 py-3">License</th>
+                <th className="px-4 py-3">Ranking</th>
+                <th className="px-4 py-3">Submitted</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-brown-700/10">
+              {isLoading ? (
+                <tr><td className="px-4 py-8 text-center font-bold text-slate-500" colSpan="7">Loading jockey profiles...</td></tr>
+              ) : visibleProfiles.length === 0 ? (
+                <tr><td className="px-4 py-8" colSpan="7"><EmptyState /></td></tr>
+              ) : (
+                visibleProfiles.map((profile) => (
+                  <tr className="transition hover:bg-cream-200/35" key={profile.reviewId || profile.jockeyId}>
+                    <td className="px-4 py-4 font-black text-brown-900">#{displayValue(profile.jockeyId)}</td>
+                    <td className="px-4 py-4">
+                      <strong className="block text-brown-900">{displayValue(profile.fullName)}</strong>
+                      <small className="font-semibold text-slate-500">{displayValue(profile.email)}</small>
+                    </td>
+                    <td className="px-4 py-4">
+                      <strong className="block text-brown-900">{displayValue(profile.licenseNo)}</strong>
+                      <small className="font-semibold text-slate-500">{getValidImageUrls(profile).length} image(s)</small>
+                    </td>
+                    <td className="px-4 py-4 font-bold text-slate-500">{displayValue(profile.ranking)}</td>
+                    <td className="px-4 py-4 font-bold text-slate-500">{formatDate(profile.submittedAt)}</td>
+                    <td className="px-4 py-4"><StatusBadge status={profile.status} /></td>
+                    <td className="px-4 py-4 text-right">
+                      <button className="inline-flex items-center gap-2 rounded-lg border border-brown-700/15 bg-white px-3 py-2 font-extrabold text-brown-700 transition hover:bg-cream-200" type="button" onClick={() => setSelectedProfile(profile)}>
+                        <Eye size={16} />
+                        View details
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <span className="text-sm font-bold text-slate-500">Page {currentPage} of {totalPages} - {filteredProfiles.length} record(s)</span>
+          <div className="flex gap-2">
+            <button className="outline-button" type="button" onClick={() => setPage((value) => Math.max(1, value - 1))} disabled={currentPage <= 1}>Previous</button>
+            <button className="outline-button" type="button" onClick={() => setPage((value) => Math.min(totalPages, value + 1))} disabled={currentPage >= totalPages}>Next</button>
+          </div>
+        </div>
+      </section>
     </section>
   );
 }

@@ -226,6 +226,49 @@ function formatPercent(value) {
   return `${number.toFixed(number % 1 === 0 ? 0 : 1)}%`;
 }
 
+function formatRequirementItem(item) {
+  if (item === undefined || item === null || item === '') return '';
+  if (typeof item !== 'object') return String(item);
+
+  const label = firstDefined(
+    item.conditionName,
+    item.name,
+    item.description,
+    item.conditionDescription,
+    item.conditionType,
+    item.type,
+    item.field
+  );
+  const operator = firstDefined(item.operator, item.comparisonOperator);
+  const value = firstDefined(item.value, item.expectedValue, item.minValue, item.maxValue);
+
+  if (label && operator && value !== undefined) return `${label} ${operator} ${value}`;
+  if (label && item.minValue !== undefined && item.maxValue !== undefined) return `${label}: ${item.minValue} - ${item.maxValue}`;
+  if (label && value !== undefined) return `${label}: ${value}`;
+  if (label) return String(label);
+
+  const readableValues = Object.entries(item)
+    .filter(([, entryValue]) => entryValue !== undefined && entryValue !== null && typeof entryValue !== 'object')
+    .map(([key, entryValue]) => `${key}: ${entryValue}`);
+
+  return readableValues.join(', ');
+}
+
+function formatRequirement(value) {
+  if (value === undefined || value === null || value === '') return 'Chưa có dữ liệu';
+
+  if (Array.isArray(value)) {
+    const formattedItems = value.map(formatRequirementItem).filter(Boolean);
+    return formattedItems.length > 0 ? formattedItems.join(', ') : 'Chưa có dữ liệu';
+  }
+
+  if (typeof value === 'object') {
+    return formatRequirementItem(value) || 'Chưa có dữ liệu';
+  }
+
+  return String(value);
+}
+
 function calculateRate(part, total) {
   const totalValue = toNumber(total);
   if (!totalValue) return null;
@@ -356,7 +399,7 @@ function InvitationDetailModal({ invitation, tournamentById, isLoading, error, o
               <span>Prize/Fee</span>
               <strong>{firstDefined(race.prize, race.fee, 'Chưa có dữ liệu')}</strong>
               <span>Requirement</span>
-              <strong>{Array.isArray(race.requirement) ? race.requirement.map((item) => item.conditionName || item.name || item).join(', ') : race.requirement}</strong>
+              <strong>{formatRequirement(race.requirement)}</strong>
               <span>Deadline phản hồi</span>
               <strong>{formatDate(firstDefined(invitation.expiredAt, registrationDeadline))}</strong>
             </div>
