@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   ArrowRight,
+  BarChart3,
   CalendarDays,
   Check,
   CheckCircle2,
@@ -13,7 +14,10 @@ import {
   MoreVertical,
   RefreshCw,
   Send,
+  ShieldCheck,
+  Trophy,
   Users,
+  X,
   XCircle
 } from 'lucide-react';
 import { getAllUsers } from '../../services/userService';
@@ -26,6 +30,7 @@ import {
   submitOwnerTournamentRegistration
 } from '../../services/ownerService';
 import { getTournaments } from '../../services/eventService';
+import { updateState } from '../../services/mockStore';
 import API_BASE_URL from '../../configs/apiConfig';
 import { formatDate, formatDisplayLabel, getHorseId, getHorseName, getUserId, getUserRole } from '../../lib';
 
@@ -195,6 +200,113 @@ function hasRegistrationStatus(invitation) {
   return Boolean(invitation.registrationStatus);
 }
 
+function firstDefined(...values) {
+  return values.find((value) => value !== undefined && value !== null && value !== '');
+}
+
+function toNumber(value, fallback = 0) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : fallback;
+}
+
+function formatPercent(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return 'Chưa có dữ liệu';
+  return `${number.toFixed(number % 1 === 0 ? 0 : 1)}%`;
+}
+
+function calculateRate(part, total) {
+  const totalValue = toNumber(total);
+  if (!totalValue) return null;
+  return (toNumber(part) / totalValue) * 100;
+}
+
+function getPerformanceSource(item) {
+  return item?.performance || item?.performanceSummary || item?.summary || item || {};
+}
+
+function getTop3Count(source) {
+  return toNumber(firstDefined(source.top3Count, source.thirdPlaceCount))
+    + toNumber(firstDefined(source.top2Count, source.secondPlaceCount))
+    + toNumber(firstDefined(source.top1Count, source.winCount, source.totalWins));
+}
+
+function getHorseStats(horse) {
+  const source = getPerformanceSource(horse);
+  const totalRaces = toNumber(firstDefined(source.totalRaces, horse?.totalRaces, horse?.raceCount));
+  const top1 = toNumber(firstDefined(source.top1Count, source.winCount, horse?.top1Count, horse?.totalWins));
+  const top2 = toNumber(firstDefined(source.top2Count, horse?.top2Count));
+  const top3 = toNumber(firstDefined(source.top3Count, horse?.top3Count));
+  const top3Total = top1 + top2 + top3;
+
+  return {
+    totalRaces,
+    top1,
+    top2,
+    top3,
+    top3Rate: calculateRate(top3Total, totalRaces),
+    violationCount: toNumber(firstDefined(source.violationCount, horse?.violationCount)),
+    disqualifiedCount: toNumber(firstDefined(source.disqualifiedCount, horse?.disqualifiedCount)),
+    recentRaces: firstDefined(horse?.recentRaces, horse?.raceHistory, source.recentRaces, [])
+  };
+}
+
+function getJockeyName(jockey) {
+  return jockey?.fullName || jockey?.name || jockey?.email || `Jockey ${getUserId(jockey) || ''}`;
+}
+
+function getJockeyStats(jockey) {
+  const source = getPerformanceSource(jockey);
+  const totalRaces = toNumber(firstDefined(source.totalRaces, jockey?.totalRaces, jockey?.raceCount));
+  const wins = toNumber(firstDefined(source.top1Count, source.winCount, jockey?.top1Count, jockey?.totalWins));
+  const top3Total = getTop3Count(source) || toNumber(firstDefined(jockey?.top3Count));
+
+  return {
+    ranking: firstDefined(jockey?.ranking, jockey?.level, jockey?.profile?.ranking, 'Chưa xếp hạng'),
+    license: firstDefined(jockey?.licenceType, jockey?.licenseType, jockey?.profile?.licenceType, jockey?.verificationStatus, 'Chưa cập nhật'),
+    totalRaces,
+    wins,
+    winRate: firstDefined(source.winRate, jockey?.winRate, calculateRate(wins, totalRaces)),
+    top3Rate: firstDefined(source.top3Rate, jockey?.top3Rate, calculateRate(top3Total, totalRaces)),
+    violationCount: toNumber(firstDefined(source.violationCount, jockey?.violationCount)),
+    disqualifiedCount: toNumber(firstDefined(source.disqualifiedCount, jockey?.disqualifiedCount)),
+    recentRace: firstDefined(jockey?.recentRaceName, jockey?.lastRaceName, source.recentRaceName, 'Chưa có dữ liệu'),
+    recentRaces: firstDefined(jockey?.recentRaces, jockey?.raceHistory, source.recentRaces, []),
+    distanceStats: firstDefined(jockey?.distanceStats, source.distanceStats, []),
+    trackStats: firstDefined(jockey?.trackStats, source.trackStats, [])
+  };
+}
+
+function getTournamentRaces(tournament) {
+  return Array.isArray(tournament?.races) ? tournament.races : [];
+}
+
+function getPrimaryRace(tournament) {
+  return getTournamentRaces(tournament)[0] || null;
+}
+
+function getRaceName(race, tournament) {
+  return race?.raceName || race?.name || getTournamentName(tournament) || 'Chưa chọn race';
+}
+
+function getRaceDateTime(race, tournament) {
+  return race?.raceStartTime || race?.startTime || tournament?.startDate || null;
+}
+
+function getRaceTrack(race, tournament) {
+  return race?.trackName || race?.track || getTournamentVenue(tournament);
+}
+
+function getRaceDistance(race) {
+  return race?.distance ? `${race.distance}m` : 'Chưa cập nhật';
+}
+
+function getRaceCapacity(race, tournament) {
+  const entries = firstDefined(race?.entryCount, race?.entries, tournament?.approvedRegistrationCount, tournament?.registrationCount, 0);
+  const max = firstDefined(race?.maxRunners, tournament?.maxRegistrations, tournament?.maxRegistration);
+  return max ? `${entries} / ${max}` : `${entries}`;
+}
+
 function validateInvitationForm(formValues, horses, tournaments) {
   const errors = {};
   const selectedHorse = horses.find((horse) => String(getHorseId(horse)) === String(formValues.horseId));
@@ -252,6 +364,41 @@ function StepItem({ number, label, complete, active }) {
   );
 }
 
+function createJockeyInvitationNotification({ invitation, tournament, race, horse, jockeyId, message }) {
+  const receiverId = Number(jockeyId ?? invitation?.jockeyId ?? invitation?.jockeyID);
+  if (!receiverId) return;
+
+  const tournamentName = invitation?.tournamentName || getTournamentName(tournament) || `Tournament ${invitation?.tournamentId || ''}`.trim();
+  const horseName = invitation?.horseName || getHorseName(horse) || `Ngựa ${invitation?.horseId || ''}`.trim();
+  const venue = getRaceTrack(race, tournament);
+  const raceTime = formatDateTime(getRaceDateTime(race, tournament));
+  const deadline = formatDateTime(invitation?.expiredAt || getRegistrationDeadline(tournament));
+  const ownerMessage = String(message || invitation?.message || '').trim();
+
+  updateState((state) => {
+    const notifications = Array.isArray(state.notifications) ? state.notifications : [];
+    const nextId = notifications.reduce((max, item) => Math.max(max, Number(item.id || 0)), 0) + 1;
+
+    notifications.push({
+      id: nextId,
+      userID: receiverId,
+      title: 'Owner gửi lời mời thi đấu',
+      message: [
+        `${tournamentName} - ${horseName}`,
+        `Địa điểm: ${venue}`,
+        `Thời gian: ${raceTime}`,
+        `Deadline phản hồi: ${deadline}`,
+        ownerMessage ? `Lời nhắn: ${ownerMessage}` : ''
+      ].filter(Boolean).join('. '),
+      createdAt: new Date().toLocaleString('vi-VN'),
+      read: false
+    });
+
+    state.notifications = notifications;
+    return state;
+  });
+}
+
 export default function OwnerRegisterRace({ horses, onBackToHorses }) {
   const [formValues, setFormValues] = useState(emptyInvitationForm());
   const [registrationValues, setRegistrationValues] = useState(emptyRegistrationForm());
@@ -272,6 +419,8 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
   const [registrationSubmitError, setRegistrationSubmitError] = useState('');
   const [registrationResult, setRegistrationResult] = useState(null);
   const [message, setMessage] = useState('');
+  const [detailJockey, setDetailJockey] = useState(null);
+  const [compareJockeyIds, setCompareJockeyIds] = useState([]);
 
   const activeHorses = useMemo(
     () => (ownerHorses.length > 0 ? ownerHorses : horses).filter(isActiveHorse),
@@ -296,6 +445,37 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
   const selectedHorse = useMemo(
     () => activeHorses.find((horse) => String(getHorseId(horse)) === String(formValues.horseId)) || null,
     [activeHorses, formValues.horseId]
+  );
+  const selectedRace = useMemo(() => getPrimaryRace(selectedTournament), [selectedTournament]);
+  const selectedHorseStats = useMemo(() => getHorseStats(selectedHorse), [selectedHorse]);
+  const invitationsForSelection = useMemo(() => {
+    if (!formValues.tournamentId || !formValues.horseId) return [];
+    return invitations.filter((invitation) => (
+      String(getInvitationTournamentId(invitation)) === String(formValues.tournamentId)
+      && String(getInvitationHorseId(invitation)) === String(formValues.horseId)
+    ));
+  }, [formValues.horseId, formValues.tournamentId, invitations]);
+  const invitationByJockeyId = useMemo(() => new Map(
+    invitationsForSelection
+      .filter((invitation) => getInvitationJockeyId(invitation))
+      .map((invitation) => [String(getInvitationJockeyId(invitation)), invitation])
+  ), [invitationsForSelection]);
+  const enrichedJockeys = useMemo(() => jockeys.map((jockey) => {
+    const jockeyId = String(getUserId(jockey));
+    const invitation = invitationByJockeyId.get(jockeyId) || null;
+    return {
+      jockey,
+      jockeyId,
+      stats: getJockeyStats(jockey),
+      invitation,
+      invitationStatus: invitation ? String(invitation.status || '').toUpperCase() : ''
+    };
+  }), [invitationByJockeyId, jockeys]);
+  const comparedJockeys = useMemo(
+    () => compareJockeyIds
+      .map((id) => enrichedJockeys.find((item) => String(item.jockeyId) === String(id)))
+      .filter(Boolean),
+    [compareJockeyIds, enrichedJockeys]
   );
   const acceptedJockeyInvitations = useMemo(() => {
     if (!registrationValues.tournamentId || !registrationValues.horseId) return [];
@@ -328,6 +508,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
     return invitations.filter((invitation) => String(invitation.status || '').toUpperCase() === statusFilter);
   }, [invitations, statusFilter]);
   const inviteReady = Boolean(formValues.tournamentId && formValues.horseId);
+  const isInviteFlowActive = Boolean(formValues.tournamentId);
   const hasAcceptedInvitation = acceptedJockeyInvitations.length > 0;
   const canSubmitRegistration = Boolean(registrationValues.tournamentId && registrationValues.horseId && registrationValues.jockeyId);
   const activeStep = !formValues.tournamentId ? 1 : !formValues.horseId ? 2 : !hasAcceptedInvitation ? 3 : 5;
@@ -402,6 +583,25 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
     resetFeedback();
   }
 
+  function clearTournamentSelection() {
+    setFormValues(emptyInvitationForm());
+    setRegistrationValues(emptyRegistrationForm());
+    setFormErrors({});
+    setRegistrationErrors({});
+    setCompareJockeyIds([]);
+    setDetailJockey(null);
+    resetFeedback();
+  }
+
+  function toggleCompareJockey(jockeyId) {
+    setCompareJockeyIds((current) => {
+      if (current.includes(jockeyId)) {
+        return current.filter((id) => id !== jockeyId);
+      }
+      return current.length >= 3 ? current : [...current, jockeyId];
+    });
+  }
+
   function fillRegistrationFromInvitation(invitation) {
     setFormValues((current) => ({
       ...current,
@@ -443,9 +643,9 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
     return errors;
   }
 
-  async function handleSubmit(event) {
-    event.preventDefault();
-    const errors = validateInvitationForm(formValues, activeHorses, availableTournaments);
+  async function submitInvitation(jockeyId) {
+    const nextValues = { ...formValues, jockeyId };
+    const errors = validateInvitationForm(nextValues, activeHorses, availableTournaments);
     setFormErrors(errors);
     setSubmitError('');
     setMessage('');
@@ -454,14 +654,22 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
 
     setIsSaving(true);
     try {
-      await inviteJockey({
-        tournamentId: Number(formValues.tournamentId),
-        horseId: Number(formValues.horseId),
-        jockeyId: Number(formValues.jockeyId),
-        expiredAt: formValues.expiredAt || null,
-        message: formValues.message.trim() || null
+      const createdInvitation = await inviteJockey({
+        tournamentId: Number(nextValues.tournamentId),
+        horseId: Number(nextValues.horseId),
+        jockeyId: Number(nextValues.jockeyId),
+        expiredAt: nextValues.expiredAt || null,
+        message: nextValues.message.trim() || null
       });
       setMessage('Đã gửi lời mời jockey. Khi jockey chấp nhận, bạn có thể đăng ký giải và thanh toán phí tham gia.');
+      createJockeyInvitationNotification({
+        invitation: createdInvitation,
+        tournament: selectedTournament,
+        race: selectedRace,
+        horse: selectedHorse,
+        jockeyId: Number(nextValues.jockeyId),
+        message: nextValues.message
+      });
       setFormValues((current) => ({ ...current, jockeyId: '', expiredAt: '', message: '' }));
       setFormErrors({});
       await loadPageData();
@@ -470,6 +678,16 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
     } finally {
       setIsSaving(false);
     }
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+    await submitInvitation(formValues.jockeyId);
+  }
+
+  async function handleInviteJockey(jockeyId) {
+    setFormValues((current) => ({ ...current, jockeyId }));
+    await submitInvitation(jockeyId);
   }
 
   async function handleRegistrationSubmit(event) {
@@ -530,7 +748,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
   }
 
   return (
-    <section className="owner-stack owner-registration-page">
+    <section className={`owner-stack owner-registration-page owner-application-style ${isInviteFlowActive ? 'invite-flow-active' : 'invite-overview-active'}`}>
       {loadError && <div className="admin-alert error" role="alert">{loadError}</div>}
       {message && <div className="admin-alert success" role="status">{message}</div>}
 
@@ -545,9 +763,49 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
         </button>
       </section>
 
+      <section className="owner-panel owner-application-step-strip">
+        <StepItem number={1} label="Chọn giải đấu" complete={Boolean(formValues.tournamentId)} active={activeStep === 1} />
+        <StepItem number={2} label="Chọn ngựa" complete={Boolean(formValues.horseId)} active={activeStep === 2} />
+        <StepItem number={3} label="Mời jockey" complete={Boolean(currentPendingInvitation || hasAcceptedInvitation)} active={activeStep === 3} />
+        <StepItem number={4} label="Jockey chấp nhận" complete={hasAcceptedInvitation} active={Boolean(formValues.horseId && !hasAcceptedInvitation && currentPendingInvitation)} />
+        <StepItem number={5} label="Đăng ký & thanh toán" complete={Boolean(registrationResult)} active={activeStep === 5} />
+      </section>
+
       <div className="owner-registration-layout">
         <main className="owner-registration-main">
-          <section className="owner-panel">
+          {selectedTournament && (
+            <section className="owner-panel flow-only">
+              <div className="owner-panel-header">
+                <div>
+                  <p className="eyebrow">Giải đã chọn</p>
+                  <h2>{getTournamentName(selectedTournament)}</h2>
+                  <p>{getTournamentVenue(selectedTournament)} · {formatDateRange(selectedTournament.startDate, selectedTournament.endDate)}</p>
+                </div>
+                <button className="outline-button" type="button" onClick={clearTournamentSelection}>
+                  Đổi giải
+                </button>
+              </div>
+              <div className="selected-tournament-detail">
+                <div className="selected-tournament-header">
+                  <div>
+                    <p className="eyebrow">Thông tin race/tournament</p>
+                    <h3>{getRaceName(selectedRace, selectedTournament)}</h3>
+                  </div>
+                  <StatusBadge status={selectedTournament.status || 'OPEN_FOR_REGISTRATION'} />
+                </div>
+                <div className="selected-tournament-grid">
+                  <span><MapPin size={15} /> Địa điểm <strong>{getRaceTrack(selectedRace, selectedTournament)}</strong></span>
+                  <span><CalendarDays size={15} /> Ngày giờ <strong>{formatDateTime(getRaceDateTime(selectedRace, selectedTournament))}</strong></span>
+                  <span><Flag size={15} /> Cự ly <strong>{getRaceDistance(selectedRace)}</strong></span>
+                  <span><Users size={15} /> Số ngựa <strong>{getRaceCapacity(selectedRace, selectedTournament)}</strong></span>
+                  <span><Clock size={15} /> Đóng đăng ký <strong>{formatDateTime(getRegistrationDeadline(selectedTournament))}</strong></span>
+                  <span><CircleDollarSign size={15} /> Lệ phí <strong>{formatCurrency(selectedTournament.entryFee)}</strong></span>
+                </div>
+              </div>
+            </section>
+          )}
+
+          <section className="owner-panel overview-only">
             <div className="owner-panel-header">
               <div>
                 <p className="eyebrow">Bước 1</p>
@@ -630,7 +888,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
             )}
           </section>
 
-          <section className="owner-panel">
+          <section className="owner-panel flow-only">
             <div className="owner-panel-header">
               <div>
                 <p className="eyebrow">Bước 2</p>
@@ -668,7 +926,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
             )}
           </section>
 
-          <form className="owner-panel owner-form" onSubmit={handleSubmit} noValidate>
+          <form className="owner-panel owner-form flow-only" onSubmit={handleSubmit} noValidate>
             <div className="owner-panel-header">
               <div>
                 <p className="eyebrow">Bước 3</p>
@@ -678,13 +936,42 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
             </div>
 
             {submitError && <div className="admin-alert error modal-alert" role="alert">{submitError}</div>}
+            {formErrors.jockeyId && <div className="admin-alert error modal-alert" role="alert">{formErrors.jockeyId}</div>}
+
+            <div className="owner-invite-context-grid">
+              <article className="owner-invite-context-card">
+                <p className="eyebrow">Race</p>
+                <h3>{selectedTournament ? getRaceName(selectedRace, selectedTournament) : 'Chưa chọn tournament/race'}</h3>
+                <div className="owner-invite-context-list">
+                  <span><CalendarDays size={14} /> Ngày giờ <strong>{formatDateTime(getRaceDateTime(selectedRace, selectedTournament))}</strong></span>
+                  <span><MapPin size={14} /> Địa điểm <strong>{selectedTournament ? getRaceTrack(selectedRace, selectedTournament) : 'Chưa cập nhật'}</strong></span>
+                  <span><Flag size={14} /> Cự ly <strong>{getRaceDistance(selectedRace)}</strong></span>
+                  <span><Users size={14} /> Số ngựa <strong>{selectedTournament ? getRaceCapacity(selectedRace, selectedTournament) : 'Chưa cập nhật'}</strong></span>
+                  <span><CircleDollarSign size={14} /> Phí/thưởng <strong>{selectedTournament ? formatCurrency(selectedTournament.entryFee) : 'Chưa cập nhật'}</strong></span>
+                  <span><Clock size={14} /> Trạng thái <strong>{selectedTournament ? formatStatus(selectedTournament.status || 'OPEN_FOR_REGISTRATION') : 'Chưa chọn'}</strong></span>
+                </div>
+              </article>
+
+              <article className="owner-invite-context-card">
+                <p className="eyebrow">Ngựa</p>
+                <h3>{selectedHorse ? getHorseName(selectedHorse) : 'Chưa chọn ngựa'}</h3>
+                <div className="owner-invite-context-list">
+                  <span><ShieldCheck size={14} /> Eligibility <strong>{selectedHorse ? formatStatus(selectedHorse.status || 'ACTIVE') : 'Chưa chọn'}</strong></span>
+                  <span><BarChart3 size={14} /> Tổng race <strong>{selectedHorse ? selectedHorseStats.totalRaces : 'Chưa có dữ liệu'}</strong></span>
+                  <span><Trophy size={14} /> Top 1/2/3 <strong>{selectedHorse ? `${selectedHorseStats.top1}/${selectedHorseStats.top2}/${selectedHorseStats.top3}` : 'Chưa có dữ liệu'}</strong></span>
+                  <span><CheckCircle2 size={14} /> Top 3 rate <strong>{selectedHorse ? formatPercent(selectedHorseStats.top3Rate) : 'Chưa có dữ liệu'}</strong></span>
+                  <span><XCircle size={14} /> Vi phạm <strong>{selectedHorse ? `${selectedHorseStats.violationCount} / DQ ${selectedHorseStats.disqualifiedCount}` : 'Chưa có dữ liệu'}</strong></span>
+                  <span><Flag size={14} /> Tuổi/giống <strong>{selectedHorse ? firstDefined(selectedHorse.age, selectedHorse.breeding, selectedHorse.sex, 'Chưa cập nhật') : 'Chưa chọn'}</strong></span>
+                </div>
+              </article>
+            </div>
             {currentPendingInvitation && (
               <div className="admin-alert warning modal-alert" role="status">
                 Bạn đang có lời mời PENDING cho ngựa này. Hãy chờ jockey phản hồi hoặc hủy lời mời trong bảng bên dưới.
               </div>
             )}
 
-            <div className="owner-form-row">
+            <div className="owner-form-row legacy-jockey-select">
               <div>
                 <label className="field-label" htmlFor="ownerJockeyId">Jockey đang hoạt động <span className="required">*</span></label>
                 <select className={formErrors.jockeyId ? 'input has-error' : 'input'} id="ownerJockeyId" name="jockeyId" value={formValues.jockeyId} onChange={handleChange} disabled={isSaving || isLoading || !inviteReady}>
@@ -720,17 +1007,134 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
               </div>
             </div>
 
-            <label className="field-label" htmlFor="ownerInviteMessage">Lời nhắn</label>
-            <textarea className="input textarea-input" id="ownerInviteMessage" name="message" rows={3} value={formValues.message} onChange={handleChange} disabled={isSaving || !inviteReady} placeholder="Ví dụ: Tôi muốn mời bạn thi đấu cùng ngựa của tôi." />
+            <label className="field-label legacy-invite-message" htmlFor="ownerInviteMessage">Lời nhắn</label>
+            <textarea className="input textarea-input legacy-invite-message-input" id="ownerInviteMessage" name="message" rows={3} value={formValues.message} onChange={handleChange} disabled={isSaving || !inviteReady} placeholder="Ví dụ: Tôi muốn mời bạn thi đấu cùng ngựa của tôi." />
 
-            <div className="admin-form-actions tournament-modal-actions">
+            <div className="owner-form-row">
+              <div>
+                <label className="field-label" htmlFor="ownerInviteDeadline">Hạn phản hồi lời mời</label>
+                <input
+                  className={formErrors.expiredAt ? 'input has-error' : 'input'}
+                  id="ownerInviteDeadline"
+                  name="expiredAt"
+                  type="datetime-local"
+                  value={formValues.expiredAt}
+                  onChange={handleChange}
+                  min={responseDeadlineMin}
+                  max={responseDeadlineMax || undefined}
+                  disabled={isSaving || !inviteReady}
+                />
+                {selectedTournament && (
+                  <p className="field-hint">
+                    Nên chọn trước hạn đăng ký: <strong>{formatDateTime(getRegistrationDeadline(selectedTournament))}</strong>.
+                  </p>
+                )}
+                {formErrors.expiredAt && <p className="field-error">{formErrors.expiredAt}</p>}
+              </div>
+
+              <div>
+                <label className="field-label" htmlFor="ownerInviteMessageInline">Lời nhắn</label>
+                <textarea className="input textarea-input compact-message" id="ownerInviteMessageInline" name="message" rows={3} value={formValues.message} onChange={handleChange} disabled={isSaving || !inviteReady} placeholder="Ví dụ: Tôi muốn mời bạn thi đấu cùng ngựa của tôi." />
+              </div>
+            </div>
+
+            {comparedJockeys.length > 0 && (
+              <div className="jockey-compare-panel">
+                <div className="jockey-compare-header">
+                  <div>
+                    <p className="eyebrow">So sánh nhanh</p>
+                    <h3>{comparedJockeys.length} jockey đã chọn</h3>
+                  </div>
+                  <button type="button" className="table-button" onClick={() => setCompareJockeyIds([])}>Xóa so sánh</button>
+                </div>
+                <div className="jockey-compare-grid">
+                  {comparedJockeys.map(({ jockey, jockeyId, stats }) => (
+                    <article className="jockey-compare-card" key={jockeyId}>
+                      <strong>{getJockeyName(jockey)}</strong>
+                      <span>Ranking: {stats.ranking}</span>
+                      <span>License: {stats.license}</span>
+                      <span>Total race: {stats.totalRaces}</span>
+                      <span>Win rate: {formatPercent(stats.winRate)}</span>
+                      <span>Top 3 rate: {formatPercent(stats.top3Rate)}</span>
+                      <span>Vi phạm: {stats.violationCount}</span>
+                    </article>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {!inviteReady ? (
+              <p className="table-empty">Chọn tournament/race và ngựa trước khi xem danh sách jockey phù hợp.</p>
+            ) : isLoading ? (
+              <p className="table-empty">Đang tải danh sách jockey...</p>
+            ) : enrichedJockeys.length === 0 ? (
+              <p className="table-empty">Không tìm thấy jockey ACTIVE nào.</p>
+            ) : (
+              <div className="owner-jockey-picker">
+                {enrichedJockeys.map(({ jockey, jockeyId, stats, invitation, invitationStatus }) => {
+                  const isCompared = compareJockeyIds.includes(jockeyId);
+                  const isPending = invitationStatus === 'PENDING';
+                  const isAccepted = invitationStatus === 'ACCEPTED';
+                  const canCancel = isPending && invitation;
+
+                  return (
+                    <article className={`owner-jockey-card ${invitation ? 'invited' : ''}`} key={jockeyId}>
+                      <div className="owner-jockey-card-head">
+                        <div>
+                          <p className="eyebrow">{stats.ranking}</p>
+                          <h3>{getJockeyName(jockey)}</h3>
+                          <span><ShieldCheck size={14} /> {stats.license}</span>
+                        </div>
+                        <StatusBadge status={invitationStatus || 'AVAILABLE'} />
+                      </div>
+
+                      <div className="owner-jockey-metrics">
+                        <span>Total race <strong>{stats.totalRaces}</strong></span>
+                        <span>Win rate <strong>{formatPercent(stats.winRate)}</strong></span>
+                        <span>Top 3 rate <strong>{formatPercent(stats.top3Rate)}</strong></span>
+                        <span>Vi phạm <strong>{stats.violationCount}</strong></span>
+                        <span>Race gần nhất <strong>{stats.recentRace}</strong></span>
+                        <span>Availability <strong>{invitation ? formatStatus(invitationStatus) : 'Có thể mời'}</strong></span>
+                      </div>
+
+                      <div className="owner-jockey-actions">
+                        <label className={`jockey-compare-toggle ${isCompared ? 'checked' : ''}`}>
+                          <input
+                            type="checkbox"
+                            checked={isCompared}
+                            onChange={() => toggleCompareJockey(jockeyId)}
+                            disabled={!isCompared && compareJockeyIds.length >= 3}
+                          />
+                          So sánh
+                        </label>
+                        <button type="button" className="outline-button" onClick={() => setDetailJockey(jockey)}>
+                          <Eye size={15} /> View details
+                        </button>
+                        {canCancel ? (
+                          <button type="button" className="table-button danger-action" onClick={() => handleCancel(invitation)} disabled={actingId === getInvitationId(invitation)}>
+                            Cancel invite
+                          </button>
+                        ) : (
+                          <button type="button" className="primary-button compact-primary" onClick={() => handleInviteJockey(jockeyId)} disabled={isSaving || isAccepted || Boolean(invitation)}>
+                            {invitation ? <CheckCircle2 size={15} /> : <Send size={15} />}
+                            {invitation ? 'Invited' : 'Invite'}
+                          </button>
+                        )}
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="admin-form-actions tournament-modal-actions legacy-invite-actions">
               <button className="primary-button" type="submit" disabled={isSaving || isLoading || !inviteReady || Boolean(currentPendingInvitation)}>
                 <Send size={16} /> {isSaving ? 'Đang gửi...' : 'Gửi lời mời'}
               </button>
             </div>
           </form>
 
-          <form className="owner-panel owner-form" onSubmit={handleRegistrationSubmit} noValidate>
+          <form className="owner-panel owner-form flow-only" onSubmit={handleRegistrationSubmit} noValidate>
             <div className="owner-panel-header">
               <div>
                 <p className="eyebrow">Bước 5</p>
@@ -786,7 +1190,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
             </div>
           </form>
 
-          <section className="owner-panel">
+          <section className="owner-panel overview-only">
             <div className="owner-panel-header">
               <div>
                 <h2>Lời mời jockey của tôi</h2>
@@ -878,7 +1282,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
             </div>
           </section>
 
-          <section className="owner-panel registration-selection-panel">
+          <section className="owner-panel registration-selection-panel flow-only">
             <p className="eyebrow">Đang chọn</p>
             <div className="registration-selection-block">
               <span>Giải đấu</span>
@@ -908,6 +1312,78 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
           </section>
         </aside>
       </div>
+
+      {detailJockey && (() => {
+        const stats = getJockeyStats(detailJockey);
+        return (
+          <div className="jockey-detail-drawer-backdrop" role="presentation" onClick={() => setDetailJockey(null)}>
+            <aside className="jockey-detail-drawer" role="dialog" aria-modal="true" aria-labelledby="jockey-detail-title" onClick={(event) => event.stopPropagation()}>
+              <div className="jockey-detail-header">
+                <div>
+                  <p className="eyebrow">Jockey detail</p>
+                  <h3 id="jockey-detail-title">{getJockeyName(detailJockey)}</h3>
+                  <span><ShieldCheck size={14} /> {stats.license}</span>
+                </div>
+                <button type="button" className="drawer-close-button" onClick={() => setDetailJockey(null)} aria-label="Đóng chi tiết jockey">
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="jockey-detail-metric-grid">
+                <span>Total race <strong>{stats.totalRaces}</strong></span>
+                <span>Wins <strong>{stats.wins}</strong></span>
+                <span>Win rate <strong>{formatPercent(stats.winRate)}</strong></span>
+                <span>Top 3 rate <strong>{formatPercent(stats.top3Rate)}</strong></span>
+                <span>Ranking <strong>{stats.ranking}</strong></span>
+                <span>Vi phạm <strong>{stats.violationCount} / DQ {stats.disqualifiedCount}</strong></span>
+              </div>
+
+              <section className="jockey-detail-section">
+                <h4>Lịch sử race gần đây</h4>
+                {Array.isArray(stats.recentRaces) && stats.recentRaces.length > 0 ? (
+                  <div className="jockey-detail-list">
+                    {stats.recentRaces.slice(0, 5).map((race, index) => (
+                      <div key={`${race.raceId || race.name || index}`}>
+                        <strong>{race.raceName || race.name || `Race ${index + 1}`}</strong>
+                        <span>{formatDateTime(race.raceStartTime || race.date)} · Hạng {firstDefined(race.finishPosition, race.position, 'N/A')}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="drawer-empty-note">Chưa có dữ liệu race gần đây.</p>
+                )}
+              </section>
+
+              <section className="jockey-detail-section">
+                <h4>Hiệu suất theo distance/track</h4>
+                <div className="jockey-detail-split">
+                  <div>
+                    <strong>Distance</strong>
+                    {Array.isArray(stats.distanceStats) && stats.distanceStats.length > 0 ? stats.distanceStats.slice(0, 4).map((item, index) => (
+                      <span key={`${item.distance || index}`}>{item.distance || 'N/A'} · {formatPercent(item.winRate)}</span>
+                    )) : <span>Chưa có dữ liệu</span>}
+                  </div>
+                  <div>
+                    <strong>Track</strong>
+                    {Array.isArray(stats.trackStats) && stats.trackStats.length > 0 ? stats.trackStats.slice(0, 4).map((item, index) => (
+                      <span key={`${item.trackName || index}`}>{item.trackName || item.track || 'N/A'} · {formatPercent(item.winRate)}</span>
+                    )) : <span>Chưa có dữ liệu</span>}
+                  </div>
+                </div>
+              </section>
+
+              <section className="jockey-detail-section">
+                <h4>Vi phạm & availability</h4>
+                <div className="jockey-detail-list">
+                  <div><strong>Violation count</strong><span>{stats.violationCount}</span></div>
+                  <div><strong>Disqualified count</strong><span>{stats.disqualifiedCount}</span></div>
+                  <div><strong>Race gần nhất</strong><span>{stats.recentRace}</span></div>
+                </div>
+              </section>
+            </aside>
+          </div>
+        );
+      })()}
     </section>
   );
 }

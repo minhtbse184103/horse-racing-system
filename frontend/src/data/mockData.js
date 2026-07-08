@@ -117,3 +117,11 @@ export const mockOwnerDashboard = {
 };
 
 export const mockOwnerHorses = [];
+
+export const initialMockState = {
+  users: mockUsers,
+  ownerApplications: mockOwnerApplications,
+  notifications: [],
+  horses: mockOwnerHorses,
+  raceRegistrations: []
+};

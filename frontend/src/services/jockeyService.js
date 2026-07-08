@@ -36,6 +36,20 @@ export function getJockeyInvitations() {
   });
 }
 
+export function getJockeyInvitationDetail(invitationId) {
+  return httpRequest(`/api/jockey/invitations/${invitationId}`, {
+    fallbackError: 'Khong the tai chi tiet loi moi jockey.'
+  });
+}
+
+export async function getHorsePerformance(horseId) {
+  const response = await httpRequest(`/api/public/horses/${horseId}/performance`, {
+    auth: false,
+    fallbackError: 'Khong the tai thanh tich ngua.'
+  });
+  return response?.data ?? response;
+}
+
 export function acceptJockeyInvitation(invitationId) {
   return httpRequest(`/api/jockey/invitations/${invitationId}/accept`, {
     method: 'PUT',

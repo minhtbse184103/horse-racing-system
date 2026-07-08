@@ -2775,6 +2775,374 @@ select {
   gap: 18px;
 }
 
+.owner-application-style .owner-panel {
+  border-color: rgba(108, 63, 36, 0.1);
+  border-radius: 28px;
+  background: var(--cream-100);
+  box-shadow: 0 22px 64px rgba(43, 23, 16, 0.09);
+}
+
+.owner-application-style .owner-registration-hero {
+  border-bottom: 1px solid rgba(108, 63, 36, 0.1);
+  padding: 24px;
+}
+
+.owner-application-style .owner-registration-layout {
+  grid-template-columns: 1fr;
+}
+
+.owner-application-style .owner-registration-sidebar {
+  position: static;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.owner-application-style .owner-panel-header {
+  border-bottom: 1px solid rgba(108, 63, 36, 0.1);
+  padding-bottom: 16px;
+}
+
+.owner-application-step-strip {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  padding: 16px;
+}
+
+.owner-application-step-strip .registration-step {
+  min-height: 46px;
+  border: 1px solid rgba(108, 63, 36, 0.1);
+  border-radius: 8px;
+  background: rgba(247, 234, 216, 0.6);
+  padding: 10px 12px;
+  color: var(--slate-500);
+  font-size: 0.84rem;
+  font-weight: 900;
+}
+
+.owner-application-step-strip .registration-step.active {
+  border-color: var(--brown-500);
+  background: #fff;
+  color: var(--brown-900);
+}
+
+.owner-application-step-strip .registration-step.complete {
+  border-color: rgba(0, 84, 75, 0.26);
+  background: rgba(232, 253, 244, 0.64);
+  color: #00544b;
+}
+
+.owner-application-style .registration-progress-panel {
+  display: none;
+}
+
+.owner-registration-page {
+  display: grid;
+}
+
+.invite-flow-active .owner-application-step-strip {
+  order: -1;
+}
+
+.invite-flow-active .owner-registration-hero {
+  order: 0;
+}
+
+.invite-flow-active .owner-registration-layout {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  overflow-y: auto;
+  background: rgba(43, 23, 16, 0.42);
+  padding: 116px 24px 32px;
+  backdrop-filter: blur(8px);
+  order: 1;
+}
+
+.invite-overview-active .flow-only,
+.invite-overview-active .owner-application-step-strip {
+  display: none !important;
+}
+
+.invite-flow-active .owner-registration-sidebar,
+.invite-flow-active .owner-registration-main > .overview-only {
+  display: none !important;
+}
+
+.invite-flow-active .owner-registration-main {
+  width: min(1120px, 100%);
+  max-height: calc(100vh - 148px);
+  overflow-y: auto;
+  border: 1px solid rgba(108, 63, 36, 0.1);
+  border-radius: 28px;
+  background: var(--cream-100);
+  padding: 22px;
+  box-shadow: 0 28px 80px rgba(43, 23, 16, 0.3);
+}
+
+.invite-flow-active .owner-application-step-strip {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  z-index: 72;
+  width: min(1120px, calc(100vw - 48px));
+  transform: translateX(-50%);
+  box-shadow: 0 20px 54px rgba(43, 23, 16, 0.2);
+  order: 0;
+}
+
+.invite-flow-active .owner-registration-main > .flow-only {
+  order: initial;
+}
+
+.owner-registration-main > .flow-only {
+  order: 1;
+}
+
+.owner-registration-main > .overview-only {
+  order: 2;
+}
+
+.owner-application-style .tournament-card-grid,
+.owner-application-style .registration-horse-grid,
+.owner-application-style .owner-jockey-picker {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid rgba(108, 63, 36, 0.1);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.76);
+}
+
+.owner-application-style .tournament-card-grid::before,
+.owner-application-style .registration-horse-grid::before,
+.owner-application-style .owner-jockey-picker::before {
+  display: grid;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid rgba(108, 63, 36, 0.1);
+  background: rgba(247, 234, 216, 0.62);
+  padding: 12px 14px;
+  color: var(--slate-500);
+  font-size: 0.72rem;
+  font-weight: 950;
+  text-transform: uppercase;
+}
+
+.owner-application-style .tournament-card-grid::before {
+  content: "Giải đấu  Địa điểm  Thời gian  Deadline  Lệ phí  Số lượng  Thao tác";
+  grid-template-columns: 1.45fr 1.1fr 1fr 1fr 0.8fr 0.75fr 1.1fr;
+  white-space: pre;
+}
+
+.owner-application-style .registration-horse-grid::before {
+  content: "Ngựa  Tuổi/giống  Health cert  Trạng thái  Thao tác";
+  grid-template-columns: 1.5fr 1fr 1fr 0.8fr 0.9fr;
+  white-space: pre;
+}
+
+.owner-application-style .owner-jockey-picker::before {
+  content: "Jockey  License  Tổng race  Win rate  Top 3  Vi phạm  Gần nhất  Thao tác";
+  grid-template-columns: 1.3fr 1fr 0.75fr 0.75fr 0.75fr 0.7fr 1fr 1.65fr;
+  white-space: pre;
+}
+
+.owner-application-style .tournament-choice-card {
+  display: grid;
+  grid-template-columns: 1.45fr 1.1fr 1fr 1fr 0.8fr 0.75fr 1.1fr;
+  gap: 12px;
+  align-items: center;
+  border: 0;
+  border-bottom: 1px solid rgba(108, 63, 36, 0.08);
+  border-radius: 0;
+  background: transparent;
+  padding: 13px 14px;
+}
+
+.owner-application-style .tournament-choice-card:last-child,
+.owner-application-style .registration-horse-card:last-child,
+.owner-application-style .owner-jockey-card:last-child {
+  border-bottom: 0;
+}
+
+.owner-application-style .tournament-choice-media {
+  display: none;
+}
+
+.owner-application-style .tournament-choice-body {
+  display: contents;
+  padding: 0;
+}
+
+.owner-application-style .tournament-choice-body h3,
+.owner-application-style .tournament-choice-body p,
+.owner-application-style .tournament-choice-stats span,
+.owner-application-style .owner-jockey-card h3,
+.owner-application-style .owner-jockey-metrics span,
+.owner-application-style .registration-horse-card strong,
+.owner-application-style .registration-horse-card small,
+.owner-application-style .registration-horse-card em {
+  min-width: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.owner-application-style .tournament-choice-body p {
+  display: block;
+}
+
+.owner-application-style .tournament-choice-stats {
+  display: contents;
+}
+
+.owner-application-style .tournament-choice-stats span {
+  display: grid;
+  gap: 2px;
+}
+
+.owner-application-style .tournament-choice-stats span:nth-child(1) {
+  grid-column: 3;
+}
+
+.owner-application-style .tournament-choice-stats span:nth-child(2) {
+  grid-column: 4;
+}
+
+.owner-application-style .tournament-choice-stats span:nth-child(3) {
+  grid-column: 5;
+}
+
+.owner-application-style .tournament-choice-stats span:nth-child(4) {
+  grid-column: 6;
+}
+
+.owner-application-style .tournament-choice-actions {
+  display: flex;
+  grid-column: 7;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.owner-application-style .registration-horse-card {
+  display: grid;
+  grid-template-areas: none;
+  grid-template-columns: 1.5fr 1fr 1fr 0.8fr 0.9fr;
+  gap: 12px;
+  align-items: center;
+  border: 0;
+  border-bottom: 1px solid rgba(108, 63, 36, 0.08);
+  border-radius: 0;
+  background: transparent;
+  padding: 13px 14px;
+}
+
+.owner-application-style .registration-horse-avatar {
+  display: none;
+}
+
+.owner-application-style .registration-horse-card strong,
+.owner-application-style .registration-horse-card small,
+.owner-application-style .registration-horse-card em {
+  grid-area: auto;
+}
+
+.owner-application-style .registration-horse-card::after {
+  content: "Chọn";
+  grid-column: 5;
+  justify-self: end;
+  border-radius: 8px;
+  background: var(--brown-700);
+  padding: 8px 12px;
+  color: #fff;
+  font-size: 0.76rem;
+  font-weight: 950;
+}
+
+.owner-application-style .registration-horse-card::before {
+  content: "ACTIVE";
+  grid-column: 4;
+  justify-self: start;
+  border-radius: 999px;
+  background: rgba(46, 125, 50, 0.12);
+  padding: 5px 9px;
+  color: #2e7d32;
+  font-size: 0.72rem;
+  font-weight: 950;
+}
+
+.owner-application-style .owner-jockey-card {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 0.75fr 0.75fr 0.75fr 0.7fr 1fr 1.65fr;
+  gap: 12px;
+  align-items: center;
+  border: 0;
+  border-bottom: 1px solid rgba(108, 63, 36, 0.08);
+  border-radius: 0;
+  background: transparent;
+  padding: 13px 14px;
+}
+
+.owner-application-style .owner-jockey-card-head,
+.owner-application-style .owner-jockey-metrics,
+.owner-application-style .owner-jockey-actions {
+  display: contents;
+}
+
+.owner-application-style .owner-jockey-card-head > div {
+  min-width: 0;
+}
+
+.owner-application-style .owner-jockey-card-head .status-badge {
+  display: none;
+}
+
+.owner-application-style .owner-jockey-card-head span {
+  grid-column: 2;
+}
+
+.owner-application-style .owner-jockey-metrics span {
+  display: grid;
+  gap: 2px;
+}
+
+.owner-application-style .owner-jockey-metrics span:nth-child(1) {
+  grid-column: 3;
+}
+
+.owner-application-style .owner-jockey-metrics span:nth-child(2) {
+  grid-column: 4;
+}
+
+.owner-application-style .owner-jockey-metrics span:nth-child(3) {
+  grid-column: 5;
+}
+
+.owner-application-style .owner-jockey-metrics span:nth-child(4) {
+  grid-column: 6;
+}
+
+.owner-application-style .owner-jockey-metrics span:nth-child(5) {
+  grid-column: 7;
+}
+
+.owner-application-style .owner-jockey-metrics span:nth-child(6) {
+  display: none;
+}
+
+.owner-application-style .owner-jockey-actions {
+  display: flex;
+  grid-column: 8;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.owner-application-style .owner-jockey-actions > * {
+  margin-left: 0;
+}
+
 .owner-registration-hero h2 {
   margin: 4px 0 0;
   color: var(--brown-900);
@@ -3164,6 +3532,285 @@ select {
   margin-top: 4px;
 }
 
+.owner-application-style .tournament-choice-card,
+.owner-application-style .selected-tournament-detail,
+.owner-application-style .registration-horse-card,
+.owner-application-style .registration-selection-block,
+.owner-application-style .registration-default-status span,
+.owner-application-style .owner-invite-context-card,
+.owner-application-style .owner-jockey-card,
+.owner-application-style .jockey-compare-panel,
+.owner-application-style .jockey-compare-card {
+  border-radius: 18px;
+  border-color: rgba(108, 63, 36, 0.1);
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: none;
+}
+
+.owner-application-style .registration-horse-avatar,
+.owner-application-style .drawer-close-button,
+.owner-application-style .jockey-compare-toggle {
+  border-radius: 12px;
+}
+
+.owner-application-style .owner-form-row .input,
+.owner-application-style .compact-select {
+  border-radius: 8px;
+  border-color: rgba(108, 63, 36, 0.15);
+  background: #fff;
+  font-weight: 800;
+}
+
+.owner-application-style .owner-jockey-card-head,
+.owner-application-style .jockey-compare-header {
+  border-bottom: 1px solid rgba(108, 63, 36, 0.08);
+  padding-bottom: 10px;
+}
+
+.legacy-jockey-select,
+.legacy-invite-message,
+.legacy-invite-message-input,
+.legacy-invite-actions {
+  display: none !important;
+}
+
+.owner-invite-context-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.owner-invite-context-card,
+.owner-jockey-card,
+.jockey-compare-panel {
+  border: 1px solid rgba(108, 63, 36, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: 0 12px 28px rgba(43, 23, 16, 0.06);
+}
+
+.owner-invite-context-card {
+  display: grid;
+  gap: 11px;
+  padding: 15px;
+}
+
+.owner-invite-context-card h3,
+.owner-jockey-card h3,
+.jockey-compare-header h3,
+.jockey-detail-header h3 {
+  margin: 0;
+  color: var(--brown-900);
+  overflow-wrap: anywhere;
+}
+
+.owner-invite-context-list,
+.owner-jockey-metrics,
+.jockey-detail-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.owner-invite-context-list span,
+.owner-jockey-metrics span,
+.jockey-detail-metric-grid span,
+.jockey-compare-card span {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+  color: var(--slate-500);
+  font-size: 0.78rem;
+  font-weight: 820;
+}
+
+.owner-invite-context-list span {
+  grid-template-columns: auto minmax(74px, auto) minmax(0, 1fr);
+  align-items: center;
+}
+
+.owner-invite-context-list strong,
+.owner-jockey-metrics strong,
+.jockey-detail-metric-grid strong,
+.jockey-compare-card strong,
+.jockey-detail-list strong,
+.jockey-detail-split strong {
+  color: var(--brown-900);
+  overflow-wrap: anywhere;
+}
+
+.compact-message {
+  min-height: 82px;
+}
+
+.owner-jockey-picker {
+  display: grid;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.owner-jockey-card {
+  display: grid;
+  gap: 13px;
+  padding: 15px;
+}
+
+.owner-jockey-card.invited {
+  border-color: rgba(0, 84, 75, 0.28);
+  background: rgba(232, 253, 244, 0.48);
+}
+
+.owner-jockey-card-head,
+.owner-jockey-actions,
+.jockey-compare-header,
+.jockey-detail-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.owner-jockey-card-head span,
+.jockey-detail-header span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 5px;
+  color: var(--slate-500);
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.owner-jockey-actions {
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.jockey-compare-toggle {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(108, 63, 36, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.68);
+  padding: 8px 10px;
+  color: var(--brown-700);
+  font-size: 0.84rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.jockey-compare-toggle.checked {
+  border-color: rgba(0, 84, 75, 0.44);
+  background: rgba(232, 253, 244, 0.72);
+  color: #00544b;
+}
+
+.jockey-compare-toggle input {
+  accent-color: #00544b;
+}
+
+.jockey-compare-panel {
+  display: grid;
+  gap: 13px;
+  margin-top: 12px;
+  padding: 15px;
+}
+
+.jockey-compare-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.jockey-compare-card {
+  display: grid;
+  gap: 7px;
+  border: 1px solid rgba(108, 63, 36, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.66);
+  padding: 12px;
+}
+
+.jockey-detail-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: flex;
+  justify-content: flex-end;
+  background: rgba(26, 18, 14, 0.36);
+}
+
+.jockey-detail-drawer {
+  width: min(100%, 460px);
+  height: 100%;
+  overflow-y: auto;
+  background: #fffaf2;
+  box-shadow: -22px 0 54px rgba(43, 23, 16, 0.22);
+  padding: 22px;
+}
+
+.drawer-close-button {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid rgba(108, 63, 36, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.78);
+  color: var(--brown-700);
+  cursor: pointer;
+}
+
+.jockey-detail-metric-grid {
+  margin-top: 16px;
+}
+
+.jockey-detail-section {
+  display: grid;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.jockey-detail-section h4 {
+  margin: 0;
+  color: var(--brown-900);
+  font-size: 0.98rem;
+}
+
+.jockey-detail-list,
+.jockey-detail-split {
+  display: grid;
+  gap: 9px;
+}
+
+.jockey-detail-list div,
+.jockey-detail-split > div {
+  display: grid;
+  gap: 4px;
+  border: 1px solid rgba(108, 63, 36, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.62);
+  padding: 11px;
+}
+
+.jockey-detail-list span,
+.jockey-detail-split span,
+.drawer-empty-note {
+  margin: 0;
+  color: var(--slate-500);
+  font-size: 0.86rem;
+  font-weight: 760;
+}
+
+.jockey-detail-split {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 @media (max-width: 1180px) {
   .owner-registration-layout {
     grid-template-columns: 1fr;
@@ -3182,8 +3829,15 @@ select {
   }
 
   .owner-registration-sidebar,
+  .owner-application-style .owner-registration-sidebar,
+  .owner-application-step-strip,
   .tournament-card-grid,
   .registration-horse-grid,
+  .owner-invite-context-grid,
+  .owner-invite-context-list,
+  .owner-jockey-metrics,
+  .jockey-compare-grid,
+  .jockey-detail-split,
   .selected-tournament-grid,
   .registration-default-status {
     grid-template-columns: 1fr;
@@ -3978,6 +4632,30 @@ select {
   padding: 26px;
 }
 
+.jockey-invitation-list {
+  max-height: min(68vh, 760px);
+  overflow-y: auto;
+  padding-right: 8px;
+  scrollbar-gutter: stable;
+}
+
+.jockey-invitation-list::-webkit-scrollbar,
+.jockey-invitation-detail-modal::-webkit-scrollbar {
+  width: 8px;
+}
+
+.jockey-invitation-list::-webkit-scrollbar-track,
+.jockey-invitation-detail-modal::-webkit-scrollbar-track {
+  border-radius: 999px;
+  background: rgba(108, 63, 36, 0.08);
+}
+
+.jockey-invitation-list::-webkit-scrollbar-thumb,
+.jockey-invitation-detail-modal::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: rgba(108, 63, 36, 0.32);
+}
+
 .jockey-invitation-card {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(250px, 320px);
@@ -4073,6 +4751,105 @@ select {
   margin: 0;
 }
 
+.jockey-invitation-detail-modal {
+  max-height: min(92vh, 860px);
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+.jockey-invitation-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.jockey-invitation-tabs button {
+  display: inline-flex;
+  min-height: 38px;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(108, 63, 36, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
+  padding: 8px 11px;
+  color: var(--brown-700);
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.jockey-invitation-tabs button.active {
+  border-color: rgba(0, 84, 75, 0.38);
+  background: rgba(232, 253, 244, 0.78);
+  color: #00544b;
+}
+
+.jockey-invitation-tabs span {
+  display: grid;
+  min-width: 22px;
+  height: 22px;
+  place-items: center;
+  border-radius: 999px;
+  background: rgba(108, 63, 36, 0.1);
+  font-size: 0.72rem;
+}
+
+.jockey-invitation-detail-sections {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.jockey-invitation-detail-section {
+  display: grid;
+  gap: 10px;
+  border: 1px solid rgba(108, 63, 36, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.62);
+  padding: 14px;
+}
+
+.jockey-invitation-detail-section h3 {
+  margin: 0;
+  color: var(--brown-900);
+  font-size: 1rem;
+}
+
+.jockey-recent-race-list {
+  display: grid;
+  gap: 8px;
+}
+
+.jockey-recent-race-list div {
+  display: grid;
+  gap: 3px;
+  border: 1px solid rgba(108, 63, 36, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
+  padding: 10px;
+}
+
+.jockey-recent-race-list strong {
+  color: var(--brown-900);
+}
+
+.jockey-recent-race-list span {
+  color: var(--slate-500);
+  font-size: 0.84rem;
+  font-weight: 760;
+}
+
+.jockey-decline-modal {
+  display: grid;
+  gap: 14px;
+  width: min(100%, 520px);
+  border: 1px solid rgba(108, 63, 36, 0.1);
+  border-radius: 20px;
+  background: var(--cream-100);
+  padding: 22px;
+  box-shadow: 0 28px 80px rgba(43, 23, 16, 0.3);
+}
+
 @media (max-width: 1180px) {
   .jockey-stat-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -4104,6 +4881,16 @@ select {
   .jockey-invitation-meta,
   .jockey-profile-summary {
     grid-template-columns: 1fr;
+  }
+
+  .jockey-invitation-list {
+    max-height: 64vh;
+    padding-right: 4px;
+  }
+
+  .jockey-invitation-detail-modal {
+    max-height: 90vh;
+    padding: 18px;
   }
 
   .jockey-profile-avatar-large {
