@@ -67,10 +67,10 @@ export async function getMe() {
   });
 }
 
-export async function updateMyAccount({ email, phone }) {
+export async function updateMyAccount({ fullName, email, phone }) {
   return httpRequest('/api/user/me/account', {
     method: 'PUT',
-    body: { email, phone },
+    body: { fullName, email, phone },
     fallbackError: 'Khong the cap nhat thong tin tai khoan.'
   });
 }

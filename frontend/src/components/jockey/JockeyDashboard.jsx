@@ -536,9 +536,12 @@ function getProfileNotice(profile, isLoadingProfile) {
     };
   }
 
-  const status = String(profile.status || '').toUpperCase();
+  const verificationStatus = String(profile.verificationStatus || '').toUpperCase();
+  const status = verificationStatus === 'APPROVED'
+    ? 'ACTIVE'
+    : verificationStatus || String(profile.status || '').toUpperCase();
 
-  if (status === 'UNDER_REVIEW') {
+  if (status === 'PENDING' || status === 'UNDER_REVIEW') {
     return {
       type: 'warning',
       text: 'Hồ sơ của bạn chưa được xác minh. Vui lòng chờ admin xét duyệt.'
@@ -564,12 +567,16 @@ function getProfileNotice(profile, isLoadingProfile) {
 
 function mergeProfileWithUser(profile, currentUser = {}) {
   if (!profile) return null;
+  const verificationStatus = String(profile.verificationStatus || '').toUpperCase();
+  const derivedStatus = verificationStatus === 'APPROVED'
+    ? 'ACTIVE'
+    : verificationStatus || profile.status || currentUser?.status || currentUser?.accountStatus || '';
 
   return {
     ...profile,
     fullName: profile.fullName || currentUser?.fullName || '',
     email: profile.email || currentUser?.email || '',
-    status: profile.status || currentUser?.status || currentUser?.accountStatus || ''
+    status: derivedStatus
   };
 }
 
@@ -601,10 +608,10 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
 
   const jockeyName = currentUser?.fullName || currentUser?.email || 'Jockey';
   const isLoading = isLoadingProfile || isLoadingInvitations;
-  const profileStatus = String(profile?.status || currentUser?.status || currentUser?.accountStatus || '').toUpperCase();
+  const profileStatus = String(profile?.status || '').toUpperCase();
   const verificationStatus = String(profile?.verificationStatus || '').toUpperCase();
-  const isApprovedProfile = verificationStatus === 'APPROVED' || profileStatus === 'ACTIVE';
-  const isProfileActive = Boolean(profile) && profileStatus === 'ACTIVE';
+  const isApprovedProfile = verificationStatus === 'APPROVED' || (!verificationStatus && profileStatus === 'ACTIVE');
+  const isProfileActive = Boolean(profile) && isApprovedProfile;
   const profileNotice = getProfileNotice(profile, isLoadingProfile);
 
   const tournamentById = useMemo(() => new Map(tournaments.map((tournament) => [String(tournament.tournamentId ?? tournament.tournamentID ?? tournament.id), tournament])), [tournaments]);
@@ -769,7 +776,7 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
       const data = profile
         ? await updateJockeyProfile(payload)
         : await createJockeyProfile(payload);
-      const nextProfile = mergeProfileWithUser({ ...data, status: data?.status || 'UNDER_REVIEW' }, currentUser);
+      const nextProfile = mergeProfileWithUser(data, currentUser);
       setProfile(nextProfile);
       setProfileForm(toProfileForm(nextProfile, currentUser));
       setMessage(profile ? 'Đã cập nhật hồ sơ jockey.' : 'Đã tạo hồ sơ jockey.');

@@ -20,6 +20,7 @@ import {
 } from '../../../services/userService';
 
 const ROLES = ['ADMIN', 'OWNER', 'JOCKEY', 'REFEREE', 'SPECTATOR'];
+const CREATABLE_ROLES = ['SPECTATOR', 'REFEREE'];
 const STANDARD_STATUSES = ['ACTIVE', 'INACTIVE', 'BLOCKED'];
 
 function emptyForm() {
@@ -59,6 +60,10 @@ function formatStatus(status, t) {
 function formatRole(role, t) {
   const normalized = String(role || '').toUpperCase();
   return t(`role_${normalized}`);
+}
+
+function isAdminUser(user) {
+  return String(user?.role || '').toUpperCase() === 'ADMIN';
 }
 
 function SummaryCard({ icon: Icon, label, value, tone }) {
@@ -149,6 +154,12 @@ export default function UserManagement() {
   }
 
   function openEditForm(user) {
+    if (isAdminUser(user)) {
+      setError('Tài khoản admin chỉ được cập nhật ở trang Tài khoản admin.');
+      setMessage('');
+      return;
+    }
+
     setEditingUser(user);
     setForm({
       email: user.email || '',
@@ -216,8 +227,7 @@ export default function UserManagement() {
         const payload = {
           email: form.email.trim(),
           fullName: form.fullName.trim(),
-          phone: form.phone.trim(),
-          roleName: form.roleName
+          phone: form.phone.trim()
         };
 
         if (form.status !== editingUser.status) {
@@ -250,6 +260,12 @@ export default function UserManagement() {
 
   async function deactivateUser() {
     if (!userToDeactivate) return;
+
+    if (isAdminUser(userToDeactivate)) {
+      setError('Không thể vô hiệu hóa tài khoản admin từ trang quản lí người dùng.');
+      setUserToDeactivate(null);
+      return;
+    }
 
     setIsSaving(true);
     setError('');
@@ -418,7 +434,10 @@ export default function UserManagement() {
                 </tr>
               </thead>
               <tbody>
-                {filteredUsers.map((user) => (
+                {filteredUsers.map((user) => {
+                  const adminAccount = isAdminUser(user);
+
+                  return (
                   <tr
                     className="transition hover:bg-white/70"
                     key={getUserId(user) || user.email}
@@ -457,30 +476,42 @@ export default function UserManagement() {
                       </span>
                     </td>
                     <td className="border-b border-brown-700/10 px-3 py-4">
-                      <div className="flex justify-end gap-1.5">
-                        <button
-                          className="grid size-9 place-items-center rounded-lg border border-brown-700/15 bg-white text-brown-700 shadow-[0_8px_18px_rgba(78,44,25,0.06)] transition hover:-translate-y-0.5 hover:border-brown-500 hover:bg-cream-200"
-                          type="button"
-                          title={t('edit')}
-                          aria-label={`${t('edit')} ${user.username || user.email}`}
-                          onClick={() => openEditForm(user)}
-                        >
-                          <Pencil size={15} />
-                        </button>
-                        <button
-                          className="grid size-9 place-items-center rounded-lg border border-danger/20 bg-danger-bg text-danger shadow-[0_8px_18px_rgba(185,28,28,0.05)] transition hover:-translate-y-0.5 hover:bg-red-100 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40"
-                          type="button"
-                          disabled={user.status === 'INACTIVE'}
-                          title={t('deactivate')}
-                          aria-label={`${t('deactivate')} ${user.username || user.email}`}
-                          onClick={() => setUserToDeactivate(user)}
-                        >
-                          <Ban size={15} />
-                        </button>
-                      </div>
+                      {adminAccount ? (
+                        <div className="flex justify-end">
+                          <span
+                            className="inline-flex rounded-full border border-brown-700/10 bg-white px-3 py-1.5 text-[0.68rem] font-extrabold text-slate-500"
+                            title="Tài khoản admin chỉ cập nhật ở trang Tài khoản admin."
+                          >
+                            Chỉ xem
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex justify-end gap-1.5">
+                          <button
+                            className="grid size-9 place-items-center rounded-lg border border-brown-700/15 bg-white text-brown-700 shadow-[0_8px_18px_rgba(78,44,25,0.06)] transition hover:-translate-y-0.5 hover:border-brown-500 hover:bg-cream-200"
+                            type="button"
+                            title={t('edit')}
+                            aria-label={`${t('edit')} ${user.username || user.email}`}
+                            onClick={() => openEditForm(user)}
+                          >
+                            <Pencil size={15} />
+                          </button>
+                          <button
+                            className="grid size-9 place-items-center rounded-lg border border-danger/20 bg-danger-bg text-danger shadow-[0_8px_18px_rgba(185,28,28,0.05)] transition hover:-translate-y-0.5 hover:bg-red-100 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40"
+                            type="button"
+                            disabled={user.status === 'INACTIVE'}
+                            title={t('deactivate')}
+                            aria-label={`${t('deactivate')} ${user.username || user.email}`}
+                            onClick={() => setUserToDeactivate(user)}
+                          >
+                            <Ban size={15} />
+                          </button>
+                        </div>
+                      )}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -558,19 +589,21 @@ export default function UserManagement() {
                 </label>
               )}
 
-              <label className="grid gap-2 text-sm font-extrabold">
-                <span>{t('role')}</span>
-                <select
-                  className="rounded-lg border border-brown-700/15 bg-white px-4 py-3 font-bold text-brown-900 shadow-[0_8px_20px_rgba(78,44,25,0.06)] outline-none"
-                  name="roleName"
-                  value={form.roleName}
-                  onChange={handleChange}
-                >
-                  {ROLES.map((role) => (
-                    <option key={role} value={role}>{formatRole(role, t)}</option>
-                  ))}
-                </select>
-              </label>
+              {!editingUser && (
+                <label className="grid gap-2 text-sm font-extrabold">
+                  <span>{t('role')}</span>
+                  <select
+                    className="rounded-lg border border-brown-700/15 bg-white px-4 py-3 font-bold text-brown-900 shadow-[0_8px_20px_rgba(78,44,25,0.06)] outline-none"
+                    name="roleName"
+                    value={form.roleName}
+                    onChange={handleChange}
+                  >
+                    {CREATABLE_ROLES.map((role) => (
+                      <option key={role} value={role}>{formatRole(role, t)}</option>
+                    ))}
+                  </select>
+                </label>
+              )}
 
               {editingUser && (
                 <label className="grid gap-2 text-sm font-extrabold">

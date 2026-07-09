@@ -44,12 +44,14 @@ public interface JockeyInvitationRepository extends JpaRepository<JockeyInvitati
             where i.tournamentId = :tournamentId
               and i.ownerId = :ownerId
               and i.status = :invitationStatus
+              and (i.expiredAt is null or i.expiredAt > :now)
               and (:excludedInvitationId is null or i.invitationId <> :excludedInvitationId)
             """)
     boolean existsPendingInvitationForTournamentAndOwner(
             @Param("tournamentId") Integer tournamentId,
             @Param("ownerId") Integer ownerId,
             @Param("invitationStatus") String invitationStatus,
+            @Param("now") java.time.LocalDateTime now,
             @Param("excludedInvitationId") Integer excludedInvitationId);
 
     @Query("""
@@ -70,6 +72,7 @@ public interface JockeyInvitationRepository extends JpaRepository<JockeyInvitati
             join Tournament t on t.tournamentId = i.tournamentId
             where i.jockeyId = :jockeyId
               and i.status = :invitationStatus
+              and (i.expiredAt is null or i.expiredAt > :now)
               and (:excludedInvitationId is null or i.invitationId <> :excludedInvitationId)
               and t.startDate <= :endDate
               and t.endDate >= :startDate
@@ -79,6 +82,7 @@ public interface JockeyInvitationRepository extends JpaRepository<JockeyInvitati
             @Param("startDate") java.time.LocalDate startDate,
             @Param("endDate") java.time.LocalDate endDate,
             @Param("invitationStatus") String invitationStatus,
+            @Param("now") java.time.LocalDateTime now,
             @Param("excludedInvitationId") Integer excludedInvitationId);
 
     @Query("""
@@ -87,6 +91,7 @@ public interface JockeyInvitationRepository extends JpaRepository<JockeyInvitati
             join Tournament t on t.tournamentId = i.tournamentId
             where i.horseId = :horseId
               and i.status = :invitationStatus
+              and (i.expiredAt is null or i.expiredAt > :now)
               and (:excludedInvitationId is null or i.invitationId <> :excludedInvitationId)
               and t.startDate <= :endDate
               and t.endDate >= :startDate
@@ -96,6 +101,7 @@ public interface JockeyInvitationRepository extends JpaRepository<JockeyInvitati
             @Param("startDate") java.time.LocalDate startDate,
             @Param("endDate") java.time.LocalDate endDate,
             @Param("invitationStatus") String invitationStatus,
+            @Param("now") java.time.LocalDateTime now,
             @Param("excludedInvitationId") Integer excludedInvitationId);
 
     @Query("""
@@ -105,6 +111,7 @@ public interface JockeyInvitationRepository extends JpaRepository<JockeyInvitati
             where i.horseId = :horseId
               and i.jockeyId = :jockeyId
               and i.status = :invitationStatus
+              and (i.expiredAt is null or i.expiredAt > :now)
               and (:excludedInvitationId is null or i.invitationId <> :excludedInvitationId)
               and t.startDate <= :endDate
               and t.endDate >= :startDate
@@ -115,6 +122,7 @@ public interface JockeyInvitationRepository extends JpaRepository<JockeyInvitati
             @Param("startDate") java.time.LocalDate startDate,
             @Param("endDate") java.time.LocalDate endDate,
             @Param("invitationStatus") String invitationStatus,
+            @Param("now") java.time.LocalDateTime now,
             @Param("excludedInvitationId") Integer excludedInvitationId);
 
     void deleteByRegistrationIdIn(Collection<Integer> registrationIds);

@@ -69,6 +69,8 @@ class AdminRaceResultReviewServiceTest {
     private UserRepository userRepository;
     @Mock
     private RacePrizeSettlementService prizeSettlementService;
+    @Mock
+    private PerformanceSummaryService performanceSummaryService;
 
     private AdminRaceResultReviewService service;
 
@@ -82,7 +84,8 @@ class AdminRaceResultReviewServiceTest {
                 raceEntryRepository,
                 raceRepository,
                 userRepository,
-                prizeSettlementService
+                prizeSettlementService,
+                performanceSummaryService
         );
     }
 
@@ -138,6 +141,10 @@ class AdminRaceResultReviewServiceTest {
                 eq(savedResults),
                 any()
         );
+        verify(performanceSummaryService).updateAfterRaceApproved(
+                eq(savedResults),
+                any()
+        );
 
         ArgumentCaptor<Race> raceCaptor = ArgumentCaptor.forClass(Race.class);
         verify(raceRepository).save(raceCaptor.capture());
@@ -185,6 +192,8 @@ class AdminRaceResultReviewServiceTest {
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
         verify(raceResultRepository, never()).saveAll(any());
         verify(prizeSettlementService, never()).settlePrizes(any(), any(), any());
+        verify(performanceSummaryService, never())
+                .updateAfterRaceApproved(any(), any());
         verify(submissionRepository, never()).save(any());
     }
 
@@ -221,6 +230,8 @@ class AdminRaceResultReviewServiceTest {
 
         verify(raceResultRepository, never()).saveAll(any());
         verify(prizeSettlementService, never()).settlePrizes(any(), any(), any());
+        verify(performanceSummaryService, never())
+                .updateAfterRaceApproved(any(), any());
         verify(raceEntryRepository, never()).findAllById(any());
 
         ArgumentCaptor<Race> raceCaptor = ArgumentCaptor.forClass(Race.class);
@@ -266,6 +277,8 @@ class AdminRaceResultReviewServiceTest {
         assertEquals(HttpStatus.CONFLICT, exception.getStatus());
         verify(raceResultRepository, never()).saveAll(any());
         verify(prizeSettlementService, never()).settlePrizes(any(), any(), any());
+        verify(performanceSummaryService, never())
+                .updateAfterRaceApproved(any(), any());
         verify(raceRepository, never()).save(any());
     }
 
@@ -285,6 +298,8 @@ class AdminRaceResultReviewServiceTest {
         assertEquals(HttpStatus.CONFLICT, exception.getStatus());
         verify(raceResultRepository, never()).saveAll(any());
         verify(prizeSettlementService, never()).settlePrizes(any(), any(), any());
+        verify(performanceSummaryService, never())
+                .updateAfterRaceApproved(any(), any());
     }
 
     @Test
@@ -309,6 +324,8 @@ class AdminRaceResultReviewServiceTest {
                 .findBySubmissionIdOrderByFinishPositionAsc(any());
         verify(raceResultRepository, never()).saveAll(any());
         verify(prizeSettlementService, never()).settlePrizes(any(), any(), any());
+        verify(performanceSummaryService, never())
+                .updateAfterRaceApproved(any(), any());
     }
 
     @Test

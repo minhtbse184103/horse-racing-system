@@ -38,6 +38,7 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -283,6 +284,8 @@ public class VnpayPaymentService {
             String orderInfo,
             String clientIp
     ) {
+        validateVnpayConfiguration();
+
         LocalDateTime now = LocalDateTime.now();
         Map<String, String> params = new LinkedHashMap<>();
         params.put("vnp_Version", VNPAY_VERSION);
@@ -310,12 +313,34 @@ public class VnpayPaymentService {
                 + secureHash;
     }
 
+    private void validateVnpayConfiguration() {
+        if (isBlank(properties.getTmnCode())
+                || isBlank(properties.getHashSecret())
+                || isBlank(properties.getPayUrl())
+                || isBlank(properties.getReturnUrl())) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "VNPAY payment configuration is incomplete."
+            );
+        }
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.isBlank();
+    }
+
     private String generateTxnRef(Registration registration) {
-        return "REG-" + registration.getRegistrationId() + "-" + System.currentTimeMillis();
+        return "REG-" + registration.getRegistrationId() + "-" + uniquePaymentSuffix();
     }
 
     private String generateWalletDepositTxnRef(Wallet wallet) {
-        return "WALLET-" + wallet.getWalletId() + "-" + System.currentTimeMillis();
+        return "WALLET-" + wallet.getWalletId() + "-" + uniquePaymentSuffix();
+    }
+
+    private String uniquePaymentSuffix() {
+        return System.currentTimeMillis()
+                + "-"
+                + UUID.randomUUID().toString().replace("-", "").substring(0, 8);
     }
 
     private String normalizeClientIp(String clientIp) {

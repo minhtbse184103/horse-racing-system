@@ -45,7 +45,6 @@ public class JockeyServiceImpl implements JockeyService {
     private static final String ROLE_JOCKEY = "JOCKEY";
     private static final String STATUS_ACTIVE = "ACTIVE";
     private static final String STATUS_INACTIVE = "INACTIVE";
-    private static final String STATUS_UNDER_REVIEW = "UNDER_REVIEW";
     private static final String INVITATION_PENDING = "PENDING";
     private static final String INVITATION_ACCEPTED = "ACCEPTED";
     private static final String INVITATION_REJECTED = "REJECTED";
@@ -115,7 +114,6 @@ public class JockeyServiceImpl implements JockeyService {
 
         updatePhoneNumber(jockey, request.getPhoneNumber());
         JockeyProfile savedProfile = jockeyProfileRepository.save(profile);
-        markProfileUnderReview(jockey);
         return mapProfileToResponse(savedProfile, jockey);
     }
 
@@ -292,7 +290,11 @@ public class JockeyServiceImpl implements JockeyService {
             throw new ApiException(HttpStatus.CONFLICT, "Chủ ngựa đã có một đơn đăng ký đang hoạt động trong giải đấu này.");
         }
         if (jockeyInvitationRepository.existsPendingInvitationForTournamentAndOwner(
-                tournamentId, ownerId, INVITATION_PENDING, excludedInvitationId)) {
+                tournamentId,
+                ownerId,
+                INVITATION_PENDING,
+                LocalDateTime.now(),
+                excludedInvitationId)) {
             throw new ApiException(HttpStatus.CONFLICT, "Chủ ngựa đã có một lời mời đang chờ xử lý trong giải đấu này.");
         }
     }
@@ -316,7 +318,12 @@ public class JockeyServiceImpl implements JockeyService {
             throw new ApiException(HttpStatus.CONFLICT, "Ngựa này đã có đơn đăng ký ở giải đấu trùng thời gian.");
         }
         if (jockeyInvitationRepository.existsPendingOverlappingInvitationForHorse(
-                horseId, tournament.startDate(), tournament.endDate(), INVITATION_PENDING, excludedInvitationId)) {
+                horseId,
+                tournament.startDate(),
+                tournament.endDate(),
+                INVITATION_PENDING,
+                LocalDateTime.now(),
+                excludedInvitationId)) {
             throw new ApiException(HttpStatus.CONFLICT, "Ngựa này đã có lời mời đang chờ xử lý ở giải đấu trùng thời gian.");
         }
     }
@@ -333,7 +340,12 @@ public class JockeyServiceImpl implements JockeyService {
             throw new ApiException(HttpStatus.CONFLICT, "Nài ngựa này đã có đơn đăng ký ở giải đấu trùng thời gian.");
         }
         if (jockeyInvitationRepository.existsPendingOverlappingInvitationForJockey(
-                jockeyId, tournament.startDate(), tournament.endDate(), INVITATION_PENDING, excludedInvitationId)) {
+                jockeyId,
+                tournament.startDate(),
+                tournament.endDate(),
+                INVITATION_PENDING,
+                LocalDateTime.now(),
+                excludedInvitationId)) {
             throw new ApiException(HttpStatus.CONFLICT, "Nài ngựa này đã có lời mời đang chờ xử lý ở giải đấu trùng thời gian.");
         }
     }
@@ -345,7 +357,13 @@ public class JockeyServiceImpl implements JockeyService {
             throw new ApiException(HttpStatus.CONFLICT, "Cặp ngựa và nài ngựa này đã được đăng ký ở giải đấu trùng thời gian.");
         }
         if (jockeyInvitationRepository.existsPendingOverlappingInvitationForHorseAndJockey(
-                horseId, jockeyId, tournament.startDate(), tournament.endDate(), INVITATION_PENDING, excludedInvitationId)) {
+                horseId,
+                jockeyId,
+                tournament.startDate(),
+                tournament.endDate(),
+                INVITATION_PENDING,
+                LocalDateTime.now(),
+                excludedInvitationId)) {
             throw new ApiException(HttpStatus.CONFLICT, "Cặp ngựa và nài ngựa này đã có lời mời ở giải đấu trùng thời gian.");
         }
     }
@@ -526,8 +544,4 @@ public class JockeyServiceImpl implements JockeyService {
         }
     }
 
-    private void markProfileUnderReview(User jockey) {
-        jockey.setStatus(STATUS_UNDER_REVIEW);
-        userRepository.save(jockey);
-    }
 }

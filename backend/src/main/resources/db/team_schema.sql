@@ -20,7 +20,8 @@ CREATE TABLE `Users` (
   `phone` varchar(255) UNIQUE,
   `status` varchar(50) NOT NULL DEFAULT 'ACTIVE',
   `createdAt` datetime,
-  `updatedAt` datetime
+  `updatedAt` datetime,
+  CONSTRAINT `chk_users_status` CHECK (`status` IN ('ACTIVE', 'INACTIVE', 'BLOCKED'))
 );
 
 CREATE TABLE `OwnerApplication` (
@@ -372,6 +373,7 @@ CREATE TABLE `PaymentTransaction` (
   `txnRef` varchar(100) UNIQUE NOT NULL,
   `providerTransactionNo` varchar(100),
   `status` varchar(50) NOT NULL DEFAULT 'PENDING',
+  -- VNPAY payment URLs are long; keep these as TEXT instead of VARCHAR.
   `payUrl` text,
   `responseCode` varchar(20),
   `rawResponse` text,

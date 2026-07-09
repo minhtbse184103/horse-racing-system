@@ -28,6 +28,6 @@ public class AdminCreateUserRequest {
     private String password;
 
     @NotBlank(message = "Vai trò không được để trống")
-    @Pattern(regexp = "(?i)ADMIN|OWNER|JOCKEY|REFEREE|SPECTATOR", message = "Vai trò phải là ADMIN, OWNER, JOCKEY, REFEREE hoặc SPECTATOR")
+    @Pattern(regexp = "(?i)REFEREE|SPECTATOR", message = "Vai tro phai la REFEREE hoac SPECTATOR")
     private String roleName;
 }

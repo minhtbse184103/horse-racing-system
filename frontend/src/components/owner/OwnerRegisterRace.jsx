@@ -34,6 +34,7 @@ import { getTournaments } from '../../services/eventService';
 import { updateState } from '../../services/mockStore';
 import API_BASE_URL from '../../configs/apiConfig';
 import { formatDate, formatDisplayLabel, getHorseId, getHorseName, getUserId, getUserRole } from '../../lib';
+import ConfirmModal from '../common/ConfirmModal';
 
 const INVITATION_STATUS_OPTIONS = ['ALL', 'PENDING', 'ACCEPTED', 'APPROVED', 'REJECTED', 'CANCELLED', 'EXPIRED'];
 const OWNER_CANCELLED_INVITATION_STORAGE_KEY = 'owner_cancelled_jockey_invitations';
@@ -142,18 +143,24 @@ function padDatePart(value) {
   return String(value).padStart(2, '0');
 }
 
-function toDateTimeLocalValue(value) {
+function toDateLocalValue(value) {
   const date = value instanceof Date ? value : getDateTime(value);
   if (!date) return '';
 
-  return `${date.getFullYear()}-${padDatePart(date.getMonth() + 1)}-${padDatePart(date.getDate())}T${padDatePart(date.getHours())}:${padDatePart(date.getMinutes())}`;
+  return `${date.getFullYear()}-${padDatePart(date.getMonth() + 1)}-${padDatePart(date.getDate())}`;
 }
 
-function getDateTimeLocalMinValue() {
-  const now = new Date();
-  now.setMinutes(now.getMinutes() + 1);
-  now.setSeconds(0, 0);
-  return toDateTimeLocalValue(now);
+function getDateLocalMinValue() {
+  return toDateLocalValue(new Date());
+}
+
+function toInvitationExpiryDateTime(value) {
+  if (!value) return null;
+  return `${value}T23:58:00`;
+}
+
+function getInvitationExpiryDate(value) {
+  return getDateTime(toInvitationExpiryDateTime(value));
 }
 
 function formatDateTime(value) {
@@ -480,7 +487,7 @@ function validateInvitationForm(formValues, horses, tournaments, invitations = [
   const selectedHorse = horses.find((horse) => String(getHorseId(horse)) === String(formValues.horseId));
   const selectedTournament = tournaments.find((tournament) => String(getTournamentId(tournament)) === String(formValues.tournamentId));
   const selectedTournamentId = selectedTournament ? getTournamentId(selectedTournament) : formValues.tournamentId;
-  const expiredAt = formValues.expiredAt ? getDateTime(formValues.expiredAt) : null;
+  const expiredAt = formValues.expiredAt ? getInvitationExpiryDate(formValues.expiredAt) : null;
 
   if (!formValues.tournamentId) {
     errors.tournamentId = 'Vui lòng chọn giải đấu.';
@@ -601,6 +608,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
   const [message, setMessage] = useState('');
   const [detailJockey, setDetailJockey] = useState(null);
   const [detailHorse, setDetailHorse] = useState(null);
+  const [cancelInvitationTarget, setCancelInvitationTarget] = useState(null);
   const [horseLockReasons, setHorseLockReasons] = useState({});
 
   const activeHorses = useMemo(
@@ -688,9 +696,9 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
       && String(getInvitationHorseId(invitation)) === String(formValues.horseId)
     )) || null;
   }, [formValues.horseId, formValues.tournamentId, invitations]);
-  const responseDeadlineMin = useMemo(() => getDateTimeLocalMinValue(), []);
+  const responseDeadlineMin = useMemo(() => getDateLocalMinValue(), []);
   const responseDeadlineMax = useMemo(
-    () => getRegistrationDeadline(selectedTournament) ? toDateTimeLocalValue(getRegistrationDeadline(selectedTournament)) : '',
+    () => getRegistrationDeadline(selectedTournament) ? toDateLocalValue(getRegistrationDeadline(selectedTournament)) : '',
     [selectedTournament]
   );
   const filteredInvitations = useMemo(() => {
@@ -739,7 +747,9 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
   const isRegistrationUnpaid = isUnpaidStatus(selectedPaymentStatus);
   const canSubmitRegistration = Boolean(registrationValues.tournamentId && registrationValues.horseId && registrationValues.jockeyId);
   const activeStep = wizardStep;
-  const nextStepLabel = wizardStep === 2 ? 'Chờ jockey phản hồi' : 'Next';
+  const nextStepLabel = wizardStep === 2
+    ? (isSaving ? 'Đang gửi lời mời...' : 'Chờ jockey phản hồi')
+    : 'Next';
 
   useEffect(() => {
     loadPageData();
@@ -841,7 +851,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
     resetFeedback();
   }
 
-  function goNextStep() {
+  async function goNextStep() {
     resetFeedback();
 
     if (wizardStep === 1) {
@@ -864,7 +874,9 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
         return;
       }
       if (!currentPendingInvitation && !hasAcceptedInvitation) {
-        setFormErrors((current) => ({ ...current, jockeyId: 'Vui lòng gửi lời mời jockey trước khi tiếp tục.' }));
+        const createdInvitation = await submitInvitation(formValues.jockeyId);
+        if (!createdInvitation) return;
+        setWizardStep(3);
         return;
       }
       setWizardStep(3);
@@ -971,7 +983,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
   }
 
   async function submitInvitation(jockeyId) {
-    if (isSaving) return;
+    if (isSaving) return null;
 
     const nextValues = { ...formValues, jockeyId };
     const errors = validateInvitationForm(nextValues, activeHorses, availableTournaments, invitations, horseLockReasons);
@@ -979,7 +991,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
     setSubmitError('');
     setMessage('');
 
-    if (Object.keys(errors).length > 0) return;
+    if (Object.keys(errors).length > 0) return null;
 
     setIsSaving(true);
     setInvitingJockeyId(String(nextValues.jockeyId));
@@ -988,7 +1000,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
         tournamentId: Number(nextValues.tournamentId),
         horseId: Number(nextValues.horseId),
         jockeyId: Number(nextValues.jockeyId),
-        expiredAt: nextValues.expiredAt || null,
+        expiredAt: toInvitationExpiryDateTime(nextValues.expiredAt),
         message: nextValues.message.trim() || null
       });
       const normalizedInvitation = {
@@ -1019,6 +1031,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
       setFormValues((current) => ({ ...current, jockeyId: String(nextValues.jockeyId), expiredAt: '', message: '' }));
       setFormErrors({});
       await loadPageData();
+      return normalizedInvitation;
     } catch (err) {
       const errorText = getErrorText(err, 'Không thể gửi lời mời jockey.');
       if (isOverlappingHorseError(errorText) && nextValues.horseId && nextValues.tournamentId) {
@@ -1028,6 +1041,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
         setRegistrationErrors((current) => ({ ...current, horseId: errorText }));
       }
       setSubmitError(errorText);
+      return null;
     } finally {
       setIsSaving(false);
       setInvitingJockeyId(null);
@@ -1083,12 +1097,14 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
     }
   }
 
-  async function handleCancel(invitation) {
+  function handleCancel(invitation) {
+    setCancelInvitationTarget(invitation);
+  }
+
+  async function confirmCancelInvitation() {
+    const invitation = cancelInvitationTarget;
     const invitationId = getInvitationId(invitation);
     if (!invitationId) return;
-
-    const confirmed = window.confirm('Bạn có chắc muốn hủy lời mời jockey này?');
-    if (!confirmed) return;
 
     setActingId(invitationId);
     setLoadError('');
@@ -1110,6 +1126,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
       )));
       setMessage('Đã hủy lời mời jockey.');
       await loadPageData();
+      setCancelInvitationTarget(null);
     } catch (err) {
       setLoadError(getErrorText(err, 'Không thể hủy lời mời.'));
     } finally {
@@ -1395,15 +1412,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
                   <button type="button" className="table-button danger-action" onClick={() => handleCancel(selectedInviteJockey.invitation)} disabled={actingId === getInvitationId(selectedInviteJockey.invitation)}>
                     Cancel invite
                   </button>
-                ) : (
-                  <button
-                    className="primary-button owner-invite-toolbar-button"
-                    type="submit"
-                    disabled={isSaving || isLoading || !inviteReady || !formValues.jockeyId || Boolean(currentPendingInvitation) || hasAcceptedInvitation || ['ACCEPTED', 'APPROVED'].includes(selectedInviteJockey?.invitationStatus)}
-                  >
-                    <Send size={16} /> {isSaving && invitingJockeyId === selectedInviteJockey?.jockeyId ? 'Dang gui...' : 'Invite'}
-                  </button>
-                )}
+                ) : null}
               </div>
             </div>
 
@@ -1426,7 +1435,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
                   className={formErrors.expiredAt ? 'input has-error' : 'input'}
                   id="ownerExpiredAt"
                   name="expiredAt"
-                  type="datetime-local"
+                  type="date"
                   value={formValues.expiredAt}
                   onChange={handleChange}
                   min={responseDeadlineMin}
@@ -1452,7 +1461,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
                   className={formErrors.expiredAt ? 'input has-error' : 'input'}
                   id="ownerInviteDeadline"
                   name="expiredAt"
-                  type="datetime-local"
+                  type="date"
                   value={formValues.expiredAt}
                   onChange={handleChange}
                   min={responseDeadlineMin}
@@ -1766,7 +1775,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
                 {wizardStep < 3 && (
                   <button className="primary-button compact-primary wizard-nav-button" type="button" onClick={goNextStep} disabled={isSaving || isRegistering}>
                     {nextStepLabel}
-                    <ArrowRight size={16} />
+                    {wizardStep === 2 ? <Send size={16} /> : <ArrowRight size={16} />}
                   </button>
                 )}
               </div>
@@ -1943,6 +1952,18 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
           </div>
         );
       })()}
+
+      <ConfirmModal
+        open={Boolean(cancelInvitationTarget)}
+        title="Hủy lời mời jockey"
+        message={`Bạn có chắc muốn hủy lời mời ${cancelInvitationTarget ? getInvitationJockeyName(cancelInvitationTarget) : 'jockey'} không?`}
+        confirmLabel="Hủy lời mời"
+        cancelLabel="Quay lại"
+        variant="danger"
+        loading={Boolean(actingId)}
+        onCancel={() => setCancelInvitationTarget(null)}
+        onConfirm={confirmCancelInvitation}
+      />
     </section>
   );
 }

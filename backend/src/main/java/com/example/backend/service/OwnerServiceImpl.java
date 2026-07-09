@@ -49,10 +49,12 @@ public class OwnerServiceImpl implements OwnerService {
     private static final String STATUS_ACTIVE = "ACTIVE";
     private static final String STATUS_PENDING = "PENDING";
 
-    private static final String REGISTRATION_ACCEPTED = "ACCEPTED";
-    private static final String REGISTRATION_CONFIRMED = "CONFIRMED";
     private static final String REGISTRATION_CANCELLED = "CANCELLED";
     private static final String REGISTRATION_REJECTED = "REJECTED";
+    private static final List<String> ACTIVE_REGISTRATION_STATUSES = List.of(
+            RegistrationStatus.PENDING,
+            RegistrationStatus.APPROVED
+    );
 
     private static final String INVITATION_PENDING = "PENDING";
     private static final String INVITATION_CANCELLED = "CANCELLED";
@@ -249,11 +251,6 @@ public class OwnerServiceImpl implements OwnerService {
                     "Ngựa này đã có đơn đăng ký đang hoạt động trong giải đấu.");
         }
 
-        if (jockeyInvitationRepository.existsByTournamentIdAndHorseIdAndJockeyIdAndStatus(
-                tournament.tournamentId(), horse.getHorseId(), jockey.getUserID(), INVITATION_PENDING)) {
-            throw new ApiException(HttpStatus.CONFLICT, "Đã tồn tại lời mời đang chờ xử lý cho nài ngựa này.");
-        }
-
         JockeyInvitation invitation = JockeyInvitation.builder()
                 .tournamentId(tournament.tournamentId())
                 .horseId(horse.getHorseId())
@@ -275,7 +272,7 @@ public class OwnerServiceImpl implements OwnerService {
         long activeRegistrations = registrationRepository.countByTournamentIdAndOwnerIdAndStatusInExcludingRegistration(
                 tournamentId,
                 ownerId,
-                List.of(REGISTRATION_ACCEPTED, REGISTRATION_CONFIRMED),
+                ACTIVE_REGISTRATION_STATUSES,
                 null);
         if (activeRegistrations > 0) {
             throw new ApiException(HttpStatus.CONFLICT,
@@ -283,7 +280,11 @@ public class OwnerServiceImpl implements OwnerService {
         }
 
         if (jockeyInvitationRepository.existsPendingInvitationForTournamentAndOwner(
-                tournamentId, ownerId, INVITATION_PENDING, excludedInvitationId)) {
+                tournamentId,
+                ownerId,
+                INVITATION_PENDING,
+                LocalDateTime.now(),
+                excludedInvitationId)) {
             throw new ApiException(HttpStatus.CONFLICT,
                     "Chủ ngựa đã có một lời mời đang chờ xử lý trong giải đấu này.");
         }
@@ -297,7 +298,7 @@ public class OwnerServiceImpl implements OwnerService {
         long activeRegistrations = registrationRepository.countByTournamentIdAndHorseIdAndStatusInExcludingRegistration(
                 tournamentId,
                 horseId,
-                List.of(REGISTRATION_ACCEPTED, REGISTRATION_CONFIRMED),
+                ACTIVE_REGISTRATION_STATUSES,
                 excludedRegistrationId);
         if (activeRegistrations > 0) {
             throw new ApiException(HttpStatus.CONFLICT,
@@ -316,7 +317,7 @@ public class OwnerServiceImpl implements OwnerService {
                         horseId,
                         tournament.startDate(),
                         tournament.endDate(),
-                        List.of(RegistrationStatus.PENDING, RegistrationStatus.APPROVED),
+                        ACTIVE_REGISTRATION_STATUSES,
                         excludedRegistrationId);
         if (overlappingRegistrations > 0) {
             throw new ApiException(HttpStatus.CONFLICT,
@@ -328,6 +329,7 @@ public class OwnerServiceImpl implements OwnerService {
                 tournament.startDate(),
                 tournament.endDate(),
                 INVITATION_PENDING,
+                LocalDateTime.now(),
                 excludedInvitationId)) {
             throw new ApiException(HttpStatus.CONFLICT,
                     "Ngựa này đã có lời mời đang chờ xử lý ở giải đấu trùng thời gian.");
@@ -343,7 +345,7 @@ public class OwnerServiceImpl implements OwnerService {
         long sameTournamentRegistrations = registrationRepository.countByTournamentIdAndJockeyIdAndStatusInExcludingRegistration(
                 tournament.tournamentId(),
                 jockeyId,
-                List.of(REGISTRATION_ACCEPTED, REGISTRATION_CONFIRMED),
+                ACTIVE_REGISTRATION_STATUSES,
                 excludedRegistrationId);
         if (sameTournamentRegistrations > 0) {
             throw new ApiException(HttpStatus.CONFLICT,
@@ -355,7 +357,7 @@ public class OwnerServiceImpl implements OwnerService {
                         jockeyId,
                         tournament.startDate(),
                         tournament.endDate(),
-                        List.of(REGISTRATION_ACCEPTED, REGISTRATION_CONFIRMED),
+                        ACTIVE_REGISTRATION_STATUSES,
                         excludedRegistrationId);
         if (overlappingRegistrations > 0) {
             throw new ApiException(HttpStatus.CONFLICT,
@@ -367,6 +369,7 @@ public class OwnerServiceImpl implements OwnerService {
                 tournament.startDate(),
                 tournament.endDate(),
                 INVITATION_PENDING,
+                LocalDateTime.now(),
                 excludedInvitationId)) {
             throw new ApiException(HttpStatus.CONFLICT,
                     "Nài ngựa này đã có lời mời đang chờ xử lý ở giải đấu trùng thời gian.");
@@ -386,7 +389,7 @@ public class OwnerServiceImpl implements OwnerService {
                         jockeyId,
                         tournament.startDate(),
                         tournament.endDate(),
-                        List.of(REGISTRATION_ACCEPTED, REGISTRATION_CONFIRMED),
+                        ACTIVE_REGISTRATION_STATUSES,
                         excludedRegistrationId);
         if (overlappingRegistrations > 0) {
             throw new ApiException(HttpStatus.CONFLICT,
@@ -399,6 +402,7 @@ public class OwnerServiceImpl implements OwnerService {
                 tournament.startDate(),
                 tournament.endDate(),
                 INVITATION_PENDING,
+                LocalDateTime.now(),
                 excludedInvitationId)) {
             throw new ApiException(HttpStatus.CONFLICT,
                     "Cặp ngựa và nài ngựa này đã có lời mời ở giải đấu trùng thời gian.");
@@ -502,7 +506,7 @@ public class OwnerServiceImpl implements OwnerService {
         if (tournament.maxParticipants() != null) {
             long activeRegistrations = registrationRepository.countByTournamentIdAndStatusIn(
                     tournament.tournamentId(),
-                    List.of(REGISTRATION_ACCEPTED, REGISTRATION_CONFIRMED));
+                    ACTIVE_REGISTRATION_STATUSES);
             if (activeRegistrations >= tournament.maxParticipants()) {
                 throw new ApiException(HttpStatus.CONFLICT, "Giải đấu đã đạt số người tham gia tối đa.");
             }
@@ -601,12 +605,12 @@ public class OwnerServiceImpl implements OwnerService {
         return hasActiveRegistration(registrationRepository.findRegistrationIdsByHorseId(horseId));
     }
 
-    // Kiểm tra danh sách registration có trạng thái active như ACCEPTED hoặc CONFIRMED.
+    // Kiểm tra danh sách registration có trạng thái active như PENDING hoặc APPROVED.
     private boolean hasActiveRegistration(Collection<Integer> registrationIds) {
         return !registrationIds.isEmpty()
                 && registrationRepository.countByRegistrationIdInAndStatusIn(
                 registrationIds,
-                List.of(REGISTRATION_ACCEPTED, REGISTRATION_CONFIRMED)) > 0;
+                ACTIVE_REGISTRATION_STATUSES) > 0;
     }
 
     // Chuyển entity invitation sang DTO, kèm thông tin tournament, horse, owner và jockey.

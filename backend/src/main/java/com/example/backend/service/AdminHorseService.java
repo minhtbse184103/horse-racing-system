@@ -8,6 +8,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.backend.constant.RegistrationStatus;
 import com.example.backend.dto.response.HorseResponse;
 import com.example.backend.entity.Horse;
 import com.example.backend.exception.ApiException;
@@ -19,8 +20,10 @@ public class AdminHorseService {
     private static final String STATUS_PENDING = "PENDING";
     private static final String STATUS_ACTIVE = "ACTIVE";
     private static final String STATUS_REJECTED = "REJECTED";
-    private static final String REGISTRATION_ACCEPTED = "ACCEPTED";
-    private static final String REGISTRATION_CONFIRMED = "CONFIRMED";
+    private static final List<String> ACTIVE_REGISTRATION_STATUSES = List.of(
+            RegistrationStatus.PENDING,
+            RegistrationStatus.APPROVED
+    );
 
     private final HorseRepository horseRepository;
     private final RegistrationRepository registrationRepository;
@@ -122,7 +125,7 @@ public class AdminHorseService {
         return !registrationIds.isEmpty()
                 && registrationRepository.countByRegistrationIdInAndStatusIn(
                 registrationIds,
-                List.of(REGISTRATION_ACCEPTED, REGISTRATION_CONFIRMED)) > 0;
+                ACTIVE_REGISTRATION_STATUSES) > 0;
     }
 
     private boolean hasText(String value) {

@@ -11,11 +11,9 @@ import com.example.backend.dto.request.UpdateMyAccountRequest;
 import com.example.backend.dto.response.JockeyProfileResponse;
 import com.example.backend.dto.response.UserResponse;
 import com.example.backend.entity.JockeyProfile;
-import com.example.backend.entity.Role;
 import com.example.backend.entity.User;
 import com.example.backend.exception.ApiException;
 import com.example.backend.repository.JockeyProfileRepository;
-import com.example.backend.repository.RoleRepository;
 import com.example.backend.repository.UserRepository;
 
 import lombok.AllArgsConstructor;
@@ -23,13 +21,9 @@ import lombok.AllArgsConstructor;
 @Service
 @AllArgsConstructor
 public class UserService {
-    private static final String ROLE_JOCKEY = "JOCKEY";
-    private static final String STATUS_PENDING = "PENDING";
-    private static final String STATUS_UNDER_REVIEW = "UNDER_REVIEW";
-    private static final String STATUS_REJECTED = "REJECTED";
+    private static final String ROLE_ADMIN = "ADMIN";
 
     private final UserRepository userRepository;
-    private final RoleRepository roleRepository;
     private final JockeyProfileRepository jockeyProfileRepository;
 
     @Transactional(readOnly = true)
@@ -43,6 +37,10 @@ public class UserService {
     public UserResponse updateCurrentUserAccount(String email, UpdateMyAccountRequest request) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy người dùng"));
+
+        if (hasText(request.getFullName())) {
+            user.setUsername(request.getFullName().trim());
+        }
 
         if (hasText(request.getEmail()) && !request.getEmail().equalsIgnoreCase(user.getEmail())) {
             userRepository.findByEmail(request.getEmail())
@@ -80,6 +78,7 @@ public class UserService {
     @Transactional
     public UserResponse updateUserByAdmin(Integer userID, AdminUpdateUserRequest request) {
         User user = findUserById(userID);
+        rejectAdminAccountManagement(user);
 
         if (hasText(request.getEmail()) && !request.getEmail().equalsIgnoreCase(user.getEmail())) {
             userRepository.findByEmail(request.getEmail())
@@ -102,22 +101,9 @@ public class UserService {
             user.setPhone(request.getPhone());
         }
 
-        if (hasText(request.getRoleName())) {
-            user.setRole(getRoleByName(request.getRoleName()));
-        }
-
         if (hasText(request.getStatus())) {
             String status = request.getStatus().trim().toUpperCase();
-            if (isJockeyReviewStatus(status) && !isJockey(user)) {
-                throw new ApiException(HttpStatus.BAD_REQUEST,
-                        "Các trạng thái PENDING, UNDER_REVIEW và REJECTED chỉ áp dụng cho người dùng nài ngựa.");
-            }
             user.setStatus(status);
-        }
-
-        if (isJockeyReviewStatus(user.getStatus()) && !isJockey(user)) {
-            throw new ApiException(HttpStatus.BAD_REQUEST,
-                    "Các trạng thái PENDING, UNDER_REVIEW và REJECTED chỉ áp dụng cho người dùng nài ngựa.");
         }
 
         return toResponse(userRepository.save(user));
@@ -126,6 +112,7 @@ public class UserService {
     @Transactional
     public UserResponse softDeleteUserByAdmin(Integer userID) {
         User user = findUserById(userID);
+        rejectAdminAccountManagement(user);
         user.setStatus("INACTIVE");
         return toResponse(userRepository.save(user));
     }
@@ -135,24 +122,19 @@ public class UserService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy người dùng"));
     }
 
-    private Role getRoleByName(String roleName) {
-        return roleRepository.findByRoleName(roleName.trim().toUpperCase())
-                .orElseThrow(() -> new ApiException(HttpStatus.INTERNAL_SERVER_ERROR,
-                        "Vai trò " + roleName + " chưa được khởi tạo trong hệ thống"));
-    }
-
     private boolean hasText(String value) {
         return value != null && !value.isBlank();
     }
 
-    private boolean isJockey(User user) {
-        return user.getRole() != null && ROLE_JOCKEY.equals(user.getRole().getRoleName());
+    private boolean isAdmin(User user) {
+        return user.getRole() != null && ROLE_ADMIN.equals(user.getRole().getRoleName());
     }
 
-    private boolean isJockeyReviewStatus(String status) {
-        return STATUS_PENDING.equals(status)
-                || STATUS_UNDER_REVIEW.equals(status)
-                || STATUS_REJECTED.equals(status);
+    private void rejectAdminAccountManagement(User user) {
+        if (isAdmin(user)) {
+            throw new ApiException(HttpStatus.FORBIDDEN,
+                    "Tai khoan admin chi duoc cap nhat o trang Tai khoan admin.");
+        }
     }
 
     public JockeyProfileResponse mapJockeyProfileToResponse(User jockey, JockeyProfile profile) {

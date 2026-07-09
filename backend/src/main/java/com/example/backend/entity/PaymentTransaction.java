@@ -57,14 +57,14 @@ public class PaymentTransaction {
     private String status;
 
     @Lob
-    @Column(name = "payUrl")
+    @Column(name = "payUrl", columnDefinition = "TEXT")
     private String payUrl;
 
     @Column(name = "responseCode", length = 20)
     private String responseCode;
 
     @Lob
-    @Column(name = "rawResponse")
+    @Column(name = "rawResponse", columnDefinition = "TEXT")
     private String rawResponse;
 
     @Column(name = "createdAt")

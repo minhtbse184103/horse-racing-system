@@ -48,6 +48,10 @@ public class OwnerTournamentRegistrationService {
             RegistrationStatus.PENDING,
             RegistrationStatus.APPROVED
     );
+    private static final List<String> RETRYABLE_PAYMENT_STATUSES = List.of(
+            PaymentStatus.UNPAID,
+            PaymentStatus.FAILED
+    );
 
     private final RegistrationRepository registrationRepository;
     private final TournamentRepository tournamentRepository;
@@ -96,6 +100,21 @@ public class OwnerTournamentRegistrationService {
         User jockey = getActiveJockeyWithProfile(request.getJockeyId());
 
         validateAcceptedInvitation(tournament, horse, owner, jockey);
+
+        Registration existingRegistration = findExistingActiveRegistration(
+                tournament,
+                horse,
+                owner,
+                jockey
+        );
+        if (existingRegistration != null) {
+            return createPaymentResponseForExistingRegistration(
+                    existingRegistration,
+                    tournament,
+                    clientIp
+            );
+        }
+
         validateDuplicateHorseRegistration(tournament, horse);
         validateDuplicateOwnerRegistration(tournament, owner);
         validateHorseAvailability(tournament, horse);
@@ -122,6 +141,57 @@ public class OwnerTournamentRegistrationService {
 
         return OwnerRegistrationPaymentResponse.builder()
                 .registration(toResponse(savedRegistration))
+                .paymentTransaction(vnpayPaymentService.toResponse(paymentTransaction))
+                .paymentUrl(paymentTransaction.getPayUrl())
+                .build();
+    }
+
+    private Registration findExistingActiveRegistration(
+            Tournament tournament,
+            Horse horse,
+            User owner,
+            User jockey
+    ) {
+        return registrationRepository
+                .findActiveByTournamentHorseOwnerAndJockey(
+                        tournament.getTournamentId(),
+                        horse.getHorseId(),
+                        owner.getUserID(),
+                        jockey.getUserID(),
+                        ACTIVE_REGISTRATION_STATUSES
+                )
+                .stream()
+                .findFirst()
+                .orElse(null);
+    }
+
+    private OwnerRegistrationPaymentResponse createPaymentResponseForExistingRegistration(
+            Registration registration,
+            Tournament tournament,
+            String clientIp
+    ) {
+        if (PaymentStatus.PAID.equals(registration.getPaymentStatus())) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "Registration fee has already been paid."
+            );
+        }
+
+        if (!RETRYABLE_PAYMENT_STATUSES.contains(registration.getPaymentStatus())) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "Registration cannot be paid from its current payment status."
+            );
+        }
+
+        var paymentTransaction = vnpayPaymentService.createRegistrationFeePayment(
+                registration,
+                tournament,
+                clientIp
+        );
+
+        return OwnerRegistrationPaymentResponse.builder()
+                .registration(toResponse(registration))
                 .paymentTransaction(vnpayPaymentService.toResponse(paymentTransaction))
                 .paymentUrl(paymentTransaction.getPayUrl())
                 .build();

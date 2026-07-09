@@ -19,9 +19,6 @@ public class AdminUpdateUserRequest {
     @Pattern(regexp = "^\\+?[0-9]{9,15}$", message = "Số điện thoại phải gồm 9-15 chữ số và có thể bắt đầu bằng +")
     private String phone;
 
-    @Pattern(regexp = "(?i)ADMIN|OWNER|JOCKEY|REFEREE|SPECTATOR", message = "Vai trò phải là ADMIN, OWNER, JOCKEY, REFEREE hoặc SPECTATOR")
-    private String roleName;
-
-    @Pattern(regexp = "(?i)PENDING|UNDER_REVIEW|ACTIVE|REJECTED|INACTIVE|BLOCKED", message = "Trạng thái phải là PENDING, UNDER_REVIEW, ACTIVE, REJECTED, INACTIVE hoặc BLOCKED")
+    @Pattern(regexp = "(?i)ACTIVE|INACTIVE|BLOCKED", message = "Trang thai phai la ACTIVE, INACTIVE hoac BLOCKED")
     private String status;
 }

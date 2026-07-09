@@ -214,6 +214,24 @@ public interface RegistrationRepository
     );
 
     @Query("""
+        select registration
+        from Registration registration
+        where registration.tournamentId = :tournamentId
+          and registration.horseId = :horseId
+          and registration.ownerId = :ownerId
+          and registration.jockeyId = :jockeyId
+          and registration.approvalStatus in :statuses
+        order by registration.submittedAt desc
+        """)
+    List<Registration> findActiveByTournamentHorseOwnerAndJockey(
+            @Param("tournamentId") Integer tournamentId,
+            @Param("horseId") Integer horseId,
+            @Param("ownerId") Integer ownerId,
+            @Param("jockeyId") Integer jockeyId,
+            @Param("statuses") Collection<String> statuses
+    );
+
+    @Query("""
         select count(registration)
         from Registration registration
         where registration.tournamentId = :tournamentId

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   ClipboardCheck,
@@ -7,6 +7,7 @@ import {
   Gavel,
   LayoutDashboard,
   LogOut,
+  Settings,
   ShieldCheck,
   Trophy,
   Users,
@@ -14,6 +15,7 @@ import {
 } from 'lucide-react';
 
 import AdminOverview from './AdminOverview';
+import AdminSettings from './AdminAccountSettings';
 import TournamentWorkspace from './events/TournamentWorkspace';
 import HorseReview from './horses/HorseReview';
 import JockeyReview from './reviews/JockeyReview';
@@ -23,7 +25,6 @@ import OwnerApplicationManagement from './ownerApplications/OwnerApplicationMana
 import UserManagement from './users/UserManagement';
 import { formatDisplayLabel } from '../../lib';
 import { tapPress } from './ui/motion';
-import LanguageToggle from '../common/LanguageToggle';
 import { useLanguage } from '../../context/LanguageContext';
 import WalletTransferPanel from '../payment/WalletTransferPanel';
 
@@ -84,8 +85,16 @@ const adminNavItems = [
   }
 ];
 
+const settingsNavItem = {
+  key: 'settings',
+  labelKey: 'settings',
+  descriptionKey: 'settingsDescription',
+  icon: Settings
+};
+
 export default function AdminDashboard({ currentUser, onLogout }) {
   const { t } = useLanguage();
+  const [currentAdmin, setCurrentAdmin] = useState(currentUser);
   const [activeSection, setActiveSection] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.has('vnp_TxnRef') || params.has('vnp_SecureHash')) return 'wallet';
@@ -93,9 +102,13 @@ export default function AdminDashboard({ currentUser, onLogout }) {
   });
   const [eventFocus, setEventFocus] = useState(null);
   const adminName =
-    currentUser?.username || currentUser?.fullName || currentUser?.email || 'Admin';
+    currentAdmin?.username || currentAdmin?.fullName || currentAdmin?.email || 'Admin';
   const activeNavItem =
-    adminNavItems.find((item) => item.key === activeSection) || adminNavItems[0];
+    [...adminNavItems, settingsNavItem].find((item) => item.key === activeSection) || adminNavItems[0];
+
+  useEffect(() => {
+    setCurrentAdmin(currentUser);
+  }, [currentUser]);
 
   function navigateAdmin(section, focus = null) {
     setActiveSection(section);
@@ -105,13 +118,14 @@ export default function AdminDashboard({ currentUser, onLogout }) {
   const activeContent = {
     overview: <AdminOverview onNavigate={navigateAdmin} />,
     users: <UserManagement />,
+    settings: <AdminSettings currentUser={currentAdmin} onUserUpdated={setCurrentAdmin} />,
     ownerApplications: <OwnerApplicationManagement />,
     events: <TournamentWorkspace adminName={adminName} focus={eventFocus} onFocusHandled={() => setEventFocus(null)} onNavigateToResultReview={() => setActiveSection('raceResultReviews')} />,
     refereeAssignments: <RefereeAssignmentManagement />,
     raceResultReviews: <AdminRaceResultReview />,
     jockeyReviews: <JockeyReview />,
     horseReviews: <HorseReview />,
-    wallet: <WalletTransferPanel currentUser={currentUser} role="ADMIN" />
+    wallet: <WalletTransferPanel currentUser={currentAdmin} role="ADMIN" />
   }[activeSection];
 
   return (
@@ -202,6 +216,19 @@ export default function AdminDashboard({ currentUser, onLogout }) {
           </div>
 
           <button
+            className={`mb-2 flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-extrabold shadow-sm transition hover:-translate-y-0.5 lg:w-full ${
+              activeSection === settingsNavItem.key
+                ? 'border-gold-400/35 bg-gold-400 text-brown-900'
+                : 'border-white/10 bg-white/[0.08] text-white/80 hover:bg-white hover:text-brown-700'
+            }`}
+            type="button"
+            onClick={() => navigateAdmin(settingsNavItem.key)}
+          >
+            <Settings size={17} />
+            <span>{t(settingsNavItem.labelKey)}</span>
+          </button>
+
+          <button
             className="flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-lg border border-white/10 bg-white px-3 py-2 text-sm font-extrabold text-brown-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-cream-100 lg:w-full"
             type="button"
             onClick={onLogout}
@@ -209,9 +236,6 @@ export default function AdminDashboard({ currentUser, onLogout }) {
             <LogOut size={17} />
             <span className="hidden sm:inline">{t('logout')}</span>
           </button>
-          <div className="mt-2 lg:mt-3">
-            <LanguageToggle className="w-full border-white/10 bg-white/95" />
-          </div>
         </div>
       </aside>
 
