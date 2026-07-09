@@ -27,10 +27,11 @@ const jockeyNavItems = [
 ];
 
 const rankingOptions = ['BEGINNER', 'INTERMEDIATE', 'PROFESSIONAL', 'ELITE'];
-const INVITATION_STATUS_OPTIONS = ['ALL', 'PENDING', 'ACCEPTED', 'REJECTED', 'EXPIRED'];
+const INVITATION_STATUS_OPTIONS = ['ALL', 'PENDING', 'ACCEPTED', 'APPROVED', 'REJECTED', 'EXPIRED'];
 const INVITATION_TABS = [
   { key: 'PENDING', label: 'Pending' },
   { key: 'ACCEPTED', label: 'Accepted' },
+  { key: 'APPROVED', label: 'Approved' },
   { key: 'REJECTED', label: 'Declined' },
   { key: 'EXPIRED', label: 'Expired' }
 ];
@@ -514,6 +515,10 @@ function countByStatus(invitations, status) {
   return invitations.filter((invitation) => String(invitation.status || '').toUpperCase() === status).length;
 }
 
+function isAcceptedInvitation(invitation) {
+  return ['ACCEPTED', 'APPROVED'].includes(String(invitation?.status || '').toUpperCase());
+}
+
 function getWinRate(profile) {
   const totalRaces = Number(profile?.totalRaces ?? 0);
   const totalWins = Number(profile?.totalWins ?? 0);
@@ -611,7 +616,7 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
 
   const latestInvitations = useMemo(() => invitations.slice(0, 5), [invitations]);
   const pendingInvitationCount = countByStatus(invitations, 'PENDING');
-  const acceptedInvitationCount = countByStatus(invitations, 'ACCEPTED');
+  const acceptedInvitationCount = invitations.filter(isAcceptedInvitation).length;
   const profileCompletionItems = [
     profile?.fullName || profileForm.applicantFullName,
     profile?.email || profileForm.applicantEmail,

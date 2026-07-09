@@ -417,6 +417,19 @@ public class OwnerServiceImpl implements OwnerService {
         if (!INVITATION_PENDING.equals(invitation.getStatus())) {
             throw new ApiException(HttpStatus.CONFLICT, "Chỉ có thể hủy lời mời đang ở trạng thái PENDING.");
         }
+
+        invitation.setStatus(INVITATION_CANCELLED);
+        invitation.setRespondedAt(LocalDateTime.now());
+
+        if (invitation.getRegistrationId() != null) {
+            registrationRepository.findById(invitation.getRegistrationId())
+                    .ifPresent(registration -> {
+                        registration.setStatus(REGISTRATION_CANCELLED);
+                        registration.setReviewedAt(LocalDateTime.now());
+                        registrationRepository.save(registration);
+                    });
+        }
+
         return mapInvitationToResponse(jockeyInvitationRepository.save(invitation));
     }
 

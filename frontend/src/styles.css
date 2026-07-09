@@ -2860,8 +2860,26 @@ select {
   order: 1;
 }
 
+.registration-payment-active .owner-registration-layout {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  overflow-y: auto;
+  background: rgba(43, 23, 16, 0.42);
+  padding: 32px 24px;
+  backdrop-filter: blur(8px);
+  order: 1;
+}
+
 .invite-overview-active .flow-only,
 .invite-overview-active .owner-application-step-strip {
+  display: none !important;
+}
+
+.registration-payment-active .owner-application-step-strip,
+.registration-payment-active .owner-registration-sidebar {
   display: none !important;
 }
 
@@ -2869,7 +2887,8 @@ select {
   display: none !important;
 }
 
-.invite-flow-active .owner-registration-main {
+.invite-flow-active .owner-registration-main,
+.registration-payment-active .owner-registration-main {
   width: min(1120px, 100%);
   max-height: calc(100vh - 148px);
   overflow-y: auto;
@@ -2889,6 +2908,14 @@ select {
   transform: translateX(-50%);
   box-shadow: 0 20px 54px rgba(43, 23, 16, 0.2);
   order: 0;
+}
+
+.registration-payment-active .owner-registration-main > .overview-only {
+  display: none !important;
+}
+
+.invite-flow-active .owner-registration-main > .overview-only:not(.registration-step-overview) {
+  display: none !important;
 }
 
 .invite-flow-active .owner-registration-main > .flow-only {
@@ -2937,8 +2964,8 @@ select {
 }
 
 .owner-application-style .registration-horse-grid::before {
-  content: "Ngựa  Tuổi/giống  Health cert  Trạng thái  Thao tác";
-  grid-template-columns: 1.5fr 1fr 1fr 0.8fr 0.9fr;
+  content: "Horse name  Breeding  Trạng thái  Thao tác";
+  grid-template-columns: 1.4fr 1fr 1fr 1.35fr;
   white-space: pre;
 }
 
@@ -2946,6 +2973,25 @@ select {
   content: "Jockey  License  Tổng race  Win rate  Top 3  Vi phạm  Gần nhất  Thao tác";
   grid-template-columns: 1.3fr 1fr 0.75fr 0.75fr 0.75fr 0.7fr 1fr 1.65fr;
   white-space: pre;
+}
+
+.owner-application-style .registration-horse-grid::before {
+  display: none;
+  content: none;
+}
+
+.owner-application-style .registration-horse-header {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  align-items: center;
+  border-bottom: 1px solid rgba(108, 63, 36, 0.1);
+  background: rgba(247, 234, 216, 0.62);
+  padding: 12px 14px;
+  color: var(--slate-500);
+  font-size: 0.72rem;
+  font-weight: 950;
+  text-transform: uppercase;
 }
 
 .owner-application-style .tournament-choice-card {
@@ -3027,7 +3073,7 @@ select {
 .owner-application-style .registration-horse-card {
   display: grid;
   grid-template-areas: none;
-  grid-template-columns: 1.5fr 1fr 1fr 0.8fr 0.9fr;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
   align-items: center;
   border: 0;
@@ -3043,8 +3089,20 @@ select {
 
 .owner-application-style .registration-horse-card strong,
 .owner-application-style .registration-horse-card small,
-.owner-application-style .registration-horse-card em {
+.owner-application-style .registration-horse-card em,
+.owner-application-style .registration-horse-status,
+.owner-application-style .registration-horse-mini-stats,
+.owner-application-style .registration-horse-actions {
   grid-area: auto;
+}
+
+.owner-application-style .registration-horse-status {
+  justify-self: start;
+}
+
+.owner-application-style .registration-horse-actions {
+  justify-content: flex-start;
+  margin-top: 0;
 }
 
 .owner-application-style .registration-horse-card::after {
@@ -3081,6 +3139,11 @@ select {
   content: "Đã tham gia";
   background: rgba(176, 42, 42, 0.1);
   color: #b02a2a;
+}
+
+.owner-application-style .registration-horse-card::before,
+.owner-application-style .registration-horse-card::after {
+  display: none !important;
 }
 
 .owner-application-style .owner-jockey-card {
@@ -3361,7 +3424,8 @@ select {
   grid-template-areas:
     "avatar name"
     "avatar meta"
-    "avatar note";
+    "avatar status"
+    "avatar actions";
   gap: 3px 12px;
   align-items: center;
   border: 1px solid rgba(108, 63, 36, 0.12);
@@ -3404,8 +3468,89 @@ select {
   display: none;
 }
 
-.registration-horse-card:not(:disabled) {
-  cursor: pointer;
+.registration-horse-card .primary-button,
+.registration-horse-card .outline-button {
+  min-height: 36px;
+  margin: 0;
+  padding: 8px 12px;
+}
+
+.registration-horse-mini-stats {
+  grid-area: stats;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 6px;
+}
+
+.registration-horse-mini-stats span {
+  display: grid;
+  gap: 2px;
+  border-radius: 8px;
+  background: rgba(247, 234, 216, 0.58);
+  padding: 7px 8px;
+  color: var(--slate-500);
+  font-size: 0.68rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.registration-horse-mini-stats strong {
+  color: var(--brown-900);
+  font-size: 0.78rem;
+  text-transform: none;
+}
+
+.owner-application-style .registration-horse-mini-stats {
+  margin-top: 0;
+}
+
+.owner-application-style .registration-horse-mini-stats span {
+  padding: 6px 7px;
+}
+
+.registration-horse-actions {
+  grid-area: actions;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.registration-horse-status {
+  grid-area: status;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  max-width: 100%;
+  border-radius: 999px;
+  background: rgba(46, 125, 50, 0.12);
+  color: #2e7d32;
+  padding: 6px 10px;
+  font-size: 0.76rem;
+  font-weight: 950;
+  overflow-wrap: anywhere;
+}
+
+.registration-horse-card.unavailable .registration-horse-status,
+.registration-horse-card.has-active-invite .registration-horse-status,
+.registration-horse-card.participated .registration-horse-status {
+  background: rgba(176, 42, 42, 0.12);
+  color: #b02a2a;
+}
+
+.registration-horse-selected-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  border-radius: 8px;
+  background: rgba(0, 84, 75, 0.1);
+  color: #00544b;
+  padding: 8px 12px;
+  font-size: 0.84rem;
+  font-weight: 950;
 }
 
 .registration-horse-card:disabled {
