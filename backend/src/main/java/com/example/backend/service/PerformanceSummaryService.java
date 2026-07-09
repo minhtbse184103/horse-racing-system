@@ -72,16 +72,13 @@ public class PerformanceSummaryService {
                         "Race entry registration does not have a jockey.");
             }
 
-            BigDecimal finishTime = parseFinishTime(result.getFinishTime());
             updateHorseSummary(
                     registration.getHorseId(),
                     result.getFinishPosition(),
-                    finishTime,
                     now);
             updateJockeySummary(
                     registration.getJockeyId(),
                     result.getFinishPosition(),
-                    finishTime,
                     now);
         }
     }
@@ -89,7 +86,6 @@ public class PerformanceSummaryService {
     private void updateHorseSummary(
             Integer horseId,
             Integer finishPosition,
-            BigDecimal finishTime,
             LocalDateTime now
     ) {
         HorsePerformanceSummary summary = horseSummaryRepository.findById(horseId)
@@ -105,7 +101,6 @@ public class PerformanceSummaryService {
 
         summary.setTotalRaces(value(summary.getTotalRaces()) + 1);
         incrementTopCounts(summary, finishPosition);
-        summary.setBestTime(best(summary.getBestTime(), finishTime));
         summary.setLastUpdatedAt(now);
 
         horseSummaryRepository.save(summary);
@@ -114,7 +109,6 @@ public class PerformanceSummaryService {
     private void updateJockeySummary(
             Integer jockeyId,
             Integer finishPosition,
-            BigDecimal finishTime,
             LocalDateTime now
     ) {
         JockeyPerformanceSummary summary = jockeySummaryRepository.findById(jockeyId)
@@ -131,7 +125,6 @@ public class PerformanceSummaryService {
         summary.setTotalRaces(value(summary.getTotalRaces()) + 1);
         incrementTopCounts(summary, finishPosition);
         summary.setWinRate(calculateWinRate(summary));
-        summary.setBestFinishTime(best(summary.getBestFinishTime(), finishTime));
         summary.setLastUpdatedAt(now);
 
         jockeySummaryRepository.save(summary);
@@ -164,38 +157,6 @@ public class PerformanceSummaryService {
         return BigDecimal.valueOf(value(summary.getTop1Count()))
                 .multiply(ONE_HUNDRED)
                 .divide(BigDecimal.valueOf(summary.getTotalRaces()), 2, RoundingMode.HALF_UP);
-    }
-
-    private BigDecimal best(BigDecimal currentBest, BigDecimal candidate) {
-        if (candidate == null) {
-            return currentBest;
-        }
-        if (currentBest == null || candidate.compareTo(currentBest) < 0) {
-            return candidate;
-        }
-        return currentBest;
-    }
-
-    private BigDecimal parseFinishTime(String finishTime) {
-        if (finishTime == null || finishTime.isBlank()) {
-            return null;
-        }
-
-        String normalized = finishTime.trim().toLowerCase().replace("s", "");
-        try {
-            if (!normalized.contains(":")) {
-                return new BigDecimal(normalized).setScale(3, RoundingMode.HALF_UP);
-            }
-
-            BigDecimal totalSeconds = BigDecimal.ZERO;
-            for (String part : normalized.split(":")) {
-                totalSeconds = totalSeconds.multiply(BigDecimal.valueOf(60))
-                        .add(new BigDecimal(part));
-            }
-            return totalSeconds.setScale(3, RoundingMode.HALF_UP);
-        } catch (NumberFormatException ex) {
-            return null;
-        }
     }
 
     private int value(Integer value) {

@@ -301,6 +301,48 @@ CREATE TABLE `Registration` (
     )
 );
 
+CREATE TABLE `user_verifications` (
+  `verification_id` int PRIMARY KEY AUTO_INCREMENT,
+  `user_id` int UNIQUE NOT NULL,
+  `status` varchar(30) NOT NULL DEFAULT 'NOT_SUBMITTED',
+  `full_name` varchar(150) NOT NULL,
+  `date_of_birth` date NOT NULL,
+  `identity_number` varchar(30) UNIQUE NOT NULL,
+  `identity_front_url` text NOT NULL,
+  `identity_back_url` text NOT NULL,
+  `selfie_url` text NOT NULL,
+  `submitted_at` datetime NOT NULL,
+  `reviewed_at` datetime,
+  `reviewed_by` int,
+  `rejection_reason` varchar(500),
+  `expires_at` datetime,
+  `created_at` datetime NOT NULL,
+  `updated_at` datetime NOT NULL,
+  CONSTRAINT `chk_user_verification_status`
+    CHECK (`status` IN (
+      'NOT_SUBMITTED', 'PENDING', 'VERIFIED', 'REJECTED', 'EXPIRED'
+    )),
+  CONSTRAINT `chk_user_verification_review`
+    CHECK (
+      (`status` = 'PENDING'
+        AND `reviewed_at` IS NULL
+        AND `reviewed_by` IS NULL)
+      OR
+      (`status` IN ('VERIFIED', 'REJECTED', 'EXPIRED')
+        AND `reviewed_at` IS NOT NULL
+        AND `reviewed_by` IS NOT NULL)
+      OR
+      (`status` = 'NOT_SUBMITTED')
+    ),
+  CONSTRAINT `chk_user_verification_rejection`
+    CHECK (
+      (`status` = 'REJECTED'
+        AND `rejection_reason` IS NOT NULL)
+      OR
+      (`status` <> 'REJECTED')
+    )
+);
+
 CREATE TABLE `Wallet` (
   `walletID` int PRIMARY KEY AUTO_INCREMENT,
   `userID` int UNIQUE NOT NULL,
@@ -706,6 +748,10 @@ ALTER TABLE `Registration` ADD FOREIGN KEY (`ownerID`) REFERENCES `Users` (`user
 ALTER TABLE `Registration` ADD FOREIGN KEY (`jockeyID`) REFERENCES `Users` (`userID`);
 
 ALTER TABLE `Registration` ADD FOREIGN KEY (`reviewedBy`) REFERENCES `Users` (`userID`);
+
+ALTER TABLE `user_verifications` ADD FOREIGN KEY (`user_id`) REFERENCES `Users` (`userID`);
+
+ALTER TABLE `user_verifications` ADD FOREIGN KEY (`reviewed_by`) REFERENCES `Users` (`userID`);
 
 ALTER TABLE `Wallet` ADD FOREIGN KEY (`userID`) REFERENCES `Users` (`userID`);
 

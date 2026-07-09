@@ -3,6 +3,7 @@ package com.example.backend.service;
 import com.example.backend.constant.WalletReferenceType;
 import com.example.backend.constant.WalletStatus;
 import com.example.backend.constant.WalletTransactionType;
+import com.example.backend.enums.KycStatus;
 import com.example.backend.dto.request.WalletDepositRequest;
 import com.example.backend.dto.response.WalletDepositResponse;
 import com.example.backend.dto.response.WalletResponse;
@@ -12,6 +13,7 @@ import com.example.backend.entity.Wallet;
 import com.example.backend.entity.WalletTransaction;
 import com.example.backend.exception.ApiException;
 import com.example.backend.repository.UserRepository;
+import com.example.backend.repository.UserVerificationRepository;
 import com.example.backend.repository.WalletRepository;
 import com.example.backend.repository.WalletTransactionRepository;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Set;
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -31,11 +34,12 @@ public class WalletService {
 
     private static final String VND = "VND";
     private static final Set<String> WALLET_ALLOWED_ROLES =
-            Set.of("ADMIN", "OWNER", "SPECTATOR", "JOCKEY");
+            Set.of("OWNER", "SPECTATOR", "JOCKEY");
 
     private final UserRepository userRepository;
     private final WalletRepository walletRepository;
     private final WalletTransactionRepository walletTransactionRepository;
+    private final UserVerificationRepository userVerificationRepository;
     private final VnpayPaymentService vnpayPaymentService;
 
     @Transactional
@@ -44,15 +48,10 @@ public class WalletService {
         validateWalletAllowedRole(user);
 
         Wallet wallet = walletRepository.findByUserId(user.getUserID())
-                .orElseGet(() -> {
-                    Wallet createdWallet = walletRepository.save(newWallet(user.getUserID()));
-                    log.info(
-                            "Created wallet for user. userId={}, walletId={}",
-                            user.getUserID(),
-                            createdWallet.getWalletId()
-                    );
-                    return createdWallet;
-                });
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "Ví chưa được mở. Vui lòng hoàn tất xác minh KYC."
+                ));
         return mapToResponse(wallet);
     }
 
@@ -64,6 +63,7 @@ public class WalletService {
     ) {
         User user = getUserByEmail(email);
         validateWalletAllowedRole(user);
+        validateVerifiedKyc(user);
         BigDecimal amount = normalizeAmount(request.getAmount());
 
         Wallet wallet = walletRepository.findByUserIdForUpdate(user.getUserID())
@@ -155,6 +155,28 @@ public class WalletService {
             throw new ApiException(
                     HttpStatus.CONFLICT,
                     "Ví hiện không hoạt động."
+            );
+        }
+    }
+
+    private void validateVerifiedKyc(User user) {
+        var verification = userVerificationRepository
+                .findByUserId(user.getUserID())
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.FORBIDDEN,
+                        "Bạn phải hoàn tất xác minh KYC trước khi nạp tiền."
+                ));
+        if (KycStatus.VERIFIED != verification.getStatus()) {
+            throw new ApiException(
+                    HttpStatus.FORBIDDEN,
+                    "Hồ sơ KYC chưa được xác minh."
+            );
+        }
+        if (verification.getExpiresAt() != null
+                && !verification.getExpiresAt().isAfter(LocalDateTime.now())) {
+            throw new ApiException(
+                    HttpStatus.FORBIDDEN,
+                    "Hồ sơ KYC đã hết hạn."
             );
         }
     }

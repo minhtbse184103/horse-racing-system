@@ -28,7 +28,7 @@ public class WalletController {
     private final WalletService walletService;
 
     @GetMapping("/me")
-    @PreAuthorize("hasAnyRole('ADMIN', 'OWNER', 'SPECTATOR', 'JOCKEY')")
+    @PreAuthorize("hasAnyRole('OWNER', 'SPECTATOR', 'JOCKEY')")
     @Operation(summary = "Xem số dư ví của người dùng hiện tại")
     public ResponseEntity<ApiResponse<WalletResponse>> getMyWallet(
             Authentication authentication
@@ -42,7 +42,7 @@ public class WalletController {
     }
 
     @PostMapping("/me/deposits")
-    @PreAuthorize("hasAnyRole('ADMIN', 'OWNER', 'SPECTATOR', 'JOCKEY')")
+    @PreAuthorize("hasAnyRole('OWNER', 'SPECTATOR', 'JOCKEY')")
     @Operation(summary = "Tạo thanh toán VNPAY để nạp tiền vào ví")
     public ResponseEntity<ApiResponse<WalletDepositResponse>> createDepositPayment(
             Authentication authentication,
