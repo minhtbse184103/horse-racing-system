@@ -30,6 +30,15 @@ function isOwnerSection(section) {
   return section === 'overview' || section === 'horses' || section === 'register' || section === 'wallet' || section === 'profile';
 }
 
+function hasRegistrationPaymentReturn(params) {
+  if (!params.has('vnp_TxnRef') && !params.has('vnp_SecureHash')) return false;
+  try {
+    return window.localStorage.getItem('owner_registration_payment_pending') === 'true';
+  } catch {
+    return false;
+  }
+}
+
 function readImageFile(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -64,6 +73,7 @@ function getHorseDocumentUrl(file) {
 export default function OwnerDashboard({ currentUser, onLogout, onUserUpdated }) {
   const [activeSection, setActiveSection] = useState(() => {
     const params = new URLSearchParams(window.location.search);
+    if (hasRegistrationPaymentReturn(params)) return 'register';
     if (params.has('vnp_TxnRef') || params.has('vnp_SecureHash')) return 'wallet';
     const section = params.get('section');
     return isOwnerSection(section) ? section : 'overview';

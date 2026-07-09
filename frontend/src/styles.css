@@ -3372,6 +3372,38 @@ select {
   text-align: left;
 }
 
+.owner-application-style .registration-horse-card.has-active-invite {
+  opacity: 0.52;
+}
+
+.owner-application-style .registration-horse-card.has-active-invite::before {
+  content: "Đã tham gia";
+  display: inline-flex;
+  background: rgba(176, 42, 42, 0.1);
+  color: #b02a2a;
+}
+
+.owner-application-style .registration-horse-card.has-active-invite::after {
+  content: "";
+  display: none;
+}
+
+.owner-application-style .registration-horse-card.participated {
+  opacity: 0.62;
+}
+
+.owner-application-style .registration-horse-card.participated::before {
+  content: "Đã tham gia";
+  display: inline-flex;
+  background: rgba(176, 42, 42, 0.1);
+  color: #b02a2a;
+}
+
+.owner-application-style .registration-horse-card.participated::after {
+  content: "";
+  display: none;
+}
+
 .registration-horse-card:not(:disabled) {
   cursor: pointer;
 }
@@ -3384,6 +3416,16 @@ select {
 .registration-horse-card.unavailable {
   border-color: rgba(176, 42, 42, 0.18);
   background: rgba(255, 242, 242, 0.72);
+}
+
+.registration-horse-card.has-active-invite {
+  opacity: 0.52;
+  cursor: not-allowed;
+}
+
+.registration-horse-card.participated {
+  opacity: 0.62;
+  cursor: not-allowed;
 }
 
 .registration-horse-card.selected {
@@ -3593,6 +3635,69 @@ select {
   margin-bottom: 14px;
 }
 
+.owner-invite-toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 12px;
+  margin: 14px 0;
+  padding: 14px;
+  border: 1px solid rgba(108, 63, 36, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.owner-invite-select-field {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.owner-invite-toolbar-button {
+  min-height: 46px;
+  white-space: nowrap;
+}
+
+.selected-jockey-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  min-height: 46px;
+}
+
+.owner-jockey-actions .primary-button.compact-primary {
+  display: none;
+}
+
+.owner-payment-waiting {
+  border-style: dashed;
+}
+
+.wizard-step-hidden {
+  display: none !important;
+}
+
+.wizard-navigation {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.wizard-navigation-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.wizard-nav-button {
+  min-width: 118px;
+  min-height: 44px;
+  justify-content: center;
+}
+
 .owner-invite-context-card,
 .owner-jockey-card {
   border: 1px solid rgba(108, 63, 36, 0.12);
@@ -3653,7 +3758,7 @@ select {
 }
 
 .owner-jockey-picker {
-  display: grid;
+  display: none !important;
   gap: 12px;
   margin-top: 14px;
 }
@@ -3812,6 +3917,7 @@ select {
   .tournament-card-grid,
   .registration-horse-grid,
   .owner-invite-context-grid,
+  .owner-invite-toolbar,
   .owner-invite-context-list,
   .owner-jockey-metrics,
   .jockey-detail-split,
