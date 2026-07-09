@@ -4,8 +4,10 @@ import { DownloadCloud, Flag, Plus } from 'lucide-react';
 import RaceEditorCard from './RaceEditorCard';
 import OurHubImportDialog from './OurHubImportDialog';
 import { WizardSectionHeading, WizardValidationBanner } from './WizardPrimitives';
+import { useLanguage } from '../../../../context/LanguageContext';
 
 export default function RaceConfigStep({ draft, errors, onAddRace, onUpdateRace, onUpdateRaces }) {
+  const { t } = useLanguage();
   const [importOpen, setImportOpen] = useState(false);
 
   function importRaces(importedRaces) {
@@ -18,15 +20,15 @@ export default function RaceConfigStep({ draft, errors, onAddRace, onUpdateRace,
   return (
     <div>
       <WizardSectionHeading
-        eyebrow="Bước 2 trên 4"
-        title="Cấu hình Race"
-        description="Thêm Race trực tiếp vào Tournament. Mỗi Race có đường đua, thời gian, cự ly và sức chứa riêng."
+        eyebrow={t('eventWizardStepCounter', { step: 2 })}
+        title={t('eventWizardStepRaceConfig')}
+        description={t('eventWizardRaceConfigDescription')}
         action={(
           <div className="flex flex-wrap items-center gap-2">
             <button type="button" onClick={() => setImportOpen(true)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border border-brown-700/15 bg-white px-4 text-sm font-extrabold text-brown-700 shadow-sm hover:bg-cream-200">
-              <DownloadCloud size={16} /> Import Race từ OurHub
+              <DownloadCloud size={16} /> {t('eventWizardImportOurHub')}
             </button>
-            <button type="button" onClick={onAddRace} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-brown-700 px-4 text-sm font-extrabold text-white shadow-md hover:bg-brown-900"><Plus size={16} /> Thêm Race</button>
+            <button type="button" onClick={onAddRace} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-brown-700 px-4 text-sm font-extrabold text-white shadow-md hover:bg-brown-900"><Plus size={16} /> {t('eventWizardAddRace')}</button>
           </div>
         )}
       />
@@ -45,7 +47,7 @@ export default function RaceConfigStep({ draft, errors, onAddRace, onUpdateRace,
         ))}
         {draft.races.length === 0 && (
           <div className="grid min-h-72 place-items-center rounded-lg border border-dashed border-brown-700/20 bg-white/45 p-8 text-center">
-            <div><span className="mx-auto grid size-12 place-items-center rounded-lg bg-cream-200 text-brown-700"><Flag size={22} /></span><h4 className="mt-4 text-lg font-black text-brown-900">Chưa cấu hình Race</h4><p className="mx-auto mt-1 max-w-sm text-sm font-semibold leading-6 text-slate-500">Thêm Race đầu tiên. Race sẽ thuộc trực tiếp Tournament này và có cơ cấu giải thưởng riêng.</p><button type="button" onClick={onAddRace} className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-lg bg-brown-700 px-4 text-sm font-extrabold text-white hover:bg-brown-900"><Plus size={16} /> Thêm Race đầu tiên</button></div>
+            <div><span className="mx-auto grid size-12 place-items-center rounded-lg bg-cream-200 text-brown-700"><Flag size={22} /></span><h4 className="mt-4 text-lg font-black text-brown-900">{t('eventWizardNoRaceTitle')}</h4><p className="mx-auto mt-1 max-w-sm text-sm font-semibold leading-6 text-slate-500">{t('eventWizardNoRaceHint')}</p><button type="button" onClick={onAddRace} className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-lg bg-brown-700 px-4 text-sm font-extrabold text-white hover:bg-brown-900"><Plus size={16} /> {t('eventWizardAddFirstRace')}</button></div>
           </div>
         )}
       </div>

@@ -6,6 +6,7 @@ import TournamentActions from './TournamentActions';
 import TournamentDetails from './TournamentDetails';
 import { formatTournamentDate } from './tournamentWorkspaceUtils';
 import VenueImage from './VenueImage';
+import { useLanguage } from '../../../../context/LanguageContext';
 
 export default function TournamentMobileCard({
   tournament,
@@ -17,6 +18,8 @@ export default function TournamentMobileCard({
   onDelete,
   operationsProps
 }) {
+  const { t } = useLanguage();
+
   return (
     <motion.article layout className="border-b border-brown-700/10 last:border-b-0">
       <div className="p-5">
@@ -33,7 +36,7 @@ export default function TournamentMobileCard({
             type="button"
             onClick={onToggle}
             className="grid size-9 shrink-0 place-items-center rounded-lg bg-cream-200 text-brown-700"
-            aria-label={expanded ? 'Thu gọn thông tin Tournament' : 'Mở rộng thông tin Tournament'}
+            aria-label={expanded ? t('eventCommonClose') : t('eventCommonViewDetail')}
           >
             {expanded ? <ChevronDown size={17} /> : <ChevronRight size={17} />}
           </button>

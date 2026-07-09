@@ -1,8 +1,11 @@
 import { motion } from 'framer-motion';
 import { Check } from 'lucide-react';
 import { WIZARD_STEPS } from './wizardConstants';
+import { useLanguage } from '../../../../context/LanguageContext';
 
 export default function WizardStepper({ step }) {
+  const { t } = useLanguage();
+
   return (
     <div className="shrink-0 border-b border-brown-700/10 bg-cream-200/55 px-4 py-2.5 md:px-6 md:py-3">
       <ol className="grid grid-cols-4 gap-1 sm:gap-2">
@@ -31,9 +34,9 @@ export default function WizardStepper({ step }) {
                 </motion.span>
                 <span className="mt-1.5 min-w-0 sm:ml-2.5 sm:mt-0">
                   <strong className={`block truncate text-[11px] font-black sm:text-sm ${active ? 'text-brown-900' : complete ? 'text-emerald-800' : 'text-slate-500'}`}>
-                    {item.label}
+                    {t(item.labelKey)}
                   </strong>
-                  <small className="hidden text-xs font-semibold text-slate-500 lg:block">{item.shortLabel}</small>
+                  <small className="hidden text-xs font-semibold text-slate-500 lg:block">{t(item.shortLabelKey)}</small>
                 </span>
               </div>
             </li>

@@ -15,7 +15,8 @@ export default function useRaceEntryAssignment(
   tournamentId,
   raceId,
   onEntryCountChange,
-  queueRefreshKey = 0
+  queueRefreshKey = 0,
+  messages = {}
 ) {
   const [candidates, setCandidates] = useState([]);
   const [entries, setEntries] = useState([]);
@@ -38,11 +39,11 @@ export default function useRaceEntryAssignment(
       );
       if (sequence === queueSequence.current) setCandidates(adapted);
     } catch (error) {
-      if (sequence === queueSequence.current) setQueueError(error.message || 'Không thể tải danh sách Registration có thể phân công.');
+      if (sequence === queueSequence.current) setQueueError(error.message || messages.queueLoadError || 'Unable to load assignable Registration list.');
     } finally {
       if (sequence === queueSequence.current) setQueueLoading(false);
     }
-  }, [tournamentId]);
+  }, [messages.queueLoadError, tournamentId]);
 
   const loadEntries = useCallback(async () => {
     if (raceId == null) {
@@ -64,11 +65,11 @@ export default function useRaceEntryAssignment(
         onEntryCountChange?.(raceId, adapted.length);
       }
     } catch (error) {
-      if (sequence === entriesSequence.current) setEntriesError(error.message || 'Không thể tải RaceEntry đã phân công.');
+      if (sequence === entriesSequence.current) setEntriesError(error.message || messages.entriesLoadError || 'Unable to load assigned RaceEntry records.');
     } finally {
       if (sequence === entriesSequence.current) setEntriesLoading(false);
     }
-  }, [onEntryCountChange, raceId]);
+  }, [messages.entriesLoadError, onEntryCountChange, raceId]);
 
   useEffect(() => {
     loadQueue();

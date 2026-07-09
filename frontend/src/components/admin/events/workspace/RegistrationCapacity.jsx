@@ -1,7 +1,9 @@
 import { motion } from 'framer-motion';
 import { getCapacityTone } from './tournamentWorkspaceUtils';
+import { useLanguage } from '../../../../context/LanguageContext';
 
 export default function RegistrationCapacity({ value, max, showLabel = false }) {
+  const { t } = useLanguage();
   const percentage = Math.min(100, Math.round((value / Math.max(max, 1)) * 100));
 
   return (
@@ -16,7 +18,7 @@ export default function RegistrationCapacity({ value, max, showLabel = false }) 
       <div
         className="mt-2 h-1.5 overflow-hidden rounded-full bg-brown-700/10"
         role="progressbar"
-        aria-label="Sức chứa Registration"
+        aria-label={t('eventWorkspaceCapacityAria')}
         aria-valuenow={value}
         aria-valuemin="0"
         aria-valuemax={max}
@@ -30,7 +32,7 @@ export default function RegistrationCapacity({ value, max, showLabel = false }) 
       </div>
       {showLabel && (
         <p className="mt-1.5 text-xs font-semibold text-slate-500">
-          {percentage >= 100 ? 'Registration đã đạt sức chứa tối đa' : `Còn ${max - value} chỗ`}
+          {percentage >= 100 ? t('eventWorkspaceCapacityFull') : t('eventWorkspaceCapacityRemaining', { count: max - value })}
         </p>
       )}
     </div>

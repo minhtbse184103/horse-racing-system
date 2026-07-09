@@ -1,10 +1,12 @@
 import { useEffect, useId, useState } from 'react';
 import { ImagePlus, Trash2, Upload } from 'lucide-react';
+import { useLanguage } from '../../../../context/LanguageContext';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
 export default function VenueImageField({ file, existingSrc, onSelect, onRemove }) {
+  const { t } = useLanguage();
   const inputId = useId();
   const [previewSrc, setPreviewSrc] = useState(existingSrc || '');
   const [error, setError] = useState('');
@@ -25,11 +27,11 @@ export default function VenueImageField({ file, existingSrc, onSelect, onRemove 
     if (!selectedFile) return;
 
     if (!ALLOWED_TYPES.includes(selectedFile.type)) {
-      setError('Vui lòng chọn hình JPEG, PNG hoặc WebP.');
+      setError(t('eventWizardInvalidImageType'));
       return;
     }
     if (selectedFile.size > MAX_FILE_SIZE) {
-      setError('Hình địa điểm không được vượt quá 5MB.');
+      setError(t('eventWizardImageTooLarge'));
       return;
     }
 
@@ -82,31 +84,31 @@ export default function VenueImageField({ file, existingSrc, onSelect, onRemove 
           }`}
         >
           {previewSrc ? (
-            <img src={previewSrc} alt="Xem trước hình địa điểm" className="h-full w-full object-cover" />
+            <img src={previewSrc} alt={t('eventWizardImagePreviewAlt')} className="h-full w-full object-cover" />
           ) : (
             <div className="px-4 text-center">
               <ImagePlus className="mx-auto" size={24} />
-              <p className="mt-2 text-xs font-extrabold">Kéo hình vào đây</p>
-              <p className="mt-1 text-[11px] font-semibold text-slate-500">hoặc nhấn để chọn hình</p>
+              <p className="mt-2 text-xs font-extrabold">{t('eventWizardDropImage')}</p>
+              <p className="mt-1 text-[11px] font-semibold text-slate-500">{t('eventWizardClickToChooseImage')}</p>
             </div>
           )}
           {isDragging && (
             <div className="absolute inset-0 grid place-items-center bg-cream-100/90 px-4 text-center text-xs font-black text-brown-900">
-              Thả hình để tải lên
+              {t('eventWizardDropToUpload')}
             </div>
           )}
           <input id={inputId} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={selectFile} />
         </label>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-black text-brown-900">Hình địa điểm</p>
-          <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">Không bắt buộc. Chấp nhận JPEG, PNG hoặc WebP tối đa 5MB. Hình chỉ được tải lên sau khi lưu Tournament.</p>
+          <p className="text-sm font-black text-brown-900">{t('eventWizardVenueImage')}</p>
+          <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">{t('eventWizardImageHint')}</p>
           <div className="mt-2 min-h-9" aria-live="polite">
-            {file && <p className="truncate text-xs font-extrabold text-emerald-700">Đã chọn: {file.name}</p>}
+            {file && <p className="truncate text-xs font-extrabold text-emerald-700">{t('eventWizardImageSelected', { name: file.name })}</p>}
             {error && <p className="text-xs font-extrabold text-danger">{error}</p>}
           </div>
           <div className="mt-3 flex flex-wrap gap-2">
             <label htmlFor={inputId} className="inline-flex min-h-10 cursor-pointer items-center gap-2 rounded-lg bg-brown-700 px-3 text-xs font-extrabold text-white transition hover:bg-brown-900">
-              <Upload size={15} /> {previewSrc ? 'Thay hình' : 'Chọn hình'}
+              <Upload size={15} /> {previewSrc ? t('eventWizardReplaceImage') : t('eventWizardChooseImage')}
             </label>
             <button
               type="button"
@@ -114,7 +116,7 @@ export default function VenueImageField({ file, existingSrc, onSelect, onRemove 
               disabled={!previewSrc}
               className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 text-xs font-extrabold text-danger transition hover:bg-red-100 disabled:pointer-events-none disabled:invisible"
             >
-              <Trash2 size={15} /> Xóa
+              <Trash2 size={15} /> {t('eventWizardRemoveImage')}
             </button>
           </div>
         </div>

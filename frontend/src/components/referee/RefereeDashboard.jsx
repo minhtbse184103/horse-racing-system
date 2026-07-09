@@ -1,18 +1,20 @@
 import { useState } from 'react';
 import { ClipboardCheck, LogOut, Trophy } from 'lucide-react';
 import LanguageToggle from '../common/LanguageToggle';
+import { useLanguage } from '../../context/LanguageContext';
 import RefereeResultReview from './RefereeResultReview';
 
 const refereeNavItems = [
   {
     key: 'resultReview',
-    label: 'Duyệt kết quả',
-    description: 'Duyệt kết quả Unity',
+    labelKey: 'refereeDashboardResultReview',
+    descriptionKey: 'refereeDashboardResultReviewDescription',
     icon: ClipboardCheck
   }
 ];
 
 export default function RefereeDashboard({ currentUser, onLogout }) {
+  const { t } = useLanguage();
   const [activeSection, setActiveSection] = useState('resultReview');
   const refereeName =
     currentUser?.username || currentUser?.fullName || currentUser?.email || 'Referee';
@@ -35,14 +37,14 @@ export default function RefereeDashboard({ currentUser, onLogout }) {
           <div className="min-w-0">
             <strong className="block truncate text-sm font-black">Horse Racing</strong>
             <span className="mt-0.5 block truncate text-[0.7rem] font-bold uppercase text-white/55">
-              Trung tâm Referee
+              {t('refereeDashboardCenter')}
             </span>
           </div>
         </div>
 
         <div className="relative mt-4 hidden px-2 lg:block">
           <span className="text-[0.65rem] font-extrabold uppercase text-white/40">
-            Điều hướng
+            {t('refereeDashboardNavigation')}
           </span>
         </div>
 
@@ -73,9 +75,9 @@ export default function RefereeDashboard({ currentUser, onLogout }) {
                   <Icon size={16} strokeWidth={2.4} />
                 </span>
                 <span className="min-w-0">
-                  <strong className="block truncate text-xs font-extrabold sm:text-sm">{item.label}</strong>
+                  <strong className="block truncate text-xs font-extrabold sm:text-sm">{t(item.labelKey)}</strong>
                   <small className="mt-0.5 hidden truncate text-[0.65rem] font-semibold text-white/45 lg:block">
-                    {item.description}
+                    {t(item.descriptionKey)}
                   </small>
                 </span>
               </button>
@@ -85,7 +87,7 @@ export default function RefereeDashboard({ currentUser, onLogout }) {
 
         <div className="relative mt-4 flex items-center gap-2 border-t border-white/10 pt-3 lg:mt-auto lg:block">
           <div className="min-w-0 flex-1 rounded-lg border border-white/10 bg-white/[0.07] px-3 py-2.5 lg:mb-2">
-            <span className="text-[0.65rem] font-bold uppercase text-white/45">Đang đăng nhập</span>
+            <span className="text-[0.65rem] font-bold uppercase text-white/45">{t('refereeDashboardSignedIn')}</span>
             <strong className="mt-1 block truncate text-sm font-extrabold text-white">{refereeName}</strong>
             <small className="mt-0.5 block text-[0.68rem] font-extrabold uppercase text-gold-400">REFEREE</small>
           </div>
@@ -96,7 +98,7 @@ export default function RefereeDashboard({ currentUser, onLogout }) {
             className="flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-lg border border-white/10 bg-white px-3 py-2 text-sm font-extrabold text-brown-700 shadow-sm transition hover:-translate-y-0.5 hover:bg-cream-100 lg:w-full"
           >
             <LogOut size={17} />
-            <span className="hidden sm:inline">Đăng xuất</span>
+            <span className="hidden sm:inline">{t('logout')}</span>
           </button>
           <div className="mt-2 lg:mt-3">
             <LanguageToggle className="w-full border-white/10 bg-white/95" />
@@ -109,13 +111,13 @@ export default function RefereeDashboard({ currentUser, onLogout }) {
         <header className="mb-5 flex flex-col gap-4 border-b border-brown-700/10 pb-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <div className="flex items-center gap-2 text-xs font-black uppercase text-brown-500">
-              <span className="h-px w-7 bg-brown-500" /> Trung tâm Referee
+              <span className="h-px w-7 bg-brown-500" /> {t('refereeDashboardCenter')}
             </div>
             <h1 className="mt-2 text-3xl font-black leading-none text-brown-900 lg:text-4xl">
-              {activeNavItem.label}
+              {t(activeNavItem.labelKey)}
             </h1>
             <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-slate-500">
-              Xem kết quả provisional từ Unity, xác nhận hoặc flag vấn đề để chuyển sang bước Admin review.
+              {t('refereeDashboardHeaderSubtitle')}
             </p>
           </div>
         </header>

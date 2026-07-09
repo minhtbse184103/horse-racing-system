@@ -27,6 +27,7 @@ import {
   getReviewErrorText,
   ReviewStatusBadge
 } from '../../common/raceResultReviewUi';
+import { useLanguage } from '../../../context/LanguageContext';
 
 function MetricCard({ icon: Icon, label, value, note }) {
   return (
@@ -46,14 +47,16 @@ function MetricCard({ icon: Icon, label, value, note }) {
 }
 
 function EmptyState({ onRefresh }) {
+  const { t } = useLanguage();
+
   return (
     <section className="rounded-lg border border-dashed border-brown-700/20 bg-white/75 p-10 text-center shadow-[0_10px_30px_rgba(78,44,25,0.06)]">
       <div className="mx-auto grid size-14 place-items-center rounded-lg bg-cream-200 text-brown-700">
         <FileCheck2 size={26} />
       </div>
-      <h3 className="mt-4 text-xl font-black text-brown-900">Không có kết quả chờ duyệt</h3>
+      <h3 className="mt-4 text-xl font-black text-brown-900">{t('adminResultReviewEmptyTitle')}</h3>
       <p className="mx-auto mt-2 max-w-2xl font-semibold text-slate-500">
-        Kết quả sẽ xuất hiện tại đây sau khi Referee xác nhận hoặc đánh dấu cần kiểm tra.
+        {t('adminResultReviewEmptyHint')}
       </p>
       <button
         type="button"
@@ -61,7 +64,7 @@ function EmptyState({ onRefresh }) {
         className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-lg border border-brown-700/15 bg-white px-5 text-sm font-black text-brown-700 shadow-[0_8px_18px_rgba(78,44,25,0.06)] transition hover:-translate-y-0.5 hover:bg-cream-100"
       >
         <RefreshCw size={16} />
-        Làm mới
+        {t('eventCommonRefresh')}
       </button>
     </section>
   );
@@ -77,6 +80,7 @@ function AdminDecisionDialog({
   onClose,
   onSubmit
 }) {
+  const { t } = useLanguage();
   if (!mode || !submission) return null;
 
   const isReject = mode === 'reject';
@@ -87,7 +91,7 @@ function AdminDecisionDialog({
         <header className="flex items-start justify-between gap-4 border-b border-brown-700/10 bg-[linear-gradient(135deg,rgba(255,248,238,0.96),rgba(247,234,216,0.88))] p-6">
           <div>
             <p className="text-xs font-black uppercase tracking-wide text-brown-500">
-              {isReject ? 'Từ chối kết quả' : 'Phê duyệt kết quả'}
+              {isReject ? t('adminResultReviewReject') : t('adminResultReviewApprove')}
             </p>
             <h2 className="mt-2 text-2xl font-black text-brown-900">{submission.raceName}</h2>
             <p className="mt-1 font-semibold text-slate-500">
@@ -99,7 +103,7 @@ function AdminDecisionDialog({
             onClick={onClose}
             className="grid size-10 shrink-0 place-items-center rounded-lg border border-brown-700/10 bg-white text-brown-700 shadow-[0_8px_18px_rgba(78,44,25,0.06)] hover:bg-cream-200"
             disabled={isSubmitting}
-            aria-label="Đóng hộp thoại"
+            aria-label={t('eventCommonClose')}
           >
             <X size={18} />
           </button>
@@ -109,21 +113,21 @@ function AdminDecisionDialog({
           <div className={`rounded-lg border p-4 shadow-[0_8px_22px_rgba(78,44,25,0.05)] ${isReject ? 'border-rose-200 bg-rose-50 text-rose-800' : 'border-emerald-200 bg-emerald-50 text-emerald-800'}`}>
             <p className="text-sm font-bold leading-6">
               {isReject
-                ? 'Kết quả sẽ bị từ chối và Race sẽ quay lại trạng thái READY để chạy lại.'
-                : 'Kết quả sẽ trở thành RaceResult chính thức, giải thưởng sẽ được ghi nhận và Race chuyển sang COMPLETED.'}
+                ? t('adminResultReviewRejectNote')
+                : t('adminResultReviewApproveNote')}
             </p>
           </div>
 
           <label className="grid gap-2">
             <span className="text-sm font-black text-brown-900">
-              {isReject ? 'Lý do từ chối' : 'Ghi chú'}
+              {isReject ? t('adminResultReviewRejectReason') : t('adminResultReviewCommentLabel')}
               {isReject && <span className="text-rose-600"> *</span>}
             </span>
             <textarea
               className="min-h-32 rounded-lg border border-brown-700/15 bg-white px-4 py-3 text-sm font-semibold text-brown-900 shadow-[0_8px_20px_rgba(78,44,25,0.06)] outline-none transition focus:border-brown-500 focus:ring-4 focus:ring-brown-500/10"
               value={reason}
               onChange={(event) => onReasonChange(event.target.value)}
-              placeholder={isReject ? 'Nhập lý do từ chối kết quả...' : 'Ghi chú tùy chọn cho lịch sử duyệt...'}
+              placeholder={isReject ? t('adminResultReviewRejectPlaceholder') : t('adminResultReviewCommentPlaceholder')}
               disabled={isSubmitting}
             />
           </label>
@@ -138,7 +142,7 @@ function AdminDecisionDialog({
             className="min-h-11 rounded-lg border border-brown-700/15 bg-white px-5 text-sm font-black text-brown-700 transition hover:bg-cream-100 disabled:opacity-60"
             disabled={isSubmitting}
           >
-            Đóng
+            {t('eventCommonClose')}
           </button>
           <button
             type="button"
@@ -149,7 +153,7 @@ function AdminDecisionDialog({
             disabled={isSubmitting}
           >
             {isSubmitting && <Loader2 size={16} className="animate-spin" />}
-              {isReject ? 'Từ chối kết quả' : 'Phê duyệt kết quả'}
+              {isReject ? t('adminResultReviewReject') : t('adminResultReviewApprove')}
           </button>
         </footer>
       </section>
@@ -158,11 +162,13 @@ function AdminDecisionDialog({
 }
 
 function SubmissionDetail({ submission, isLoading, error, onBack, onRetry, onApprove, onReject }) {
+  const { t } = useLanguage();
+
   if (isLoading) {
     return (
       <section className="rounded-lg border border-white/80 bg-cream-100/90 p-10 text-center shadow-[0_20px_52px_rgba(78,44,25,0.12)]">
         <Loader2 className="mx-auto animate-spin text-brown-700" size={32} />
-        <p className="mt-4 font-bold text-slate-500">Đang tải chi tiết submission...</p>
+        <p className="mt-4 font-bold text-slate-500">{t('adminResultReviewLoadingDetail')}</p>
       </section>
     );
   }
@@ -170,14 +176,14 @@ function SubmissionDetail({ submission, isLoading, error, onBack, onRetry, onApp
   if (error) {
     return (
       <section className="rounded-lg border border-rose-200 bg-rose-50 p-6 shadow-[0_12px_34px_rgba(185,28,28,0.08)]">
-        <h3 className="text-lg font-black text-rose-800">Không thể tải chi tiết kết quả</h3>
+        <h3 className="text-lg font-black text-rose-800">{t('adminResultReviewDetailLoadError')}</h3>
         <p className="mt-2 font-semibold text-rose-700">{error}</p>
         <div className="mt-5 flex flex-wrap gap-3">
           <button className="rounded-lg bg-rose-700 px-4 py-2 text-sm font-black text-white shadow-[0_8px_18px_rgba(185,28,28,0.12)]" type="button" onClick={onRetry}>
-            Thử lại
+            {t('eventCommonRetry')}
           </button>
           <button className="rounded-lg border border-rose-200 bg-white px-4 py-2 text-sm font-black text-rose-700 shadow-[0_8px_18px_rgba(78,44,25,0.06)]" type="button" onClick={onBack}>
-            Đóng
+            {t('eventCommonClose')}
           </button>
         </div>
       </section>
@@ -200,15 +206,15 @@ function SubmissionDetail({ submission, isLoading, error, onBack, onRetry, onApp
           </div>
           <div className="flex flex-wrap gap-2">
             <button className="min-h-10 rounded-lg border border-brown-700/15 bg-white px-4 text-sm font-black text-brown-700 shadow-[0_8px_18px_rgba(78,44,25,0.06)] transition hover:-translate-y-0.5 hover:bg-cream-100" type="button" onClick={onBack}>
-              Đóng
+              {t('eventCommonClose')}
             </button>
             <button className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 text-sm font-black text-rose-700 shadow-[0_8px_18px_rgba(185,28,28,0.06)] transition hover:-translate-y-0.5 hover:bg-rose-100" type="button" onClick={onReject}>
               <ShieldAlert size={16} />
-              Từ chối kết quả
+              {t('adminResultReviewReject')}
             </button>
             <button className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-emerald-700 px-4 text-sm font-black text-white shadow-[0_12px_28px_rgba(5,150,105,0.18)] transition hover:-translate-y-0.5 hover:bg-emerald-800" type="button" onClick={onApprove}>
               <CheckCircle2 size={16} />
-              Phê duyệt kết quả
+              {t('adminResultReviewApprove')}
             </button>
           </div>
         </header>
@@ -219,30 +225,30 @@ function SubmissionDetail({ submission, isLoading, error, onBack, onRetry, onApp
             <div className="mt-2"><ReviewStatusBadge status={submission.status} /></div>
           </div>
           <div className="rounded-lg border border-white/80 bg-white p-4 shadow-[0_10px_24px_rgba(78,44,25,0.06)]">
-            <span className="text-xs font-black uppercase tracking-wide text-slate-500">Thời gian Race</span>
+            <span className="text-xs font-black uppercase tracking-wide text-slate-500">{t('refereeResultReviewRaceTime')}</span>
             <strong className="mt-2 block text-brown-900">{formatReviewDateTime(submission.raceStartTime)}</strong>
           </div>
           <div className="rounded-lg border border-white/80 bg-white p-4 shadow-[0_10px_24px_rgba(78,44,25,0.06)]">
-            <span className="text-xs font-black uppercase tracking-wide text-slate-500">Thời gian gửi</span>
+            <span className="text-xs font-black uppercase tracking-wide text-slate-500">{t('resultReviewSubmissionTime')}</span>
             <strong className="mt-2 block text-brown-900">{formatReviewDateTime(submission.submittedAt)}</strong>
           </div>
           <div className="rounded-lg border border-white/80 bg-white p-4 shadow-[0_10px_24px_rgba(78,44,25,0.06)]">
-            <span className="text-xs font-black uppercase tracking-wide text-slate-500">Số Horse</span>
+            <span className="text-xs font-black uppercase tracking-wide text-slate-500">{t('resultReviewHorseCount')}</span>
             <strong className="mt-2 block text-brown-900">{submission.entries.length}</strong>
           </div>
         </div>
 
         <div className="border-t border-brown-700/10 p-5">
           <div className="rounded-lg border border-white/80 bg-white p-4 shadow-[0_12px_28px_rgba(78,44,25,0.08)]">
-            <p className="text-xs font-black uppercase tracking-wide text-brown-500">Quyết định Referee</p>
+            <p className="text-xs font-black uppercase tracking-wide text-brown-500">{t('adminResultReviewRefereeDecision')}</p>
             <div className="mt-3 flex flex-wrap items-center gap-3">
               <ReviewStatusBadge status={submission.status} />
               <span className="font-bold text-slate-500">
-                {submission.refereeReviewedAt ? formatReviewDateTime(submission.refereeReviewedAt) : latestRefereeAction ? formatReviewDateTime(latestRefereeAction.createdAt) : 'Chưa có thời gian review'}
+                {submission.refereeReviewedAt ? formatReviewDateTime(submission.refereeReviewedAt) : latestRefereeAction ? formatReviewDateTime(latestRefereeAction.createdAt) : t('adminResultReviewNoReviewTime')}
               </span>
             </div>
             <p className="mt-3 font-semibold text-slate-600">
-              {submission.refereeComment || latestRefereeAction?.comment || 'Referee không để lại ghi chú.'}
+              {submission.refereeComment || latestRefereeAction?.comment || t('adminResultReviewNoRefereeComment')}
             </p>
           </div>
         </div>
@@ -251,8 +257,8 @@ function SubmissionDetail({ submission, isLoading, error, onBack, onRetry, onApp
       <section className="overflow-hidden rounded-lg border border-white/80 bg-cream-100/90 shadow-[0_20px_52px_rgba(78,44,25,0.1)]">
         <div className="flex flex-col gap-2 border-b border-brown-700/10 bg-[linear-gradient(135deg,rgba(255,248,238,0.96),rgba(247,234,216,0.72))] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h3 className="text-lg font-black text-brown-900">Danh sách RaceEntry</h3>
-            <p className="text-sm font-semibold text-slate-500">Kết quả provisional đã qua bước Referee review.</p>
+            <h3 className="text-lg font-black text-brown-900">RaceEntry</h3>
+            <p className="text-sm font-semibold text-slate-500">{t('adminResultReviewEntriesHint')}</p>
           </div>
           <span className="rounded-full border border-brown-700/10 bg-white px-3 py-1 text-sm font-black text-brown-700 shadow-[0_6px_16px_rgba(78,44,25,0.06)]">{submission.entries.length} Horse</span>
         </div>
@@ -269,12 +275,12 @@ function SubmissionDetail({ submission, isLoading, error, onBack, onRetry, onApp
             </colgroup>
             <thead className="bg-cream-200/55">
               <tr className="border-b border-brown-700/10 text-xs font-black uppercase tracking-wide text-brown-700">
-                <th className="px-5 py-3">Thứ hạng</th>
+                <th className="px-5 py-3">{t('eventCommonRank')}</th>
                 <th className="px-5 py-3">Horse</th>
                 <th className="px-5 py-3">Owner</th>
                 <th className="px-5 py-3">Jockey</th>
-                <th className="px-5 py-3">Vị trí xuất phát</th>
-                <th className="px-5 py-3">Thời gian về đích</th>
+                <th className="px-5 py-3">{t('resultReviewStartingStall')}</th>
+                <th className="px-5 py-3">{t('resultReviewFinishTime')}</th>
               </tr>
             </thead>
             <tbody>
@@ -301,10 +307,10 @@ function SubmissionDetail({ submission, isLoading, error, onBack, onRetry, onApp
       <section className="rounded-lg border border-white/80 bg-cream-100/90 p-5 shadow-[0_20px_52px_rgba(78,44,25,0.1)]">
         <div className="flex items-center gap-2">
           <History size={18} className="text-brown-500" />
-          <h3 className="text-lg font-black text-brown-900">Lịch sử review</h3>
+          <h3 className="text-lg font-black text-brown-900">{t('resultReviewReviewHistory')}</h3>
         </div>
         {submission.reviewActions.length === 0 ? (
-          <p className="mt-4 rounded-lg border border-white/80 bg-white p-4 font-semibold text-slate-500">Chưa có lịch sử review.</p>
+          <p className="mt-4 rounded-lg border border-white/80 bg-white p-4 font-semibold text-slate-500">{t('adminResultReviewNoHistory')}</p>
         ) : (
           <div className="mt-4 grid gap-3">
             {submission.reviewActions.map((action) => (
@@ -342,6 +348,7 @@ function SubmissionDetailModal({ open, children, onClose }) {
 }
 
 export default function AdminRaceResultReview() {
+  const { t } = useLanguage();
   const [submissions, setSubmissions] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [detail, setDetail] = useState(null);
@@ -381,7 +388,7 @@ export default function AdminRaceResultReview() {
       const data = await getAdminRaceResultReviewQueue();
       setSubmissions(Array.isArray(data) ? data.map(adaptRaceResultSubmissionSummary) : []);
     } catch (error) {
-      setListError(getReviewErrorText(error, 'Không thể tải review queue.'));
+      setListError(getReviewErrorText(error, t('adminResultReviewQueueFallback')));
     } finally {
       setIsLoadingList(false);
     }
@@ -398,7 +405,7 @@ export default function AdminRaceResultReview() {
       const data = await getAdminRaceResultSubmissionDetail(submissionId);
       setDetail(adaptRaceResultSubmissionDetail(data));
     } catch (error) {
-      setDetailError(getReviewErrorText(error, 'Không thể tải chi tiết submission.'));
+      setDetailError(getReviewErrorText(error, t('adminResultReviewDetailFallback')));
     } finally {
       setIsLoadingDetail(false);
     }
@@ -447,7 +454,7 @@ export default function AdminRaceResultReview() {
 
     const reason = decisionReason.trim();
     if (dialogMode === 'reject' && !reason) {
-      setDecisionError('Vui lòng nhập lý do từ chối result.');
+      setDecisionError(t('adminResultReviewRejectRequired'));
       return;
     }
 
@@ -460,13 +467,13 @@ export default function AdminRaceResultReview() {
         window.dispatchEvent(new CustomEvent('admin-event:race-result-rejected', {
           detail: { raceId: detail.raceId, submissionId: detail.submissionId }
         }));
-        returnToQueue('Kết quả đã bị từ chối. Race đã được đưa về READY để chạy lại.');
+        returnToQueue(t('adminResultReviewRejectSuccess'));
       } else {
         await approveRaceResultSubmission(detail.submissionId, reason);
-        returnToQueue('Đã phê duyệt kết quả.');
+        returnToQueue(t('adminResultReviewApproveSuccess'));
       }
     } catch (error) {
-      setDecisionError(getReviewErrorText(error, 'Không thể cập nhật quyết định Admin.'));
+      setDecisionError(getReviewErrorText(error, t('adminResultReviewUpdateError')));
     } finally {
       setIsSubmittingDecision(false);
     }
@@ -480,10 +487,10 @@ export default function AdminRaceResultReview() {
             <span className="h-px w-7 bg-brown-500" /> Admin
           </div>
           <h1 className="mt-2 text-3xl font-black leading-none text-brown-900 md:text-4xl">
-            Duyệt kết quả Race
+            {t('adminResultReviewTitle')}
           </h1>
           <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-slate-500">
-            Kiểm tra kết quả đã qua Referee review, phê duyệt RaceResult chính thức hoặc trả Race về READY để chạy lại.
+            {t('adminResultReviewPageSubtitle')}
           </p>
         </div>
         <button
@@ -493,24 +500,24 @@ export default function AdminRaceResultReview() {
           className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg border border-brown-700/15 bg-white px-5 text-sm font-extrabold text-brown-700 shadow-[0_10px_24px_rgba(78,44,25,0.08)] transition hover:-translate-y-0.5 hover:bg-cream-200 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isLoadingList ? <Loader2 size={17} className="animate-spin" /> : <RefreshCw size={17} strokeWidth={2.5} />}
-          {isLoadingList ? 'Đang làm mới' : 'Làm mới'}
+          {isLoadingList ? t('adminResultReviewRefreshing') : t('eventCommonRefresh')}
         </button>
       </header>
 
       {toast && <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800 shadow-[0_8px_24px_rgba(5,150,105,0.1)]">{toast}</div>}
 
       <section className="grid gap-4 md:grid-cols-3">
-        <MetricCard icon={Trophy} label="Hàng chờ review" value={submissions.length} note="Submission đã qua Referee" />
-        <MetricCard icon={CheckCircle2} label="Referee đã xác nhận" value={confirmedCount} note="Sẵn sàng phê duyệt" />
-        <MetricCard icon={AlertTriangle} label="Referee đã flag" value={flaggedCount} note="Cần Admin kiểm tra" />
+        <MetricCard icon={Trophy} label={t('adminResultReviewQueueMetric')} value={submissions.length} note={t('adminResultReviewQueueMetricNote')} />
+        <MetricCard icon={CheckCircle2} label={t('adminResultReviewConfirmedMetric')} value={confirmedCount} note={t('adminResultReviewConfirmedMetricNote')} />
+        <MetricCard icon={AlertTriangle} label={t('adminResultReviewFlaggedMetric')} value={flaggedCount} note={t('adminResultReviewFlaggedMetricNote')} />
       </section>
 
       <section className="overflow-hidden rounded-lg border border-white/80 bg-cream-100/90 shadow-[0_20px_52px_rgba(78,44,25,0.12)]">
         <header className="flex flex-col gap-4 border-b border-brown-700/10 bg-[linear-gradient(135deg,rgba(255,248,238,0.96),rgba(247,234,216,0.78))] p-5 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-xs font-black uppercase tracking-wide text-brown-500">Duyệt kết quả Race</p>
-            <h2 className="mt-1 text-2xl font-black text-brown-900">Hàng chờ Admin review</h2>
-            <p className="mt-1 font-semibold text-slate-500">Phê duyệt hoặc từ chối kết quả đã qua bước Referee review.</p>
+            <p className="text-xs font-black uppercase tracking-wide text-brown-500">{t('adminResultReviewTitle')}</p>
+            <h2 className="mt-1 text-2xl font-black text-brown-900">{t('adminResultReviewQueueTitle')}</h2>
+            <p className="mt-1 font-semibold text-slate-500">{t('adminResultReviewQueueSubtitle')}</p>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <label className="relative">
@@ -519,7 +526,7 @@ export default function AdminRaceResultReview() {
                 className="min-h-11 w-full rounded-lg border border-brown-700/15 bg-white pl-10 pr-4 text-sm font-bold text-brown-900 shadow-[0_8px_20px_rgba(78,44,25,0.06)] outline-none transition focus:border-brown-500 focus:ring-4 focus:ring-brown-500/10 sm:w-80"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Tìm Tournament, Race, đường đua..."
+                placeholder={t('adminResultReviewSearchPlaceholder')}
               />
             </label>
           </div>
@@ -530,7 +537,7 @@ export default function AdminRaceResultReview() {
             {listError}
             {submissions.length > 0 && (
               <p className="mt-1 text-xs font-extrabold text-rose-800">
-                Dữ liệu review queue bên dưới có thể chưa được cập nhật.
+                {t('adminResultReviewStaleData')}
               </p>
             )}
           </div>
@@ -539,7 +546,7 @@ export default function AdminRaceResultReview() {
         {isLoadingList ? (
           <div className="grid place-items-center p-12">
             <Loader2 className="animate-spin text-brown-700" size={32} />
-            <p className="mt-4 font-bold text-slate-500">Đang tải review queue...</p>
+            <p className="mt-4 font-bold text-slate-500">{t('adminResultReviewLoadingQueue')}</p>
           </div>
         ) : submissions.length === 0 && !listError ? (
           <div className="p-5">
@@ -560,14 +567,14 @@ export default function AdminRaceResultReview() {
               </colgroup>
               <thead className="bg-cream-200/55">
                 <tr className="border-b border-brown-700/10 text-xs font-black uppercase tracking-wide text-brown-700">
-                  <th className="px-5 py-3">Mã Submission</th>
+                  <th className="px-5 py-3">{t('adminResultReviewSubmissionCode')}</th>
                   <th className="px-5 py-3">Tournament</th>
                   <th className="px-5 py-3">Race</th>
-                  <th className="px-5 py-3">Đường đua</th>
-                  <th className="px-5 py-3">Thời gian gửi</th>
+                  <th className="px-5 py-3">{t('resultReviewTrack')}</th>
+                  <th className="px-5 py-3">{t('resultReviewSubmissionTime')}</th>
                   <th className="px-5 py-3">Status Referee</th>
-                  <th className="px-5 py-3 text-center">Số Horse</th>
-                  <th className="px-5 py-3 text-right">Thao tác</th>
+                  <th className="px-5 py-3 text-center">{t('resultReviewHorseCount')}</th>
+                  <th className="px-5 py-3 text-right">{t('eventCommonActions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -591,8 +598,8 @@ export default function AdminRaceResultReview() {
                         type="button"
                         onClick={() => loadDetail(submission.submissionId)}
                         className="inline-grid size-10 place-items-center rounded-lg border border-brown-700/15 bg-white text-brown-700 shadow-[0_8px_18px_rgba(78,44,25,0.06)] transition hover:-translate-y-0.5 hover:border-brown-500 hover:bg-cream-100"
-                        aria-label={`Duyệt submission #${submission.submissionId}`}
-                        title="Duyệt"
+                        aria-label={t('adminResultReviewActionAria', { id: submission.submissionId })}
+                        title={t('adminResultReviewActionTitle')}
                       >
                         <Eye size={16} />
                       </button>
@@ -604,7 +611,7 @@ export default function AdminRaceResultReview() {
 
             {filteredSubmissions.length === 0 && (
               <div className="p-8 text-center">
-                <p className="font-bold text-slate-500">Không có submission phù hợp với từ khóa tìm kiếm.</p>
+                <p className="font-bold text-slate-500">{t('adminResultReviewSearchEmpty')}</p>
               </div>
             )}
           </div>
@@ -636,3 +643,4 @@ export default function AdminRaceResultReview() {
     </section>
   );
 }
+
