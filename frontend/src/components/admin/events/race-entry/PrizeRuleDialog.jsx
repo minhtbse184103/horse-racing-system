@@ -1,8 +1,10 @@
 import { motion } from 'framer-motion';
 import { CircleDollarSign, Trophy, X } from 'lucide-react';
 import { formatVndCurrency } from '../../../../lib/eventFormatters';
+import { useLanguage } from '../../../../context/LanguageContext';
 
 export default function PrizeRuleDialog({ race, onClose }) {
+  const { t } = useLanguage();
   const totalPrize = race.prizes.reduce(
     (sum, prize) => sum + Number(prize.amount || 0),
     0
@@ -28,20 +30,20 @@ export default function PrizeRuleDialog({ race, onClose }) {
         <header className="flex items-start justify-between gap-4 border-b border-brown-700/10 bg-white/75 px-5 py-4">
           <div>
             <p className="flex items-center gap-2 text-xs font-black uppercase text-brown-500">
-              <Trophy size={15} /> Cấu hình giải thưởng
+              <Trophy size={15} /> {t('eventPrizeRuleTitle')}
             </p>
             <h3 id="prize-rule-title" className="mt-1 text-xl font-black text-brown-900">
-              Prize rule của {race.name}
+              {t('eventPrizeRuleOfRace', { raceName: race.name })}
             </h3>
             <p className="mt-1 text-sm font-semibold text-slate-500">
-              Tổng giải thưởng: <span className="font-black text-brown-900">{formatVndCurrency(totalPrize)}</span>
+              {t('eventWizardTotalPrize')}: <span className="font-black text-brown-900">{formatVndCurrency(totalPrize)}</span>
             </p>
           </div>
           <button
             type="button"
             onClick={onClose}
             className="grid size-9 shrink-0 place-items-center rounded-lg border border-brown-700/10 bg-white text-brown-700 hover:bg-cream-200"
-            aria-label="Đóng"
+            aria-label={t('eventCommonClose')}
           >
             <X size={17} />
           </button>
@@ -62,7 +64,7 @@ export default function PrizeRuleDialog({ race, onClose }) {
                   >
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                       <div>
-                        <p className="text-xs font-black uppercase text-brown-500">Hạng {index + 1}</p>
+                        <p className="text-xs font-black uppercase text-brown-500">{t('eventCommonRank')} {index + 1}</p>
                         <p className="mt-1 text-lg font-black text-brown-900">{formatVndCurrency(amount)}</p>
                       </div>
                       <span className="inline-flex w-fit items-center gap-2 rounded-full bg-cream-200 px-3 py-1.5 text-xs font-extrabold text-brown-700">
@@ -88,9 +90,9 @@ export default function PrizeRuleDialog({ race, onClose }) {
             <div className="grid min-h-44 place-items-center rounded-lg border border-dashed border-brown-700/20 bg-white/60 p-6 text-center">
               <div>
                 <Trophy className="mx-auto text-brown-500" size={25} />
-                <p className="mt-3 font-black text-brown-900">Race chưa có prize rule</p>
+                <p className="mt-3 font-black text-brown-900">{t('eventPrizeRuleNoPrizeTitle')}</p>
                 <p className="mt-1 text-sm font-semibold text-slate-500">
-                  Chỉnh sửa Tournament để thêm cấu hình giải thưởng cho Race này.
+                  {t('eventPrizeRuleNoPrizeHint')}
                 </p>
               </div>
             </div>

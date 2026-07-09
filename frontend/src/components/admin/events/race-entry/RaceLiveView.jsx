@@ -2,8 +2,10 @@ import { useEffect } from 'react';
 import { Radio, WifiOff } from 'lucide-react';
 import LiveRaceDisplay from '../live/LiveRaceDisplay';
 import useRaceLiveView from './useRaceLiveView';
+import { useLanguage } from '../../../../context/LanguageContext';
 
 export default function RaceLiveView({ raceId, active, onResult }) {
+  const { t } = useLanguage();
   const { connectionState, error, lastTick, result } = useRaceLiveView(raceId, active);
 
   // result.status is the real backend status (RaceResultIngestResponse),
@@ -28,9 +30,9 @@ export default function RaceLiveView({ raceId, active, onResult }) {
           <WifiOff size={15} className="text-slate-400" />
         )}
         <p className="text-xs font-extrabold text-slate-500">
-          {connectionState === 'connecting' && 'Đang kết nối realtime...'}
-          {connectionState === 'connected' && !result && 'Đang theo dõi trực tiếp'}
-          {connectionState === 'error' && (error || 'Mất kết nối realtime.')}
+          {connectionState === 'connecting' && t('eventRaceLiveConnecting')}
+          {connectionState === 'connected' && !result && t('eventRaceLiveWatching')}
+          {connectionState === 'error' && (error || t('eventRaceLiveDisconnected'))}
         </p>
       </div>
 

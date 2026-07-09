@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { tournamentStatusLabels } from '../../../lib/eventFormatters';
+import { useLanguage } from '../../../context/LanguageContext';
 
 const statusClasses = {
   OPEN_FOR_REGISTRATION:
@@ -15,6 +15,9 @@ const statusClasses = {
 };
 
 export default function TournamentStatusBadge({ status }) {
+  const { t } = useLanguage();
+  const label = t(`eventStatus_${status}`);
+
   return (
     <motion.span
       initial={{ opacity: 0, scale: 0.96 }}
@@ -25,9 +28,9 @@ export default function TournamentStatusBadge({ status }) {
         statusClasses[status] ||
         'border-brown-700/10 bg-cream-200 text-brown-700 before:bg-brown-500'
       }`}
-      aria-label={`Status Tournament: ${tournamentStatusLabels[status] || status}`}
+      aria-label={`Status Tournament: ${label || status}`}
     >
-      {tournamentStatusLabels[status] || status}
+      {label || status}
     </motion.span>
   );
 }

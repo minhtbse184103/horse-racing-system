@@ -3,8 +3,10 @@ import { Trash2 } from 'lucide-react';
 import { FIELD_CLASS } from './wizardConstants';
 import { WizardField } from './WizardPrimitives';
 import { formatRaceSchedule } from '../../../../lib/eventFormatters';
+import { useLanguage } from '../../../../context/LanguageContext';
 
 export default function RaceEditorCard({ race, index, draft, errors, onChange, onRemove }) {
+  const { t } = useLanguage();
   const prefix = `race-${race.id}`;
 
   return (
@@ -17,7 +19,7 @@ export default function RaceEditorCard({ race, index, draft, errors, onChange, o
           <div className="min-w-0">
             <p className="truncate font-black text-brown-900">{race.name || `Race ${index + 1}`}</p>
             <p className="mt-0.5 text-xs font-semibold text-slate-500">
-              {formatRaceSchedule(race)} · {race.distance || 0}m · {race.maxRunners || 0} người tham gia
+              {formatRaceSchedule(race)} · {race.distance || 0}m · {race.maxRunners || 0} {t('eventDomainRaceEntry')}
             </p>
           </div>
         </div>
@@ -25,32 +27,32 @@ export default function RaceEditorCard({ race, index, draft, errors, onChange, o
           type="button"
           onClick={onRemove}
           className="grid size-9 shrink-0 place-items-center rounded-lg border border-red-200 bg-red-50 text-danger transition hover:bg-red-100"
-          aria-label={`Xóa ${race.name || `Race ${index + 1}`}`}
+          aria-label={`${t('eventWizardRemoveRace')} ${race.name || `Race ${index + 1}`}`}
         >
           <Trash2 size={16} />
         </button>
       </div>
 
       <div className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-8">
-        <WizardField label="Tên Race" error={errors[`${prefix}-name`]} className="xl:col-span-2">
+        <WizardField label={t('eventWizardRaceName')} error={errors[`${prefix}-name`]} className="xl:col-span-2">
           <input className={FIELD_CLASS} value={race.name} onChange={(event) => onChange({ name: event.target.value })} placeholder="Bangkok Mile" />
         </WizardField>
-        <WizardField label="Đường đua" error={errors[`${prefix}-track`]} className="xl:col-span-2">
+        <WizardField label={t('eventWizardRaceTrack')} error={errors[`${prefix}-track`]} className="xl:col-span-2">
           <input className={FIELD_CLASS} value={race.track} onChange={(event) => onChange({ track: event.target.value })} placeholder="Đường đua chính" />
         </WizardField>
-        <WizardField label="Bắt đầu Race" error={errors[`${prefix}-raceStartTime`]} className="xl:col-span-2">
+        <WizardField label={t('eventWizardRaceStartTime')} error={errors[`${prefix}-raceStartTime`]} className="xl:col-span-2">
           <input type="datetime-local" min={draft.start ? `${draft.start}T00:00` : undefined} max={draft.end ? `${draft.end}T23:59` : undefined} className={FIELD_CLASS} value={race.raceStartTime} onChange={(event) => onChange({ raceStartTime: event.target.value })} />
         </WizardField>
-        <WizardField label="Kết thúc Race" error={errors[`${prefix}-raceEndTime`]} className="xl:col-span-2">
+        <WizardField label={t('eventWizardRaceEndTime')} error={errors[`${prefix}-raceEndTime`]} className="xl:col-span-2">
           <input type="datetime-local" min={race.raceStartTime || (draft.start ? `${draft.start}T00:00` : undefined)} max={draft.end ? `${draft.end}T23:59` : undefined} className={FIELD_CLASS} value={race.raceEndTime} onChange={(event) => onChange({ raceEndTime: event.target.value })} />
         </WizardField>
-        <WizardField label="Cự ly Race" error={errors[`${prefix}-distance`]} hint="Đơn vị mét" className="xl:col-span-4">
+        <WizardField label={t('eventWizardRaceDistance')} error={errors[`${prefix}-distance`]} hint={t('eventWizardMetersUnit')} className="xl:col-span-4">
           <div className="relative">
             <input type="number" min="1" step="100" className={`${FIELD_CLASS} pr-12`} value={race.distance} onChange={(event) => onChange({ distance: Number(event.target.value) })} />
             <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-extrabold text-slate-500">m</span>
           </div>
         </WizardField>
-        <WizardField label="Số người tham gia tối đa" error={errors[`${prefix}-maxRunners`]} hint="Unity hiện hỗ trợ từ 3 đến 6 RaceEntry" className="xl:col-span-4">
+        <WizardField label={t('eventWizardRaceCapacity')} error={errors[`${prefix}-maxRunners`]} hint={t('eventWizardUnityCapacityHint')} className="xl:col-span-4">
           <input type="number" min="3" max="6" className={FIELD_CLASS} value={race.maxRunners} onChange={(event) => onChange({ maxRunners: Number(event.target.value) })} />
         </WizardField>
       </div>

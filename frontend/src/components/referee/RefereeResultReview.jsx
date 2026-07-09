@@ -26,6 +26,7 @@ import {
   getReviewErrorText,
   ReviewStatusBadge
 } from '../common/raceResultReviewUi';
+import { useLanguage } from '../../context/LanguageContext';
 
 function MetricCard({ icon: Icon, label, value, note }) {
   return (
@@ -45,14 +46,16 @@ function MetricCard({ icon: Icon, label, value, note }) {
 }
 
 function EmptyState({ onRefresh }) {
+  const { t } = useLanguage();
+
   return (
     <section className="rounded-lg border border-dashed border-brown-700/20 bg-white/75 p-10 text-center shadow-[0_10px_30px_rgba(78,44,25,0.06)]">
       <div className="mx-auto grid size-14 place-items-center rounded-lg bg-cream-200 text-brown-700">
         <CheckCircle2 size={26} />
       </div>
-      <h3 className="mt-4 text-xl font-black text-brown-900">Không có kết quả đang chờ duyệt</h3>
+      <h3 className="mt-4 text-xl font-black text-brown-900">{t('refereeResultReviewNoPendingTitle')}</h3>
       <p className="mx-auto mt-2 max-w-2xl font-semibold text-slate-500">
-        Khi Unity gửi kết quả mới cho Race mà bạn được phân công, submission sẽ xuất hiện tại đây.
+        {t('refereeResultReviewNoPendingHint')}
       </p>
       <button
         type="button"
@@ -60,7 +63,7 @@ function EmptyState({ onRefresh }) {
         className="mt-5 inline-flex min-h-11 items-center gap-2 rounded-lg border border-brown-700/15 bg-white px-5 text-sm font-black text-brown-700 shadow-[0_8px_18px_rgba(78,44,25,0.06)] transition hover:-translate-y-0.5 hover:bg-cream-100"
       >
         <RefreshCw size={16} />
-        Làm mới
+        {t('eventCommonRefresh')}
       </button>
     </section>
   );
@@ -76,6 +79,7 @@ function ReviewDialog({
   onClose,
   onSubmit
 }) {
+  const { t } = useLanguage();
   if (!mode || !submission) return null;
 
   const isFlag = mode === 'flag';
@@ -86,7 +90,7 @@ function ReviewDialog({
         <header className="flex items-start justify-between gap-4 border-b border-brown-700/10 bg-[linear-gradient(135deg,rgba(255,248,238,0.96),rgba(247,234,216,0.88))] p-6">
           <div>
             <p className="text-xs font-black uppercase tracking-wide text-brown-500">
-              {isFlag ? 'Flag kết quả' : 'Xác nhận kết quả'}
+              {isFlag ? t('refereeResultReviewFlag') : t('refereeResultReviewConfirm')}
             </p>
             <h2 className="mt-2 text-2xl font-black text-brown-900">{submission.raceName}</h2>
             <p className="mt-1 font-semibold text-slate-500">
@@ -98,7 +102,7 @@ function ReviewDialog({
             onClick={onClose}
             className="grid size-10 shrink-0 place-items-center rounded-lg border border-brown-700/10 bg-white text-brown-700 shadow-[0_8px_18px_rgba(78,44,25,0.06)] hover:bg-cream-200"
             disabled={isSubmitting}
-            aria-label="Đóng hộp thoại"
+            aria-label={t('eventCommonClose')}
           >
             <X size={18} />
           </button>
@@ -108,21 +112,21 @@ function ReviewDialog({
           <div className={`rounded-lg border p-4 shadow-[0_8px_22px_rgba(78,44,25,0.05)] ${isFlag ? 'border-rose-200 bg-rose-50 text-rose-800' : 'border-emerald-200 bg-emerald-50 text-emerald-800'}`}>
             <p className="text-sm font-bold leading-6">
               {isFlag
-                ? 'Nhập lý do để báo lỗi kết quả này cho Admin.'
-                : 'Bạn có thể để lại ghi chú tùy chọn trước khi xác nhận kết quả.'}
+                ? t('refereeResultReviewFlagNote')
+                : t('refereeResultReviewConfirmNote')}
             </p>
           </div>
 
           <label className="grid gap-2">
             <span className="text-sm font-black text-brown-900">
-              {isFlag ? 'Lý do flag' : 'Ghi chú'}
+              {isFlag ? t('refereeResultReviewFlagReason') : t('refereeResultReviewCommentLabel')}
               {isFlag && <span className="text-rose-600"> *</span>}
             </span>
             <textarea
               className="min-h-32 rounded-lg border border-brown-700/15 bg-white px-4 py-3 text-sm font-semibold text-brown-900 shadow-[0_8px_20px_rgba(78,44,25,0.06)] outline-none transition focus:border-brown-500 focus:ring-4 focus:ring-brown-500/10"
               value={comment}
               onChange={(event) => onCommentChange(event.target.value)}
-              placeholder={isFlag ? 'Mô tả vấn đề cần Admin kiểm tra...' : 'Ghi chú cho Admin nếu cần...'}
+              placeholder={isFlag ? t('refereeResultReviewFlagPlaceholder') : t('refereeResultReviewCommentPlaceholder')}
               disabled={isSubmitting}
             />
           </label>
@@ -137,7 +141,7 @@ function ReviewDialog({
             className="min-h-11 rounded-lg border border-brown-700/15 bg-white px-5 text-sm font-black text-brown-700 transition hover:bg-cream-100 disabled:opacity-60"
             disabled={isSubmitting}
           >
-            Đóng
+            {t('eventCommonClose')}
           </button>
           <button
             type="button"
@@ -148,7 +152,7 @@ function ReviewDialog({
             disabled={isSubmitting}
           >
             {isSubmitting && <Loader2 size={16} className="animate-spin" />}
-            {isFlag ? 'Flag kết quả' : 'Xác nhận kết quả'}
+            {isFlag ? t('refereeResultReviewFlag') : t('refereeResultReviewConfirm')}
           </button>
         </footer>
       </section>
@@ -157,11 +161,13 @@ function ReviewDialog({
 }
 
 function SubmissionDetail({ submission, onBack, onConfirm, onFlag, isLoading, error, onRetry }) {
+  const { t } = useLanguage();
+
   if (isLoading) {
     return (
       <section className="rounded-lg border border-white/80 bg-cream-100/90 p-10 text-center shadow-[0_20px_52px_rgba(78,44,25,0.12)]">
         <Loader2 className="mx-auto animate-spin text-brown-700" size={32} />
-        <p className="mt-4 font-bold text-slate-500">Đang tải chi tiết submission...</p>
+        <p className="mt-4 font-bold text-slate-500">{t('refereeResultReviewLoadingDetail')}</p>
       </section>
     );
   }
@@ -169,14 +175,14 @@ function SubmissionDetail({ submission, onBack, onConfirm, onFlag, isLoading, er
   if (error) {
     return (
       <section className="rounded-lg border border-rose-200 bg-rose-50 p-6 shadow-[0_12px_34px_rgba(185,28,28,0.08)]">
-        <h3 className="text-lg font-black text-rose-800">Không thể tải chi tiết kết quả</h3>
+        <h3 className="text-lg font-black text-rose-800">{t('refereeResultReviewDetailLoadError')}</h3>
         <p className="mt-2 font-semibold text-rose-700">{error}</p>
         <div className="mt-5 flex flex-wrap gap-3">
           <button className="rounded-lg bg-rose-700 px-4 py-2 text-sm font-black text-white shadow-[0_8px_18px_rgba(185,28,28,0.12)]" type="button" onClick={onRetry}>
-            Thử lại
+            {t('eventCommonRetry')}
           </button>
           <button className="rounded-lg border border-rose-200 bg-white px-4 py-2 text-sm font-black text-rose-700 shadow-[0_8px_18px_rgba(78,44,25,0.06)]" type="button" onClick={onBack}>
-            Đóng
+            {t('eventCommonClose')}
           </button>
         </div>
       </section>
@@ -196,15 +202,15 @@ function SubmissionDetail({ submission, onBack, onConfirm, onFlag, isLoading, er
           </div>
           <div className="flex flex-wrap gap-2">
             <button className="min-h-10 rounded-lg border border-brown-700/15 bg-white px-4 text-sm font-black text-brown-700 shadow-[0_8px_18px_rgba(78,44,25,0.06)] transition hover:-translate-y-0.5 hover:bg-cream-100" type="button" onClick={onBack}>
-              Đóng
+              {t('eventCommonClose')}
             </button>
             <button className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-rose-200 bg-rose-50 px-4 text-sm font-black text-rose-700 shadow-[0_8px_18px_rgba(185,28,28,0.06)] transition hover:-translate-y-0.5 hover:bg-rose-100" type="button" onClick={onFlag}>
               <Flag size={16} />
-              Flag kết quả
+              {t('refereeResultReviewFlag')}
             </button>
             <button className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-emerald-700 px-4 text-sm font-black text-white shadow-[0_12px_28px_rgba(5,150,105,0.18)] transition hover:-translate-y-0.5 hover:bg-emerald-800" type="button" onClick={onConfirm}>
               <CheckCircle2 size={16} />
-              Xác nhận kết quả
+              {t('refereeResultReviewConfirm')}
             </button>
           </div>
         </header>
@@ -215,11 +221,11 @@ function SubmissionDetail({ submission, onBack, onConfirm, onFlag, isLoading, er
             <div className="mt-2"><ReviewStatusBadge status={submission.status} /></div>
           </div>
           <div className="rounded-lg border border-white/80 bg-white p-4 shadow-[0_10px_24px_rgba(78,44,25,0.06)]">
-            <span className="text-xs font-black uppercase tracking-wide text-slate-500">Thời gian Race</span>
+            <span className="text-xs font-black uppercase tracking-wide text-slate-500">{t('refereeResultReviewRaceTime')}</span>
             <strong className="mt-2 block text-brown-900">{formatReviewDateTime(submission.raceStartTime)}</strong>
           </div>
           <div className="rounded-lg border border-white/80 bg-white p-4 shadow-[0_10px_24px_rgba(78,44,25,0.06)]">
-            <span className="text-xs font-black uppercase tracking-wide text-slate-500">Thời gian gửi</span>
+            <span className="text-xs font-black uppercase tracking-wide text-slate-500">{t('resultReviewSubmissionTime')}</span>
             <strong className="mt-2 block text-brown-900">{formatReviewDateTime(submission.submittedAt)}</strong>
           </div>
           <div className="rounded-lg border border-white/80 bg-white p-4 shadow-[0_10px_24px_rgba(78,44,25,0.06)]">
@@ -232,8 +238,8 @@ function SubmissionDetail({ submission, onBack, onConfirm, onFlag, isLoading, er
       <section className="overflow-hidden rounded-lg border border-white/80 bg-cream-100/90 shadow-[0_20px_52px_rgba(78,44,25,0.1)]">
         <div className="flex flex-col gap-2 border-b border-brown-700/10 bg-[linear-gradient(135deg,rgba(255,248,238,0.96),rgba(247,234,216,0.72))] px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h3 className="text-lg font-black text-brown-900">Danh sách RaceEntry</h3>
-            <p className="text-sm font-semibold text-slate-500">Kết quả provisional từ Unity, chờ referee duyệt.</p>
+            <h3 className="text-lg font-black text-brown-900">RaceEntry</h3>
+            <p className="text-sm font-semibold text-slate-500">{t('refereeResultReviewProvisionalEntriesHint')}</p>
           </div>
           <span className="rounded-full border border-brown-700/10 bg-white px-3 py-1 text-sm font-black text-brown-700 shadow-[0_6px_16px_rgba(78,44,25,0.06)]">{submission.entries.length} Horse</span>
         </div>
@@ -250,12 +256,12 @@ function SubmissionDetail({ submission, onBack, onConfirm, onFlag, isLoading, er
             </colgroup>
             <thead className="bg-cream-200/55">
               <tr className="border-b border-brown-700/10 text-xs font-black uppercase tracking-wide text-brown-700">
-                <th className="px-5 py-3">Thứ hạng</th>
+                <th className="px-5 py-3">{t('eventCommonRank')}</th>
                 <th className="px-5 py-3">Horse</th>
                 <th className="px-5 py-3">Owner</th>
                 <th className="px-5 py-3">Jockey</th>
-                <th className="px-5 py-3">Vị trí xuất phát</th>
-                <th className="px-5 py-3">Thời gian về đích</th>
+                <th className="px-5 py-3">{t('resultReviewStartingStall')}</th>
+                <th className="px-5 py-3">{t('resultReviewFinishTime')}</th>
               </tr>
             </thead>
             <tbody>
@@ -281,7 +287,7 @@ function SubmissionDetail({ submission, onBack, onConfirm, onFlag, isLoading, er
 
       {submission.reviewActions.length > 0 && (
         <section className="rounded-lg border border-white/80 bg-cream-100/90 p-5 shadow-[0_20px_52px_rgba(78,44,25,0.1)]">
-          <h3 className="text-lg font-black text-brown-900">Lịch sử review</h3>
+          <h3 className="text-lg font-black text-brown-900">{t('resultReviewReviewHistory')}</h3>
           <div className="mt-4 grid gap-3">
             {submission.reviewActions.map((action) => (
               <article className="rounded-lg border border-white/80 bg-white p-4 shadow-[0_10px_24px_rgba(78,44,25,0.06)]" key={action.id}>
@@ -318,6 +324,7 @@ function SubmissionDetailModal({ open, children, onClose }) {
 }
 
 export default function RefereeResultReview() {
+  const { t } = useLanguage();
   const [submissions, setSubmissions] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [detail, setDetail] = useState(null);
@@ -353,7 +360,7 @@ export default function RefereeResultReview() {
       const data = await getPendingRaceResultSubmissions();
       setSubmissions(Array.isArray(data) ? data.map(adaptRaceResultSubmissionSummary) : []);
     } catch (error) {
-      setListError(getReviewErrorText(error, 'Không thể tải danh sách kết quả chờ duyệt.'));
+      setListError(getReviewErrorText(error, t('refereeResultReviewListFallback')));
     } finally {
       setIsLoadingList(false);
     }
@@ -370,7 +377,7 @@ export default function RefereeResultReview() {
       const data = await getRaceResultSubmissionDetail(submissionId);
       setDetail(adaptRaceResultSubmissionDetail(data));
     } catch (error) {
-      setDetailError(getReviewErrorText(error, 'Không thể tải chi tiết submission.'));
+      setDetailError(getReviewErrorText(error, t('refereeResultReviewDetailFallback')));
     } finally {
       setIsLoadingDetail(false);
     }
@@ -419,7 +426,7 @@ export default function RefereeResultReview() {
 
     const reason = reviewComment.trim();
     if (dialogMode === 'flag' && !reason) {
-      setReviewError('Vui lòng nhập lý do flag kết quả.');
+      setReviewError(t('refereeResultReviewFlagRequired'));
       return;
     }
 
@@ -429,13 +436,13 @@ export default function RefereeResultReview() {
     try {
       if (dialogMode === 'flag') {
         await flagRaceResultSubmission(detail.submissionId, reason);
-        returnToList('Đã flag kết quả.');
+        returnToList(t('refereeResultReviewFlagged'));
       } else {
         await confirmRaceResultSubmission(detail.submissionId, reason);
-        returnToList('Đã xác nhận kết quả.');
+        returnToList(t('refereeResultReviewConfirmed'));
       }
     } catch (error) {
-      setReviewError(getReviewErrorText(error, 'Không thể cập nhật trạng thái review.'));
+      setReviewError(getReviewErrorText(error, t('refereeResultReviewUpdateError')));
     } finally {
       setIsSubmittingReview(false);
     }
@@ -446,17 +453,17 @@ export default function RefereeResultReview() {
       {toast && <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800 shadow-[0_8px_24px_rgba(5,150,105,0.1)]">{toast}</div>}
 
       <section className="grid gap-4 md:grid-cols-3">
-        <MetricCard icon={Trophy} label="Submission chờ duyệt" value={submissions.length} note="Chỉ Status SUBMITTED" />
-        <MetricCard icon={Clock3} label="Submission mới nhất" value={submissions[0] ? formatReviewDateTime(submissions[0].submittedAt) : 'N/A'} note="Thời gian gửi" />
-        <MetricCard icon={AlertTriangle} label="Cần xử lý" value={submissions.length} note="Xác nhận hoặc flag" />
+        <MetricCard icon={Trophy} label={t('refereeResultReviewPendingMetric')} value={submissions.length} note={t('refereeResultReviewSubmittedOnly')} />
+        <MetricCard icon={Clock3} label={t('refereeResultReviewLatestMetric')} value={submissions[0] ? formatReviewDateTime(submissions[0].submittedAt) : 'N/A'} note={t('resultReviewSubmissionTime')} />
+        <MetricCard icon={AlertTriangle} label={t('refereeResultReviewNeedsAction')} value={submissions.length} note={t('refereeResultReviewActionNote')} />
       </section>
 
       <section className="overflow-hidden rounded-lg border border-white/80 bg-cream-100/90 shadow-[0_20px_52px_rgba(78,44,25,0.12)]">
         <header className="flex flex-col gap-4 border-b border-brown-700/10 bg-[linear-gradient(135deg,rgba(255,248,238,0.96),rgba(247,234,216,0.78))] p-5 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="text-xs font-black uppercase tracking-wide text-brown-500">Duyệt kết quả Referee</p>
-            <h2 className="mt-1 text-2xl font-black text-brown-900">Danh sách chờ duyệt</h2>
-            <p className="mt-1 font-semibold text-slate-500">Duyệt kết quả provisional do Unity gửi trước khi Admin phê duyệt chính thức.</p>
+            <p className="text-xs font-black uppercase tracking-wide text-brown-500">{t('refereeResultReviewTitle')}</p>
+            <h2 className="mt-1 text-2xl font-black text-brown-900">{t('refereeResultReviewQueueTitle')}</h2>
+            <p className="mt-1 font-semibold text-slate-500">{t('refereeResultReviewQueueSubtitle')}</p>
           </div>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <label className="relative">
@@ -465,7 +472,7 @@ export default function RefereeResultReview() {
                 className="min-h-11 w-full rounded-lg border border-brown-700/15 bg-white pl-10 pr-4 text-sm font-bold text-brown-900 shadow-[0_8px_20px_rgba(78,44,25,0.06)] outline-none transition focus:border-brown-500 focus:ring-4 focus:ring-brown-500/10 sm:w-80"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Tìm Tournament, Race, đường đua..."
+                placeholder={t('refereeResultReviewSearchPlaceholder')}
               />
             </label>
             <button
@@ -475,7 +482,7 @@ export default function RefereeResultReview() {
               className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-brown-700 px-4 text-sm font-black text-white shadow-[0_12px_28px_rgba(108,63,36,0.24)] transition hover:-translate-y-0.5 hover:bg-brown-800 disabled:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {isLoadingList ? <Loader2 size={16} className="animate-spin" /> : <RefreshCw size={16} />}
-              Làm mới
+              {t('eventCommonRefresh')}
             </button>
           </div>
         </header>
@@ -485,7 +492,7 @@ export default function RefereeResultReview() {
             {listError}
             {submissions.length > 0 && (
               <p className="mt-1 text-xs font-extrabold text-rose-800">
-                Dữ liệu submission bên dưới có thể chưa được cập nhật.
+                {t('refereeResultReviewStaleData')}
               </p>
             )}
           </div>
@@ -494,7 +501,7 @@ export default function RefereeResultReview() {
         {isLoadingList ? (
           <div className="grid place-items-center p-12">
             <Loader2 className="animate-spin text-brown-700" size={32} />
-            <p className="mt-4 font-bold text-slate-500">Đang tải pending submissions...</p>
+            <p className="mt-4 font-bold text-slate-500">{t('refereeResultReviewLoadingPending')}</p>
           </div>
         ) : submissions.length === 0 && !listError ? (
           <div className="p-5">
@@ -516,15 +523,15 @@ export default function RefereeResultReview() {
               </colgroup>
               <thead className="bg-cream-200/55">
                 <tr className="border-b border-brown-700/10 text-xs font-black uppercase tracking-wide text-brown-700">
-                  <th className="px-5 py-3">Mã Submission</th>
+                  <th className="px-5 py-3">{t('refereeResultReviewSubmissionCode')}</th>
                   <th className="px-5 py-3">Tournament</th>
                   <th className="px-5 py-3">Race</th>
-                  <th className="px-5 py-3">Đường đua</th>
-                  <th className="px-5 py-3">Thời gian Race</th>
-                  <th className="px-5 py-3">Thời gian gửi</th>
+                  <th className="px-5 py-3">{t('resultReviewTrack')}</th>
+                  <th className="px-5 py-3">{t('refereeResultReviewRaceTime')}</th>
+                  <th className="px-5 py-3">{t('resultReviewSubmissionTime')}</th>
                   <th className="px-5 py-3">Status Submission</th>
-                  <th className="px-5 py-3 text-center">Số Horse</th>
-                  <th className="px-5 py-3 text-right">Thao tác</th>
+                  <th className="px-5 py-3 text-center">{t('resultReviewHorseCount')}</th>
+                  <th className="px-5 py-3 text-right">{t('eventCommonActions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -549,8 +556,8 @@ export default function RefereeResultReview() {
                         type="button"
                         onClick={() => loadDetail(submission.submissionId)}
                         className="inline-grid size-10 place-items-center rounded-lg border border-brown-700/15 bg-white text-brown-700 shadow-[0_8px_18px_rgba(78,44,25,0.06)] transition hover:-translate-y-0.5 hover:border-brown-500 hover:bg-cream-100"
-                        aria-label={`Duyệt submission #${submission.submissionId}`}
-                        title="Duyệt"
+                        aria-label={t('refereeResultReviewReviewActionAria', { id: submission.submissionId })}
+                        title={t('refereeResultReviewReviewActionTitle')}
                       >
                         <Eye size={16} />
                       </button>
@@ -562,7 +569,7 @@ export default function RefereeResultReview() {
 
             {filteredSubmissions.length === 0 && (
               <div className="p-8 text-center">
-                <p className="font-bold text-slate-500">Không có submission phù hợp với từ khóa tìm kiếm.</p>
+                <p className="font-bold text-slate-500">{t('refereeResultReviewSearchEmpty')}</p>
               </div>
             )}
           </div>
@@ -594,3 +601,4 @@ export default function RefereeResultReview() {
     </section>
   );
 }
+

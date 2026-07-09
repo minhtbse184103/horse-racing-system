@@ -5,13 +5,14 @@ import { normalizeOurHubRacecardToPreview, ourHubPreviewToRaceDraft } from '../.
 import { getOurHubCourseInfo } from '../../../../services/externalRacingService';
 import { modalBackdrop, modalPanel } from '../../ui/motion';
 import { FIELD_CLASS } from './wizardConstants';
+import { useLanguage } from '../../../../context/LanguageContext';
 
 function todayInputValue() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function formatDateTime(value) {
-  if (!value) return 'Chưa có giờ';
+function formatDateTime(value, fallback) {
+  if (!value) return fallback;
   return String(value).replace('T', ' ').slice(0, 16);
 }
 
@@ -20,13 +21,14 @@ function raceKey(race, index) {
 }
 
 function RunnerPreview({ runners }) {
+  const { t } = useLanguage();
   const [expanded, setExpanded] = useState(false);
   const visibleRunners = expanded ? runners : runners.slice(0, 3);
 
   if (!runners.length) {
     return (
       <p className="mt-3 rounded-lg bg-cream-100 px-3 py-2 text-xs font-bold text-slate-500">
-        OurHub chưa cung cấp danh sách horse / jockey cho Race này.
+        OurHub chưa cung cấp danh sách Horse / Jockey cho Race này.
       </p>
     );
   }
@@ -41,7 +43,7 @@ function RunnerPreview({ runners }) {
             onClick={() => setExpanded((current) => !current)}
             className="inline-flex items-center gap-1 text-xs font-black text-brown-700 hover:text-brown-900"
           >
-            {expanded ? 'Thu gọn' : `Xem ${runners.length} runner`}
+            {expanded ? t('eventWizardImportCollapse') : t('eventWizardImportViewRunners', { count: runners.length })}
             <ChevronDown size={13} className={expanded ? 'rotate-180' : ''} />
           </button>
         )}
@@ -49,8 +51,8 @@ function RunnerPreview({ runners }) {
       <div className="mt-2 grid gap-2 sm:grid-cols-2">
         {visibleRunners.map((runner, index) => (
           <div key={`${runner.horseName}-${runner.jockeyName}-${index}`} className="rounded-md bg-white/80 px-3 py-2">
-            <p className="truncate text-sm font-black text-brown-900">{runner.horseName || 'Horse chưa rõ'}</p>
-            <p className="truncate text-xs font-bold text-slate-500">{runner.jockeyName || 'Jockey chưa rõ'}</p>
+            <p className="truncate text-sm font-black text-brown-900">{runner.horseName || t('eventWizardImportUnknownHorse')}</p>
+            <p className="truncate text-xs font-bold text-slate-500">{runner.jockeyName || t('eventWizardImportUnknownJockey')}</p>
           </div>
         ))}
       </div>
@@ -59,6 +61,7 @@ function RunnerPreview({ runners }) {
 }
 
 export default function OurHubImportDialog({ draft, onClose, onImport }) {
+  const { t } = useLanguage();
   const [date, setDate] = useState(draft.start || todayInputValue());
   const [racecards, setRacecards] = useState([]);
   const [selectedKeys, setSelectedKeys] = useState(new Set());
@@ -74,7 +77,7 @@ export default function OurHubImportDialog({ draft, onClose, onImport }) {
 
   async function loadRacecards() {
     if (!date) {
-      setError('Vui lòng chọn ngày trước khi tải dữ liệu OurHub.');
+      setError(t('eventWizardImportSelectDate'));
       return;
     }
 
@@ -87,7 +90,7 @@ export default function OurHubImportDialog({ draft, onClose, onImport }) {
       setRacecards(Array.isArray(response) ? response.map(normalizeOurHubRacecardToPreview) : []);
     } catch (loadError) {
       setRacecards([]);
-      setError(loadError.message || 'Không thể tải dữ liệu OurHub.');
+      setError(loadError.message || t('eventWizardImportLoadError'));
     } finally {
       setLoading(false);
     }
@@ -131,7 +134,7 @@ export default function OurHubImportDialog({ draft, onClose, onImport }) {
         <header className="flex shrink-0 items-start justify-between gap-4 border-b border-brown-700/10 bg-white/85 px-5 py-4">
           <div>
             <p className="text-xs font-black uppercase text-brown-500">OurHub Racing API</p>
-            <h3 id="ourhub-import-title" className="mt-1 text-2xl font-black text-brown-900">Import Race từ OurHub</h3>
+            <h3 id="ourhub-import-title" className="mt-1 text-2xl font-black text-brown-900">{t('eventWizardImportOurHub')}</h3>
             <p className="mt-1 text-sm font-semibold text-slate-500">
               Tải Race preview từ backend, chọn Race cần thêm, rồi chỉnh sửa lại trong wizard trước khi lưu Tournament.
             </p>
@@ -140,7 +143,7 @@ export default function OurHubImportDialog({ draft, onClose, onImport }) {
             type="button"
             onClick={onClose}
             className="grid size-10 shrink-0 place-items-center rounded-lg border border-brown-700/10 bg-white text-brown-700 hover:bg-cream-200"
-            aria-label="Đóng import OurHub"
+            aria-label={t('eventCommonClose')}
           >
             <X size={18} />
           </button>
@@ -149,7 +152,7 @@ export default function OurHubImportDialog({ draft, onClose, onImport }) {
         <div className="shrink-0 border-b border-brown-700/10 bg-cream-200/50 px-5 py-4">
           <div className="grid gap-3 md:grid-cols-[1fr_auto] md:items-end">
             <label className="grid gap-1.5 text-sm font-extrabold text-brown-900">
-              <span>Ngày Race</span>
+              <span>{t('eventWizardImportDate')}</span>
               <div className="relative">
                 <CalendarDays className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-brown-500" size={17} />
                 <input
@@ -167,7 +170,7 @@ export default function OurHubImportDialog({ draft, onClose, onImport }) {
               className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-brown-700 px-5 text-sm font-extrabold text-white shadow-md transition hover:bg-brown-900 disabled:cursor-wait disabled:opacity-70"
             >
               {loading ? <LoaderCircle className="animate-spin" size={16} /> : <Search size={16} />}
-              Tải Race từ OurHub
+              {t('eventWizardImportOurHub')}
             </button>
           </div>
 
@@ -184,8 +187,8 @@ export default function OurHubImportDialog({ draft, onClose, onImport }) {
             <div className="grid min-h-72 place-items-center text-center">
               <div>
                 <LoaderCircle className="mx-auto animate-spin text-brown-500" size={30} />
-                <h4 className="mt-4 text-lg font-black text-brown-900">Đang tải Race preview</h4>
-                <p className="mt-1 text-sm font-semibold text-slate-500">Backend đang gọi OurHub bằng API key bảo mật.</p>
+                <h4 className="mt-4 text-lg font-black text-brown-900">{t('eventWizardImportLoadingTitle')}</h4>
+                <p className="mt-1 text-sm font-semibold text-slate-500">{t('eventWizardImportLoadingDescription')}</p>
               </div>
             </div>
           ) : racecards.length === 0 ? (
@@ -194,7 +197,7 @@ export default function OurHubImportDialog({ draft, onClose, onImport }) {
                 <span className="mx-auto grid size-12 place-items-center rounded-lg bg-cream-200 text-brown-700">
                   <DownloadCloud size={23} />
                 </span>
-                <h4 className="mt-4 text-lg font-black text-brown-900">Chưa có Race preview</h4>
+                <h4 className="mt-4 text-lg font-black text-brown-900">{t('eventWizardImportEmptyTitle')}</h4>
                 <p className="mx-auto mt-1 max-w-md text-sm font-semibold leading-6 text-slate-500">
                   Chọn ngày và bấm tải dữ liệu. Nếu OurHub không có dữ liệu cho ngày đó, hãy thử ngày khác.
                 </p>
@@ -225,19 +228,19 @@ export default function OurHubImportDialog({ draft, onClose, onImport }) {
                           {checked && <Check size={15} strokeWidth={3} />}
                         </span>
                         <span className="min-w-0">
-                          <span className="block text-base font-black text-brown-900">{race.raceName || 'Race chưa có tên'}</span>
-                          <span className="mt-1 block text-sm font-bold text-slate-500">{race.courseName || 'Course chưa rõ'} · {formatDateTime(race.raceStartTime)}</span>
+                          <span className="block text-base font-black text-brown-900">{race.raceName || t('eventWizardImportUnknownRace')}</span>
+                          <span className="mt-1 block text-sm font-bold text-slate-500">{race.courseName || t('eventWizardImportUnknownCourse')} · {formatDateTime(race.raceStartTime, t('eventWizardImportUnknownTime'))}</span>
                         </span>
                       </button>
 
                       <div className="grid shrink-0 grid-cols-2 gap-2 text-sm md:min-w-64">
                         <div className="rounded-lg bg-cream-100 px-3 py-2">
-                          <p className="text-xs font-black uppercase text-brown-500">Cự ly</p>
-                          <p className="mt-0.5 font-black text-brown-900">{race.distanceMeters ? `${race.distanceMeters}m` : race.distanceText || 'Dùng mặc định'}</p>
+                          <p className="text-xs font-black uppercase text-brown-500">{t('eventWizardImportDistance')}</p>
+                          <p className="mt-0.5 font-black text-brown-900">{race.distanceMeters ? `${race.distanceMeters}m` : race.distanceText || t('eventWizardImportUseDefault')}</p>
                         </div>
                         <div className="rounded-lg bg-cream-100 px-3 py-2">
                           <p className="text-xs font-black uppercase text-brown-500">Runner</p>
-                          <p className="mt-0.5 font-black text-brown-900">{race.runnerCount || race.runners.length || 'Dùng mặc định'}</p>
+                          <p className="mt-0.5 font-black text-brown-900">{race.runnerCount || race.runners.length || t('eventWizardImportUseDefault')}</p>
                         </div>
                       </div>
                     </div>
@@ -256,7 +259,7 @@ export default function OurHubImportDialog({ draft, onClose, onImport }) {
           </p>
           <div className="flex justify-end gap-2">
             <button type="button" onClick={onClose} className="min-h-11 rounded-lg border border-brown-700/15 bg-white px-4 text-sm font-extrabold text-brown-700 hover:bg-cream-200">
-              Hủy
+              {t('eventCommonCancel')}
             </button>
             <button
               type="button"
@@ -265,7 +268,7 @@ export default function OurHubImportDialog({ draft, onClose, onImport }) {
               className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-brown-700 px-5 text-sm font-extrabold text-white shadow-md hover:bg-brown-900 disabled:cursor-not-allowed disabled:opacity-50"
             >
               <DownloadCloud size={16} />
-              Thêm vào Wizard
+              {t('eventWizardAddRace')}
             </button>
           </div>
         </footer>

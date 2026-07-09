@@ -69,6 +69,8 @@ class AdminRaceResultReviewServiceTest {
     private UserRepository userRepository;
     @Mock
     private RacePrizeSettlementService prizeSettlementService;
+    @Mock
+    private PerformanceSummaryService performanceSummaryService;
 
     private AdminRaceResultReviewService service;
 
@@ -82,7 +84,8 @@ class AdminRaceResultReviewServiceTest {
                 raceEntryRepository,
                 raceRepository,
                 userRepository,
-                prizeSettlementService
+                prizeSettlementService,
+                performanceSummaryService
         );
     }
 
