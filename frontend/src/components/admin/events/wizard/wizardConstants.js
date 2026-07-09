@@ -1,10 +1,10 @@
 import { CalendarDays, ClipboardCheck, Flag, Medal, Scale, Trophy, Users } from 'lucide-react';
 
 export const WIZARD_STEPS = [
-  { id: 1, label: 'Tournament', shortLabel: 'Thông tin', icon: Trophy },
-  { id: 2, label: 'Race', shortLabel: 'Cấu hình', icon: Flag },
-  { id: 3, label: 'Giải thưởng', shortLabel: 'Theo hạng Race', icon: Medal },
-  { id: 4, label: 'Xem lại', shortLabel: 'Xác nhận', icon: ClipboardCheck }
+  { id: 1, label: 'Tournament', labelKey: 'eventWizardStepInformation', shortLabel: 'Thông tin', shortLabelKey: 'eventWizardStepInformationShort', icon: Trophy },
+  { id: 2, label: 'Race', labelKey: 'eventWizardStepRaceConfig', shortLabel: 'Cấu hình', shortLabelKey: 'eventWizardStepRaceConfigShort', icon: Flag },
+  { id: 3, label: 'Giải thưởng', labelKey: 'eventWizardStepPrizeConfig', shortLabel: 'Theo hạng Race', shortLabelKey: 'eventWizardStepPrizeConfigShort', icon: Medal },
+  { id: 4, label: 'Xem lại', labelKey: 'eventWizardStepReview', shortLabel: 'Xác nhận', shortLabelKey: 'eventWizardStepReviewShort', icon: ClipboardCheck }
 ];
 
 export const CONDITION_TYPES = [

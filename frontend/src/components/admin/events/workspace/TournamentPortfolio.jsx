@@ -9,6 +9,7 @@ import {
   X
 } from 'lucide-react';
 import { tournamentStatusLabels } from '../../../../lib/eventFormatters';
+import { useLanguage } from '../../../../context/LanguageContext';
 import TournamentStatusBadge from '../TournamentStatusBadge';
 import RegistrationCapacity from './RegistrationCapacity';
 import TournamentActions from './TournamentActions';
@@ -35,14 +36,16 @@ export default function TournamentPortfolio({
   onDelete,
   operationsProps
 }) {
+  const { t } = useLanguage();
+
   return (
     <section className="overflow-hidden rounded-lg border border-white/80 bg-cream-100/90 shadow-[0_20px_52px_rgba(78,44,25,0.12),0_1px_2px_rgba(43,23,16,0.08)]">
       <div className="border-b border-brown-700/10 bg-[linear-gradient(135deg,rgba(255,255,255,0.86),rgba(247,234,216,0.54))] p-4 md:p-5">
         <div className="flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
           <div>
-            <h2 className="text-xl font-black text-brown-900 md:text-2xl">Danh sách Tournament</h2>
+            <h2 className="text-xl font-black text-brown-900 md:text-2xl">{t('eventWorkspacePortfolio')}</h2>
             <p className="mt-1 text-sm font-semibold text-slate-500">
-              Theo dõi toàn bộ chương trình sự kiện và Status vận hành.
+              {t('eventWorkspacePortfolioDescription')}
             </p>
           </div>
 
@@ -53,14 +56,14 @@ export default function TournamentPortfolio({
                 value={search}
                 onChange={(event) => onSearchChange(event.target.value)}
                 className="min-h-11 w-full rounded-lg border border-brown-700/15 bg-white py-2.5 pl-10 pr-9 text-sm font-bold text-brown-900 outline-none transition placeholder:text-slate-500/70 focus:border-brown-500 focus:ring-4 focus:ring-gold-400/15"
-                placeholder="Tìm theo tên hoặc địa điểm"
+                placeholder={t('eventWorkspaceSearchPlaceholder')}
               />
               {search && (
                 <button
                   type="button"
                   onClick={() => onSearchChange('')}
                   className="absolute right-2 top-1/2 grid size-7 -translate-y-1/2 place-items-center rounded-md text-slate-500 hover:bg-cream-200 hover:text-brown-900"
-                  aria-label="Xóa nội dung tìm kiếm"
+                  aria-label={t('eventCommonClear')}
                 >
                   <X size={14} />
                 </button>
@@ -74,9 +77,9 @@ export default function TournamentPortfolio({
                 onChange={(event) => onStatusFilterChange(event.target.value)}
                 className="min-h-11 w-full appearance-none rounded-lg border border-brown-700/15 bg-white py-2.5 pl-9 pr-8 text-sm font-extrabold text-brown-900 outline-none transition focus:border-brown-500 focus:ring-4 focus:ring-gold-400/15"
               >
-                <option value="ALL">Tất cả Status</option>
-                {Object.entries(tournamentStatusLabels).map(([value, label]) => (
-                  <option key={value} value={value}>{label}</option>
+                <option value="ALL">{t('eventWorkspaceAllStatuses')}</option>
+                {Object.keys(tournamentStatusLabels).map((value) => (
+                  <option key={value} value={value}>{t(`eventStatus_${value}`)}</option>
                 ))}
               </select>
               <ChevronDown className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-500" size={15} />
@@ -88,7 +91,7 @@ export default function TournamentPortfolio({
                 onClick={onClearFilters}
                 className="min-h-11 rounded-lg border border-brown-700/15 bg-cream-200 px-3 text-xs font-extrabold text-brown-700 hover:border-brown-500 hover:bg-white"
               >
-                Xóa lọc
+                {t('eventCommonClear')}
               </button>
             )}
           </div>
@@ -96,7 +99,7 @@ export default function TournamentPortfolio({
 
         <div className="mt-3 flex items-center justify-between gap-3 border-t border-brown-700/10 pt-3">
           <p className="text-xs font-bold text-slate-500">
-            Hiển thị <strong className="text-brown-900">{filteredTournaments.length}</strong> trên {tournaments.length} Tournament
+            {t('eventWorkspaceShowingCount', { filtered: filteredTournaments.length, total: tournaments.length })}
           </p>
           {statusFilter !== 'ALL' && <TournamentStatusBadge status={statusFilter} />}
         </div>
@@ -130,12 +133,12 @@ export default function TournamentPortfolio({
           </colgroup>
           <thead className="bg-cream-200/70 text-left text-[11px] font-black uppercase text-brown-700">
             <tr>
-              <th className="px-5 py-3.5">Tournament</th>
-              <th className="px-4 py-3.5">Địa điểm</th>
-              <th className="px-4 py-3.5">Lịch trình</th>
-              <th className="px-4 py-3.5">Sức chứa</th>
+              <th className="px-5 py-3.5">{t('eventDomainTournament')}</th>
+              <th className="px-4 py-3.5">{t('eventWizardLocation')}</th>
+              <th className="px-4 py-3.5">{t('eventSchedule')}</th>
+              <th className="px-4 py-3.5">{t('eventWizardParticipationCapacity')}</th>
               <th className="px-4 py-3.5">Status</th>
-              <th className="px-4 py-3.5 text-right">Thao tác</th>
+              <th className="px-4 py-3.5 text-right">{t('actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -169,7 +172,7 @@ export default function TournamentPortfolio({
                     </td>
                     <td className="px-3 py-4">
                       <p className="font-black text-brown-900">{formatTournamentDate(tournament.start)}</p>
-                      <p className="mt-1 text-xs font-semibold text-slate-500">đến {formatTournamentDate(tournament.end)}</p>
+                      <p className="mt-1 text-xs font-semibold text-slate-500">{t('eventCommonTo')} {formatTournamentDate(tournament.end)}</p>
                     </td>
                     <td className="px-3 py-4">
                       <RegistrationCapacity value={registrationCounts.get(tournament.id) || 0} max={tournament.maxRegistration} />
@@ -203,18 +206,18 @@ export default function TournamentPortfolio({
             <span className="mx-auto grid size-12 place-items-center rounded-lg bg-cream-200 text-brown-700">
               <Search size={22} />
             </span>
-            <h3 className="mt-4 text-lg font-black text-brown-900">Không tìm thấy Tournament</h3>
+            <h3 className="mt-4 text-lg font-black text-brown-900">{t('eventWorkspaceNoTournament')}</h3>
             <p className="mx-auto mt-1 max-w-sm text-sm font-semibold leading-6 text-slate-500">
-              Không có sự kiện nào phù hợp với nội dung tìm kiếm và bộ lọc hiện tại.
+              {t('eventWorkspaceNoTournamentHint')}
             </p>
             <div className="mt-5 flex flex-wrap justify-center gap-2">
               {hasFilters && (
                 <button type="button" onClick={onClearFilters} className="rounded-lg border border-brown-700/15 bg-white px-4 py-2.5 text-sm font-extrabold text-brown-700 hover:bg-cream-200">
-                  Xóa bộ lọc
+                  {t('eventCommonClear')}
                 </button>
               )}
               <button type="button" onClick={onCreate} className="rounded-lg bg-brown-700 px-4 py-2.5 text-sm font-extrabold text-white hover:bg-brown-900">
-                Tạo Tournament
+                {t('eventWorkspaceCreateTournament')}
               </button>
             </div>
           </div>

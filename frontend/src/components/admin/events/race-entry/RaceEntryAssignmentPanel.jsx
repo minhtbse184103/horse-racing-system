@@ -11,23 +11,25 @@ import useRaceEntryAssignment from './useRaceEntryAssignment';
 import TournamentStatusBadge from '../TournamentStatusBadge';
 import { failRaceRun, runRace } from '../../../../services/eventService';
 import { formatRaceSchedule } from '../../../../lib/eventFormatters';
+import { useLanguage } from '../../../../context/LanguageContext';
 
 const RACE_ENTRY_EDITABLE_STATUSES = new Set(['OPEN_FOR_REGISTRATION', 'REGISTRATION_CLOSED']);
 const MIN_RACE_ENTRIES_TO_LAUNCH = 3;
 
-function getRaceEntryLockReason(status) {
-  const messages = {
-    READY: 'Race đã READY, không thể thay đổi RaceEntry trước khi khởi chạy.',
-    IN_PROGRESS: 'Race đang chạy, không thể thay đổi RaceEntry.',
-    PENDING_REVIEW: 'Race đang chờ duyệt kết quả, không thể thay đổi RaceEntry.',
-    COMPLETED: 'Race đã hoàn tất, không thể thay đổi RaceEntry.',
-    CANCELLED: 'Race đã hủy, không thể thay đổi RaceEntry.'
+function getRaceEntryLockReason(status, t) {
+  const messageKeys = {
+    READY: 'eventRaceEntryReadyLock',
+    IN_PROGRESS: 'eventRaceEntryInProgressLock',
+    PENDING_REVIEW: 'eventRaceEntryPendingReviewLock',
+    COMPLETED: 'eventRaceEntryCompletedLock',
+    CANCELLED: 'eventRaceEntryCancelledLock'
   };
 
-  return messages[status] || 'Race hiện không cho phép thay đổi RaceEntry.';
+  return t(messageKeys[status] || 'eventRaceEntryDefaultLock');
 }
 
 export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountChange, onRaceStatusChange, onNavigateToResultReview, queueRefreshKey }) {
+  const { t } = useLanguage();
   const [selectedRaceId, setSelectedRaceId] = useState(tournament.races[0]?.id || null);
   const [assignmentRace, setAssignmentRace] = useState(null);
   const [cancellationEntry, setCancellationEntry] = useState(null);
@@ -48,7 +50,11 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
     tournament.id,
     selectedRaceId,
     onRaceEntryCountChange,
-    queueRefreshKey
+    queueRefreshKey,
+    {
+      queueLoadError: t('eventRaceEntryQueueUnavailable'),
+      entriesLoadError: t('eventRaceEntryAssignError')
+    }
   );
 
   function selectRace(raceId) {
@@ -72,7 +78,7 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
       // section below) is visible immediately, no extra click needed.
       setSelectedRaceId(raceId);
     } catch (error) {
-      setRunErrors((current) => ({ ...current, [raceId]: error.message || 'Không thể khởi chạy Race.' }));
+      setRunErrors((current) => ({ ...current, [raceId]: error.message || t('eventRaceLaunchError') }));
     } finally {
       setRunningRaceId(null);
     }
@@ -84,7 +90,7 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
 
     const trimmedReason = failReason.trim();
     if (!trimmedReason) {
-      setFailReasonError('Vui lòng nhập lý do trước khi đánh dấu Race lỗi.');
+      setFailReasonError(t('eventRaceFailRequired'));
       return;
     }
 
@@ -104,7 +110,7 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
       setFailTargetRace(null);
       setFailReason('');
     } catch (error) {
-      setFailReasonError(error.message || 'Không thể đánh dấu Race lỗi.');
+      setFailReasonError(error.message || t('eventRaceFailError'));
     } finally {
       setFailingRaceId(null);
     }
@@ -143,7 +149,7 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
   return (
     <section className="overflow-hidden rounded-lg border border-brown-700/10 bg-white/80 shadow-[0_12px_34px_rgba(78,44,25,0.08)]">
       <header className="flex flex-col gap-3 border-b border-brown-700/10 bg-[linear-gradient(135deg,rgba(255,255,255,0.9),rgba(247,234,216,0.52))] px-4 py-3.5 sm:flex-row sm:items-center sm:justify-between">
-        <div><p className="text-xs font-black uppercase text-brown-500">Phân công RaceEntry</p><h4 className="mt-1 text-lg font-black text-brown-900">Chương trình Race và RaceEntry chính thức</h4><p className="mt-0.5 text-xs font-semibold text-slate-500">Chọn Race, kiểm tra sức chứa, sau đó phân công Registration đã APPROVED và PAID.</p></div>
+        <div><p className="text-xs font-black uppercase text-brown-500">{t('eventRaceEntryTitle')}</p><h4 className="mt-1 text-lg font-black text-brown-900">{t('eventWorkspaceRaceProgramme')}</h4><p className="mt-0.5 text-xs font-semibold text-slate-500">{t('eventRaceEntrySubtitle')}</p></div>
         <span className="shrink-0 rounded-full bg-cream-200 px-3 py-1.5 text-xs font-extrabold text-brown-700">{tournament.races.length} Race</span>
       </header>
 
@@ -158,14 +164,14 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
           const isLive = race.status === 'IN_PROGRESS';
           const isPendingReview = race.status === 'PENDING_REVIEW';
           const canManageRaceEntries = RACE_ENTRY_EDITABLE_STATUSES.has(race.status);
-          const raceEntryLockReason = canManageRaceEntries ? '' : getRaceEntryLockReason(race.status);
+          const raceEntryLockReason = canManageRaceEntries ? '' : getRaceEntryLockReason(race.status, t);
           const hasMinimumLaunchEntries = runnerCount >= MIN_RACE_ENTRIES_TO_LAUNCH;
           const runError = runErrors[race.id];
 
           return (
             <Fragment key={race.id}>
               <motion.div layout className={`grid gap-3 px-4 py-3.5 transition-colors lg:grid-cols-[2.25rem_minmax(0,1fr)_minmax(19rem,auto)] lg:items-center ${selected ? 'bg-white/80 shadow-[inset_3px_0_0_#d9a441]' : 'hover:bg-white/55'}`}>
-                <button type="button" onClick={() => selectRace(race.id)} className={`grid size-9 place-items-center rounded-lg ${selected ? 'bg-brown-700 text-white' : 'bg-cream-200 text-brown-700'}`} aria-label={selected ? 'Thu gọn Race' : 'Mở rộng Race'}>{selected ? <ChevronDown size={16} /> : <ChevronRight size={16} />}</button>
+                <button type="button" onClick={() => selectRace(race.id)} className={`grid size-9 place-items-center rounded-lg ${selected ? 'bg-brown-700 text-white' : 'bg-cream-200 text-brown-700'}`} aria-label={selected ? t('eventCommonClose') : t('eventCommonViewDetail')}>{selected ? <ChevronDown size={16} /> : <ChevronRight size={16} />}</button>
                 <div className="min-w-0">
                   <button type="button" onClick={() => selectRace(race.id)} className="min-w-0 text-left">
                     <p className="text-xs font-black uppercase text-brown-500">Race {String(index + 1).padStart(2, '0')}</p>
@@ -174,26 +180,26 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
                   </button>
                   <div className="mt-3 grid gap-2 sm:grid-cols-3 xl:flex xl:flex-wrap xl:items-center">
                     <span className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-brown-700/10 bg-white px-3 text-xs font-extrabold text-slate-600">
-                      Người tham gia <strong className="text-brown-900">{runnerCount}/{race.maxRunners}</strong>
+                      {t('eventRaceEntryParticipants', { count: runnerCount, max: race.maxRunners })}
                     </span>
                     <span className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-brown-700/10 bg-white px-3 text-xs font-extrabold text-slate-600">
-                      Hạng giải thưởng <strong className="text-brown-900">{race.prizes.length}</strong>
+                      {t('eventWorkspacePrizeRanks')} <strong className="text-brown-900">{race.prizes.length}</strong>
                     </span>
                     <TournamentStatusBadge status={race.status} />
                   </div>
                   {runError && <p className="mt-2 text-xs font-bold text-danger">{runError}</p>}
-                  {!runError && race.runStuck && <p className="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-extrabold text-red-700">Race có thể bị kẹt: đã chạy {race.runElapsedMinutes} phút, vượt ngưỡng {race.runWatchdogTimeoutMinutes} phút nhưng chưa có kết quả. Hãy kiểm tra Unity hoặc dùng Đánh dấu lỗi.</p>}
-                  {!runError && launchedRaceIds.has(race.id) && isLive && <div className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700"><p>Race đã được khởi chạy bằng Unity Engine. Theo dõi dữ liệu live từ backend tại đây.</p></div>}
+                  {!runError && race.runStuck && <p className="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-extrabold text-red-700">{t('eventRaceStuckWarning', { elapsed: race.runElapsedMinutes, timeout: race.runWatchdogTimeoutMinutes })}</p>}
+                  {!runError && launchedRaceIds.has(race.id) && isLive && <div className="mt-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700"><p>{t('eventRaceLiveLaunched')}</p></div>}
                   {isPendingReview && (
                     <div className="mt-2 flex flex-col gap-2 rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-xs font-bold text-violet-700 sm:flex-row sm:items-center sm:justify-between">
-                      <p>Race đã có kết quả từ Unity và đang chờ Referee/Admin duyệt.</p>
+                      <p>{t('eventRacePendingReviewNotice')}</p>
                       {onNavigateToResultReview && (
                         <button
                           type="button"
                           onClick={onNavigateToResultReview}
                           className="inline-flex min-h-8 items-center justify-center rounded-md border border-violet-200 bg-white px-3 font-extrabold text-violet-800 hover:bg-violet-100"
                         >
-                          Đi tới duyệt kết quả
+                          {t('eventWorkspacePendingReviewAction')}
                         </button>
                       )}
                     </div>
@@ -204,28 +210,28 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
                     isLive ? (
                       <>
                         <button type="button" onClick={() => toggleLiveView(race.id)} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-xs font-extrabold text-emerald-700 hover:bg-emerald-100">
-                          <Radio size={15} />{liveRaceId === race.id ? 'Ẩn trực tiếp' : 'Xem trực tiếp'}
+                          <Radio size={15} />{liveRaceId === race.id ? t('eventRaceLiveHide') : t('eventRaceLiveShow')}
                         </button>
                         <button type="button" disabled={failingRaceId === race.id} onClick={() => openFailDialog(race)} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 text-xs font-extrabold text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60">
                           {failingRaceId === race.id ? <LoaderCircle size={15} className="animate-spin" /> : <XCircle size={15} />}
-                          {failingRaceId === race.id ? 'Đang xử lý' : 'Đánh dấu lỗi'}
+                          {failingRaceId === race.id ? t('eventCommonProcessing') : t('eventRaceFailTitle')}
                         </button>
                       </>
                     ) : (
-                      <button type="button" disabled={runningRaceId === race.id || !hasMinimumLaunchEntries} onClick={() => handleRunRace(race.id)} title={!hasMinimumLaunchEntries ? 'Cần tối thiểu 3 RaceEntry đã phân công để khởi chạy Unity.' : undefined} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-brown-700/15 bg-white px-3 text-xs font-extrabold text-brown-700 hover:bg-cream-200 disabled:cursor-not-allowed disabled:opacity-60">
+                      <button type="button" disabled={runningRaceId === race.id || !hasMinimumLaunchEntries} onClick={() => handleRunRace(race.id)} title={!hasMinimumLaunchEntries ? t('eventRaceLaunchMinimum', { count: MIN_RACE_ENTRIES_TO_LAUNCH }) : undefined} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-brown-700/15 bg-white px-3 text-xs font-extrabold text-brown-700 hover:bg-cream-200 disabled:cursor-not-allowed disabled:opacity-60">
                         {runningRaceId === race.id ? <LoaderCircle size={15} className="animate-spin" /> : <PlayCircle size={15} />}
-                        {runningRaceId === race.id ? 'Đang khởi chạy' : 'Khởi chạy Race'}
+                        {runningRaceId === race.id ? t('eventRaceLaunching') : t('eventRaceLaunchTitle')}
                       </button>
                     )
                   )}
-                  <button type="button" onClick={() => setPrizeRuleRace(race)} className="inline-flex min-h-10 min-w-[7rem] items-center justify-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 text-xs font-extrabold text-amber-800 shadow-sm hover:bg-amber-100"><Trophy size={15} />Prize rule</button>
+                  <button type="button" onClick={() => setPrizeRuleRace(race)} className="inline-flex min-h-10 min-w-[7rem] items-center justify-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 text-xs font-extrabold text-amber-800 shadow-sm hover:bg-amber-100"><Trophy size={15} />{t('eventWorkspacePrizeRule')}</button>
                   {race.status === 'COMPLETED' && (
-                    <button type="button" onClick={() => setResultPrizeRace(race)} className="inline-flex min-h-10 min-w-[7rem] items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-xs font-extrabold text-emerald-800 shadow-sm hover:bg-emerald-100"><Medal size={15} />Kết quả</button>
+                    <button type="button" onClick={() => setResultPrizeRace(race)} className="inline-flex min-h-10 min-w-[7rem] items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-xs font-extrabold text-emerald-800 shadow-sm hover:bg-emerald-100"><Medal size={15} />{t('eventWorkspaceOfficialResult')}</button>
                   )}
-                  <button type="button" disabled={!canManageRaceEntries || isFull || assignment.queueLoading} onClick={() => openAssignment(race)} title={!canManageRaceEntries ? raceEntryLockReason : undefined} className={`inline-flex min-h-10 min-w-[12.25rem] items-center justify-center gap-2 rounded-lg border px-3 text-xs font-extrabold shadow-sm ${isFull ? 'cursor-not-allowed border-red-200 bg-red-50 text-red-700' : !canManageRaceEntries ? 'cursor-not-allowed border-amber-200 bg-amber-50 text-amber-800' : 'border-brown-700/15 bg-white text-brown-700 hover:bg-cream-200 disabled:cursor-not-allowed disabled:opacity-60'}`}><UserPlus size={15} />{isFull ? 'Race đã đầy' : canManageRaceEntries ? 'Phân công RaceEntry' : 'Đã khóa phân công'}</button>
+                  <button type="button" disabled={!canManageRaceEntries || isFull || assignment.queueLoading} onClick={() => openAssignment(race)} title={!canManageRaceEntries ? raceEntryLockReason : undefined} className={`inline-flex min-h-10 min-w-[12.25rem] items-center justify-center gap-2 rounded-lg border px-3 text-xs font-extrabold shadow-sm ${isFull ? 'cursor-not-allowed border-red-200 bg-red-50 text-red-700' : !canManageRaceEntries ? 'cursor-not-allowed border-amber-200 bg-amber-50 text-amber-800' : 'border-brown-700/15 bg-white text-brown-700 hover:bg-cream-200 disabled:cursor-not-allowed disabled:opacity-60'}`}><UserPlus size={15} />{isFull ? t('eventRaceEntryFull') : canManageRaceEntries ? t('eventRaceEntryTitle') : t('eventRaceEntryLocked')}</button>
                   {race.status === 'READY' && !hasMinimumLaunchEntries && (
                     <p className="sm:col-span-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-extrabold text-amber-900">
-                      Cần tối thiểu {MIN_RACE_ENTRIES_TO_LAUNCH} RaceEntry đã phân công để khởi chạy Unity.
+                      {t('eventRaceLaunchMinimum', { count: MIN_RACE_ENTRIES_TO_LAUNCH })}
                     </p>
                   )}
                   {!canManageRaceEntries && (
@@ -246,9 +252,9 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
                         onResult={(status) => handleLiveResult(race.id, status)}
                       />
                       {assignment.entriesLoading ? (
-                        <div className="grid min-h-36 place-items-center rounded-lg border border-brown-700/10 bg-white/75 text-center"><div><LoaderCircle className="mx-auto animate-spin text-brown-500" size={23} /><p className="mt-3 text-sm font-black text-brown-900">Đang tải RaceEntry chính thức</p></div></div>
+                        <div className="grid min-h-36 place-items-center rounded-lg border border-brown-700/10 bg-white/75 text-center"><div><LoaderCircle className="mx-auto animate-spin text-brown-500" size={23} /><p className="mt-3 text-sm font-black text-brown-900">{t('eventCommonLoading')}</p></div></div>
                       ) : assignment.entriesError ? (
-                        <div className="grid min-h-36 place-items-center rounded-lg border border-red-200 bg-red-50 p-5 text-center"><div><AlertTriangle className="mx-auto text-danger" size={22} /><p className="mt-3 text-sm font-black text-brown-900">Không thể tải RaceEntry</p><p className="mt-1 text-xs font-semibold text-slate-500">{assignment.entriesError}</p><button type="button" onClick={assignment.retryEntries} className="mt-3 inline-flex min-h-9 items-center gap-2 rounded-lg bg-brown-700 px-3 text-xs font-extrabold text-white"><RefreshCw size={13} /> Thử lại</button></div></div>
+                        <div className="grid min-h-36 place-items-center rounded-lg border border-red-200 bg-red-50 p-5 text-center"><div><AlertTriangle className="mx-auto text-danger" size={22} /><p className="mt-3 text-sm font-black text-brown-900">{t('eventCommonLoadError')}</p><p className="mt-1 text-xs font-semibold text-slate-500">{assignment.entriesError}</p><button type="button" onClick={assignment.retryEntries} className="mt-3 inline-flex min-h-9 items-center gap-2 rounded-lg bg-brown-700 px-3 text-xs font-extrabold text-white"><RefreshCw size={13} /> {t('eventCommonRetry')}</button></div></div>
                       ) : <OfficialEntries race={race} entries={assignment.entries} onCancel={setCancellationEntry} canCancel={canManageRaceEntries} cancelDisabledReason={raceEntryLockReason} />}
                     </div>
                   </motion.div>
@@ -258,7 +264,7 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
           );
         })}
 
-        {tournament.races.length === 0 && <div className="grid min-h-44 place-items-center p-6 text-center"><div><Flag className="mx-auto text-brown-500" size={24} /><p className="mt-3 font-black text-brown-900">Chưa cấu hình Race</p><p className="mt-1 text-sm font-semibold text-slate-500">Chỉnh sửa Tournament để tạo chương trình Race trước khi phân công RaceEntry.</p></div></div>}
+        {tournament.races.length === 0 && <div className="grid min-h-44 place-items-center p-6 text-center"><div><Flag className="mx-auto text-brown-500" size={24} /><p className="mt-3 font-black text-brown-900">{t('eventRaceNoConfiguredTitle')}</p><p className="mt-1 text-sm font-semibold text-slate-500">{t('eventRaceNoConfiguredHint')}</p></div></div>}
       </div>
 
       <AnimatePresence>
@@ -332,11 +338,11 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
             >
               <header className="flex items-start justify-between gap-4 border-b border-brown-700/10 bg-white/75 p-5">
                 <div>
-                  <p className="text-xs font-black uppercase text-red-700">Đánh dấu Race lỗi</p>
+                  <p className="text-xs font-black uppercase text-red-700">{t('eventRaceFailTitle')}</p>
                   <h3 id="fail-race-title" className="mt-1 text-xl font-black text-brown-900">{failTargetRace.name}</h3>
                   <p className="mt-1 text-sm font-semibold text-slate-500">{failTargetRace.track} · {formatRaceSchedule(failTargetRace)}</p>
                 </div>
-                <button type="button" disabled={Boolean(failingRaceId)} onClick={closeFailDialog} className="grid size-9 shrink-0 place-items-center rounded-lg border border-brown-700/10 bg-white text-brown-700 hover:bg-cream-200 disabled:opacity-50" aria-label="Đóng">
+                <button type="button" disabled={Boolean(failingRaceId)} onClick={closeFailDialog} className="grid size-9 shrink-0 place-items-center rounded-lg border border-brown-700/10 bg-white text-brown-700 hover:bg-cream-200 disabled:opacity-50" aria-label={t('eventCommonClose')}>
                   <XCircle size={17} />
                 </button>
               </header>
@@ -344,10 +350,10 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
               <div className="p-5">
                 <div className="flex items-start gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold leading-6 text-red-800">
                   <AlertTriangle className="mt-0.5 shrink-0" size={18} />
-                  <p>Race đang chạy sẽ được backend xử lý lỗi và dừng theo business rule hiện tại.</p>
+                  <p>{t('eventRaceFailBackendHint')}</p>
                 </div>
                 <label className="mt-4 grid gap-1.5 text-sm font-extrabold text-brown-900">
-                  Lý do lỗi
+                  {t('eventRaceFailReason')}
                   <textarea
                     autoFocus
                     value={failReason}
@@ -357,7 +363,7 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
                     }}
                     maxLength={500}
                     className="min-h-28 resize-y rounded-lg border border-brown-700/15 bg-white px-3.5 py-3 text-sm font-bold outline-none focus:border-brown-500 focus:ring-4 focus:ring-gold-400/15"
-                    placeholder="Nhập lý do Race bị lỗi hoặc cần dừng khẩn cấp"
+                    placeholder={t('eventRaceFailPlaceholder')}
                   />
                 </label>
                 <div className="mt-1 flex items-start justify-between gap-3">
@@ -367,10 +373,10 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
               </div>
 
               <footer className="flex justify-end gap-2 border-t border-brown-700/10 bg-white/70 p-4">
-                <button type="button" disabled={Boolean(failingRaceId)} onClick={closeFailDialog} className="min-h-10 rounded-lg border border-brown-700/15 bg-white px-4 text-sm font-extrabold text-brown-700 hover:bg-cream-200 disabled:opacity-50">Giữ Race</button>
+                <button type="button" disabled={Boolean(failingRaceId)} onClick={closeFailDialog} className="min-h-10 rounded-lg border border-brown-700/15 bg-white px-4 text-sm font-extrabold text-brown-700 hover:bg-cream-200 disabled:opacity-50">{t('eventRaceKeep')}</button>
                 <button type="submit" disabled={Boolean(failingRaceId)} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-red-700 px-4 text-sm font-extrabold text-white hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-60">
                   {failingRaceId ? <LoaderCircle className="animate-spin" size={16} /> : <XCircle size={16} />}
-                  Đánh dấu lỗi
+                  {t('eventRaceFailTitle')}
                 </button>
               </footer>
             </motion.form>

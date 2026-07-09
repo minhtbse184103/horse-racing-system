@@ -17,8 +17,10 @@ import {
   resetConditionDraft
 } from './wizardHelpers';
 import { validateWizardStep } from './wizardValidation';
+import { useLanguage } from '../../../../context/LanguageContext';
 
 export default function TournamentWizard({ initialTournament, onClose, onSave }) {
+  const { t } = useLanguage();
   const [step, setStep] = useState(1);
   const [draft, setDraft] = useState(() => createInitialTournamentDraft(initialTournament));
   const [conditionDraft, setConditionDraft] = useState(() => resetConditionDraft());
@@ -52,7 +54,7 @@ export default function TournamentWizard({ initialTournament, onClose, onSave })
   }
 
   function nextStep() {
-    const nextErrors = validateWizardStep(step, draft);
+    const nextErrors = validateWizardStep(step, draft, t);
     setErrors(nextErrors);
 
     if (Object.keys(nextErrors).length === 0) {
@@ -84,12 +86,12 @@ export default function TournamentWizard({ initialTournament, onClose, onSave })
           <div className="flex min-w-0 items-start gap-3">
             <span className="hidden size-10 shrink-0 place-items-center rounded-lg bg-brown-900 text-white sm:grid"><Trophy size={20} /></span>
             <div className="min-w-0">
-              <p className="text-xs font-black uppercase text-brown-500">Thiết lập Tournament</p>
-              <h2 id="tournament-studio-title" className="mt-0.5 truncate text-xl font-black text-brown-900 md:text-2xl">{initialTournament ? 'Chỉnh sửa Tournament' : 'Tạo Tournament'}</h2>
-              <p className="mt-0.5 hidden text-xs font-semibold text-slate-500 lg:block">Tournament có nhiều Race. Mỗi Race có cơ cấu giải thưởng theo hạng riêng.</p>
+              <p className="text-xs font-black uppercase text-brown-500">{t('eventWizardSetupEyebrow')}</p>
+              <h2 id="tournament-studio-title" className="mt-0.5 truncate text-xl font-black text-brown-900 md:text-2xl">{initialTournament ? t('eventWizardEditTitle') : t('eventWizardCreateTitle')}</h2>
+              <p className="mt-0.5 hidden text-xs font-semibold text-slate-500 lg:block">{t('eventWizardSetupDescription')}</p>
             </div>
           </div>
-          <button className="grid size-10 shrink-0 place-items-center rounded-lg border border-brown-700/10 bg-white text-brown-700 transition hover:border-brown-500 hover:bg-cream-200" type="button" onClick={onClose} aria-label="Đóng phần thiết lập Tournament"><X size={19} /></button>
+          <button className="grid size-10 shrink-0 place-items-center rounded-lg border border-brown-700/10 bg-white text-brown-700 transition hover:border-brown-500 hover:bg-cream-200" type="button" onClick={onClose} aria-label={t('eventWizardCloseSetup')}><X size={19} /></button>
         </header>
 
         <WizardStepper step={step} />
@@ -120,17 +122,17 @@ export default function TournamentWizard({ initialTournament, onClose, onSave })
 
         <footer className="shrink-0 border-t border-brown-700/10 bg-white/95 px-4 py-2.5 shadow-[0_-12px_30px_rgba(43,23,16,0.06)] backdrop-blur md:px-6 md:py-3">
           <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
-            <div className="hidden sm:block"><p className="text-xs font-black uppercase text-brown-500">Bước hiện tại</p><p className="text-sm font-black text-brown-900">{activeStep.label}: {activeStep.shortLabel}</p></div>
+            <div className="hidden sm:block"><p className="text-xs font-black uppercase text-brown-500">{t('eventWorkspaceCurrentStep')}</p><p className="text-sm font-black text-brown-900">{t(activeStep.labelKey)}: {t(activeStep.shortLabelKey)}</p></div>
             <div className="ml-auto flex w-full items-center justify-end gap-2 sm:w-auto">
               {step === 1 ? (
-                <button type="button" onClick={onClose} className="mr-auto inline-flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-extrabold text-slate-500 hover:bg-cream-200 hover:text-brown-900 sm:mr-0"><ArrowLeft size={16} /> Hủy</button>
+                <button type="button" onClick={onClose} className="mr-auto inline-flex min-h-11 items-center gap-2 rounded-lg px-3 text-sm font-extrabold text-slate-500 hover:bg-cream-200 hover:text-brown-900 sm:mr-0"><ArrowLeft size={16} /> {t('eventCommonCancel')}</button>
               ) : (
-                <button type="button" onClick={previousStep} className="mr-auto inline-flex min-h-11 items-center gap-2 rounded-lg border border-brown-700/15 bg-white px-4 text-sm font-extrabold text-brown-700 hover:bg-cream-200 sm:mr-0"><ArrowLeft size={16} /> Quay lại</button>
+                <button type="button" onClick={previousStep} className="mr-auto inline-flex min-h-11 items-center gap-2 rounded-lg border border-brown-700/15 bg-white px-4 text-sm font-extrabold text-brown-700 hover:bg-cream-200 sm:mr-0"><ArrowLeft size={16} /> {t('eventCommonBack')}</button>
               )}
               {step < 4 ? (
-                <button type="button" onClick={nextStep} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-brown-700 px-5 text-sm font-extrabold text-white shadow-md hover:bg-brown-900">Tiếp theo <ArrowRight size={16} /></button>
+                <button type="button" onClick={nextStep} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-brown-700 px-5 text-sm font-extrabold text-white shadow-md hover:bg-brown-900">{t('eventCommonNext')} <ArrowRight size={16} /></button>
               ) : (
-                <button type="button" onClick={() => setShowConfirmation(true)} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-brown-700 px-5 text-sm font-extrabold text-white shadow-md hover:bg-brown-900"><Trophy size={16} /> {initialTournament ? 'Lưu thay đổi' : 'Tạo Tournament'}</button>
+                <button type="button" onClick={() => setShowConfirmation(true)} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-brown-700 px-5 text-sm font-extrabold text-white shadow-md hover:bg-brown-900"><Trophy size={16} /> {initialTournament ? t('saveChanges') : t('eventWorkspaceCreateTournament')}</button>
               )}
             </div>
           </div>

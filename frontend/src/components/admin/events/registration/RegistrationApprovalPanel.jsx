@@ -6,6 +6,7 @@ import RegistrationFilters from './RegistrationFilters';
 import RegistrationList from './RegistrationList';
 import RegistrationReviewDialog from './RegistrationReviewDialog';
 import { filterRegistrations, getRegistrationSummary, getTournamentRegistrations } from './registrationHelpers';
+import { useLanguage } from '../../../../context/LanguageContext';
 
 const DEFAULT_FILTERS = {
   search: '',
@@ -22,6 +23,7 @@ export default function RegistrationApprovalPanel({
   onApprove,
   onReject
 }) {
+  const { t } = useLanguage();
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
   const [selectedRegistration, setSelectedRegistration] = useState(null);
   const [expanded, setExpanded] = useState(false);
@@ -63,21 +65,21 @@ export default function RegistrationApprovalPanel({
               {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
             </span>
             <span className="min-w-0">
-              <span className="flex items-center gap-2 text-xs font-black uppercase text-brown-500"><ClipboardCheck size={15} /> Registration của Tournament</span>
-              <span className="mt-1 block text-lg font-black text-brown-900">Duyệt Registration</span>
-              <span className="mt-0.5 block text-xs font-semibold text-slate-500">{summary.approved} đã duyệt · {summary.pending} đang chờ · {summary.paid} đã thanh toán · {summary.total} tổng cộng</span>
+              <span className="flex items-center gap-2 text-xs font-black uppercase text-brown-500"><ClipboardCheck size={15} /> {t('eventDomainRegistration')}</span>
+              <span className="mt-1 block text-lg font-black text-brown-900">{t('eventRegistrationReviewTitle')}</span>
+              <span className="mt-0.5 block text-xs font-semibold text-slate-500">{summary.approved} APPROVED · {summary.pending} PENDING · {summary.paid} PAID · {summary.total} total</span>
             </span>
           </div>
-          <span className="max-w-full truncate rounded-full bg-cream-200 px-3 py-1.5 text-xs font-extrabold text-brown-700" title={tournament.name}>{expanded ? 'Ẩn danh sách Registration' : 'Mở danh sách Registration'} · {tournament.name}</span>
+          <span className="max-w-full truncate rounded-full bg-cream-200 px-3 py-1.5 text-xs font-extrabold text-brown-700" title={tournament.name}>{expanded ? t('eventCommonClose') : t('eventCommonViewDetail')} · {tournament.name}</span>
         </button>
       </header>
       <AnimatePresence initial={false}>
         {expanded && (
           <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.22 }} className="overflow-hidden">
             {isLoading ? (
-              <div className="grid min-h-44 place-items-center p-6 text-center"><div><LoaderCircle className="mx-auto animate-spin text-brown-500" size={25} /><p className="mt-3 font-black text-brown-900">Đang tải Registration</p><p className="mt-1 text-xs font-semibold text-slate-500">Đang tải danh sách chờ duyệt và lịch sử hiện tại.</p></div></div>
+              <div className="grid min-h-44 place-items-center p-6 text-center"><div><LoaderCircle className="mx-auto animate-spin text-brown-500" size={25} /><p className="mt-3 font-black text-brown-900">{t('eventCommonLoading')}</p><p className="mt-1 text-xs font-semibold text-slate-500">{t('eventRegistrationReviewSubtitle')}</p></div></div>
             ) : loadError ? (
-              <div className="grid min-h-44 place-items-center p-6 text-center"><div className="max-w-md"><AlertTriangle className="mx-auto text-danger" size={25} /><p className="mt-3 font-black text-brown-900">Không thể tải Registration</p><p className="mt-1 text-xs font-semibold leading-5 text-slate-500">{loadError}</p><button type="button" onClick={onRetry} className="mt-4 inline-flex min-h-10 items-center gap-2 rounded-lg bg-brown-700 px-4 text-xs font-extrabold text-white hover:bg-brown-900"><RefreshCw size={14} /> Thử lại</button></div></div>
+              <div className="grid min-h-44 place-items-center p-6 text-center"><div className="max-w-md"><AlertTriangle className="mx-auto text-danger" size={25} /><p className="mt-3 font-black text-brown-900">{t('eventCommonLoadError')}</p><p className="mt-1 text-xs font-semibold leading-5 text-slate-500">{loadError}</p><button type="button" onClick={onRetry} className="mt-4 inline-flex min-h-10 items-center gap-2 rounded-lg bg-brown-700 px-4 text-xs font-extrabold text-white hover:bg-brown-900"><RefreshCw size={14} /> {t('eventCommonRetry')}</button></div></div>
             ) : (
               <>
                 <RegistrationFilters filters={filters} resultCount={filteredRegistrations.length} onChange={updateFilter} onReset={() => setFilters(DEFAULT_FILTERS)} />

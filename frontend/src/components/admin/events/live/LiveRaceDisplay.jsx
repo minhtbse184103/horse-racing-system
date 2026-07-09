@@ -1,4 +1,5 @@
 import { Activity, CircleDot, Clock3, Flag, Trophy } from 'lucide-react';
+import { useLanguage } from '../../../../context/LanguageContext';
 
 function formatElapsedTime(value) {
   const seconds = Number(value || 0);
@@ -36,6 +37,7 @@ function buildLeaderboard(horses) {
 }
 
 export default function LiveRaceDisplay({ tick, result }) {
+  const { t } = useLanguage();
   const horses = Array.isArray(tick?.horses) ? buildLeaderboard(tick.horses) : [];
   const leader = horses[0] || null;
   const elapsedTime = formatElapsedTime(tick?.elapsedTime);
@@ -45,26 +47,26 @@ export default function LiveRaceDisplay({ tick, result }) {
       <div className="grid gap-3 border-b border-brown-700/10 bg-[linear-gradient(135deg,#fff8ee_0%,#f7ead8_100%)] p-4 md:grid-cols-3">
         <div className="rounded-lg border border-white/80 bg-white/80 p-3 shadow-sm">
           <p className="flex items-center gap-2 text-xs font-black uppercase text-slate-500">
-            <Clock3 size={14} /> Thời gian
+            <Clock3 size={14} /> {t('eventRaceLiveTime')}
           </p>
           <p className="mt-2 text-2xl font-black text-brown-900">{elapsedTime}</p>
         </div>
 
         <div className="rounded-lg border border-white/80 bg-white/80 p-3 shadow-sm">
           <p className="flex items-center gap-2 text-xs font-black uppercase text-slate-500">
-            <Trophy size={14} /> Dẫn đầu
+            <Trophy size={14} /> {t('eventRaceLiveLeader')}
           </p>
           <p className="mt-2 truncate text-2xl font-black text-brown-900">
-            {leader ? leader.label : 'Đang chờ'}
+            {leader ? leader.label : t('eventRaceLiveWaiting')}
           </p>
         </div>
 
         <div className="rounded-lg border border-white/80 bg-white/80 p-3 shadow-sm">
           <p className="flex items-center gap-2 text-xs font-black uppercase text-slate-500">
-            <Activity size={14} /> Trạng thái
+            <Activity size={14} /> {t('eventRaceLiveStatus')}
           </p>
           <p className={`mt-2 text-2xl font-black ${result ? 'text-emerald-700' : 'text-brown-900'}`}>
-            {result ? 'Hoàn tất' : 'Đang chạy'}
+            {result ? t('eventRaceLiveFinished') : t('eventRaceLiveRunning')}
           </p>
         </div>
       </div>
@@ -73,9 +75,9 @@ export default function LiveRaceDisplay({ tick, result }) {
         <div className="grid min-h-36 place-items-center p-6 text-center">
           <div>
             <Flag className="mx-auto text-brown-500" size={24} />
-            <p className="mt-3 font-black text-brown-900">Chưa có tick live</p>
+            <p className="mt-3 font-black text-brown-900">{t('eventRaceLiveNoTickTitle')}</p>
             <p className="mt-1 text-sm font-semibold text-slate-500">
-              Unity Engine sẽ gửi dữ liệu vị trí sau khi Race bắt đầu chạy.
+              {t('eventRaceLiveNoTickHint')}
             </p>
           </div>
         </div>
@@ -85,9 +87,9 @@ export default function LiveRaceDisplay({ tick, result }) {
             <div className="mb-4 flex items-start gap-3 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-emerald-800">
               <Trophy className="mt-0.5 shrink-0" size={20} />
               <div>
-                <p className="font-black">Race đã kết thúc</p>
+                <p className="font-black">{t('eventRaceLiveFinishedTitle')}</p>
                 <p className="mt-1 text-sm font-semibold">
-                  Kết quả provisional đã được backend ghi nhận và đang chờ Referee/Admin review trước khi trở thành kết quả chính thức.
+                  {t('eventRaceLiveFinishedHint')}
                 </p>
               </div>
             </div>
@@ -99,7 +101,7 @@ export default function LiveRaceDisplay({ tick, result }) {
                 <div className="h-full w-full bg-[repeating-linear-gradient(0deg,#ffffff_0_8px,#2b1710_8px_16px)] opacity-70" />
               </div>
               <div className="pointer-events-none absolute bottom-3 right-[3.4rem] text-[0.62rem] font-black uppercase tracking-[0.2em] text-brown-700/55 [writing-mode:vertical-rl]">
-                Finish
+                {t('eventRaceLiveFinishLine')}
               </div>
 
               <div className="space-y-2">
@@ -127,11 +129,11 @@ export default function LiveRaceDisplay({ tick, result }) {
                             <p className="truncate text-sm font-black text-brown-900">{horse.label}</p>
                             <div className="mt-1 flex flex-wrap items-center gap-1.5">
                               <span className="inline-flex items-center gap-1 rounded-full bg-white/85 px-2 py-1 text-[0.66rem] font-black text-brown-700">
-                                <CircleDot size={10} /> Stall {horse.stall}
+                                <CircleDot size={10} /> {t('eventCommonStall')} {horse.stall}
                               </span>
                               {horse.finished && (
                                 <span className="rounded-full bg-emerald-50 px-2 py-1 text-[0.66rem] font-black text-emerald-700">
-                                  VỀ ĐÍCH
+                                  {t('eventRaceLiveHorseFinished')}
                                 </span>
                               )}
                             </div>
@@ -150,7 +152,7 @@ export default function LiveRaceDisplay({ tick, result }) {
                           </span>
                           {index === 0 && !horse.finished && (
                             <span className="hidden rounded-full bg-brown-900 px-2 py-1 text-[0.62rem] font-black uppercase text-white shadow-sm sm:inline-flex">
-                              Leader
+                              {t('eventRaceLiveLeaderBadge')}
                             </span>
                           )}
                         </div>

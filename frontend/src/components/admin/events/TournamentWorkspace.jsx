@@ -6,8 +6,10 @@ import TournamentPortfolio from './workspace/TournamentPortfolio';
 import WorkspaceMetricCard from './workspace/WorkspaceMetricCard';
 import useTournamentWorkspace from './workspace/useTournamentWorkspace';
 import { pageTransition, staggerContainer } from '../ui/motion';
+import { useLanguage } from '../../../context/LanguageContext';
 
 export default function TournamentWorkspace({ adminName = 'Admin Test', focus = null, onFocusHandled, onNavigateToResultReview }) {
+  const { t } = useLanguage();
   const workspace = useTournamentWorkspace();
   const operationsProps = {
     registrations: workspace.registrations,
@@ -29,13 +31,13 @@ export default function TournamentWorkspace({ adminName = 'Admin Test', focus = 
       <header className="flex flex-col gap-4 border-b border-brown-700/10 pb-5 xl:flex-row xl:items-end xl:justify-between">
         <div>
           <div className="flex items-center gap-2 text-xs font-black uppercase text-brown-500">
-            <span className="h-px w-7 bg-brown-500" /> Quản trị Race
+            <span className="h-px w-7 bg-brown-500" /> {t('eventWorkspaceEyebrow')}
           </div>
           <h1 className="mt-2 text-3xl font-black leading-none text-brown-900 md:text-4xl">
-            Quản lý Tournament
+            {t('eventWorkspaceTitle')}
           </h1>
           <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-slate-500">
-            Lập kế hoạch sự kiện, cấu hình Race và theo dõi sức chứa Registration trong một khu vực quản lý thống nhất.
+            {t('eventWorkspaceSubtitle')}
           </p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
@@ -50,14 +52,14 @@ export default function TournamentWorkspace({ adminName = 'Admin Test', focus = 
               strokeWidth={2.5}
               className={workspace.refreshing ? 'animate-spin' : ''}
             />
-            {workspace.refreshing ? 'Đang làm mới' : 'Làm mới'}
+            {workspace.refreshing ? t('eventWorkspaceRefreshing') : t('eventCommonRefresh')}
           </button>
           <button
             type="button"
             onClick={workspace.openCreate}
             className="inline-flex min-h-12 items-center justify-center gap-2 rounded-lg bg-brown-700 px-5 text-sm font-extrabold text-white shadow-[0_12px_28px_rgba(108,63,36,0.24)] transition hover:-translate-y-0.5 hover:bg-brown-900 hover:shadow-[0_16px_34px_rgba(43,23,16,0.25)]"
           >
-            <Plus size={18} strokeWidth={2.5} /> Tạo Tournament
+            <Plus size={18} strokeWidth={2.5} /> {t('eventWorkspaceCreateTournament')}
           </button>
         </div>
       </header>
@@ -73,14 +75,14 @@ export default function TournamentWorkspace({ adminName = 'Admin Test', focus = 
             <span className="flex items-start gap-2">
               <Info className="mt-0.5 shrink-0" size={17} />
               {focus === 'raceEntries'
-                ? 'Từ danh sách Tournament, mở Tournament và chọn Race trong khu vực Phân công RaceEntry để xử lý queue.'
-                : 'Từ danh sách Tournament, mở Tournament liên quan rồi mở khu vực Duyệt Registration để xem hồ sơ đang chờ.'}
+                ? t('eventWorkspaceFocusRaceEntries')
+                : t('eventWorkspaceFocusRegistrations')}
             </span>
             <button
               type="button"
               onClick={onFocusHandled}
               className="grid size-7 shrink-0 place-items-center rounded-md text-blue-800 hover:bg-blue-100"
-              aria-label="Đóng hướng dẫn"
+              aria-label={t('eventCommonClose')}
             >
               <X size={15} />
             </button>
@@ -101,7 +103,7 @@ export default function TournamentWorkspace({ adminName = 'Admin Test', focus = 
               type="button"
               onClick={workspace.dismissNotice}
               className="grid size-7 shrink-0 place-items-center rounded-md text-emerald-800 hover:bg-emerald-100"
-              aria-label="Đóng thông báo"
+              aria-label={t('eventCommonClose')}
             >
               <X size={15} />
             </button>
@@ -113,7 +115,7 @@ export default function TournamentWorkspace({ adminName = 'Admin Test', focus = 
         {workspace.mutationError && (
           <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} className="flex items-start justify-between gap-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-bold text-red-900 shadow-[0_8px_24px_rgba(185,28,28,0.08)]">
             <span className="flex items-start gap-2"><AlertTriangle className="mt-0.5 shrink-0" size={17} /> {workspace.mutationError}</span>
-            <button type="button" onClick={workspace.dismissMutationError} className="grid size-7 shrink-0 place-items-center rounded-md text-red-800 hover:bg-red-100" aria-label="Đóng thông báo lỗi"><X size={15} /></button>
+            <button type="button" onClick={workspace.dismissMutationError} className="grid size-7 shrink-0 place-items-center rounded-md text-red-800 hover:bg-red-100" aria-label={t('eventCommonClose')}><X size={15} /></button>
           </motion.div>
         )}
       </AnimatePresence>
@@ -122,32 +124,32 @@ export default function TournamentWorkspace({ adminName = 'Admin Test', focus = 
         <div className="grid min-h-80 place-items-center rounded-lg border border-white/80 bg-cream-100/90 px-6 text-center shadow-[0_20px_52px_rgba(78,44,25,0.12)]">
           <div>
             <LoaderCircle className="mx-auto animate-spin text-brown-500" size={30} />
-            <h2 className="mt-4 text-lg font-black text-brown-900">Đang tải danh sách Tournament</h2>
-            <p className="mt-1 text-sm font-semibold text-slate-500">Đang tải thông tin Tournament và chương trình Race.</p>
+            <h2 className="mt-4 text-lg font-black text-brown-900">{t('eventWorkspaceLoadingTitle')}</h2>
+            <p className="mt-1 text-sm font-semibold text-slate-500">{t('eventWorkspaceLoadingDescription')}</p>
           </div>
         </div>
       ) : workspace.loadError ? (
         <div className="grid min-h-80 place-items-center rounded-lg border border-red-200 bg-red-50/80 px-6 text-center shadow-[0_20px_52px_rgba(78,44,25,0.1)]">
           <div className="max-w-md">
             <span className="mx-auto grid size-12 place-items-center rounded-lg bg-red-100 text-danger"><AlertTriangle size={23} /></span>
-            <h2 className="mt-4 text-lg font-black text-brown-900">Không thể tải dữ liệu Tournament</h2>
+            <h2 className="mt-4 text-lg font-black text-brown-900">{t('eventWorkspaceLoadErrorTitle')}</h2>
             <p className="mt-2 text-sm font-semibold leading-6 text-slate-600">{workspace.loadError}</p>
             <button type="button" onClick={workspace.retryLoad} className="mt-5 inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-brown-700 px-5 text-sm font-extrabold text-white shadow-md hover:bg-brown-900">
-              <RefreshCw size={16} /> Thử lại
+              <RefreshCw size={16} /> {t('eventCommonRetry')}
             </button>
           </div>
         </div>
       ) : (
         <>
           <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <WorkspaceMetricCard icon={Trophy} label="Tournament" value={workspace.metrics.tournamentCount} hint="Trong tất cả giai đoạn vận hành" />
-            <WorkspaceMetricCard icon={Users} label="Registration" value={workspace.metrics.registrationCount} hint="Danh mục sự kiện hiện tại" tone="gold" />
-            <WorkspaceMetricCard icon={Flag} label="Race đã cấu hình" value={workspace.metrics.raceCount} hint="Trong toàn bộ Tournament" tone="green" />
+            <WorkspaceMetricCard icon={Trophy} label={t('eventDomainTournament')} value={workspace.metrics.tournamentCount} hint={t('eventWorkspaceSummary')} />
+            <WorkspaceMetricCard icon={Users} label={t('eventDomainRegistration')} value={workspace.metrics.registrationCount} hint={t('eventWorkspacePortfolio')} tone="gold" />
+            <WorkspaceMetricCard icon={Flag} label={t('eventWorkspaceConfiguredRaces')} value={workspace.metrics.raceCount} hint={t('eventDomainTournament')} tone="green" />
             <WorkspaceMetricCard
               icon={CalendarDays}
-              label="RaceEntry chính thức"
+              label={t('eventWorkspaceOfficialEntries')}
               value={workspace.metrics.raceEntryCount}
-              hint="Đã phân công trong toàn bộ Race"
+              hint={t('eventDomainRace')}
               tone="cream"
             />
           </motion.div>

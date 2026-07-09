@@ -5,6 +5,7 @@ import TournamentLifecycle from './TournamentLifecycle';
 import TournamentLifecycleActions from './TournamentLifecycleActions';
 import { formatTournamentDate, getTournamentPrizeTotal } from './tournamentWorkspaceUtils';
 import VenueImage from './VenueImage';
+import { useLanguage } from '../../../../context/LanguageContext';
 
 export default function TournamentDetails({
   tournament,
@@ -20,6 +21,8 @@ export default function TournamentDetails({
   adminName,
   onNavigateToResultReview
 }) {
+  const { t } = useLanguage();
+
   return (
     <motion.div
       initial={{ opacity: 0, y: -6 }}
@@ -32,17 +35,17 @@ export default function TournamentDetails({
         <section className="rounded-lg border border-brown-700/10 bg-white/75 p-4">
           <div className="grid gap-4 md:grid-cols-[12rem_minmax(0,1fr)]">
             <VenueImage tournament={tournament} className="aspect-[16/10] w-full rounded-lg border border-brown-700/10" />
-            <div><p className="text-xs font-black uppercase text-brown-500">Tóm tắt Tournament</p><p className="mt-2 text-sm font-semibold leading-6 text-brown-900">{tournament.description}</p></div>
+            <div><p className="text-xs font-black uppercase text-brown-500">{t('eventWorkspaceSummaryDescription')}</p><p className="mt-2 text-sm font-semibold leading-6 text-brown-900">{tournament.description}</p></div>
           </div>
           <dl className="mt-3 grid gap-3 border-t border-brown-700/10 pt-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
-            <div><dt className="text-xs font-extrabold text-slate-500">Registration</dt><dd className="mt-1 font-black text-brown-900">{formatTournamentDate(tournament.registrationOpen)} - {formatTournamentDate(tournament.registrationClose)}</dd></div>
-            <div><dt className="text-xs font-extrabold text-slate-500">Tournament</dt><dd className="mt-1 font-black text-brown-900">{formatTournamentDate(tournament.start)} - {formatTournamentDate(tournament.end)}</dd></div>
-            <div><dt className="text-xs font-extrabold text-slate-500">Phí tham gia</dt><dd className="mt-1 font-black text-brown-900">{formatVndCurrency(tournament.entryFee)}</dd></div>
-            <div><dt className="text-xs font-extrabold text-slate-500">Tổng giải thưởng</dt><dd className="mt-1 font-black text-brown-900">VND {getTournamentPrizeTotal(tournament).toLocaleString()}</dd></div>
+            <div><dt className="text-xs font-extrabold text-slate-500">{t('eventDomainRegistration')}</dt><dd className="mt-1 font-black text-brown-900">{formatTournamentDate(tournament.registrationOpen)} - {formatTournamentDate(tournament.registrationClose)}</dd></div>
+            <div><dt className="text-xs font-extrabold text-slate-500">{t('eventDomainTournament')}</dt><dd className="mt-1 font-black text-brown-900">{formatTournamentDate(tournament.start)} - {formatTournamentDate(tournament.end)}</dd></div>
+            <div><dt className="text-xs font-extrabold text-slate-500">{t('eventWizardEntryFee')}</dt><dd className="mt-1 font-black text-brown-900">{formatVndCurrency(tournament.entryFee)}</dd></div>
+            <div><dt className="text-xs font-extrabold text-slate-500">{t('eventWorkspaceTotalPrize')}</dt><dd className="mt-1 font-black text-brown-900">VND {getTournamentPrizeTotal(tournament).toLocaleString()}</dd></div>
           </dl>
         </section>
         <section className="rounded-lg border border-brown-700/10 bg-white/75 p-4">
-          <p className="text-xs font-black uppercase text-brown-500">Tiến trình Status</p>
+          <p className="text-xs font-black uppercase text-brown-500">Status</p>
           <div className="mt-3"><TournamentLifecycle status={tournament.status} /></div>
           <TournamentLifecycleActions tournament={tournament} processing={lifecycleProcessingId === tournament.id} onAction={onLifecycleAction} />
         </section>
@@ -63,14 +66,14 @@ export default function TournamentDetails({
 
       <section className="border-t border-brown-700/10 bg-cream-200/35 px-4 pb-4 md:px-5">
         <div className="rounded-lg border border-brown-700/10 bg-white/75 p-4">
-          <p className="text-xs font-black uppercase text-brown-500">Điều kiện Tournament</p>
+          <p className="text-xs font-black uppercase text-brown-500">{t('eventWorkspaceParticipationConditions')}</p>
           <div className="mt-3 flex flex-wrap gap-2">
             {tournament.conditions.map((condition) => (
               <span key={condition.id || formatTournamentCondition(condition)} className="rounded-full border border-brown-700/10 bg-cream-200 px-3 py-1.5 text-xs font-extrabold text-brown-700">
                 {formatTournamentCondition(condition)}
               </span>
             ))}
-            {tournament.conditions.length === 0 && <span className="text-sm font-semibold text-slate-500">Không có giới hạn điều kiện tham gia.</span>}
+            {tournament.conditions.length === 0 && <span className="text-sm font-semibold text-slate-500">{t('eventWorkspaceNoConditions')}</span>}
           </div>
         </div>
       </section>
