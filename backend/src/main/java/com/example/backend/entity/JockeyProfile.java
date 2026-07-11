@@ -34,9 +34,6 @@ public class JockeyProfile {
     @Column(name = "weight", nullable = false)
     private BigDecimal weight;
 
-    @Column(name = "ranking")
-    private String ranking;
-
     @Column(name = "biography", columnDefinition = "TEXT")
     private String biography;
 

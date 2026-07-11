@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotBlank;
@@ -41,6 +42,10 @@ public class JockeyVerificationRequest {
     private String verificationLink;
 
     @NotBlank(message = "Loại bằng là bắt buộc")
+    @Pattern(
+            regexp = "(?i)TRAINEE|AMATEUR|PROFESSIONAL",
+            message = "Loại bằng phải là TRAINEE, AMATEUR hoặc PROFESSIONAL"
+    )
     private String licenceType;
 
     @NotNull(message = "Ngày hết hạn giấy phép là bắt buộc")
@@ -53,10 +58,9 @@ public class JockeyVerificationRequest {
     @DecimalMax(value = "90.00", message = "Cân nặng tối đa 90kg")
     private BigDecimal weight;
 
-    @NotBlank(message = "Xếp hạng là bắt buộc")
-    private String ranking;
-
     private String biography;
 
+    @Valid
+    @Size(min = 1, max = 5, message = "Cần từ 1 đến 5 ảnh giấy phép jockey")
     private List<JockeyVerificationFileRequest> files;
 }

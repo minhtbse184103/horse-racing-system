@@ -10,6 +10,7 @@ import com.example.backend.exception.ApiException;
 import com.example.backend.repository.UserRepository;
 import com.example.backend.repository.UserVerificationRepository;
 import com.example.backend.repository.WalletRepository;
+import com.example.backend.constant.WalletStatus;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -145,29 +146,63 @@ public class KycServiceImpl implements KycService {
             );
         }
 
-        LocalDateTime now = LocalDateTime.now();
-        verification.setStatus(KycStatus.VERIFIED);
-        verification.setReviewedAt(now);
-        verification.setReviewedBy(admin.getUserID());
-        verification.setRejectionReason(null);
-        verification.setExpiresAt(now.plusYears(VALIDITY_YEARS));
-        verificationRepository.save(verification);
-        walletRepository.findByUserId(verification.getUserId())
-                .orElseGet(() -> walletRepository.save(
-                        com.example.backend.entity.Wallet.builder()
-                                .userId(verification.getUserId())
-                                .balance(java.math.BigDecimal.ZERO)
-                                .lockedBalance(java.math.BigDecimal.ZERO)
-                                .currency("VND")
-                                .status(com.example.backend.constant.WalletStatus.ACTIVE)
-                                .build()
-                ));
+        verifyKycAndOpenWallet(verification, admin.getUserID());
         log.info("KYC approved and wallet opened. verificationId={}, userId={}, reviewedBy={}",
                 verificationId, verification.getUserId(), admin.getUserID());
         return mapToDTO(
                 verification,
                 userRepository.findById(verification.getUserId()).orElse(null),
                 true
+        );
+    }
+
+    @Transactional
+    @Override
+    public void approveUserKycAndOpenWallet(
+            Integer userId,
+            Integer adminId,
+            Boolean confirmKycReviewed,
+            LocalDateTime requestedExpiresAt
+    ) {
+        if (!Boolean.TRUE.equals(confirmKycReviewed)) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Admin must confirm KYC review before approving this role."
+            );
+        }
+        if (requestedExpiresAt != null && !requestedExpiresAt.isAfter(LocalDateTime.now())) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "KYC expiry time must be in the future."
+            );
+        }
+        UserVerification verification = verificationRepository.findByUserId(userId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.CONFLICT,
+                        "Người dùng cần gửi hồ sơ KYC trước khi được duyệt vai trò."
+                ));
+        if (KycStatus.PENDING == verification.getStatus()) {
+            verifyKycAndOpenWallet(verification, adminId, requestedExpiresAt);
+            return;
+        }
+        if (KycStatus.VERIFIED == verification.getStatus()) {
+            if (verification.getExpiresAt() != null
+                    && !verification.getExpiresAt().isAfter(LocalDateTime.now())) {
+                throw new ApiException(
+                        HttpStatus.CONFLICT,
+                        "Hồ sơ KYC đã hết hạn."
+                );
+            }
+            if (requestedExpiresAt != null) {
+                verification.setExpiresAt(requestedExpiresAt);
+                verificationRepository.save(verification);
+            }
+            ensureWalletOpened(userId);
+            return;
+        }
+        throw new ApiException(
+                HttpStatus.CONFLICT,
+                "Chỉ có thể duyệt vai trò khi KYC đang chờ duyệt hoặc đã xác minh."
         );
     }
 
@@ -221,6 +256,40 @@ public class KycServiceImpl implements KycService {
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
                         "Hồ sơ KYC không tồn tại."
+                ));
+    }
+
+    private void verifyKycAndOpenWallet(UserVerification verification, Integer adminId) {
+        verifyKycAndOpenWallet(verification, adminId, null);
+    }
+
+    private void verifyKycAndOpenWallet(
+            UserVerification verification,
+            Integer adminId,
+            LocalDateTime requestedExpiresAt
+    ) {
+        LocalDateTime now = LocalDateTime.now();
+        verification.setStatus(KycStatus.VERIFIED);
+        verification.setReviewedAt(now);
+        verification.setReviewedBy(adminId);
+        verification.setRejectionReason(null);
+        verification.setExpiresAt(requestedExpiresAt != null
+                ? requestedExpiresAt
+                : now.plusYears(VALIDITY_YEARS));
+        verificationRepository.save(verification);
+        ensureWalletOpened(verification.getUserId());
+    }
+
+    private void ensureWalletOpened(Integer userId) {
+        walletRepository.findByUserId(userId)
+                .orElseGet(() -> walletRepository.save(
+                        com.example.backend.entity.Wallet.builder()
+                                .userId(userId)
+                                .balance(java.math.BigDecimal.ZERO)
+                                .lockedBalance(java.math.BigDecimal.ZERO)
+                                .currency("VND")
+                                .status(WalletStatus.ACTIVE)
+                                .build()
                 ));
     }
 

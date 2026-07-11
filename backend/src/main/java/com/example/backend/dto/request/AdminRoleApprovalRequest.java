@@ -4,18 +4,12 @@ import java.time.LocalDateTime;
 
 import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.Future;
-import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
-public class AdminReviewRequestDTO {
-    
-    @NotBlank(message = "Trạng thái phê duyệt là bắt buộc")
-    private String status; // APPROVED or REJECTED
-    
-    private String rejectionReason;
+public class AdminRoleApprovalRequest {
 
     @AssertTrue(message = "Admin must confirm KYC review before approving this role.")
     private Boolean confirmKycReviewed;

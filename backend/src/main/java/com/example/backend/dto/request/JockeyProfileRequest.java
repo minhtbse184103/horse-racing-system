@@ -21,8 +21,6 @@ public class JockeyProfileRequest {
     @DecimalMax(value = "90.00", message = "Cân nặng của nài ngựa không được vượt quá 90 kg")
     private BigDecimal weight;
 
-    private String ranking;
-
     private String biography;
 
     private String phoneNumber;

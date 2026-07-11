@@ -76,7 +76,6 @@ public class PublicJockeyServiceImpl implements PublicJockeyService {
         return PublicJockeyProfileResponse.builder()
                 .jockeyId(jockey.getUserID())
                 .fullName(profile.getFullName())
-                .ranking(profile.getRanking())
                 .biography(profile.getBiography())
                 .weight(profile.getWeight())
                 .totalRaces(value(profile.getTotalRaces()))

@@ -16,7 +16,6 @@ public class JockeyProfileResponse {
     private String email;
     private String phoneNumber;
     private BigDecimal weight;
-    private String ranking;
     private String biography;
     private Integer totalRaces;
     private Integer totalWins;

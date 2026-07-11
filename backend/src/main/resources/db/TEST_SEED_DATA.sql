@@ -24,7 +24,9 @@ VALUES
   (8,  4, 'referee.grace', 'referee.grace@horse.test',  @seed_password, '0900000008', 'ACTIVE', @seed_now, @seed_now),
   (9,  4, 'referee.henry', 'referee.henry@horse.test',  @seed_password, '0900000009', 'ACTIVE', @seed_now, @seed_now),
   (10, 5, 'owner.pending', 'owner.pending@horse.test',  @seed_password, '0900000010', 'ACTIVE', @seed_now, @seed_now),
-  (11, 5, 'owner.rejected','owner.rejected@horse.test', @seed_password, '0900000011', 'ACTIVE', @seed_now, @seed_now);
+  (11, 5, 'owner.rejected','owner.rejected@horse.test', @seed_password, '0900000011', 'ACTIVE', @seed_now, @seed_now),
+  (12, 5, 'jockey.pending','jockey.pending@horse.test', @seed_password, '0900000012', 'ACTIVE', @seed_now, @seed_now),
+  (13, 5, 'spectator.kyc', 'spectator.kyc@horse.test',   @seed_password, '0900000013', 'ACTIVE', @seed_now, @seed_now);
 
 INSERT INTO `OwnerApplication`
   (`applicationID`, `userID`, `fullName`, `dateOfBirth`, `gender`, `nationality`, `address`, `identityDocumentUrl`, `stableName`, `stableAddress`, `stableCertificateUrl`, `totalHorsesOwned`, `horseOwnershipProofUrl`, `status`, `rejectReason`, `submittedAt`, `reviewedAt`, `reviewedBy`, `createdAt`, `updatedAt`)
@@ -43,25 +45,51 @@ VALUES
   (4, 3, DATE_SUB(@seed_now, INTERVAL 98 DAY),  DATE_SUB(@seed_now, INTERVAL 98 DAY));
 
 INSERT INTO `JockeyProfile`
-  (`jockeyID`, `fullName`, `weight`, `ranking`, `biography`, `totalRaces`, `totalWins`, `createdAt`, `updatedAt`)
+  (`jockeyID`, `fullName`, `weight`, `biography`, `totalRaces`, `totalWins`, `createdAt`, `updatedAt`)
 VALUES
-  (5, 'Demo Jockey Five', 52.50, 'A', 'Experienced sprint jockey.', 48, 13, DATE_SUB(@seed_now, INTERVAL 300 DAY), @seed_now),
-  (6, 'Demo Jockey Six', 54.00, 'A', 'Specialist in middle-distance races.', 39, 9, DATE_SUB(@seed_now, INTERVAL 280 DAY), @seed_now),
-  (7, 'Demo Jockey Seven', 55.25, 'B', 'New jockey awaiting verification.', 5, 1, DATE_SUB(@seed_now, INTERVAL 30 DAY), @seed_now);
+  (5, 'Demo Jockey Five', 52.50, 'Experienced sprint jockey.', 48, 13, DATE_SUB(@seed_now, INTERVAL 300 DAY), @seed_now),
+  (6, 'Demo Jockey Six', 54.00, 'Specialist in middle-distance races.', 39, 9, DATE_SUB(@seed_now, INTERVAL 280 DAY), @seed_now),
+  (7, 'Demo Jockey Seven', 55.25, 'New jockey awaiting verification.', 5, 1, DATE_SUB(@seed_now, INTERVAL 30 DAY), @seed_now);
 
 INSERT INTO `JockeyVerification`
-  (`verificationID`, `jockeyID`, `trainerName`, `trainerEmail`, `academyStableAddress`, `issuingAuthority`, `verificationLink`, `licenceType`, `expiryDate`, `verificationStatus`, `rejectionReason`, `resubmitCount`, `submittedAt`, `reviewedAt`, `reviewedBy`, `createdAt`, `updatedAt`)
+  (`verificationID`, `jockeyID`, `fullName`, `trainerName`, `trainerEmail`, `academyStableAddress`, `issuingAuthority`, `verificationLink`, `licenceType`, `expiryDate`, `weight`, `biography`, `verificationStatus`, `rejectionReason`, `resubmitCount`, `submittedAt`, `reviewedAt`, `reviewedBy`, `createdAt`, `updatedAt`)
 VALUES
-  (1, 5, 'Trainer Somchai', 'somchai@trainer.test', 'Bangkok Racing Academy', 'Thailand Racing Authority', 'https://example.com/verify/jockey-5', 'PRO', DATE_ADD(@seed_today, INTERVAL 2 YEAR), 'APPROVED', NULL, 0, DATE_SUB(@seed_now, INTERVAL 200 DAY), DATE_SUB(@seed_now, INTERVAL 198 DAY), 1, DATE_SUB(@seed_now, INTERVAL 200 DAY), DATE_SUB(@seed_now, INTERVAL 198 DAY)),
-  (2, 6, 'Trainer Mali', 'mali@trainer.test', 'Chiang Mai Racing Academy', 'Thailand Racing Authority', 'https://example.com/verify/jockey-6', 'PRO', DATE_ADD(@seed_today, INTERVAL 2 YEAR), 'APPROVED', NULL, 0, DATE_SUB(@seed_now, INTERVAL 190 DAY), DATE_SUB(@seed_now, INTERVAL 188 DAY), 1, DATE_SUB(@seed_now, INTERVAL 190 DAY), DATE_SUB(@seed_now, INTERVAL 188 DAY)),
-  (3, 7, 'Trainer Arun', 'arun@trainer.test', 'Phuket Riding School', 'Thailand Racing Authority', 'https://example.com/verify/jockey-7', 'PRO', DATE_ADD(@seed_today, INTERVAL 1 YEAR), 'PENDING', NULL, 0, DATE_SUB(@seed_now, INTERVAL 2 DAY), NULL, NULL, DATE_SUB(@seed_now, INTERVAL 2 DAY), DATE_SUB(@seed_now, INTERVAL 2 DAY));
+  (1, 5, 'Demo Jockey Five', 'Trainer Somchai', 'somchai@trainer.test', 'Bangkok Racing Academy', 'Thailand Racing Authority', 'https://example.com/verify/jockey-5', 'PROFESSIONAL', DATE_ADD(@seed_today, INTERVAL 2 YEAR), 52.50, 'Experienced sprint jockey.', 'APPROVED', NULL, 0, DATE_SUB(@seed_now, INTERVAL 200 DAY), DATE_SUB(@seed_now, INTERVAL 198 DAY), 1, DATE_SUB(@seed_now, INTERVAL 200 DAY), DATE_SUB(@seed_now, INTERVAL 198 DAY)),
+  (2, 6, 'Demo Jockey Six', 'Trainer Mali', 'mali@trainer.test', 'Chiang Mai Racing Academy', 'Thailand Racing Authority', 'https://example.com/verify/jockey-6', 'PROFESSIONAL', DATE_ADD(@seed_today, INTERVAL 2 YEAR), 54.00, 'Specialist in middle-distance races.', 'APPROVED', NULL, 0, DATE_SUB(@seed_now, INTERVAL 190 DAY), DATE_SUB(@seed_now, INTERVAL 188 DAY), 1, DATE_SUB(@seed_now, INTERVAL 190 DAY), DATE_SUB(@seed_now, INTERVAL 188 DAY)),
+  (3, 7, 'Demo Jockey Seven', 'Trainer Arun', 'arun@trainer.test', 'Phuket Riding School', 'Thailand Racing Authority', 'https://example.com/verify/jockey-7', 'AMATEUR', DATE_ADD(@seed_today, INTERVAL 1 YEAR), 55.25, 'Newly approved jockey.', 'APPROVED', NULL, 0, DATE_SUB(@seed_now, INTERVAL 30 DAY), DATE_SUB(@seed_now, INTERVAL 28 DAY), 1, DATE_SUB(@seed_now, INTERVAL 30 DAY), DATE_SUB(@seed_now, INTERVAL 28 DAY)),
+  (4, 12, 'Pending Jockey', 'Trainer Linh', 'linh@trainer.test', 'Saigon Racing Academy', 'Vietnam Racing Authority', 'https://example.com/verify/jockey-12', 'TRAINEE', DATE_ADD(@seed_today, INTERVAL 18 MONTH), 51.75, 'Pending jockey application with KYC waiting for admin approval.', 'PENDING', NULL, 0, DATE_SUB(@seed_now, INTERVAL 1 DAY), NULL, NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), DATE_SUB(@seed_now, INTERVAL 1 DAY));
 
 INSERT INTO `JockeyVerificationFile`
   (`fileID`, `verificationID`, `fileUrl`, `fileType`, `uploadedAt`)
 VALUES
-  (1, 1, 'https://example.com/documents/jockey-5-license.pdf', 'PDF', DATE_SUB(@seed_now, INTERVAL 200 DAY)),
-  (2, 2, 'https://example.com/documents/jockey-6-license.pdf', 'PDF', DATE_SUB(@seed_now, INTERVAL 190 DAY)),
-  (3, 3, 'https://example.com/documents/jockey-7-license.pdf', 'PDF', DATE_SUB(@seed_now, INTERVAL 2 DAY));
+  (1, 1, 'https://picsum.photos/seed/jockey-5-license/900/560', 'IMAGE', DATE_SUB(@seed_now, INTERVAL 200 DAY)),
+  (2, 2, 'https://picsum.photos/seed/jockey-6-license/900/560', 'IMAGE', DATE_SUB(@seed_now, INTERVAL 190 DAY)),
+  (3, 3, 'https://picsum.photos/seed/jockey-7-license/900/560', 'IMAGE', DATE_SUB(@seed_now, INTERVAL 30 DAY)),
+  (4, 4, 'https://picsum.photos/seed/jockey-12-license/900/560', 'IMAGE', DATE_SUB(@seed_now, INTERVAL 1 DAY));
+
+INSERT INTO `user_verifications`
+  (`verification_id`, `user_id`, `status`, `full_name`, `date_of_birth`, `identity_number`, `identity_front_url`, `identity_back_url`, `selfie_url`, `submitted_at`, `reviewed_at`, `reviewed_by`, `rejection_reason`, `expires_at`, `created_at`, `updated_at`)
+VALUES
+  (1, 2,  'VERIFIED', 'Alice Tran',       DATE_SUB(@seed_today, INTERVAL 35 YEAR), '001000000002', 'https://picsum.photos/seed/kyc-2-front/900/560',  'https://picsum.photos/seed/kyc-2-back/900/560',  'https://picsum.photos/seed/kyc-2-selfie/700/700',  DATE_SUB(@seed_now, INTERVAL 121 DAY), DATE_SUB(@seed_now, INTERVAL 118 DAY), 1, NULL, DATE_ADD(@seed_now, INTERVAL 5 YEAR), DATE_SUB(@seed_now, INTERVAL 121 DAY), DATE_SUB(@seed_now, INTERVAL 118 DAY)),
+  (2, 3,  'VERIFIED', 'Bao Nguyen',       DATE_SUB(@seed_today, INTERVAL 40 YEAR), '001000000003', 'https://picsum.photos/seed/kyc-3-front/900/560',  'https://picsum.photos/seed/kyc-3-back/900/560',  'https://picsum.photos/seed/kyc-3-selfie/700/700',  DATE_SUB(@seed_now, INTERVAL 111 DAY), DATE_SUB(@seed_now, INTERVAL 108 DAY), 1, NULL, DATE_ADD(@seed_now, INTERVAL 5 YEAR), DATE_SUB(@seed_now, INTERVAL 111 DAY), DATE_SUB(@seed_now, INTERVAL 108 DAY)),
+  (3, 4,  'VERIFIED', 'Chloe Le',         DATE_SUB(@seed_today, INTERVAL 32 YEAR), '001000000004', 'https://picsum.photos/seed/kyc-4-front/900/560',  'https://picsum.photos/seed/kyc-4-back/900/560',  'https://picsum.photos/seed/kyc-4-selfie/700/700',  DATE_SUB(@seed_now, INTERVAL 101 DAY), DATE_SUB(@seed_now, INTERVAL 98 DAY),  1, NULL, DATE_ADD(@seed_now, INTERVAL 5 YEAR), DATE_SUB(@seed_now, INTERVAL 101 DAY), DATE_SUB(@seed_now, INTERVAL 98 DAY)),
+  (4, 5,  'VERIFIED', 'Demo Jockey Five', DATE_SUB(@seed_today, INTERVAL 27 YEAR), '001000000005', 'https://picsum.photos/seed/kyc-5-front/900/560',  'https://picsum.photos/seed/kyc-5-back/900/560',  'https://picsum.photos/seed/kyc-5-selfie/700/700',  DATE_SUB(@seed_now, INTERVAL 201 DAY), DATE_SUB(@seed_now, INTERVAL 198 DAY), 1, NULL, DATE_ADD(@seed_now, INTERVAL 5 YEAR), DATE_SUB(@seed_now, INTERVAL 201 DAY), DATE_SUB(@seed_now, INTERVAL 198 DAY)),
+  (5, 6,  'VERIFIED', 'Demo Jockey Six',  DATE_SUB(@seed_today, INTERVAL 26 YEAR), '001000000006', 'https://picsum.photos/seed/kyc-6-front/900/560',  'https://picsum.photos/seed/kyc-6-back/900/560',  'https://picsum.photos/seed/kyc-6-selfie/700/700',  DATE_SUB(@seed_now, INTERVAL 191 DAY), DATE_SUB(@seed_now, INTERVAL 188 DAY), 1, NULL, DATE_ADD(@seed_now, INTERVAL 5 YEAR), DATE_SUB(@seed_now, INTERVAL 191 DAY), DATE_SUB(@seed_now, INTERVAL 188 DAY)),
+  (6, 7,  'VERIFIED', 'Demo Jockey Seven',DATE_SUB(@seed_today, INTERVAL 24 YEAR), '001000000007', 'https://picsum.photos/seed/kyc-7-front/900/560',  'https://picsum.photos/seed/kyc-7-back/900/560',  'https://picsum.photos/seed/kyc-7-selfie/700/700',  DATE_SUB(@seed_now, INTERVAL 31 DAY),  DATE_SUB(@seed_now, INTERVAL 28 DAY),  1, NULL, DATE_ADD(@seed_now, INTERVAL 5 YEAR), DATE_SUB(@seed_now, INTERVAL 31 DAY),  DATE_SUB(@seed_now, INTERVAL 28 DAY)),
+  (7, 10, 'PENDING',  'Pending Owner',    DATE_SUB(@seed_today, INTERVAL 28 YEAR), '001000000010', 'https://picsum.photos/seed/kyc-10-front/900/560', 'https://picsum.photos/seed/kyc-10-back/900/560', 'https://picsum.photos/seed/kyc-10-selfie/700/700', DATE_SUB(@seed_now, INTERVAL 2 DAY),   NULL, NULL, NULL, NULL, DATE_SUB(@seed_now, INTERVAL 2 DAY),   DATE_SUB(@seed_now, INTERVAL 2 DAY)),
+  (8, 11, 'REJECTED', 'Rejected Owner',   DATE_SUB(@seed_today, INTERVAL 29 YEAR), '001000000011', 'https://picsum.photos/seed/kyc-11-front/900/560', 'https://picsum.photos/seed/kyc-11-back/900/560', 'https://picsum.photos/seed/kyc-11-selfie/700/700', DATE_SUB(@seed_now, INTERVAL 6 DAY),   DATE_SUB(@seed_now, INTERVAL 3 DAY), 1, 'Selfie image does not match the identity document.', NULL, DATE_SUB(@seed_now, INTERVAL 6 DAY), DATE_SUB(@seed_now, INTERVAL 3 DAY)),
+  (9, 12, 'PENDING',  'Pending Jockey',   DATE_SUB(@seed_today, INTERVAL 23 YEAR), '001000000012', 'https://picsum.photos/seed/kyc-12-front/900/560', 'https://picsum.photos/seed/kyc-12-back/900/560', 'https://picsum.photos/seed/kyc-12-selfie/700/700', DATE_SUB(@seed_now, INTERVAL 1 DAY),   NULL, NULL, NULL, NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY),   DATE_SUB(@seed_now, INTERVAL 1 DAY)),
+  (10, 13, 'PENDING', 'Spectator KYC',    DATE_SUB(@seed_today, INTERVAL 22 YEAR), '001000000013', 'https://picsum.photos/seed/kyc-13-front/900/560', 'https://picsum.photos/seed/kyc-13-back/900/560', 'https://picsum.photos/seed/kyc-13-selfie/700/700', DATE_SUB(@seed_now, INTERVAL 4 HOUR), NULL, NULL, NULL, NULL, DATE_SUB(@seed_now, INTERVAL 4 HOUR), DATE_SUB(@seed_now, INTERVAL 4 HOUR));
+
+INSERT INTO `Wallet`
+  (`walletID`, `userID`, `balance`, `lockedBalance`, `currency`, `status`, `createdAt`, `updatedAt`)
+VALUES
+  (1, 2, 0.00, 0.00, 'VND', 'ACTIVE', DATE_SUB(@seed_now, INTERVAL 118 DAY), DATE_SUB(@seed_now, INTERVAL 118 DAY)),
+  (2, 3, 0.00, 0.00, 'VND', 'ACTIVE', DATE_SUB(@seed_now, INTERVAL 108 DAY), DATE_SUB(@seed_now, INTERVAL 108 DAY)),
+  (3, 4, 0.00, 0.00, 'VND', 'ACTIVE', DATE_SUB(@seed_now, INTERVAL 98 DAY),  DATE_SUB(@seed_now, INTERVAL 98 DAY)),
+  (4, 5, 0.00, 0.00, 'VND', 'ACTIVE', DATE_SUB(@seed_now, INTERVAL 198 DAY), DATE_SUB(@seed_now, INTERVAL 198 DAY)),
+  (5, 6, 0.00, 0.00, 'VND', 'ACTIVE', DATE_SUB(@seed_now, INTERVAL 188 DAY), DATE_SUB(@seed_now, INTERVAL 188 DAY)),
+  (6, 7, 0.00, 0.00, 'VND', 'ACTIVE', DATE_SUB(@seed_now, INTERVAL 28 DAY),  DATE_SUB(@seed_now, INTERVAL 28 DAY));
 
 INSERT INTO `Horse`
   (`horseID`, `ownerID`, `horseName`, `age`, `dayOfBirth`, `weight`, `colour`, `sex`, `breeding`, `trainer`, `healthCertExpiry`, `healthCertificateUrl`, `officialHorseProfileUrl`, `status`, `rejectionReason`, `createdAt`, `updatedAt`)
@@ -200,6 +228,8 @@ SELECT 'Roles' AS `tableName`, COUNT(*) AS `rowCount` FROM `Roles`
 UNION ALL SELECT 'Users', COUNT(*) FROM `Users`
 UNION ALL SELECT 'OwnerApplication', COUNT(*) FROM `OwnerApplication`
 UNION ALL SELECT 'OwnerProfile', COUNT(*) FROM `OwnerProfile`
+UNION ALL SELECT 'user_verifications', COUNT(*) FROM `user_verifications`
+UNION ALL SELECT 'Wallet', COUNT(*) FROM `Wallet`
 UNION ALL SELECT 'Horse', COUNT(*) FROM `Horse`
 UNION ALL SELECT 'JockeyProfile', COUNT(*) FROM `JockeyProfile`
 UNION ALL SELECT 'JockeyVerification', COUNT(*) FROM `JockeyVerification`

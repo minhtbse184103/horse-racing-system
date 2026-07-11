@@ -58,7 +58,7 @@ public class AdminJockeyVerificationController {
             @Valid @RequestBody AdminReviewRequestDTO reviewRequest) {
         
         if ("APPROVED".equalsIgnoreCase(reviewRequest.getStatus())) {
-            return ResponseEntity.ok(verificationService.approveVerification(id));
+            return ResponseEntity.ok(verificationService.approveVerification(id, reviewRequest));
         } else {
             return ResponseEntity.ok(verificationService.rejectVerification(id, reviewRequest.getRejectionReason()));
         }

@@ -14,6 +14,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.example.backend.dto.baseResponseDTO.ApiResponse;
 import com.example.backend.dto.request.JockeyVerificationFileRequest;
 import com.example.backend.dto.request.JockeyVerificationRequest;
+import com.example.backend.dto.request.AdminReviewRequestDTO;
 import com.example.backend.dto.response.JockeyVerificationFileResponse;
 import com.example.backend.dto.response.JockeyVerificationResponse;
 import com.example.backend.entity.JockeyProfile;
@@ -46,18 +47,21 @@ public class JockeyVerificationServiceImpl implements JockeyVerificationService 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final JockeyProfileRepository jockeyProfileRepository;
+    private final KycService kycService;
 
     public JockeyVerificationServiceImpl(
             JockeyVerificationRepository verificationRepository,
             JockeyVerificationFileRepository verificationFileRepository,
             UserRepository userRepository,
             RoleRepository roleRepository,
-            JockeyProfileRepository jockeyProfileRepository) {
+            JockeyProfileRepository jockeyProfileRepository,
+            KycService kycService) {
         this.verificationRepository = verificationRepository;
         this.verificationFileRepository = verificationFileRepository;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.jockeyProfileRepository = jockeyProfileRepository;
+        this.kycService = kycService;
     }
 
     @Transactional
@@ -73,6 +77,7 @@ public class JockeyVerificationServiceImpl implements JockeyVerificationService 
 
         JockeyVerification verification = JockeyVerification.builder()
                 .jockeyId(user.getUserID())
+                .fullName(normalizeText(request.getFullName()))
                 .trainerName(normalizeText(request.getTrainerName()))
                 .trainerEmail(normalizeText(request.getTrainerEmail()))
                 .academyStableAddress(normalizeText(request.getAcademyStableAddress()))
@@ -80,12 +85,13 @@ public class JockeyVerificationServiceImpl implements JockeyVerificationService 
                 .verificationLink(normalizeText(request.getVerificationLink()))
                 .licenceType(normalizeUppercase(request.getLicenceType()))
                 .expiryDate(request.getExpiryDate())
+                .weight(request.getWeight())
+                .biography(normalizeText(request.getBiography()))
                 .verificationStatus(STATUS_PENDING)
                 .resubmitCount(0)
                 .build();
 
         JockeyVerification saved = verificationRepository.save(verification);
-        saveProfileSnapshot(user.getUserID(), request);
         List<JockeyVerificationFile> files = saveVerificationFiles(saved.getVerificationId(), request.getFiles());
 
         // Tài khoản vẫn giữ trạng thái ACTIVE, không thay đổi status của User
@@ -115,12 +121,15 @@ public class JockeyVerificationServiceImpl implements JockeyVerificationService 
         }
 
         verification.setTrainerName(normalizeText(request.getTrainerName()));
+        verification.setFullName(normalizeText(request.getFullName()));
         verification.setTrainerEmail(normalizeText(request.getTrainerEmail()));
         verification.setAcademyStableAddress(normalizeText(request.getAcademyStableAddress()));
         verification.setIssuingAuthority(normalizeText(request.getIssuingAuthority()));
         verification.setVerificationLink(normalizeText(request.getVerificationLink()));
         verification.setLicenceType(normalizeUppercase(request.getLicenceType()));
         verification.setExpiryDate(request.getExpiryDate());
+        verification.setWeight(request.getWeight());
+        verification.setBiography(normalizeText(request.getBiography()));
         verification.setVerificationStatus(STATUS_PENDING);
         verification.setRejectionReason(null);
         verification.setResubmitCount(verification.getResubmitCount() + 1);
@@ -129,7 +138,6 @@ public class JockeyVerificationServiceImpl implements JockeyVerificationService 
         verification.setReviewedBy(null);
 
         JockeyVerification saved = verificationRepository.save(verification);
-        saveProfileSnapshot(user.getUserID(), request);
 
         verificationFileRepository.deleteByVerificationId(verificationId);
         List<JockeyVerificationFile> files = saveVerificationFiles(verificationId, request.getFiles());
@@ -236,7 +244,10 @@ public class JockeyVerificationServiceImpl implements JockeyVerificationService 
 
     @Transactional
     @Override
-    public ApiResponse<JockeyVerificationResponse> approveVerification(Integer verificationId) {
+    public ApiResponse<JockeyVerificationResponse> approveVerification(
+            Integer verificationId,
+            AdminReviewRequestDTO reviewRequest
+    ) {
         User admin = getCurrentAdmin();
         JockeyVerification verification = verificationRepository.findById(verificationId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Yêu cầu xác minh không tồn tại."));
@@ -248,6 +259,12 @@ public class JockeyVerificationServiceImpl implements JockeyVerificationService 
         verification.setVerificationStatus(STATUS_APPROVED);
         verification.setReviewedAt(LocalDateTime.now());
         verification.setReviewedBy(admin.getUserID());
+        kycService.approveUserKycAndOpenWallet(
+                verification.getJockeyId(),
+                admin.getUserID(),
+                reviewRequest != null ? reviewRequest.getConfirmKycReviewed() : null,
+                reviewRequest != null ? reviewRequest.getKycExpiresAt() : null
+        );
         JockeyVerification saved = verificationRepository.save(verification);
 
         User user = userRepository.findById(verification.getJockeyId())
@@ -259,6 +276,7 @@ public class JockeyVerificationServiceImpl implements JockeyVerificationService 
         
         user.setRole(jockeyRole);
         userRepository.save(user);
+        createOrUpdateApprovedProfile(saved);
 
         List<JockeyVerificationFile> files = verificationFileRepository
                 .findByVerificationId(verificationId);
@@ -348,30 +366,28 @@ public class JockeyVerificationServiceImpl implements JockeyVerificationService 
         return verificationFileRepository.saveAll(files);
     }
 
-    private void saveProfileSnapshot(Integer jockeyId, JockeyVerificationRequest request) {
-        JockeyProfile profile = jockeyProfileRepository.findById(jockeyId)
+    private void createOrUpdateApprovedProfile(JockeyVerification verification) {
+        JockeyProfile profile = jockeyProfileRepository.findById(verification.getJockeyId())
                 .orElseGet(() -> {
                     JockeyProfile newProfile = new JockeyProfile();
-                    newProfile.setJockeyId(jockeyId);
+                    newProfile.setJockeyId(verification.getJockeyId());
                     return newProfile;
                 });
-        profile.setFullName(normalizeText(request.getFullName()));
-        profile.setWeight(request.getWeight());
-        profile.setRanking(normalizeUppercase(request.getRanking()));
-        profile.setBiography(normalizeText(request.getBiography()));
+        profile.setFullName(verification.getFullName());
+        profile.setWeight(verification.getWeight());
+        profile.setBiography(verification.getBiography());
         jockeyProfileRepository.save(profile);
     }
 
     private JockeyVerificationResponse mapToResponse(JockeyVerification verification, User user, List<JockeyVerificationFile> files) {
         List<JockeyVerificationFileResponse> fileResponses = files != null ? files.stream().map(this::mapFileToResponse).toList() : Collections.emptyList();
-        JockeyProfile profile = jockeyProfileRepository.findById(verification.getJockeyId()).orElse(null);
         User reviewer = verification.getReviewedBy() != null
                 ? userRepository.findById(verification.getReviewedBy()).orElse(null)
                 : null;
         return JockeyVerificationResponse.builder()
                 .verificationId(verification.getVerificationId())
                 .jockeyId(verification.getJockeyId())
-                .jockeyFullName(profile != null ? profile.getFullName() : null)
+                .jockeyFullName(verification.getFullName())
                 .jockeyEmail(user != null ? user.getEmail() : null)
                 .trainerName(verification.getTrainerName())
                 .trainerEmail(verification.getTrainerEmail())
@@ -380,9 +396,8 @@ public class JockeyVerificationServiceImpl implements JockeyVerificationService 
                 .verificationLink(verification.getVerificationLink())
                 .licenceType(verification.getLicenceType())
                 .expiryDate(verification.getExpiryDate())
-                .weight(profile != null ? profile.getWeight() : null)
-                .ranking(profile != null ? profile.getRanking() : null)
-                .biography(profile != null ? profile.getBiography() : null)
+                .weight(verification.getWeight())
+                .biography(verification.getBiography())
                 .verificationStatus(verification.getVerificationStatus())
                 .rejectionReason(verification.getRejectionReason())
                 .resubmitCount(verification.getResubmitCount())

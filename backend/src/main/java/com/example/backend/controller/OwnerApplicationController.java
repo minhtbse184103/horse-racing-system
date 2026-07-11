@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.backend.dto.request.AdminReviewFeedbackRequest;
+import com.example.backend.dto.request.AdminRoleApprovalRequest;
 import com.example.backend.dto.request.OwnerApplicationRequest;
 import com.example.backend.dto.response.OwnerApplicationResponse;
 import com.example.backend.dto.response.OwnerProfileResponse;
@@ -69,8 +70,10 @@ public class OwnerApplicationController {
 
     @PutMapping("/api/admin/owner-applications/{applicationId}/approve")
     @PreAuthorize("hasRole('ADMIN')")
-    public ResponseEntity<OwnerApplicationResponse> approveOwnerApplication(@PathVariable Integer applicationId) {
-        return ResponseEntity.ok(ownerApplicationService.approveApplication(applicationId));
+    public ResponseEntity<OwnerApplicationResponse> approveOwnerApplication(
+            @PathVariable Integer applicationId,
+            @Valid @RequestBody(required = false) AdminRoleApprovalRequest request) {
+        return ResponseEntity.ok(ownerApplicationService.approveApplication(applicationId, request));
     }
 
     @PutMapping("/api/admin/owner-applications/{applicationId}/reject")

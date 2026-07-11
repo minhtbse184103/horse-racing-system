@@ -147,7 +147,6 @@ public class UserService {
                 .fullName(profile.getFullName() != null ? profile.getFullName() : jockey.getUsername())
                 .email(jockey.getEmail())
                 .weight(profile.getWeight())
-                .ranking(profile.getRanking())
                 .biography(profile.getBiography())
                 .totalRaces(profile.getTotalRaces())
                 .totalWins(profile.getTotalWins())

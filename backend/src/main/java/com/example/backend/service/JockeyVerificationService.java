@@ -3,6 +3,7 @@ package com.example.backend.service;
 import java.util.List;
 
 import com.example.backend.dto.baseResponseDTO.ApiResponse;
+import com.example.backend.dto.request.AdminReviewRequestDTO;
 import com.example.backend.dto.request.JockeyVerificationRequest;
 import com.example.backend.dto.response.JockeyVerificationResponse;
 
@@ -29,7 +30,10 @@ public interface JockeyVerificationService {
     ApiResponse<JockeyVerificationResponse> getVerificationById(Integer verificationId);
 
     // Admin phê duyệt yêu cầu xác minh.
-    ApiResponse<JockeyVerificationResponse> approveVerification(Integer verificationId);
+    ApiResponse<JockeyVerificationResponse> approveVerification(
+            Integer verificationId,
+            AdminReviewRequestDTO reviewRequest
+    );
 
     // Admin từ chối yêu cầu xác minh với lý do.
     ApiResponse<JockeyVerificationResponse> rejectVerification(Integer verificationId, String rejectionReason);

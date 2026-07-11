@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.backend.dto.request.AdminReviewFeedbackRequest;
@@ -25,8 +26,8 @@ public class AdminHorseController {
     }
 
     @GetMapping
-    public List<HorseResponse> getHorses() {
-        return adminHorseService.getHorses();
+    public List<HorseResponse> getHorses(@RequestParam(required = false) String status) {
+        return adminHorseService.getHorses(status);
     }
 
     @GetMapping("/pending")

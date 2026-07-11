@@ -3,6 +3,7 @@ package com.example.backend.service;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -36,11 +37,20 @@ public class AdminHorseService {
     }
 
     @Transactional(readOnly = true)
-    public List<HorseResponse> getHorses() {
-        return horseRepository.findAll()
+    public List<HorseResponse> getHorses(String status) {
+        String normalizedStatus = parseStatus(status);
+        List<Horse> horses = normalizedStatus == null
+                ? horseRepository.findAll()
+                : horseRepository.findByStatus(normalizedStatus);
+        return horses
                 .stream()
                 .map(this::mapHorseToResponse)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<HorseResponse> getHorses() {
+        return getHorses(null);
     }
 
     @Transactional(readOnly = true)
@@ -130,5 +140,18 @@ public class AdminHorseService {
 
     private boolean hasText(String value) {
         return value != null && !value.isBlank();
+    }
+
+    private String parseStatus(String status) {
+        if (status == null || status.isBlank() || "ALL".equalsIgnoreCase(status)) {
+            return null;
+        }
+        String normalized = status.trim().toUpperCase(Locale.ROOT);
+        if (!STATUS_PENDING.equals(normalized)
+                && !STATUS_ACTIVE.equals(normalized)
+                && !STATUS_REJECTED.equals(normalized)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Invalid horse status.");
+        }
+        return normalized;
     }
 }

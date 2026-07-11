@@ -2,6 +2,7 @@ package com.example.backend.entity;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -34,6 +35,9 @@ public class JockeyVerification {
     @Column(name = "jockeyID", nullable = false)
     private Integer jockeyId;
 
+    @Column(name = "fullName", nullable = false)
+    private String fullName;
+
     @Column(name = "trainerName", nullable = false)
     private String trainerName;
 
@@ -54,6 +58,12 @@ public class JockeyVerification {
 
     @Column(name = "expiryDate")
     private LocalDate expiryDate;
+
+    @Column(name = "weight", nullable = false)
+    private BigDecimal weight;
+
+    @Column(name = "biography", columnDefinition = "TEXT")
+    private String biography;
 
     @Column(name = "verificationStatus", length = 50)
     private String verificationStatus;

@@ -10,7 +10,6 @@ import java.math.BigDecimal;
 public class PublicJockeyProfileResponse {
     private Integer jockeyId;
     private String fullName;
-    private String ranking;
     private String biography;
     private BigDecimal weight;
     private Integer totalRaces;

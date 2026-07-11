@@ -25,7 +25,6 @@ public class JockeyVerificationResponse {
     
     // Profile Info
     private BigDecimal weight;
-    private String ranking;
     private String biography;
 
     private String verificationStatus;

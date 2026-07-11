@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.example.backend.dto.request.OwnerApplicationRequest;
+import com.example.backend.dto.request.AdminRoleApprovalRequest;
 import com.example.backend.dto.response.OwnerApplicationResponse;
 import com.example.backend.dto.response.FileUploadResponse;
 import com.example.backend.dto.response.OwnerProfileResponse;
@@ -39,18 +40,21 @@ public class OwnerApplicationService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final FileUploadService fileUploadService;
+    private final KycService kycService;
 
     public OwnerApplicationService(
             OwnerApplicationRepository ownerApplicationRepository,
             OwnerProfileRepository ownerProfileRepository,
             UserRepository userRepository,
             RoleRepository roleRepository,
-            FileUploadService fileUploadService) {
+            FileUploadService fileUploadService,
+            KycService kycService) {
         this.ownerApplicationRepository = ownerApplicationRepository;
         this.ownerProfileRepository = ownerProfileRepository;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.fileUploadService = fileUploadService;
+        this.kycService = kycService;
     }
 
     @Transactional
@@ -132,7 +136,10 @@ public class OwnerApplicationService {
     }
 
     @Transactional
-    public OwnerApplicationResponse approveApplication(Integer applicationId) {
+    public OwnerApplicationResponse approveApplication(
+            Integer applicationId,
+            AdminRoleApprovalRequest approvalRequest
+    ) {
         User admin = getCurrentUser();
         OwnerApplication application = getApplication(applicationId);
         if (!STATUS_PENDING.equals(application.getStatus())) {
@@ -148,6 +155,12 @@ public class OwnerApplicationService {
         application.setRejectReason(null);
         application.setReviewedAt(LocalDateTime.now());
         application.setReviewedBy(admin.getUserID());
+        kycService.approveUserKycAndOpenWallet(
+                applicant.getUserID(),
+                admin.getUserID(),
+                approvalRequest != null ? approvalRequest.getConfirmKycReviewed() : null,
+                approvalRequest != null ? approvalRequest.getKycExpiresAt() : null
+        );
         applicant.setRole(ownerRole);
 
         ownerApplicationRepository.save(application);
