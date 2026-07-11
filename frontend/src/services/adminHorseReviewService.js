@@ -20,8 +20,17 @@ function normalizeHorse(horse) {
   };
 }
 
+export async function getHorses(status = '') {
+  const query = status && status !== 'ALL' ? `?status=${encodeURIComponent(status)}` : '';
+  const horses = await httpRequest(`/api/admin/horses${query}`, {
+    fallbackError: 'Khong the tai ho so ngua.'
+  });
+
+  return Array.isArray(horses) ? horses.map(normalizeHorse) : [];
+}
+
 export async function getPendingHorses() {
-  const horses = await httpRequest('/api/admin/horses', {
+  const horses = await httpRequest('/api/admin/horses?status=PENDING', {
     fallbackError: 'Khong the tai ho so ngua dang cho duyet.'
   });
 

@@ -56,7 +56,7 @@ export async function getJockeyProfilesPendingOnly() {
 export function approveJockeyProfile(verificationId) {
   return httpRequest(`/api/admin/jockeys/verifications/${verificationId}/review`, {
     method: 'PUT',
-    body: { status: 'APPROVED' },
+    body: { status: 'APPROVED', confirmKycReviewed: true },
     fallbackError: 'Khong the phe duyet ho so jockey.'
   });
 }

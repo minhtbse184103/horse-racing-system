@@ -437,7 +437,6 @@ function getJockeyStats(jockey) {
   const top3Total = getTop3Count(source) || toNumber(firstDefined(jockey?.top3Count));
 
   return {
-    ranking: firstDefined(jockey?.ranking, jockey?.level, jockey?.profile?.ranking, 'Chưa xếp hạng'),
     license: firstDefined(jockey?.licenceType, jockey?.licenseType, jockey?.profile?.licenceType, jockey?.verificationStatus, 'Chưa cập nhật'),
     totalRaces,
     wins,
@@ -1502,7 +1501,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
                     <article className={`owner-jockey-card ${isPending ? 'pending-invite' : ''} ${isAccepted ? 'accepted-invite' : ''} ${isSendingInvite ? 'sending' : ''}`} key={jockeyId}>
                       <div className="owner-jockey-card-head">
                         <div>
-                          <p className="eyebrow">{stats.ranking}</p>
+                          <p className="eyebrow">{stats.license}</p>
                           <h3>{getJockeyName(jockey)}</h3>
                           <span><ShieldCheck size={14} /> {stats.license}</span>
                         </div>
@@ -1902,7 +1901,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
                 <span>Wins <strong>{stats.wins}</strong></span>
                 <span>Win rate <strong>{formatPercent(stats.winRate)}</strong></span>
                 <span>Top 3 rate <strong>{formatPercent(stats.top3Rate)}</strong></span>
-                <span>Ranking <strong>{stats.ranking}</strong></span>
+                <span>Licence <strong>{stats.license}</strong></span>
                 <span>Vi phạm <strong>{stats.violationCount} / DQ {stats.disqualifiedCount}</strong></span>
               </div>
 

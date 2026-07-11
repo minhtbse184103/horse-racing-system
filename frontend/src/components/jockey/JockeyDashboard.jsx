@@ -26,7 +26,6 @@ const jockeyNavItems = [
   { key: 'wallet', labelKey: 'wallet', icon: Wallet }
 ];
 
-const rankingOptions = ['BEGINNER', 'INTERMEDIATE', 'PROFESSIONAL', 'ELITE'];
 const INVITATION_STATUS_OPTIONS = ['ALL', 'PENDING', 'ACCEPTED', 'APPROVED', 'REJECTED', 'EXPIRED'];
 const INVITATION_TABS = [
   { key: 'PENDING', label: 'Pending' },
@@ -50,7 +49,6 @@ function emptyProfileForm(currentUser = {}) {
     licenseFileName: '',
     licenseFiles: [],
     weight: '55',
-    ranking: 'BEGINNER',
     biography: '',
     totalRaces: 0,
     totalWins: 0,
@@ -115,7 +113,6 @@ function toProfileForm(profile, currentUser = {}) {
     licenseNo: String(profile.licenseNo || profile.licenceType || ''),
 
     weight: profile.weight == null ? '55' : String(profile.weight),
-    ranking: String(profile.ranking || 'BEGINNER').toUpperCase(),
     biography: String(profile.biography || ''),
 
     totalRaces: Number(profile.totalRaces ?? 0),
@@ -145,10 +142,6 @@ function validateProfileForm(form) {
 
   if (!Number.isFinite(weight) || weight < 35 || weight > 90) {
     errors.weight = 'Jockey weight must be between 35 and 90 kg.';
-  }
-
-  if (!rankingOptions.includes(form.ranking)) {
-    errors.ranking = 'Ranking must be BEGINNER, INTERMEDIATE, PROFESSIONAL or ELITE.';
   }
 
   return errors;
@@ -1067,28 +1060,6 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
             </div>
 
             <div>
-              <label className="field-label" htmlFor="ranking">
-                Ranking <span className="required">*</span>
-              </label>
-              <select
-                className={profileErrors.ranking ? 'input has-error' : 'input'}
-                id="ranking"
-                name="ranking"
-                value={profileForm.ranking}
-                onChange={handleProfileChange}
-                disabled={isApprovedProfile || isSavingProfile}
-              >
-                <option value="BEGINNER">Beginner</option>
-                <option value="INTERMEDIATE">Intermediate</option>
-                <option value="PROFESSIONAL">Professional</option>
-                <option value="ELITE">Elite</option>
-              </select>
-              {profileErrors.ranking && (
-                <p className="field-error">{profileErrors.ranking}</p>
-              )}
-            </div>
-
-            <div>
               <label className="field-label" htmlFor="totalRaces">
                 Total Races
               </label>
@@ -1512,7 +1483,7 @@ export default function JockeyDashboard({ currentUser, onLogout }) {
                   {profile ? formatDisplayLabel(profile.status) : 'Chưa có hồ sơ'}
                 </span>
                 <strong>{jockeyName}</strong>
-                <small>{formatDisplayLabel(profile?.ranking || profileForm.ranking)} ranking</small>
+                <small>{formatDisplayLabel(profile?.licenceType || profileForm.licenseNo || 'Chưa cập nhật')} licence</small>
               </div>
               <div className="jockey-readiness">
                 <span>{profileCompletion}%</span>

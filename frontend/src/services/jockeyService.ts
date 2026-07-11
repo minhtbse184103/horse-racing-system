@@ -7,7 +7,6 @@ export interface JockeyProfile {
   email?: string;
   licenseNo?: string;
   weight?: number | string;
-  ranking?: string;
   status?: string;
   rejectionReason?: string | null;
   imgUrl?: string;
@@ -16,7 +15,6 @@ export interface JockeyProfile {
 export interface JockeyProfilePayload {
   licenseNo: string;
   weight: number;
-  ranking: string;
   imgUrl: string;
 }
 

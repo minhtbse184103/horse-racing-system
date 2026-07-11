@@ -1,9 +1,34 @@
 import { useMemo, useState } from 'react';
 import { uploadFile } from '../../services/uploadService.js';
+import KycInlineSection, { makeInitialKycValues, validateKycValues } from './KycInlineSection';
+import { needsKycSubmission } from '../../services/kycService';
 
 const inputClass = 'w-full rounded-lg border border-brown-700/15 bg-white px-4 py-3 text-sm font-bold text-brown-900 outline-none transition placeholder:text-slate-500/65 focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20 disabled:cursor-not-allowed disabled:bg-cream-200 disabled:text-slate-500';
+const licenceTypeOptions = [
+  { value: 'TRAINEE', label: 'Tập sự' },
+  { value: 'AMATEUR', label: 'Nghiệp dư' },
+  { value: 'PROFESSIONAL', label: 'Chuyên nghiệp' }
+];
 
-function makeInitialValues(user, application) {
+function parseLocalDate(value) {
+  if (!value) return null;
+  const [year, month, day] = String(value).split('-').map(Number);
+  if (!year || !month || !day) return null;
+  return new Date(year, month - 1, day);
+}
+
+function startOfToday() {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
+function tomorrowInputValue() {
+  const tomorrow = startOfToday();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  return tomorrow.toISOString().slice(0, 10);
+}
+
+function makeInitialValues(user, application, kyc) {
   const files = Array.isArray(application?.files) ? application.files : [];
   const verificationLinks = String(application?.verificationLink || '')
     .split(/\r?\n/)
@@ -11,6 +36,7 @@ function makeInitialValues(user, application) {
     .filter(Boolean);
 
   return {
+    kyc: makeInitialKycValues(user, kyc),
     fullName: application?.jockeyFullName || application?.fullName || user?.fullName || user?.username || '',
     applicantEmail: user?.email || '',
     trainerName: application?.trainerName || '',
@@ -18,10 +44,9 @@ function makeInitialValues(user, application) {
     academyStableAddress: application?.academyStableAddress || '',
     issuingAuthority: application?.issuingAuthority || '',
     verificationLinks: verificationLinks.length > 0 ? verificationLinks : [''],
-    licenceType: application?.licenceType || 'PRO',
+    licenceType: application?.licenceType || 'TRAINEE',
     expiryDate: application?.expiryDate || '',
     weight: application?.weight == null ? '55' : String(application.weight),
-    ranking: application?.ranking || 'BEGINNER',
     biography: application?.biography || '',
     licenseFiles: files.map((file) => ({
       url: file.fileUrl || '',
@@ -32,33 +57,37 @@ function makeInitialValues(user, application) {
   };
 }
 
-export default function JockeyApplicationForm({ user, application, mode = 'submit', onSubmit, onCancel, isSubmitting }) {
-  const [values, setValues] = useState(() => makeInitialValues(user, application));
+export default function JockeyApplicationForm({ user, application, kyc, mode = 'submit', formError = '', onSubmit, onCancel, isSubmitting }) {
+  const [values, setValues] = useState(() => makeInitialValues(user, application, kyc));
   const [errors, setErrors] = useState({});
   const [isUploadingLicense, setIsUploadingLicense] = useState(false);
+  const shouldSubmitKyc = needsKycSubmission(kyc);
 
   const isReady = useMemo(() => {
     const weight = Number(values.weight);
+    const expiryDate = parseLocalDate(values.expiryDate);
 
     return (
+      (!shouldSubmitKyc || Object.keys(validateKycValues(values.kyc, kyc)).length === 0) &&
       values.trainerName.trim() &&
       values.fullName.trim() &&
       values.trainerEmail.trim() &&
       values.issuingAuthority.trim() &&
       values.licenceType.trim() &&
-      values.expiryDate &&
+      expiryDate &&
+      expiryDate > startOfToday() &&
       Number.isFinite(weight) &&
       weight >= 35 &&
       weight <= 90 &&
-      values.ranking.trim() &&
       values.licenseFiles.length > 0 &&
       values.licenseFiles.length <= 5
     );
-  }, [values]);
+  }, [kyc, shouldSubmitKyc, values]);
 
   function validate() {
     const nextErrors = {};
     const weight = Number(values.weight);
+    Object.assign(nextErrors, validateKycValues(values.kyc, kyc));
 
     if (!values.fullName.trim()) nextErrors.fullName = 'Full name is required.';
     if (!values.trainerName.trim()) nextErrors.trainerName = 'Trainer name is required.';
@@ -68,11 +97,17 @@ export default function JockeyApplicationForm({ user, application, mode = 'submi
     }
     if (!values.issuingAuthority.trim()) nextErrors.issuingAuthority = 'Issuing authority is required.';
     if (!values.licenceType.trim()) nextErrors.licenceType = 'Licence type is required.';
-    if (!values.expiryDate) nextErrors.expiryDate = 'Expiry date is required.';
+    if (!values.expiryDate) {
+      nextErrors.expiryDate = 'Expiry date is required.';
+    } else {
+      const expiryDate = parseLocalDate(values.expiryDate);
+      if (!expiryDate || expiryDate <= startOfToday()) {
+        nextErrors.expiryDate = 'Expiry date must be in the future.';
+      }
+    }
     if (!Number.isFinite(weight) || weight < 35 || weight > 90) {
       nextErrors.weight = 'Jockey weight must be between 35 and 90 kg.';
     }
-    if (!values.ranking.trim()) nextErrors.ranking = 'Ranking is required.';
     const links = values.verificationLinks.map((link) => link.trim()).filter(Boolean);
     const invalidLink = links.find((link) => !/^https?:\/\/.+/i.test(link));
     if (invalidLink) {
@@ -187,12 +222,12 @@ export default function JockeyApplicationForm({ user, application, mode = 'submi
       licenceType: values.licenceType.trim(),
       expiryDate: values.expiryDate,
       weight: Number(values.weight),
-      ranking: values.ranking.trim(),
       biography: values.biography.trim(),
       files: values.licenseFiles.map((file) => ({
         fileUrl: file.url,
         fileType: file.fileType
-      }))
+      })),
+      kyc: values.kyc
     });
   }
 
@@ -220,7 +255,17 @@ export default function JockeyApplicationForm({ user, application, mode = 'submi
         </div>
 
         <form className="mt-6 grid gap-5" onSubmit={handleSubmit} noValidate>
+          {formError && <div className="admin-alert error" role="alert">{formError}</div>}
           <div className="grid gap-4 md:grid-cols-2">
+            <KycInlineSection
+              kyc={kyc}
+              values={values.kyc}
+              setValues={setValues}
+              errors={errors}
+              setErrors={setErrors}
+              disabled={isSubmitting}
+            />
+
             <label className="grid gap-2">
               <span className="text-sm font-extrabold text-brown-900">Full Name</span>
               <input className={inputClass} name="fullName" value={values.fullName} onChange={handleChange} disabled={isSubmitting} />
@@ -258,16 +303,16 @@ export default function JockeyApplicationForm({ user, application, mode = 'submi
             <label className="grid gap-2">
               <span className="text-sm font-extrabold text-brown-900">Licence Type</span>
               <select className={inputClass} name="licenceType" value={values.licenceType} onChange={handleChange} disabled={isSubmitting}>
-                <option value="PRO">PRO</option>
-                <option value="AMATEUR">AMATEUR</option>
-                <option value="TRAINEE">TRAINEE</option>
+                {licenceTypeOptions.map((option) => (
+                  <option value={option.value} key={option.value}>{option.label}</option>
+                ))}
               </select>
               {renderError('licenceType')}
             </label>
 
             <label className="grid gap-2">
               <span className="text-sm font-extrabold text-brown-900">Expiry Date</span>
-              <input className={inputClass} name="expiryDate" type="date" value={values.expiryDate} onChange={handleChange} disabled={isSubmitting} />
+              <input className={inputClass} name="expiryDate" type="date" min={tomorrowInputValue()} value={values.expiryDate} onChange={handleChange} disabled={isSubmitting} />
               {renderError('expiryDate')}
             </label>
 
@@ -275,17 +320,6 @@ export default function JockeyApplicationForm({ user, application, mode = 'submi
               <span className="text-sm font-extrabold text-brown-900">Weight (kg)</span>
               <input className={inputClass} name="weight" type="number" min="35" max="90" step="0.01" value={values.weight} onChange={handleChange} disabled={isSubmitting} />
               {renderError('weight')}
-            </label>
-
-            <label className="grid gap-2">
-              <span className="text-sm font-extrabold text-brown-900">Ranking</span>
-              <select className={inputClass} name="ranking" value={values.ranking} onChange={handleChange} disabled={isSubmitting}>
-                <option value="BEGINNER">BEGINNER</option>
-                <option value="INTERMEDIATE">INTERMEDIATE</option>
-                <option value="PROFESSIONAL">PROFESSIONAL</option>
-                <option value="ELITE">ELITE</option>
-              </select>
-              {renderError('ranking')}
             </label>
 
             <div className="grid gap-2 md:col-span-2">

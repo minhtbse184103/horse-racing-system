@@ -1,11 +1,13 @@
 import { useMemo, useState } from 'react';
+import KycInlineSection, { makeInitialKycValues, validateKycValues } from './KycInlineSection';
+import { needsKycSubmission } from '../../services/kycService';
 
 const inputClass = 'w-full rounded-lg border border-brown-700/15 bg-white px-4 py-3 text-sm font-bold text-brown-900 outline-none transition placeholder:text-slate-500/65 focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20 disabled:cursor-not-allowed disabled:bg-cream-200 disabled:text-slate-500';
 const acceptedTypes = '.pdf,.jpg,.jpeg,.png';
-const steps = ['Personal Information', 'Stable Information', 'Horse Ownership Proof', 'Review & Submit'];
 
-function makeInitialValues(user, application) {
+function makeInitialValues(user, application, kyc) {
   return {
+    kyc: makeInitialKycValues(user, kyc),
     fullName: application?.fullName || user?.fullName || '',
     dateOfBirth: application?.dateOfBirth || '',
     gender: application?.gender || 'MALE',
@@ -35,6 +37,22 @@ function isAllowedFile(file) {
 
 function required(value) {
   return String(value || '').trim().length > 0;
+}
+
+function parseLocalDate(value) {
+  if (!value) return null;
+  const [year, month, day] = String(value).split('-').map(Number);
+  if (!year || !month || !day) return null;
+  return new Date(year, month - 1, day);
+}
+
+function startOfToday() {
+  const now = new Date();
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
+}
+
+function todayInputValue() {
+  return startOfToday().toISOString().slice(0, 10);
 }
 
 function FieldError({ children }) {
@@ -84,33 +102,60 @@ function SummaryRow({ label, value, file }) {
   );
 }
 
-export default function OwnerApplicationForm({ user, application, onSubmit, onCancel, isSubmitting }) {
-  const [values, setValues] = useState(() => makeInitialValues(user, application));
+export default function OwnerApplicationForm({ user, application, kyc, formError = '', onSubmit, onCancel, isSubmitting }) {
+  const [values, setValues] = useState(() => makeInitialValues(user, application, kyc));
   const [errors, setErrors] = useState({});
   const [step, setStep] = useState(0);
+  const shouldSubmitKyc = needsKycSubmission(kyc);
+  const steps = useMemo(
+    () => [
+      ...(shouldSubmitKyc ? ['KYC Verification'] : []),
+      'Personal Information',
+      'Stable Information',
+      'Horse Ownership Proof',
+      'Review & Submit'
+    ],
+    [shouldSubmitKyc]
+  );
 
   const isLastStep = step === steps.length - 1;
   const currentErrors = useMemo(() => errors, [errors]);
 
+  function getStepKey(targetStep = step) {
+    return steps[targetStep];
+  }
+
   function validateStep(targetStep = step) {
     const nextErrors = {};
+    const stepKey = getStepKey(targetStep);
 
-    if (targetStep === 0) {
+    if (stepKey === 'KYC Verification') {
+      Object.assign(nextErrors, validateKycValues(values.kyc, kyc));
+    }
+
+    if (stepKey === 'Personal Information') {
       if (!required(values.fullName)) nextErrors.fullName = 'Full Name is required.';
-      if (!required(values.dateOfBirth)) nextErrors.dateOfBirth = 'Date of Birth is required.';
+      if (!required(values.dateOfBirth)) {
+        nextErrors.dateOfBirth = 'Date of Birth is required.';
+      } else {
+        const birthDate = parseLocalDate(values.dateOfBirth);
+        if (!birthDate || birthDate >= startOfToday()) {
+          nextErrors.dateOfBirth = 'Date of Birth must be in the past.';
+        }
+      }
       if (!required(values.gender)) nextErrors.gender = 'Gender is required.';
       if (!required(values.nationality)) nextErrors.nationality = 'Nationality is required.';
       if (!required(values.address)) nextErrors.address = 'Residential Address is required.';
       if (!values.identityDocumentFile) nextErrors.identityDocumentFile = 'Identity Document is required.';
     }
 
-    if (targetStep === 1) {
+    if (stepKey === 'Stable Information') {
       if (!required(values.stableName)) nextErrors.stableName = 'Stable Name is required.';
       if (!required(values.stableAddress)) nextErrors.stableAddress = 'Stable Address is required.';
       if (!values.stableCertificateFile) nextErrors.stableCertificateFile = 'Stable Certificate is required.';
     }
 
-    if (targetStep === 2) {
+    if (stepKey === 'Horse Ownership Proof') {
       if (!required(values.totalHorsesOwned)) nextErrors.totalHorsesOwned = 'Total Horses Owned is required.';
       if (Number(values.totalHorsesOwned) < 1) nextErrors.totalHorsesOwned = 'Total Horses Owned must be at least 1.';
       if (!values.horseOwnershipProofFile) nextErrors.horseOwnershipProofFile = 'Horse Ownership Proof is required.';
@@ -159,7 +204,12 @@ export default function OwnerApplicationForm({ user, application, onSubmit, onCa
 
   function handleSubmit(event) {
     event.preventDefault();
-    if (!validateStep(0) || !validateStep(1) || !validateStep(2)) return;
+    for (let index = 0; index < steps.length - 1; index += 1) {
+      if (!validateStep(index)) {
+        setStep(index);
+        return;
+      }
+    }
     onSubmit(values);
   }
 
@@ -185,8 +235,21 @@ export default function OwnerApplicationForm({ user, application, onSubmit, onCa
           ))}
         </div>
 
+        {formError && <div className="admin-alert error mt-5" role="alert">{formError}</div>}
+
         <form className="mt-6 grid gap-5" onSubmit={handleSubmit} noValidate>
-          {step === 0 && (
+          {getStepKey() === 'KYC Verification' && (
+            <KycInlineSection
+              kyc={kyc}
+              values={values.kyc}
+              setValues={setValues}
+              errors={currentErrors}
+              setErrors={setErrors}
+              disabled={isSubmitting}
+            />
+          )}
+
+          {getStepKey() === 'Personal Information' && (
             <div className="grid gap-4 md:grid-cols-2">
               <label className="grid gap-2">
                 <span className="text-sm font-extrabold text-brown-900">Email</span>
@@ -203,7 +266,7 @@ export default function OwnerApplicationForm({ user, application, onSubmit, onCa
               </label>
               <label className="grid gap-2">
                 <span className="text-sm font-extrabold text-brown-900">Date of Birth *</span>
-                <input className={inputClass} name="dateOfBirth" type="date" value={values.dateOfBirth} onChange={handleChange} disabled={isSubmitting} />
+                <input className={inputClass} name="dateOfBirth" type="date" max={todayInputValue()} value={values.dateOfBirth} onChange={handleChange} disabled={isSubmitting} />
                 <FieldError>{currentErrors.dateOfBirth}</FieldError>
               </label>
               <label className="grid gap-2">
@@ -231,7 +294,7 @@ export default function OwnerApplicationForm({ user, application, onSubmit, onCa
             </div>
           )}
 
-          {step === 1 && (
+          {getStepKey() === 'Stable Information' && (
             <div className="grid gap-4">
               <label className="grid gap-2">
                 <span className="text-sm font-extrabold text-brown-900">Stable Name *</span>
@@ -247,7 +310,7 @@ export default function OwnerApplicationForm({ user, application, onSubmit, onCa
             </div>
           )}
 
-          {step === 2 && (
+          {getStepKey() === 'Horse Ownership Proof' && (
             <div className="grid gap-4">
               <label className="grid gap-2">
                 <span className="text-sm font-extrabold text-brown-900">Total Horses Owned *</span>
@@ -258,8 +321,19 @@ export default function OwnerApplicationForm({ user, application, onSubmit, onCa
             </div>
           )}
 
-          {step === 3 && (
+          {getStepKey() === 'Review & Submit' && (
             <div className="grid gap-5">
+              <section>
+                <h3 className="text-xl font-black text-brown-900">KYC Verification</h3>
+                <div className="mt-3 grid gap-3 md:grid-cols-2">
+                  <SummaryRow label="KYC Status" value={shouldSubmitKyc ? 'Will be submitted with this application' : kyc?.status} />
+                  <SummaryRow label="KYC Full Name" value={shouldSubmitKyc ? values.kyc.fullName : kyc?.fullName} />
+                  <SummaryRow label="KYC Date of Birth" value={shouldSubmitKyc ? values.kyc.dateOfBirth : kyc?.dateOfBirth} />
+                  {shouldSubmitKyc && <SummaryRow label="Identity Front" file={values.kyc.identityFrontFile} />}
+                  {shouldSubmitKyc && <SummaryRow label="Identity Back" file={values.kyc.identityBackFile} />}
+                  {shouldSubmitKyc && <SummaryRow label="Selfie" file={values.kyc.selfieFile} />}
+                </div>
+              </section>
               <section>
                 <h3 className="text-xl font-black text-brown-900">Personal Information</h3>
                 <div className="mt-3 grid gap-3 md:grid-cols-2">

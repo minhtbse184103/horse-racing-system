@@ -7,12 +7,14 @@ import {
   Home,
   Medal,
   Search,
+  ShieldCheck,
   Trophy,
   UserRound,
   Wallet
 } from 'lucide-react';
 import OwnerApplicationForm from '../profile/OwnerApplicationForm';
 import JockeyApplicationForm from '../profile/JockeyApplicationForm';
+import KycApplicationForm from '../profile/KycApplicationForm';
 import WalletTransferPanel from '../payment/WalletTransferPanel';
 import StatCard from '../common/StatCard';
 import LanguageToggle from '../common/LanguageToggle';
@@ -24,6 +26,7 @@ import {
   resubmitJockeyVerification,
   submitJockeyVerification
 } from '../../services/jockeyVerificationService';
+import { getMyKyc, needsKycSubmission, submitKyc } from '../../services/kycService';
 
 const navItems = [
   { key: 'dashboard', label: 'Dashboard', icon: Home },
@@ -64,6 +67,10 @@ function StatusBadge({ status }) {
   const label = status ? formatDisplayLabel(status) : 'Not Registered';
 
   return <span className={`status-badge ${normalized}`}>{label}</span>;
+}
+
+function getKycStatus(kyc) {
+  return String(kyc?.status || 'NOT_SUBMITTED').toUpperCase();
 }
 
 function EmptyState({ title, message }) {
@@ -238,10 +245,11 @@ function OwnerApplicationDetail({ application }) {
   );
 }
 
-function ProfileSection({ user, ownerApplication, jockeyApplication, isLoading, onOpenApplication, onOpenAgain, onBecomeJockey }) {
+function ProfileSection({ user, ownerApplication, jockeyApplication, kyc, isLoading, onOpenApplication, onOpenAgain, onBecomeJockey, onOpenKyc }) {
   const role = getUserRole(user) || 'SPECTATOR';
   const status = ownerApplication?.status || null;
   const jockeyStatus = jockeyApplication?.verificationStatus || null;
+  const kycStatus = getKycStatus(kyc);
   const [showOwnerApplicationDetail, setShowOwnerApplicationDetail] = useState(false);
 
   const detailRows = [
@@ -249,6 +257,7 @@ function ProfileSection({ user, ownerApplication, jockeyApplication, isLoading, 
     ['Email', user?.email || 'Chưa cập nhật'],
     ['Phone Number', user?.phone || 'Chưa cập nhật'],
     ['Role', <span className="role-badge" key="role">{formatDisplayLabel(role)}</span>],
+    ['KYC Status', <StatusBadge key="kyc-status" status={kycStatus} />],
     ['Owner Status', <StatusBadge key="status" status={status} />],
     ['Jockey Status', <StatusBadge key="jockey-status" status={jockeyStatus} />]
   ];
@@ -294,6 +303,48 @@ function ProfileSection({ user, ownerApplication, jockeyApplication, isLoading, 
               </div>
             ))}
           </div>
+        )}
+      </section>
+
+      <section className={kycStatus === 'PENDING' ? 'owner-panel warning-owner-panel' : 'owner-panel'}>
+        <div className="owner-panel-header">
+          <div className="flex items-center gap-4">
+            <div className="grid size-12 place-items-center rounded-2xl bg-cream-200 text-brown-700">
+              <ShieldCheck size={22} />
+            </div>
+            <div>
+              <p className="eyebrow">KYC Verification</p>
+              <h2>Identity verification</h2>
+              <p>
+                {needsKycSubmission(kyc)
+                  ? 'Submit KYC so admin can verify your identity and open your wallet.'
+                  : kycStatus === 'PENDING'
+                    ? 'Your KYC is waiting for administrator review.'
+                    : 'Your KYC has been verified.'}
+              </p>
+            </div>
+          </div>
+          <StatusBadge status={kycStatus} />
+        </div>
+
+        {kycStatus === 'REJECTED' && kyc?.rejectionReason && (
+          <div className="mt-4 rounded-2xl border border-danger/20 bg-danger-bg p-4 font-bold text-danger">
+            {kyc.rejectionReason}
+          </div>
+        )}
+
+        {isLoading ? (
+          <button className="outline-button mt-5" type="button" disabled>
+            Loading KYC...
+          </button>
+        ) : needsKycSubmission(kyc) ? (
+          <button className="primary-button owner-hero-action mt-5" type="button" onClick={onOpenKyc}>
+            {kycStatus === 'REJECTED' || kycStatus === 'EXPIRED' ? 'Resubmit KYC' : 'Submit KYC'}
+          </button>
+        ) : (
+          <button className="outline-button mt-5" type="button" disabled>
+            {kycStatus === 'PENDING' ? 'Waiting For Review' : 'KYC Verified'}
+          </button>
         )}
       </section>
 
@@ -422,13 +473,19 @@ export default function UserPanel({ user, onLogout }) {
   });
   const [ownerApplication, setOwnerApplication] = useState(null);
   const [jockeyApplication, setJockeyApplication] = useState(null);
+  const [kyc, setKyc] = useState(null);
   const [isLoadingApplication, setIsLoadingApplication] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isJockeyFormOpen, setIsJockeyFormOpen] = useState(false);
+  const [isKycFormOpen, setIsKycFormOpen] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const [ownerFormError, setOwnerFormError] = useState('');
+  const [jockeyFormError, setJockeyFormError] = useState('');
+  const [kycFormError, setKycFormError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmittingJockey, setIsSubmittingJockey] = useState(false);
+  const [isSubmittingKyc, setIsSubmittingKyc] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   const profileName = user?.fullName || user?.email || 'Spectator';
@@ -455,17 +512,26 @@ export default function UserPanel({ user, onLogout }) {
       return ['Your Jockey application is waiting for administrator approval.'];
     }
 
+    if (getKycStatus(kyc) === 'PENDING') {
+      return ['Your KYC is waiting for administrator review.'];
+    }
+
+    if (getKycStatus(kyc) === 'REJECTED') {
+      return [`Your KYC has been rejected. Reason: ${kyc.rejectionReason || 'No reason provided.'}`];
+    }
+
     return ['No new notifications.'];
-  }, [ownerApplication, jockeyApplication]);
+  }, [ownerApplication, jockeyApplication, kyc]);
 
   async function loadOwnerApplication() {
     setIsLoadingApplication(true);
     setError('');
 
     try {
-      const [ownerResult, jockeyResult] = await Promise.allSettled([
+      const [ownerResult, jockeyResult, kycResult] = await Promise.allSettled([
         getMyOwnerApplication(user),
-        getMyJockeyVerification()
+        getMyJockeyVerification(),
+        getMyKyc()
       ]);
 
       if (ownerResult.status === 'fulfilled') {
@@ -481,6 +547,12 @@ export default function UserPanel({ user, onLogout }) {
       } else {
         throw jockeyResult.reason;
       }
+
+      if (kycResult.status === 'fulfilled') {
+        setKyc(kycResult.value);
+      } else {
+        setKyc(null);
+      }
     } catch (err) {
       setError(err.message || 'Không thể tải trạng thái Owner application.');
     } finally {
@@ -494,17 +566,21 @@ export default function UserPanel({ user, onLogout }) {
 
   async function handleSubmitApplication(values) {
     setIsSubmitting(true);
-    setError('');
+    setOwnerFormError('');
     setMessage('');
 
     try {
+      if (needsKycSubmission(kyc)) {
+        const submittedKyc = await submitKyc(values.kyc);
+        setKyc(submittedKyc);
+      }
       const application = await submitOwnerApplication(user, values);
       setOwnerApplication(application);
       setIsFormOpen(false);
       setActiveSection('profile');
       setMessage('Your Owner Application has been submitted and is pending Admin review.');
     } catch (err) {
-      setError(err.message || 'Không thể gửi Owner application.');
+      setOwnerFormError(err.message || 'Không thể gửi Owner application.');
     } finally {
       setIsSubmitting(false);
     }
@@ -521,22 +597,45 @@ export default function UserPanel({ user, onLogout }) {
 
   async function handleSubmitJockeyApplication(values) {
     setIsSubmittingJockey(true);
-    setError('');
+    setJockeyFormError('');
     setMessage('');
 
     try {
+      if (needsKycSubmission(kyc)) {
+        const submittedKyc = await submitKyc(values.kyc);
+        setKyc(submittedKyc);
+      }
+      const { kyc: _kycValues, ...jockeyValues } = values;
       const application = jockeyApplication?.verificationStatus === 'REJECTED'
-        ? await resubmitJockeyVerification(jockeyApplication.verificationId, values)
-        : await submitJockeyVerification(values);
+        ? await resubmitJockeyVerification(jockeyApplication.verificationId, jockeyValues)
+        : await submitJockeyVerification(jockeyValues);
 
       setJockeyApplication(application);
       setIsJockeyFormOpen(false);
       setActiveSection('profile');
       setMessage('Jockey application submitted successfully. Please wait for admin approval, then sign in again after approval.');
     } catch (err) {
-      setError(err.message || 'Cannot submit Jockey application.');
+      setJockeyFormError(err.message || 'Cannot submit Jockey application.');
     } finally {
       setIsSubmittingJockey(false);
+    }
+  }
+
+  async function handleSubmitKycApplication(values) {
+    setIsSubmittingKyc(true);
+    setKycFormError('');
+    setMessage('');
+
+    try {
+      const submittedKyc = await submitKyc(values);
+      setKyc(submittedKyc);
+      setIsKycFormOpen(false);
+      setActiveSection('profile');
+      setMessage('Your KYC has been submitted and is pending admin review.');
+    } catch (err) {
+      setKycFormError(err.message || 'Cannot submit KYC.');
+    } finally {
+      setIsSubmittingKyc(false);
     }
   }
 
@@ -551,10 +650,12 @@ export default function UserPanel({ user, onLogout }) {
           user={user}
           ownerApplication={ownerApplication}
           jockeyApplication={jockeyApplication}
+          kyc={kyc}
           isLoading={isLoadingApplication}
           onOpenApplication={() => setIsFormOpen(true)}
           onOpenAgain={() => setIsFormOpen(true)}
           onBecomeJockey={handleBecomeJockey}
+          onOpenKyc={() => setIsKycFormOpen(true)}
         />
       );
     }
@@ -664,8 +765,13 @@ export default function UserPanel({ user, onLogout }) {
         <OwnerApplicationForm
           user={user}
           application={ownerApplication}
+          kyc={kyc}
+          formError={ownerFormError}
           isSubmitting={isSubmitting}
-          onCancel={() => setIsFormOpen(false)}
+          onCancel={() => {
+            setOwnerFormError('');
+            setIsFormOpen(false);
+          }}
           onSubmit={handleSubmitApplication}
         />
       )}
@@ -674,10 +780,29 @@ export default function UserPanel({ user, onLogout }) {
         <JockeyApplicationForm
           user={user}
           application={jockeyApplication}
+          kyc={kyc}
           mode={jockeyApplication?.verificationStatus === 'REJECTED' ? 'resubmit' : 'submit'}
+          formError={jockeyFormError}
           isSubmitting={isSubmittingJockey}
-          onCancel={() => setIsJockeyFormOpen(false)}
+          onCancel={() => {
+            setJockeyFormError('');
+            setIsJockeyFormOpen(false);
+          }}
           onSubmit={handleSubmitJockeyApplication}
+        />
+      )}
+
+      {isKycFormOpen && (
+        <KycApplicationForm
+          user={user}
+          kyc={kyc}
+          formError={kycFormError}
+          isSubmitting={isSubmittingKyc}
+          onCancel={() => {
+            setKycFormError('');
+            setIsKycFormOpen(false);
+          }}
+          onSubmit={handleSubmitKycApplication}
         />
       )}
     </main>

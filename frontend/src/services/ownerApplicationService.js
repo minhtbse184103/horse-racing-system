@@ -105,6 +105,7 @@ export async function getOwnerApplicationById(applicationId) {
 export async function approveOwnerApplication(applicationId) {
   const application = await httpRequest(`/api/admin/owner-applications/${applicationId}/approve`, {
     method: 'PUT',
+    body: { confirmKycReviewed: true },
     fallbackError: 'Khong the phe duyet don dang ky owner.'
   });
 

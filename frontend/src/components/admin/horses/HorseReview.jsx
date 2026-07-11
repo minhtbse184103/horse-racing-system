@@ -1,122 +1,108 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BadgeCheck, ExternalLink, Eye, RefreshCw, Search, XCircle } from 'lucide-react';
-import { approveHorse, getPendingHorses, rejectHorse } from '../../../services/adminHorseReviewService';
+import { ArrowLeft, BadgeCheck, ExternalLink, Eye, RefreshCw, Search, ShieldCheck, XCircle } from 'lucide-react';
+import { approveHorse, getHorses, rejectHorse } from '../../../services/adminHorseReviewService';
 import { formatDate, getHorseId, getHorseName } from '../../../lib';
 
-function getImages(horse, fieldName) {
-  return Array.isArray(horse?.[fieldName]) ? horse[fieldName] : [];
+const PAGE_SIZE = 6;
+const statusOptions = ['ALL', 'PENDING', 'ACTIVE', 'REJECTED'];
+
+const STATUS_LABELS = {
+  PENDING: 'Pending',
+  ACTIVE: 'Approved',
+  REJECTED: 'Rejected'
+};
+
+function displayValue(value) {
+  return value === null || value === undefined || value === '' ? 'Not updated' : String(value);
+}
+
+function getStatusLabel(status) {
+  const normalized = String(status || '').toUpperCase();
+  return STATUS_LABELS[normalized] || displayValue(status);
 }
 
 function isPending(horse) {
   return String(horse?.status || '').toUpperCase() === 'PENDING';
 }
 
-function DocumentPreview({ horse }) {
-  const documents = getImages(horse, 'horseCertificateImages');
+function getDocuments(horse) {
+  return Array.isArray(horse?.horseCertificateImages) ? horse.horseCertificateImages : [];
+}
+
+function StatusBadge({ status }) {
+  return <span className={`status-badge ${String(status || '').toLowerCase()}`}>{getStatusLabel(status)}</span>;
+}
+
+function StatCard({ label, value, tone }) {
+  return (
+    <div className="rounded-lg border border-brown-700/10 bg-cream-100 p-5 shadow-[0_18px_45px_rgba(78,44,25,0.1)]">
+      <span className="text-sm font-extrabold uppercase text-slate-500">{label}</span>
+      <strong className={`mt-2 block text-3xl font-black ${tone || 'text-brown-900'}`}>{value}</strong>
+    </div>
+  );
+}
+
+function InfoCard({ label, value, children }) {
+  return (
+    <div className="rounded-2xl border border-brown-700/10 bg-white/70 p-4">
+      <span className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">{label}</span>
+      <strong className="mt-1 block break-words text-brown-900">{children || displayValue(value)}</strong>
+    </div>
+  );
+}
+
+function DocumentCard({ label, document }) {
+  const url = document?.dataUrl || document?.url || '';
+  const isImage = String(document?.type || '').startsWith('image/') || /\.(jpg|jpeg|png|webp)(\?|$)/i.test(url);
 
   return (
-    <div className="horse-detail-document-grid">
-      <div className="horse-detail-document-card">
-        <h3>Health Certificate</h3>
-        {documents.length > 0 ? (
-          <div className="horse-detail-image-list">
-            {documents.map((document, index) => {
-              const url = document.dataUrl || document.url;
-              const isImage = String(document.type || '').startsWith('image/') || String(url || '').match(/\.(jpg|jpeg|png)(\?|$)/i);
-              return isImage ? (
-                <img key={`${document.name || index}`} src={url} alt={`Health Certificate ${index + 1}`} />
-              ) : (
-                <a key={`${document.name || index}`} className="outline-button compact-button" href={url} target="_blank" rel="noreferrer">
-                  View Health Certificate
-                </a>
-              );
-            })}
-          </div>
+    <div className="rounded-2xl border border-brown-700/10 bg-white/70 p-4">
+      <span className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">{label}</span>
+      {url ? (
+        isImage ? (
+          <>
+            <img className="mt-3 max-h-[280px] w-full rounded-lg object-contain" src={url} alt={label} />
+            <a className="outline-button compact-button mt-3 inline-flex max-w-full break-all" href={url} target="_blank" rel="noreferrer">
+              Open image
+            </a>
+          </>
         ) : (
-          <p>Chua import file.</p>
-        )}
-      </div>
+          <a className="outline-button compact-button mt-3 inline-flex max-w-full break-all" href={url} target="_blank" rel="noreferrer">
+            View document
+          </a>
+        )
+      ) : (
+        <strong className="mt-1 block text-brown-900">Not updated</strong>
+      )}
     </div>
   );
 }
 
-function StatusBlock({ horse }) {
-  const status = String(horse?.status || 'PENDING').toUpperCase();
-
-  if (status === 'ACTIVE') {
-    return <span className="status-badge active">Approved</span>;
-  }
-
-  if (status === 'REJECTED') {
-    return (
-      <div className="grid gap-3">
-        <span className="status-badge rejected">Rejected</span>
-        {horse.rejectionReason && (
-          <div className="rounded-lg border border-danger/20 bg-danger-bg px-4 py-3 font-bold text-danger">
-            {horse.rejectionReason}
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  return <span className="status-badge pending">PENDING</span>;
-}
-
-function ReviewDialog({ review, onClose, onConfirm, isProcessing }) {
-  const [reason, setReason] = useState('');
-
-  useEffect(() => {
-    setReason('');
-  }, [review]);
-
-  if (!review) return null;
-
-  const isRejecting = review.action === 'reject';
-  const horseName = getHorseName(review.horse) || `Horse ${getHorseId(review.horse)}`;
+function RejectModal({ horse, reason, setReason, isLoading, onCancel, onConfirm }) {
+  if (!horse) return null;
+  const horseName = getHorseName(horse) || `Horse ${getHorseId(horse)}`;
 
   return (
-    <div className="fixed inset-0 z-[1000] grid place-items-center bg-brown-900/60 p-4 backdrop-blur-sm">
-      <section className="w-full max-w-lg rounded-lg bg-cream-100 p-6 shadow-2xl">
-        <h2 className="text-2xl font-black text-brown-900">
-          {isRejecting ? 'Reject Horse' : 'Approve Horse'}
-        </h2>
-        <p className="mt-2 text-sm font-semibold text-slate-500">
-          {horseName} will be {isRejecting ? 'rejected and returned with a reason' : 'approved and marked ACTIVE'}.
-        </p>
-
-        {isRejecting && (
-          <label className="mt-5 block">
-            <span className="mb-2 block text-sm font-extrabold text-brown-900">Rejection Reason *</span>
-            <textarea
-              className="min-h-28 w-full resize-none rounded-lg border border-brown-700/20 bg-white px-4 py-3 font-semibold text-brown-900 outline-none transition focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
-              rows={4}
-              value={reason}
-              onChange={(event) => setReason(event.target.value)}
-              placeholder="Explain what does not match the official horse profile."
-            />
-          </label>
-        )}
-
-        <div className="mt-6 flex justify-end gap-3">
-          <button
-            className="rounded-lg border border-brown-700/20 bg-white px-4 py-3 font-extrabold text-brown-700 transition hover:bg-cream-200 disabled:opacity-50"
-            type="button"
-            onClick={onClose}
-            disabled={isProcessing}
-          >
-            Cancel
-          </button>
-
-          <button
-            className={`rounded-lg px-4 py-3 font-extrabold text-white transition disabled:opacity-50 ${
-              isRejecting ? 'bg-danger hover:bg-red-700' : 'bg-green-700 hover:bg-green-800'
-            }`}
-            type="button"
-            disabled={isProcessing || (isRejecting && !reason.trim())}
-            onClick={() => onConfirm(reason.trim())}
-          >
-            {isProcessing ? 'Dang xu ly...' : isRejecting ? 'Confirm Reject' : 'Approve'}
+    <div className="fixed inset-0 z-50 grid place-items-center bg-brown-900/45 px-4 backdrop-blur-sm">
+      <section className="w-full max-w-lg rounded-[28px] border border-brown-700/10 bg-cream-100 p-6 shadow-[0_28px_80px_rgba(43,23,16,0.3)]">
+        <h2 className="text-2xl font-black text-brown-900">Reject horse</h2>
+        <p className="mt-3 font-medium leading-7 text-slate-500">Add feedback for {horseName} so the owner can correct the registration.</p>
+        <label className="mt-5 grid gap-2">
+          <span className="text-sm font-extrabold text-brown-900">Rejection feedback *</span>
+          <textarea
+            className="min-h-32 w-full rounded-lg border border-brown-700/15 bg-white px-4 py-3 text-sm font-bold text-brown-900 outline-none transition placeholder:text-slate-500/65 focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
+            maxLength={500}
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+            placeholder="Explain what does not match the official horse profile..."
+            disabled={isLoading}
+          />
+          <span className="text-right text-xs font-bold text-slate-500">{reason.length}/500</span>
+        </label>
+        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <button className="outline-button" type="button" onClick={onCancel} disabled={isLoading}>Cancel</button>
+          <button className="outline-button danger-action" type="button" onClick={onConfirm} disabled={isLoading || !reason.trim()}>
+            {isLoading ? 'Processing...' : 'Reject'}
           </button>
         </div>
       </section>
@@ -124,258 +110,362 @@ function ReviewDialog({ review, onClose, onConfirm, isProcessing }) {
   );
 }
 
-function HorseDetail({ horse, onClose, onApprove, onReject, isProcessing }) {
-  const officialUrl = String(horse.officialHorseProfileUrl || '').trim();
+function ConfirmModal({ horse, isLoading, onCancel, onConfirm }) {
+  if (!horse) return null;
+  const horseName = getHorseName(horse) || `Horse ${getHorseId(horse)}`;
 
   return (
-    <div className="fixed inset-0 z-[1000] grid place-items-center bg-brown-900/60 p-4 backdrop-blur-sm" onClick={onClose}>
-      <section className="w-full max-w-5xl max-h-[90vh] overflow-y-auto rounded-lg bg-cream-100 p-6 shadow-2xl" onClick={(event) => event.stopPropagation()}>
-        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-          <div>
-            <p className="text-xs font-extrabold uppercase tracking-widest text-brown-500">Horse Registration Detail</p>
-            <h2 className="mt-2 text-2xl font-black text-brown-900">{getHorseName(horse) || 'Horse detail'}</h2>
-          </div>
-          <StatusBlock horse={horse} />
+    <div className="fixed inset-0 z-50 grid place-items-center bg-brown-900/45 px-4 backdrop-blur-sm">
+      <section className="w-full max-w-md rounded-[28px] border border-brown-700/10 bg-cream-100 p-6 shadow-[0_28px_80px_rgba(43,23,16,0.3)]">
+        <h2 className="text-2xl font-black text-brown-900">Approve horse</h2>
+        <p className="mt-3 font-medium leading-7 text-slate-500">Approve {horseName} and mark this horse profile as ACTIVE?</p>
+        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+          <button className="outline-button" type="button" onClick={onCancel} disabled={isLoading}>Cancel</button>
+          <button className="primary-button sm:w-auto" type="button" onClick={onConfirm} disabled={isLoading}>
+            {isLoading ? 'Processing...' : 'Approve'}
+          </button>
         </div>
-
-        <dl className="mt-4 grid gap-3 rounded-lg border border-brown-700/10 bg-white/70 p-4 text-sm md:grid-cols-2">
-          <div><dt className="font-extrabold uppercase text-slate-500">Horse Name</dt><dd className="mt-1 font-black text-brown-900">{getHorseName(horse) || 'N/A'}</dd></div>
-          <div><dt className="font-extrabold uppercase text-slate-500">Age</dt><dd className="mt-1 font-black text-brown-900">{horse.age || 'N/A'}</dd></div>
-          <div><dt className="font-extrabold uppercase text-slate-500">Weight</dt><dd className="mt-1 font-black text-brown-900">{horse.weight ? `${horse.weight} kg` : 'N/A'}</dd></div>
-          <div><dt className="font-extrabold uppercase text-slate-500">Colour</dt><dd className="mt-1 font-black text-brown-900">{horse.colour || 'N/A'}</dd></div>
-          <div><dt className="font-extrabold uppercase text-slate-500">Sex</dt><dd className="mt-1 font-black text-brown-900">{horse.sex || 'N/A'}</dd></div>
-          <div><dt className="font-extrabold uppercase text-slate-500">Breeding</dt><dd className="mt-1 font-black text-brown-900">{horse.breeding || 'N/A'}</dd></div>
-          <div><dt className="font-extrabold uppercase text-slate-500">Trainer</dt><dd className="mt-1 font-black text-brown-900">{horse.trainer || 'N/A'}</dd></div>
-          <div><dt className="font-extrabold uppercase text-slate-500">Health Certificate Expiry Date</dt><dd className="mt-1 font-black text-brown-900">{formatDate(horse.healthCertificateExpiryDate || horse.healthCertExpiry)}</dd></div>
-          <div className="md:col-span-2">
-            <dt className="font-extrabold uppercase text-slate-500">Official Horse Profile URL</dt>
-            <dd className="mt-1 break-words font-black text-brown-900">{officialUrl || 'N/A'}</dd>
-            {officialUrl && (
-              <a className="mt-3 inline-flex items-center gap-2 rounded-lg border border-brown-700/15 bg-white px-4 py-3 font-extrabold text-brown-700" href={officialUrl} target="_blank" rel="noreferrer">
-                <ExternalLink size={16} />
-                Open Official Website
-              </a>
-            )}
-          </div>
-        </dl>
-
-        <DocumentPreview horse={horse} />
-
-        {isPending(horse) && (
-          <div className="mt-5 grid grid-cols-2 gap-3">
-            <button className="inline-flex items-center justify-center gap-2 rounded-lg border border-green-700/20 bg-green-50 px-4 py-3 font-extrabold text-green-700" type="button" disabled={isProcessing} onClick={() => onApprove(horse)}>
-              <BadgeCheck size={16} />
-              Approve
-            </button>
-            <button className="inline-flex items-center justify-center gap-2 rounded-lg border border-danger/20 bg-danger-bg px-4 py-3 font-extrabold text-danger" type="button" disabled={isProcessing} onClick={() => onReject(horse)}>
-              <XCircle size={16} />
-              Reject
-            </button>
-          </div>
-        )}
-
-        <button className="mt-4 w-full rounded-lg border border-brown-700/15 bg-white px-4 py-3 font-extrabold text-brown-700" type="button" onClick={onClose}>
-          Close
-        </button>
       </section>
+    </div>
+  );
+}
+
+function EmptyState() {
+  return (
+    <div className="rounded-[24px] border border-dashed border-brown-700/20 bg-white/60 p-8 text-center">
+      <div className="mx-auto grid size-12 place-items-center rounded-2xl bg-cream-200 text-brown-700">
+        <ShieldCheck size={22} />
+      </div>
+      <h3 className="mt-4 text-xl font-black text-brown-900">No horse submissions</h3>
+      <p className="mx-auto mt-2 max-w-xl font-medium text-slate-500">No horse records match the current search and status filter.</p>
     </div>
   );
 }
 
 export default function HorseReview() {
   const [horses, setHorses] = useState([]);
-  const [search, setSearch] = useState('');
-  const [review, setReview] = useState(null);
   const [selectedHorse, setSelectedHorse] = useState(null);
+  const [search, setSearch] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [page, setPage] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [approveTarget, setApproveTarget] = useState(null);
+  const [rejectTarget, setRejectTarget] = useState(null);
+  const [rejectReason, setRejectReason] = useState('');
 
-  useEffect(() => {
-    loadHorses();
-  }, []);
-
-  async function loadHorses() {
+  async function loadHorses(nextStatus = statusFilter) {
     setIsLoading(true);
     setError('');
 
     try {
-      const data = await getPendingHorses();
-      setHorses(Array.isArray(data) ? data : []);
+      setHorses(await getHorses(nextStatus === 'ALL' ? '' : nextStatus));
     } catch (err) {
-      setError(err.message || 'Khong the tai ho so ngua.');
+      setError(err.message || 'Cannot load horse review records.');
     } finally {
       setIsLoading(false);
     }
   }
 
+  useEffect(() => {
+    loadHorses('ALL');
+  }, []);
+
   const filteredHorses = useMemo(() => {
     const keyword = search.trim().toLowerCase();
-    if (!keyword) return horses;
+    return horses.filter((horse) => {
+      const haystack = [
+        getHorseId(horse),
+        getHorseName(horse),
+        horse.ownerId,
+        horse.breeding,
+        horse.colour,
+        horse.sex,
+        horse.trainer,
+        horse.status
+      ].filter((value) => value !== null && value !== undefined).join(' ').toLowerCase();
 
-    return horses.filter((horse) => [
-      getHorseId(horse),
-      getHorseName(horse),
-      horse.breeding,
-      horse.colour,
-      horse.sex,
-      horse.trainer,
-      horse.ownerId,
-      horse.status
-    ]
-      .filter((value) => value !== null && value !== undefined)
-      .some((value) => String(value).toLowerCase().includes(keyword))
-    );
+      return !keyword || haystack.includes(keyword);
+    });
   }, [horses, search]);
 
-  async function confirmReview(reason) {
-    const { action, horse } = review;
-    const horseId = getHorseId(horse);
+  const stats = useMemo(() => ({
+    pending: horses.filter((horse) => String(horse.status || '').toUpperCase() === 'PENDING').length,
+    active: horses.filter((horse) => String(horse.status || '').toUpperCase() === 'ACTIVE').length,
+    rejected: horses.filter((horse) => String(horse.status || '').toUpperCase() === 'REJECTED').length
+  }), [horses]);
 
-    if (!horseId) {
-      setError('Khong tim thay ma ngua.');
-      return;
-    }
+  const totalPages = Math.max(1, Math.ceil(filteredHorses.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const visibleHorses = filteredHorses.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
+  function syncUpdatedHorse(updated) {
+    setHorses((current) => current.map((horse) => (getHorseId(horse) === getHorseId(updated) ? updated : horse)));
+    setSelectedHorse(updated);
+  }
+
+  async function handleApprove() {
+    if (!approveTarget) return;
     setIsProcessing(true);
     setError('');
     setMessage('');
-
     try {
-      const updated = action === 'approve'
-        ? await approveHorse(horseId)
-        : await rejectHorse(horseId, reason);
-
-      setMessage(action === 'approve' ? 'Horse was approved and marked ACTIVE.' : 'Horse was rejected.');
-      setReview(null);
-      setSelectedHorse(updated);
-      await loadHorses();
+      const updated = await approveHorse(getHorseId(approveTarget));
+      syncUpdatedHorse(updated);
+      setApproveTarget(null);
+      setMessage(`${getHorseName(updated) || 'Horse'} was approved.`);
+      await loadHorses(statusFilter);
     } catch (err) {
-      setError(err.message || 'Khong the xet duyet ho so ngua.');
+      setError(err.message || 'Cannot approve horse.');
     } finally {
       setIsProcessing(false);
     }
+  }
+
+  async function handleReject() {
+    if (!rejectTarget) return;
+    setIsProcessing(true);
+    setError('');
+    setMessage('');
+    try {
+      const updated = await rejectHorse(getHorseId(rejectTarget), rejectReason);
+      syncUpdatedHorse(updated);
+      setRejectTarget(null);
+      setRejectReason('');
+      setMessage(`${getHorseName(updated) || 'Horse'} was rejected.`);
+      await loadHorses(statusFilter);
+    } catch (err) {
+      setError(err.message || 'Cannot reject horse.');
+    } finally {
+      setIsProcessing(false);
+    }
+  }
+
+  function handleStatusChange(event) {
+    const nextStatus = event.target.value;
+    setStatusFilter(nextStatus);
+    setPage(1);
+    loadHorses(nextStatus);
+  }
+
+  if (selectedHorse) {
+    const documents = getDocuments(selectedHorse);
+    const officialUrl = String(selectedHorse.officialHorseProfileUrl || '').trim();
+    const pending = isPending(selectedHorse);
+
+    return (
+      <section className="space-y-6 text-brown-900">
+        <header className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+          <div>
+            <p className="text-sm font-extrabold uppercase tracking-widest text-brown-500">Horse review detail</p>
+            <h1 className="mt-2 text-4xl font-black md:text-5xl">Horse #{displayValue(getHorseId(selectedHorse))}</h1>
+            <p className="mt-3 max-w-2xl font-medium text-slate-500">Compare the submitted horse details with official profile and health certificate documents.</p>
+          </div>
+          <button className="inline-flex items-center gap-2 rounded-lg border border-brown-700/15 bg-white px-4 py-3 font-extrabold text-brown-700 shadow-sm transition hover:bg-cream-100" type="button" onClick={() => setSelectedHorse(null)}>
+            <ArrowLeft size={17} />
+            Back to list
+          </button>
+        </header>
+
+        {error && <div className="admin-alert error" role="alert">{error}</div>}
+        {message && <div className="admin-alert success" role="status">{message}</div>}
+
+        <section className="rounded-lg border border-brown-700/10 bg-cream-100 p-5 shadow-[0_18px_45px_rgba(78,44,25,0.1)]">
+          <div className="flex flex-col gap-3 border-b border-brown-700/10 pb-4 md:flex-row md:items-start md:justify-between">
+            <div>
+              <span className="text-xs font-extrabold uppercase text-brown-500">Horse information</span>
+              <h2 className="mt-1 text-2xl font-black">{displayValue(getHorseName(selectedHorse))}</h2>
+              <p className="mt-2 font-medium text-slate-500">Submitted at {formatDate(selectedHorse.createdAt || selectedHorse.submittedAt)}</p>
+            </div>
+            <StatusBadge status={selectedHorse.status} />
+          </div>
+
+          <div className="mt-5 grid gap-4 md:grid-cols-2">
+            <InfoCard label="Horse name" value={getHorseName(selectedHorse)} />
+            <InfoCard label="Owner ID" value={selectedHorse.ownerId} />
+            <InfoCard label="Age" value={selectedHorse.age} />
+            <InfoCard label="Date of birth" value={formatDate(selectedHorse.dayOfBirth)} />
+            <InfoCard label="Weight" value={selectedHorse.weight ? `${selectedHorse.weight} kg` : ''} />
+            <InfoCard label="Colour" value={selectedHorse.colour} />
+            <InfoCard label="Sex" value={selectedHorse.sex} />
+            <InfoCard label="Breeding" value={selectedHorse.breeding} />
+            <InfoCard label="Trainer" value={selectedHorse.trainer} />
+            <InfoCard label="Health certificate expiry" value={formatDate(selectedHorse.healthCertificateExpiryDate || selectedHorse.healthCertExpiry)} />
+            <InfoCard label="Registration count" value={selectedHorse.registrationCount} />
+            <InfoCard label="Participated" value={selectedHorse.participated ? 'Yes' : 'No'} />
+          </div>
+
+          <div className="mt-6">
+            <h3 className="text-xl font-black text-brown-900">Official profile</h3>
+            <div className="mt-3 rounded-2xl border border-brown-700/10 bg-white/70 p-4">
+              <span className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">Official Horse Profile URL</span>
+              <strong className="mt-1 block break-words text-brown-900">{officialUrl || 'Not updated'}</strong>
+              {officialUrl && (
+                <a className="outline-button compact-button mt-3 inline-flex max-w-full break-all" href={officialUrl} target="_blank" rel="noreferrer">
+                  <ExternalLink size={16} />
+                  Open official website
+                </a>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-6">
+            <h3 className="text-xl font-black text-brown-900">Health certificate</h3>
+            <div className="mt-3 grid gap-4 md:grid-cols-2">
+              {documents.length > 0 ? (
+                documents.map((document, index) => <DocumentCard document={document} label={`Health certificate ${index + 1}`} key={document.id || document.url || index} />)
+              ) : (
+                <InfoCard label="Health certificate" value="" />
+              )}
+            </div>
+          </div>
+
+          {selectedHorse.rejectionReason && (
+            <div className="mt-5 rounded-2xl border border-danger/20 bg-danger-bg p-4 font-bold text-danger">
+              Rejection reason: {selectedHorse.rejectionReason}
+            </div>
+          )}
+
+          {pending ? (
+            <div className="mt-6 flex flex-wrap gap-3 border-t border-brown-700/10 pt-5">
+              <button className="inline-flex items-center gap-2 rounded-lg bg-green-700 px-5 py-3 font-extrabold text-white shadow-sm transition hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50" type="button" onClick={() => setApproveTarget(selectedHorse)} disabled={isProcessing}>
+                <BadgeCheck size={18} />
+                Approve
+              </button>
+              <button className="outline-button danger-action inline-flex items-center gap-2" type="button" onClick={() => setRejectTarget(selectedHorse)} disabled={isProcessing}>
+                <XCircle size={18} />
+                Reject
+              </button>
+            </div>
+          ) : (
+            <div className="mt-6 border-t border-brown-700/10 pt-5">
+              <StatusBadge status={selectedHorse.status} />
+            </div>
+          )}
+        </section>
+
+        <ConfirmModal horse={approveTarget} isLoading={isProcessing} onCancel={() => setApproveTarget(null)} onConfirm={handleApprove} />
+        <RejectModal
+          horse={rejectTarget}
+          reason={rejectReason}
+          setReason={setRejectReason}
+          isLoading={isProcessing}
+          onCancel={() => {
+            setRejectTarget(null);
+            setRejectReason('');
+          }}
+          onConfirm={handleReject}
+        />
+      </section>
+    );
   }
 
   return (
     <section className="space-y-6 text-brown-900">
       <header className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
-          <p className="text-sm font-extrabold uppercase tracking-widest text-brown-500">Duyet ngua</p>
-          <h1 className="mt-2 text-4xl font-black md:text-5xl">Horse Review</h1>
-          <p className="mt-3 font-medium text-slate-500">
-            Admin manually compares submitted information with the official horse profile URL before approving or rejecting.
-          </p>
+          <p className="text-sm font-extrabold uppercase tracking-widest text-brown-500">Manage horses</p>
+          <h1 className="mt-2 text-4xl font-black md:text-5xl">Horse Reviews</h1>
+          <p className="mt-3 max-w-2xl font-medium text-slate-500">Review submitted horse profiles, health certificates, and official profile links before approval.</p>
         </div>
-
-        <button
-          className="inline-flex items-center justify-center gap-2 rounded-lg border border-brown-700/15 bg-white px-4 py-3 font-extrabold text-brown-700 shadow-sm"
-          type="button"
-          disabled={isLoading}
-          onClick={loadHorses}
-        >
+        <button className="inline-flex items-center justify-center gap-2 rounded-lg border border-brown-700/15 bg-white px-4 py-3 font-extrabold text-brown-700 shadow-sm transition hover:bg-cream-100 disabled:opacity-60" type="button" onClick={() => loadHorses(statusFilter)} disabled={isLoading}>
           <RefreshCw size={17} className={isLoading ? 'animate-spin' : ''} />
           Refresh
         </button>
       </header>
 
-      {error && <div className="rounded-lg border border-danger/20 bg-danger-bg px-4 py-3 font-bold text-danger">{error}</div>}
-      {message && <div className="rounded-lg border border-green-700/20 bg-green-50 px-4 py-3 font-bold text-green-700">{message}</div>}
+      {error && <div className="admin-alert error" role="alert">{error}</div>}
+      {message && <div className="admin-alert success" role="status">{message}</div>}
 
-      <section className="overflow-hidden rounded-lg border border-brown-700/10 bg-cream-100 shadow-lg">
-        <div className="flex items-center justify-between gap-4 border-b border-brown-700/10 bg-cream-200/50 p-5 max-sm:grid">
-          <div>
-            <h2 className="text-xl font-extrabold">Horse Submissions</h2>
-            <p className="mt-1 text-sm text-slate-500">{filteredHorses.length} of {horses.length} horse profiles</p>
-          </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <StatCard label="Pending" value={stats.pending} tone="text-amber-700" />
+        <StatCard label="Approved" value={stats.active} tone="text-green-700" />
+        <StatCard label="Rejected" value={stats.rejected} tone="text-danger" />
+      </div>
 
-          <label className="relative block w-full max-w-md">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={17} />
+      <section className="rounded-lg border border-brown-700/10 bg-cream-100 p-5 shadow-[0_18px_45px_rgba(78,44,25,0.1)]">
+        <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_220px]">
+          <label className="relative block">
+            <Search className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={17} />
             <input
-              className="w-full rounded-lg border border-brown-700/15 bg-white py-3 pl-10 pr-4 text-sm font-bold outline-none focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
-              placeholder="Search by name, owner, status..."
+              className="w-full rounded-lg border border-brown-700/15 bg-white py-3 pl-10 pr-4 text-sm font-bold text-brown-900 outline-none focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
               value={search}
-              onChange={(event) => setSearch(event.target.value)}
+              onChange={(event) => {
+                setSearch(event.target.value);
+                setPage(1);
+              }}
+              placeholder="Search by horse name, owner, breed, trainer..."
             />
           </label>
+          <select
+            className="rounded-lg border border-brown-700/15 bg-white px-4 py-3 text-sm font-bold text-brown-900 outline-none focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
+            value={statusFilter}
+            onChange={handleStatusChange}
+          >
+            {statusOptions.map((status) => (
+              <option value={status} key={status}>{status === 'ALL' ? 'All statuses' : getStatusLabel(status)}</option>
+            ))}
+          </select>
         </div>
 
-        {isLoading ? (
-          <p className="px-5 py-10 text-slate-500">Dang tai ho so ngua...</p>
-        ) : filteredHorses.length === 0 ? (
-          <p className="px-5 py-10 text-slate-500">Khong co ho so ngua nao.</p>
-        ) : (
-          <div className="grid gap-4 p-5 lg:grid-cols-2">
-            {filteredHorses.map((horse) => {
-              const horseId = getHorseId(horse);
-              const horseName = getHorseName(horse) || `Horse ${horseId}`;
+        <div className="mt-5 overflow-x-auto rounded-2xl border border-brown-700/10 bg-white/70">
+          <table className="w-full min-w-[980px] text-left text-sm">
+            <thead className="bg-cream-200/70 text-xs uppercase tracking-wide text-slate-500">
+              <tr>
+                <th className="px-4 py-3">Horse ID</th>
+                <th className="px-4 py-3">Horse</th>
+                <th className="px-4 py-3">Owner</th>
+                <th className="px-4 py-3">Profile</th>
+                <th className="px-4 py-3">Health Expiry</th>
+                <th className="px-4 py-3">Submitted</th>
+                <th className="px-4 py-3">Status</th>
+                <th className="px-4 py-3 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-brown-700/10">
+              {isLoading ? (
+                <tr><td className="px-4 py-8 text-center font-bold text-slate-500" colSpan="8">Loading horse profiles...</td></tr>
+              ) : visibleHorses.length === 0 ? (
+                <tr><td className="px-4 py-8" colSpan="8"><EmptyState /></td></tr>
+              ) : (
+                visibleHorses.map((horse) => (
+                  <tr className="transition hover:bg-cream-200/35" key={getHorseId(horse)}>
+                    <td className="px-4 py-4 font-black text-brown-900">#{displayValue(getHorseId(horse))}</td>
+                    <td className="px-4 py-4">
+                      <strong className="block text-brown-900">{displayValue(getHorseName(horse))}</strong>
+                      <small className="font-semibold text-slate-500">{displayValue(horse.breeding)} / {displayValue(horse.sex)}</small>
+                    </td>
+                    <td className="px-4 py-4 font-bold text-slate-500">#{displayValue(horse.ownerId)}</td>
+                    <td className="px-4 py-4">
+                      <strong className="block text-brown-900">{horse.weight ? `${horse.weight} kg` : 'Not updated'}</strong>
+                      <small className="font-semibold text-slate-500">{displayValue(horse.colour)} / {displayValue(horse.trainer)}</small>
+                    </td>
+                    <td className="px-4 py-4 font-bold text-slate-500">{formatDate(horse.healthCertificateExpiryDate || horse.healthCertExpiry)}</td>
+                    <td className="px-4 py-4 font-bold text-slate-500">{formatDate(horse.createdAt || horse.submittedAt)}</td>
+                    <td className="px-4 py-4"><StatusBadge status={horse.status} /></td>
+                    <td className="px-4 py-4 text-right">
+                      <button className="inline-flex items-center gap-2 rounded-lg border border-brown-700/15 bg-white px-3 py-2 font-extrabold text-brown-700 transition hover:bg-cream-200" type="button" onClick={() => setSelectedHorse(horse)}>
+                        <Eye size={16} />
+                        View details
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
 
-              return (
-                <article className="rounded-lg border border-brown-700/10 bg-white p-5 shadow-sm" key={horseId}>
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="min-w-0 flex-1">
-                      <h3 className="break-words text-lg font-extrabold">{horseName}</h3>
-                      <p className="mt-1 break-words text-sm font-semibold text-slate-500">Owner ID: {horse.ownerId || 'N/A'}</p>
-                      <span className="mt-3 inline-flex rounded-full bg-gold-400/20 px-3 py-1 text-xs font-extrabold text-brown-700">{horse.status || 'PENDING'}</span>
-                    </div>
-                  </div>
-
-                  <dl className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-3">
-                    <div><dt className="text-xs font-extrabold uppercase text-slate-500">Age</dt><dd className="mt-1 text-sm font-extrabold">{horse.age || 'N/A'}</dd></div>
-                    <div><dt className="text-xs font-extrabold uppercase text-slate-500">Weight</dt><dd className="mt-1 text-sm font-extrabold">{horse.weight ? `${horse.weight} kg` : 'N/A'}</dd></div>
-                    <div><dt className="text-xs font-extrabold uppercase text-slate-500">Colour</dt><dd className="mt-1 break-words text-sm font-extrabold">{horse.colour || 'N/A'}</dd></div>
-                    <div><dt className="text-xs font-extrabold uppercase text-slate-500">Sex</dt><dd className="mt-1 break-words text-sm font-extrabold">{horse.sex || 'N/A'}</dd></div>
-                    <div><dt className="text-xs font-extrabold uppercase text-slate-500">Breeding</dt><dd className="mt-1 break-words text-sm font-extrabold">{horse.breeding || 'N/A'}</dd></div>
-                    <div><dt className="text-xs font-extrabold uppercase text-slate-500">Trainer</dt><dd className="mt-1 break-words text-sm font-extrabold">{horse.trainer || 'N/A'}</dd></div>
-                    <div><dt className="text-xs font-extrabold uppercase text-slate-500">Submitted</dt><dd className="mt-1 text-sm font-extrabold">{formatDate(horse.submittedAt || horse.createdAt)}</dd></div>
-                  </dl>
-
-                  <div className="mt-5 grid grid-cols-3 gap-2">
-                    <button className="inline-flex items-center justify-center gap-2 rounded-lg border border-brown-700/15 bg-white px-3 py-2.5 text-sm font-extrabold text-brown-700" type="button" onClick={() => setSelectedHorse(horse)}>
-                      <Eye size={16} />
-                      View Detail
-                    </button>
-                    {isPending(horse) ? (
-                      <>
-                        <button className="inline-flex items-center justify-center gap-2 rounded-lg border border-green-700/20 bg-green-50 px-3 py-2.5 text-sm font-extrabold text-green-700" type="button" onClick={() => setReview({ action: 'approve', horse })}>
-                          <BadgeCheck size={16} />
-                          Approve
-                        </button>
-                        <button className="inline-flex items-center justify-center gap-2 rounded-lg border border-danger/20 bg-danger-bg px-3 py-2.5 text-sm font-extrabold text-danger" type="button" onClick={() => setReview({ action: 'reject', horse })}>
-                          <XCircle size={16} />
-                          Reject
-                        </button>
-                      </>
-                    ) : (
-                      <div className="col-span-2">
-                        <StatusBlock horse={horse} />
-                      </div>
-                    )}
-                  </div>
-                </article>
-              );
-            })}
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <span className="text-sm font-bold text-slate-500">Page {currentPage} of {totalPages} - {filteredHorses.length} record(s)</span>
+          <div className="flex gap-2">
+            <button className="outline-button" type="button" onClick={() => setPage((value) => Math.max(1, value - 1))} disabled={currentPage <= 1}>Previous</button>
+            <button className="outline-button" type="button" onClick={() => setPage((value) => Math.min(totalPages, value + 1))} disabled={currentPage >= totalPages}>Next</button>
           </div>
-        )}
+        </div>
       </section>
-
-      {selectedHorse && (
-        <HorseDetail
-          horse={selectedHorse}
-          isProcessing={isProcessing}
-          onClose={() => setSelectedHorse(null)}
-          onApprove={(horse) => setReview({ action: 'approve', horse })}
-          onReject={(horse) => setReview({ action: 'reject', horse })}
-        />
-      )}
-
-      <ReviewDialog
-        review={review}
-        onClose={() => !isProcessing && setReview(null)}
-        onConfirm={confirmReview}
-        isProcessing={isProcessing}
-      />
     </section>
   );
 }

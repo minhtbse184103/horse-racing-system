@@ -77,7 +77,6 @@ export function toJockeyProfilePayload(form) {
     licenseFileName: String(form.licenseFileName || '').trim(),
 
     weight: Number(form.weight || 55),
-    ranking: form.ranking || 'BEGINNER',
     biography: String(form.biography || '').trim()
   };
 }

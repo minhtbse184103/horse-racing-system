@@ -39,10 +39,9 @@ const DISPLAY_LABELS = {
     SPECTATOR: 'Spectator',
     MALE: 'Đực',
     FEMALE: 'Cái',
-    BEGINNER: 'Mới bắt đầu',
-    INTERMEDIATE: 'Trung cấp',
+    TRAINEE: 'Tập sự',
+    AMATEUR: 'Nghiệp dư',
     PROFESSIONAL: 'Chuyên nghiệp',
-    ELITE: 'Tinh anh',
     ALL: 'ALL'
 };
 
