@@ -4,6 +4,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.backend.dto.response.UserResponse;
+import com.example.backend.dto.response.LoginResponse;
 import com.example.backend.service.UserService;
 
 import lombok.AllArgsConstructor;
@@ -32,7 +33,7 @@ public class UserController {
     }
 
     @PutMapping("me/account")
-    public UserResponse updateMyAccount(
+    public LoginResponse updateMyAccount(
             Authentication authentication,
             @Valid @RequestBody UpdateMyAccountRequest request) {
         String email = authentication.getName();

@@ -9,12 +9,14 @@ import org.springframework.transaction.annotation.Transactional;
 import com.example.backend.dto.request.AdminUpdateUserRequest;
 import com.example.backend.dto.request.UpdateMyAccountRequest;
 import com.example.backend.dto.response.JockeyProfileResponse;
+import com.example.backend.dto.response.LoginResponse;
 import com.example.backend.dto.response.UserResponse;
 import com.example.backend.entity.JockeyProfile;
 import com.example.backend.entity.User;
 import com.example.backend.exception.ApiException;
 import com.example.backend.repository.JockeyProfileRepository;
 import com.example.backend.repository.UserRepository;
+import com.example.backend.security.JwtUtil;
 
 import lombok.AllArgsConstructor;
 
@@ -25,6 +27,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final JockeyProfileRepository jockeyProfileRepository;
+    private final JwtUtil jwtUtil;
 
     @Transactional(readOnly = true)
     public UserResponse getCurrentUser(String email) {
@@ -34,7 +37,7 @@ public class UserService {
     }
 
     @Transactional
-    public UserResponse updateCurrentUserAccount(String email, UpdateMyAccountRequest request) {
+    public LoginResponse updateCurrentUserAccount(String email, UpdateMyAccountRequest request) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy người dùng"));
 
@@ -59,7 +62,10 @@ public class UserService {
             user.setPhone(request.getPhone());
         }
 
-        return toResponse(userRepository.save(user));
+        User savedUser = userRepository.save(user);
+        String roleName = savedUser.getRole().getRoleName();
+        String token = jwtUtil.generateToken(savedUser.getEmail(), roleName);
+        return new LoginResponse(token, toResponse(savedUser));
     }
 
     @Transactional(readOnly = true)

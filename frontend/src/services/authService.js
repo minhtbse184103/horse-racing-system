@@ -68,11 +68,19 @@ export async function getMe() {
 }
 
 export async function updateMyAccount({ fullName, email, phone }) {
-  return httpRequest('/api/user/me/account', {
+  const data = await httpRequest('/api/user/me/account', {
     method: 'PUT',
     body: { fullName, email, phone },
     fallbackError: 'Khong the cap nhat thong tin tai khoan.'
   });
+
+  if (data?.token && data?.user) {
+    const storage = localStorage.getItem('token') ? localStorage : sessionStorage;
+    storage.setItem('token', data.token);
+    return data.user;
+  }
+
+  return data;
 }
 
 export function updateStoredUser(user) {
