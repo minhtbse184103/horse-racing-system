@@ -102,6 +102,9 @@ export default function KycReviewPanel({ kyc }) {
         <InfoCard label="KYC full name" value={kyc?.fullName} />
         <InfoCard label="KYC email" value={kyc?.email} />
         <InfoCard label="Date of birth" value={formatDateTime(kyc?.dateOfBirth)} />
+        <InfoCard label="Gender" value={kyc?.gender} />
+        <InfoCard label="Nationality" value={kyc?.nationality} />
+        <InfoCard label="Address" value={kyc?.address} />
         <InfoCard label="Identity number" value={kyc?.identityNumber} />
         <InfoCard label="Submitted at" value={formatDateTime(kyc?.submittedAt)} />
         <InfoCard label="Reviewed at" value={formatDateTime(kyc?.reviewedAt)} />

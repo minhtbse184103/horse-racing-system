@@ -3,11 +3,14 @@ package com.example.backend.service;
 import com.example.backend.entity.JockeyProfile;
 import com.example.backend.entity.OwnerApplication;
 import com.example.backend.entity.User;
+import com.example.backend.entity.UserVerification;
 import com.example.backend.repository.JockeyProfileRepository;
 import com.example.backend.repository.OwnerApplicationRepository;
+import com.example.backend.repository.UserVerificationRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -16,13 +19,16 @@ public class DisplayNameResolver {
 
     private final OwnerApplicationRepository ownerApplicationRepository;
     private final JockeyProfileRepository jockeyProfileRepository;
+    private final UserVerificationRepository userVerificationRepository;
 
     public DisplayNameResolver(
             OwnerApplicationRepository ownerApplicationRepository,
-            JockeyProfileRepository jockeyProfileRepository
+            JockeyProfileRepository jockeyProfileRepository,
+            UserVerificationRepository userVerificationRepository
     ) {
         this.ownerApplicationRepository = ownerApplicationRepository;
         this.jockeyProfileRepository = jockeyProfileRepository;
+        this.userVerificationRepository = userVerificationRepository;
     }
 
     public Map<Integer, String> resolveOwnerNames(
@@ -32,11 +38,26 @@ public class DisplayNameResolver {
             return Map.of();
         }
 
-        return ownerApplicationRepository.findLatestByUserIds(userIds)
+        List<OwnerApplication> applications = ownerApplicationRepository.findLatestByUserIds(userIds);
+        Map<Integer, String> kycNames = userVerificationRepository.findAllById(
+                        applications.stream()
+                                .map(OwnerApplication::getKycVerificationId)
+                                .filter(id -> id != null)
+                                .toList()
+                )
                 .stream()
                 .collect(Collectors.toMap(
+                        UserVerification::getVerificationId,
+                        UserVerification::getFullName,
+                        (current, ignored) -> current
+                ));
+
+        return applications.stream()
+                .filter(application -> application.getKycVerificationId() != null)
+                .filter(application -> kycNames.get(application.getKycVerificationId()) != null)
+                .collect(Collectors.toMap(
                         OwnerApplication::getUserId,
-                        OwnerApplication::getFullName,
+                        application -> kycNames.get(application.getKycVerificationId()),
                         (current, ignored) -> current
                 ));
     }
@@ -64,7 +85,8 @@ public class DisplayNameResolver {
 
         return ownerApplicationRepository
                 .findFirstByUserIdOrderByApplicationIdDesc(owner.getUserID())
-                .map(OwnerApplication::getFullName)
+                .flatMap(application -> userVerificationRepository.findById(application.getKycVerificationId()))
+                .map(UserVerification::getFullName)
                 .filter(name -> !name.isBlank())
                 .orElse(owner.getUsername());
     }

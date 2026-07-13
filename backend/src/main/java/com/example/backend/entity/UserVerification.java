@@ -46,6 +46,15 @@ public class UserVerification {
     @Column(name = "date_of_birth", nullable = false)
     private LocalDate dateOfBirth;
 
+    @Column(name = "gender", nullable = false, length = 50)
+    private String gender;
+
+    @Column(name = "nationality", nullable = false)
+    private String nationality;
+
+    @Column(name = "address", nullable = false, length = 500)
+    private String address;
+
     @Column(name = "identity_number", nullable = false, unique = true, length = 30)
     private String identityNumber;
 

@@ -23,6 +23,8 @@ function normalizeOwnerApplication(application) {
     ownerSince: application.ownerSince ?? application.approvedAt ?? application.reviewedAt,
     rejectReason: application.rejectReason ?? application.feedback,
     identityDocumentUrl: toAbsoluteFileUrl(application.identityDocumentUrl),
+    identityBackUrl: toAbsoluteFileUrl(application.identityBackUrl),
+    selfieUrl: toAbsoluteFileUrl(application.selfieUrl),
     stableCertificateUrl: toAbsoluteFileUrl(application.stableCertificateUrl),
     horseOwnershipProofUrl: toAbsoluteFileUrl(application.horseOwnershipProofUrl)
   };
@@ -37,6 +39,8 @@ function normalizeOwnerProfile(profile) {
     ownerSince: profile.ownerSince ?? profile.approvedAt ?? profile.reviewedAt,
     status: profile.status ?? 'APPROVED',
     identityDocumentUrl: toAbsoluteFileUrl(profile.identityDocumentUrl),
+    identityBackUrl: toAbsoluteFileUrl(profile.identityBackUrl),
+    selfieUrl: toAbsoluteFileUrl(profile.selfieUrl),
     stableCertificateUrl: toAbsoluteFileUrl(profile.stableCertificateUrl),
     horseOwnershipProofUrl: toAbsoluteFileUrl(profile.horseOwnershipProofUrl)
   };
@@ -44,16 +48,10 @@ function normalizeOwnerProfile(profile) {
 
 function toOwnerApplicationFormData(payload) {
   const formData = new FormData();
-  formData.append('fullName', String(payload.fullName || '').trim());
-  formData.append('dateOfBirth', payload.dateOfBirth || '');
-  formData.append('gender', String(payload.gender || '').trim());
-  formData.append('nationality', String(payload.nationality || '').trim());
-  formData.append('address', String(payload.address || '').trim());
   formData.append('stableName', String(payload.stableName || '').trim());
   formData.append('stableAddress', String(payload.stableAddress || '').trim());
   formData.append('totalHorsesOwned', String(payload.totalHorsesOwned || ''));
 
-  if (payload.identityDocumentFile) formData.append('identityDocumentFile', payload.identityDocumentFile);
   if (payload.stableCertificateFile) formData.append('stableCertificateFile', payload.stableCertificateFile);
   if (payload.horseOwnershipProofFile) formData.append('horseOwnershipProofFile', payload.horseOwnershipProofFile);
 

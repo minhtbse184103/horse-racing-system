@@ -16,6 +16,7 @@ import com.example.backend.entity.RaceEntry;
 import com.example.backend.entity.Registration;
 import com.example.backend.entity.Tournament;
 import com.example.backend.entity.User;
+import com.example.backend.entity.UserVerification;
 import com.example.backend.exception.ApiException;
 import com.example.backend.repository.HorseRepository;
 import com.example.backend.repository.JockeyInvitationRepository;
@@ -26,6 +27,7 @@ import com.example.backend.repository.RaceRepository;
 import com.example.backend.repository.RegistrationRepository;
 import com.example.backend.repository.TournamentRepository;
 import com.example.backend.repository.UserRepository;
+import com.example.backend.repository.UserVerificationRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -62,6 +64,7 @@ public class OwnerTournamentRegistrationService {
     private final JockeyInvitationRepository jockeyInvitationRepository;
     private final RaceEntryRepository raceEntryRepository;
     private final RaceRepository raceRepository;
+    private final UserVerificationRepository userVerificationRepository;
     private final VnpayPaymentService vnpayPaymentService;
 
     public OwnerTournamentRegistrationService(
@@ -74,6 +77,7 @@ public class OwnerTournamentRegistrationService {
             JockeyInvitationRepository jockeyInvitationRepository,
             RaceEntryRepository raceEntryRepository,
             RaceRepository raceRepository,
+            UserVerificationRepository userVerificationRepository,
             VnpayPaymentService vnpayPaymentService) {
         this.registrationRepository = registrationRepository;
         this.tournamentRepository = tournamentRepository;
@@ -84,6 +88,7 @@ public class OwnerTournamentRegistrationService {
         this.jockeyInvitationRepository = jockeyInvitationRepository;
         this.raceEntryRepository = raceEntryRepository;
         this.raceRepository = raceRepository;
+        this.userVerificationRepository = userVerificationRepository;
         this.vnpayPaymentService = vnpayPaymentService;
     }
 
@@ -515,7 +520,7 @@ public class OwnerTournamentRegistrationService {
                 .horseHealthCertExpiry(horse != null ? horse.getHealthCertExpiry() : null)
                 .horseStatus(horse != null ? horse.getStatus() : null)
                 .ownerId(registration.getOwnerId())
-                .ownerName(ownerApplication != null ? ownerApplication.getFullName() : null)
+                .ownerName(resolveOwnerName(ownerApplication))
                 .ownerEmail(owner != null ? owner.getEmail() : null)
                 .jockeyId(registration.getJockeyId())
                 .jockeyName(jockeyProfile != null ? jockeyProfile.getFullName() : null)
@@ -532,6 +537,17 @@ public class OwnerTournamentRegistrationService {
                 .createdAt(registration.getCreatedAt())
                 .updatedAt(registration.getUpdatedAt())
                 .build();
+    }
+
+    private String resolveOwnerName(OwnerApplication ownerApplication) {
+        if (ownerApplication == null || ownerApplication.getKycVerificationId() == null) {
+            return null;
+        }
+
+        return userVerificationRepository.findById(ownerApplication.getKycVerificationId())
+                .map(UserVerification::getFullName)
+                .filter(name -> !name.isBlank())
+                .orElse(null);
     }
 
     private TournamentResponse toTournamentResponse(Tournament tournament) {

@@ -10,6 +10,9 @@ function toKycFormData(payload) {
   const formData = new FormData();
   formData.append('fullName', String(payload.fullName || '').trim());
   formData.append('dateOfBirth', payload.dateOfBirth || '');
+  formData.append('gender', String(payload.gender || '').trim());
+  formData.append('nationality', String(payload.nationality || '').trim());
+  formData.append('address', String(payload.address || '').trim());
   formData.append('identityNumber', String(payload.identityNumber || '').trim());
   if (payload.identityFrontFile) formData.append('identityFrontFile', payload.identityFrontFile);
   if (payload.identityBackFile) formData.append('identityBackFile', payload.identityBackFile);

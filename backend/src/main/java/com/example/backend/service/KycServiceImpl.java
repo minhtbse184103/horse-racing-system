@@ -81,6 +81,9 @@ public class KycServiceImpl implements KycService {
         verification.setStatus(KycStatus.PENDING);
         verification.setFullName(request.getFullName().trim());
         verification.setDateOfBirth(request.getDateOfBirth());
+        verification.setGender(request.getGender().trim().toUpperCase(Locale.ROOT));
+        verification.setNationality(request.getNationality().trim());
+        verification.setAddress(request.getAddress().trim());
         verification.setIdentityNumber(identityNumber);
         verification.setIdentityFrontUrl(front.getUrl());
         verification.setIdentityBackUrl(back.getUrl());
@@ -364,6 +367,9 @@ public class KycServiceImpl implements KycService {
                 .status(verification.getStatus().name())
                 .fullName(verification.getFullName())
                 .dateOfBirth(verification.getDateOfBirth())
+                .gender(verification.getGender())
+                .nationality(verification.getNationality())
+                .address(verification.getAddress())
                 .identityNumber(adminView
                         ? verification.getIdentityNumber()
                         : maskIdentityNumber(verification.getIdentityNumber()))

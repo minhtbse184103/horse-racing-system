@@ -27,12 +27,7 @@ CREATE TABLE `Users` (
 CREATE TABLE `OwnerApplication` (
   `applicationID` int PRIMARY KEY AUTO_INCREMENT,
   `userID` int NOT NULL,
-  `fullName` varchar(255) NOT NULL,
-  `dateOfBirth` date NOT NULL,
-  `gender` varchar(50) NOT NULL,
-  `nationality` varchar(255) NOT NULL,
-  `address` varchar(500) NOT NULL,
-  `identityDocumentUrl` text NOT NULL,
+  `kycVerificationID` int NOT NULL,
   `stableName` varchar(255) NOT NULL,
   `stableAddress` varchar(500) NOT NULL,
   `stableCertificateUrl` text NOT NULL,
@@ -310,6 +305,9 @@ CREATE TABLE `user_verifications` (
   `status` varchar(30) NOT NULL DEFAULT 'NOT_SUBMITTED',
   `full_name` varchar(150) NOT NULL,
   `date_of_birth` date NOT NULL,
+  `gender` varchar(50) NOT NULL,
+  `nationality` varchar(255) NOT NULL,
+  `address` varchar(500) NOT NULL,
   `identity_number` varchar(30) UNIQUE NOT NULL,
   `identity_front_url` text NOT NULL,
   `identity_back_url` text NOT NULL,
@@ -716,6 +714,8 @@ ON `Race` (`tournamentID`, `status`, `raceStartTime`);
 ALTER TABLE `Users` ADD FOREIGN KEY (`roleID`) REFERENCES `Roles` (`roleID`);
 
 ALTER TABLE `OwnerApplication` ADD FOREIGN KEY (`userID`) REFERENCES `Users` (`userID`);
+
+ALTER TABLE `OwnerApplication` ADD FOREIGN KEY (`kycVerificationID`) REFERENCES `user_verifications` (`verification_id`);
 
 ALTER TABLE `OwnerApplication` ADD FOREIGN KEY (`reviewedBy`) REFERENCES `Users` (`userID`);
 

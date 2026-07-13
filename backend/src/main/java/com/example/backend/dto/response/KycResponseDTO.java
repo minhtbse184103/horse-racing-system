@@ -16,6 +16,9 @@ public class KycResponseDTO {
     private String status;
     private String fullName;
     private LocalDate dateOfBirth;
+    private String gender;
+    private String nationality;
+    private String address;
     private String identityNumber;
     private String identityFrontUrl;
     private String identityBackUrl;

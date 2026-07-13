@@ -5,6 +5,9 @@ const inputClass = 'w-full rounded-lg border border-brown-700/15 bg-white px-4 p
 export const initialKycValues = {
   fullName: '',
   dateOfBirth: '',
+  gender: 'MALE',
+  nationality: 'Vietnamese',
+  address: '',
   identityNumber: '',
   identityFrontFile: null,
   identityBackFile: null,
@@ -15,6 +18,9 @@ export function makeInitialKycValues(user, kyc) {
   return {
     fullName: kyc?.fullName || user?.fullName || user?.username || '',
     dateOfBirth: kyc?.dateOfBirth || '',
+    gender: kyc?.gender || 'MALE',
+    nationality: kyc?.nationality || 'Vietnamese',
+    address: kyc?.address || '',
     identityNumber: '',
     identityFrontFile: null,
     identityBackFile: null,
@@ -61,6 +67,9 @@ export function validateKycValues(values, kyc) {
       errors.kycDateOfBirth = 'You must be at least 18 years old to submit KYC.';
     }
   }
+  if (!String(values.gender || '').trim()) errors.kycGender = 'KYC gender is required.';
+  if (!String(values.nationality || '').trim()) errors.kycNationality = 'KYC nationality is required.';
+  if (!String(values.address || '').trim()) errors.kycAddress = 'KYC address is required.';
   if (!/^\d{12}$/.test(String(values.identityNumber || '').trim())) {
     errors.kycIdentityNumber = 'Identity number must contain exactly 12 digits.';
   }
@@ -186,6 +195,25 @@ export default function KycInlineSection({ kyc, values, setValues, errors, setEr
             <span className="text-sm font-extrabold text-brown-900">Identity Number *</span>
             <input className={inputClass} name="identityNumber" value={values.identityNumber} onChange={handleChange} maxLength={12} disabled={disabled} />
             <FieldError>{errors.kycIdentityNumber}</FieldError>
+          </label>
+          <label className="grid gap-2">
+            <span className="text-sm font-extrabold text-brown-900">Gender *</span>
+            <select className={inputClass} name="gender" value={values.gender} onChange={handleChange} disabled={disabled}>
+              <option value="MALE">Male</option>
+              <option value="FEMALE">Female</option>
+              <option value="OTHER">Other</option>
+            </select>
+            <FieldError>{errors.kycGender}</FieldError>
+          </label>
+          <label className="grid gap-2">
+            <span className="text-sm font-extrabold text-brown-900">Nationality *</span>
+            <input className={inputClass} name="nationality" value={values.nationality} onChange={handleChange} disabled={disabled} />
+            <FieldError>{errors.kycNationality}</FieldError>
+          </label>
+          <label className="grid gap-2 md:col-span-2">
+            <span className="text-sm font-extrabold text-brown-900">Residential Address *</span>
+            <input className={inputClass} name="address" value={values.address} onChange={handleChange} disabled={disabled} />
+            <FieldError>{errors.kycAddress}</FieldError>
           </label>
           <FileInput label="Identity Front" name="identityFrontFile" file={values.identityFrontFile} error={errors.kycIdentityFrontFile} disabled={disabled} onChange={handleFileChange} onRemove={handleRemoveFile} />
           <FileInput label="Identity Back" name="identityBackFile" file={values.identityBackFile} error={errors.kycIdentityBackFile} disabled={disabled} onChange={handleFileChange} onRemove={handleRemoveFile} />

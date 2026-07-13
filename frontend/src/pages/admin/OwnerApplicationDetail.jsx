@@ -136,7 +136,9 @@ export default function OwnerApplicationDetail() {
             <DetailItem label="Address" value={application.address} />
             <DetailItem label="Email" value={application.email} />
             <DetailItem label="Phone Number" value={application.phone} />
-            <DocumentItem label="Identity Document" url={application.identityDocumentUrl} />
+            <DocumentItem label="Identity Front" url={application.identityDocumentUrl} />
+            <DocumentItem label="Identity Back" url={application.identityBackUrl} />
+            <DocumentItem label="Selfie" url={application.selfieUrl} />
           </div>
         </Card>
 

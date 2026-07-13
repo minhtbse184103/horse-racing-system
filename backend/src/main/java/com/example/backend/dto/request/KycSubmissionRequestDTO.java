@@ -23,6 +23,21 @@ public class KycSubmissionRequestDTO {
     @Past(message = "Ngày sinh không hợp lệ.")
     private LocalDate dateOfBirth;
 
+    @Schema(example = "MALE")
+    @NotBlank(message = "Gender is required.")
+    @Pattern(regexp = "(?i)MALE|FEMALE|OTHER", message = "Gender must be MALE, FEMALE or OTHER.")
+    private String gender;
+
+    @Schema(example = "Vietnamese")
+    @NotBlank(message = "Nationality is required.")
+    @Size(max = 255, message = "Nationality cannot exceed 255 characters.")
+    private String nationality;
+
+    @Schema(example = "Ho Chi Minh City")
+    @NotBlank(message = "Address is required.")
+    @Size(max = 500, message = "Address cannot exceed 500 characters.")
+    private String address;
+
     @Schema(example = "001234567890")
     @NotBlank(message = "Số CCCD là bắt buộc.")
     @Pattern(regexp = "\\d{12}", message = "Số CCCD phải gồm đúng 12 chữ số.")

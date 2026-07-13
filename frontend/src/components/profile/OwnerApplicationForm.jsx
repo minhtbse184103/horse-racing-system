@@ -8,15 +8,9 @@ const acceptedTypes = '.pdf,.jpg,.jpeg,.png';
 function makeInitialValues(user, application, kyc) {
   return {
     kyc: makeInitialKycValues(user, kyc),
-    fullName: application?.fullName || user?.fullName || '',
-    dateOfBirth: application?.dateOfBirth || '',
-    gender: application?.gender || 'MALE',
-    nationality: application?.nationality || 'Vietnamese',
-    address: application?.address || '',
     stableName: application?.stableName || '',
     stableAddress: application?.stableAddress || '',
     totalHorsesOwned: application?.totalHorsesOwned || '',
-    identityDocumentFile: null,
     stableCertificateFile: null,
     horseOwnershipProofFile: null,
     email: user?.email || application?.applicantEmail || '',
@@ -37,22 +31,6 @@ function isAllowedFile(file) {
 
 function required(value) {
   return String(value || '').trim().length > 0;
-}
-
-function parseLocalDate(value) {
-  if (!value) return null;
-  const [year, month, day] = String(value).split('-').map(Number);
-  if (!year || !month || !day) return null;
-  return new Date(year, month - 1, day);
-}
-
-function startOfToday() {
-  const now = new Date();
-  return new Date(now.getFullYear(), now.getMonth(), now.getDate());
-}
-
-function todayInputValue() {
-  return startOfToday().toISOString().slice(0, 10);
 }
 
 function FieldError({ children }) {
@@ -110,7 +88,6 @@ export default function OwnerApplicationForm({ user, application, kyc, formError
   const steps = useMemo(
     () => [
       ...(shouldSubmitKyc ? ['KYC Verification'] : []),
-      'Personal Information',
       'Stable Information',
       'Horse Ownership Proof',
       'Review & Submit'
@@ -131,22 +108,6 @@ export default function OwnerApplicationForm({ user, application, kyc, formError
 
     if (stepKey === 'KYC Verification') {
       Object.assign(nextErrors, validateKycValues(values.kyc, kyc));
-    }
-
-    if (stepKey === 'Personal Information') {
-      if (!required(values.fullName)) nextErrors.fullName = 'Full Name is required.';
-      if (!required(values.dateOfBirth)) {
-        nextErrors.dateOfBirth = 'Date of Birth is required.';
-      } else {
-        const birthDate = parseLocalDate(values.dateOfBirth);
-        if (!birthDate || birthDate >= startOfToday()) {
-          nextErrors.dateOfBirth = 'Date of Birth must be in the past.';
-        }
-      }
-      if (!required(values.gender)) nextErrors.gender = 'Gender is required.';
-      if (!required(values.nationality)) nextErrors.nationality = 'Nationality is required.';
-      if (!required(values.address)) nextErrors.address = 'Residential Address is required.';
-      if (!values.identityDocumentFile) nextErrors.identityDocumentFile = 'Identity Document is required.';
     }
 
     if (stepKey === 'Stable Information') {
@@ -249,51 +210,6 @@ export default function OwnerApplicationForm({ user, application, kyc, formError
             />
           )}
 
-          {getStepKey() === 'Personal Information' && (
-            <div className="grid gap-4 md:grid-cols-2">
-              <label className="grid gap-2">
-                <span className="text-sm font-extrabold text-brown-900">Email</span>
-                <input className={inputClass} value={values.email} readOnly disabled />
-              </label>
-              <label className="grid gap-2">
-                <span className="text-sm font-extrabold text-brown-900">Phone Number</span>
-                <input className={inputClass} value={values.phone || 'Not updated'} readOnly disabled />
-              </label>
-              <label className="grid gap-2">
-                <span className="text-sm font-extrabold text-brown-900">Full Name *</span>
-                <input className={inputClass} name="fullName" value={values.fullName} onChange={handleChange} disabled={isSubmitting} />
-                <FieldError>{currentErrors.fullName}</FieldError>
-              </label>
-              <label className="grid gap-2">
-                <span className="text-sm font-extrabold text-brown-900">Date of Birth *</span>
-                <input className={inputClass} name="dateOfBirth" type="date" max={todayInputValue()} value={values.dateOfBirth} onChange={handleChange} disabled={isSubmitting} />
-                <FieldError>{currentErrors.dateOfBirth}</FieldError>
-              </label>
-              <label className="grid gap-2">
-                <span className="text-sm font-extrabold text-brown-900">Gender *</span>
-                <select className={inputClass} name="gender" value={values.gender} onChange={handleChange} disabled={isSubmitting}>
-                  <option value="MALE">Male</option>
-                  <option value="FEMALE">Female</option>
-                  <option value="OTHER">Other</option>
-                </select>
-                <FieldError>{currentErrors.gender}</FieldError>
-              </label>
-              <label className="grid gap-2">
-                <span className="text-sm font-extrabold text-brown-900">Nationality *</span>
-                <input className={inputClass} name="nationality" value={values.nationality} onChange={handleChange} disabled={isSubmitting} />
-                <FieldError>{currentErrors.nationality}</FieldError>
-              </label>
-              <label className="grid gap-2 md:col-span-2">
-                <span className="text-sm font-extrabold text-brown-900">Residential Address *</span>
-                <input className={inputClass} name="address" value={values.address} onChange={handleChange} disabled={isSubmitting} />
-                <FieldError>{currentErrors.address}</FieldError>
-              </label>
-              <div className="md:col-span-2">
-                <FileField label="Identity Document" helper="Upload Citizen ID Card or Passport." name="identityDocumentFile" file={values.identityDocumentFile} error={currentErrors.identityDocumentFile} disabled={isSubmitting} onChange={handleFileChange} onRemove={handleRemoveFile} />
-              </div>
-            </div>
-          )}
-
           {getStepKey() === 'Stable Information' && (
             <div className="grid gap-4">
               <label className="grid gap-2">
@@ -327,22 +243,15 @@ export default function OwnerApplicationForm({ user, application, kyc, formError
                 <h3 className="text-xl font-black text-brown-900">KYC Verification</h3>
                 <div className="mt-3 grid gap-3 md:grid-cols-2">
                   <SummaryRow label="KYC Status" value={shouldSubmitKyc ? 'Will be submitted with this application' : kyc?.status} />
-                  <SummaryRow label="KYC Full Name" value={shouldSubmitKyc ? values.kyc.fullName : kyc?.fullName} />
-                  <SummaryRow label="KYC Date of Birth" value={shouldSubmitKyc ? values.kyc.dateOfBirth : kyc?.dateOfBirth} />
+                  <SummaryRow label="Full Name" value={shouldSubmitKyc ? values.kyc.fullName : kyc?.fullName} />
+                  <SummaryRow label="Date of Birth" value={shouldSubmitKyc ? values.kyc.dateOfBirth : kyc?.dateOfBirth} />
+                  <SummaryRow label="Gender" value={shouldSubmitKyc ? values.kyc.gender : kyc?.gender} />
+                  <SummaryRow label="Nationality" value={shouldSubmitKyc ? values.kyc.nationality : kyc?.nationality} />
+                  <SummaryRow label="Address" value={shouldSubmitKyc ? values.kyc.address : kyc?.address} />
+                  <SummaryRow label="Identity Number" value={shouldSubmitKyc ? values.kyc.identityNumber : 'Already submitted'} />
                   {shouldSubmitKyc && <SummaryRow label="Identity Front" file={values.kyc.identityFrontFile} />}
                   {shouldSubmitKyc && <SummaryRow label="Identity Back" file={values.kyc.identityBackFile} />}
                   {shouldSubmitKyc && <SummaryRow label="Selfie" file={values.kyc.selfieFile} />}
-                </div>
-              </section>
-              <section>
-                <h3 className="text-xl font-black text-brown-900">Personal Information</h3>
-                <div className="mt-3 grid gap-3 md:grid-cols-2">
-                  <SummaryRow label="Full Name" value={values.fullName} />
-                  <SummaryRow label="Date of Birth" value={values.dateOfBirth} />
-                  <SummaryRow label="Gender" value={values.gender} />
-                  <SummaryRow label="Nationality" value={values.nationality} />
-                  <SummaryRow label="Address" value={values.address} />
-                  <SummaryRow label="View Identity Document" file={values.identityDocumentFile} />
                 </div>
               </section>
               <section>

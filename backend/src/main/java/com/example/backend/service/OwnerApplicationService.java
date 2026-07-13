@@ -20,11 +20,14 @@ import com.example.backend.entity.OwnerApplication;
 import com.example.backend.entity.OwnerProfile;
 import com.example.backend.entity.Role;
 import com.example.backend.entity.User;
+import com.example.backend.entity.UserVerification;
+import com.example.backend.enums.KycStatus;
 import com.example.backend.exception.ApiException;
 import com.example.backend.repository.OwnerApplicationRepository;
 import com.example.backend.repository.OwnerProfileRepository;
 import com.example.backend.repository.RoleRepository;
 import com.example.backend.repository.UserRepository;
+import com.example.backend.repository.UserVerificationRepository;
 
 @Service
 public class OwnerApplicationService {
@@ -39,6 +42,7 @@ public class OwnerApplicationService {
     private final OwnerProfileRepository ownerProfileRepository;
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final UserVerificationRepository userVerificationRepository;
     private final FileUploadService fileUploadService;
     private final KycService kycService;
 
@@ -47,12 +51,14 @@ public class OwnerApplicationService {
             OwnerProfileRepository ownerProfileRepository,
             UserRepository userRepository,
             RoleRepository roleRepository,
+            UserVerificationRepository userVerificationRepository,
             FileUploadService fileUploadService,
             KycService kycService) {
         this.ownerApplicationRepository = ownerApplicationRepository;
         this.ownerProfileRepository = ownerProfileRepository;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
+        this.userVerificationRepository = userVerificationRepository;
         this.fileUploadService = fileUploadService;
         this.kycService = kycService;
     }
@@ -72,22 +78,16 @@ public class OwnerApplicationService {
             throw new ApiException(HttpStatus.CONFLICT, "An owner application is already pending.");
         }
 
-        validateFile(request.getIdentityDocumentFile(), "Identity Document file is required.");
+        UserVerification verification = getUsableKyc(user.getUserID());
         validateFile(request.getStableCertificateFile(), "Stable Certificate file is required.");
         validateFile(request.getHorseOwnershipProofFile(), "Horse Ownership Proof file is required.");
 
-        FileUploadResponse identityDocument = fileUploadService.upload(request.getIdentityDocumentFile(), OWNER_DOCUMENT_FOLDER);
         FileUploadResponse stableCertificate = fileUploadService.upload(request.getStableCertificateFile(), OWNER_DOCUMENT_FOLDER);
         FileUploadResponse horseOwnershipProof = fileUploadService.upload(request.getHorseOwnershipProofFile(), OWNER_DOCUMENT_FOLDER);
 
         OwnerApplication application = OwnerApplication.builder()
                 .userId(user.getUserID())
-                .fullName(normalizeText(request.getFullName()))
-                .dateOfBirth(request.getDateOfBirth())
-                .gender(normalizeUppercase(request.getGender()))
-                .nationality(normalizeText(request.getNationality()))
-                .address(normalizeText(request.getAddress()))
-                .identityDocumentUrl(identityDocument.getUrl())
+                .kycVerificationId(verification.getVerificationId())
                 .stableName(normalizeText(request.getStableName()))
                 .stableAddress(normalizeText(request.getStableAddress()))
                 .stableCertificateUrl(stableCertificate.getUrl())
@@ -208,6 +208,29 @@ public class OwnerApplicationService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Owner application not found."));
     }
 
+    private UserVerification getUsableKyc(Integer userId) {
+        UserVerification verification = userVerificationRepository.findByUserId(userId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.CONFLICT,
+                        "Please submit KYC before submitting an owner application."
+                ));
+        if (verification.getStatus() != KycStatus.PENDING
+                && verification.getStatus() != KycStatus.VERIFIED) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "Owner application requires KYC to be pending or verified."
+            );
+        }
+        return verification;
+    }
+
+    private UserVerification getApplicationKyc(OwnerApplication application) {
+        if (application.getKycVerificationId() == null) {
+            return null;
+        }
+        return userVerificationRepository.findById(application.getKycVerificationId()).orElse(null);
+    }
+
     private User getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || authentication.getName() == null) {
@@ -219,18 +242,23 @@ public class OwnerApplicationService {
 
     private OwnerApplicationResponse mapApplication(OwnerApplication application) {
         User user = userRepository.findById(application.getUserId()).orElse(null);
+        UserVerification verification = getApplicationKyc(application);
         return OwnerApplicationResponse.builder()
                 .applicationId(application.getApplicationId())
                 .userId(application.getUserId())
+                .kycVerificationId(application.getKycVerificationId())
                 .username(user != null ? user.getUsername() : null)
                 .email(user != null ? user.getEmail() : null)
                 .phone(user != null ? user.getPhone() : null)
-                .fullName(application.getFullName())
-                .dateOfBirth(application.getDateOfBirth())
-                .gender(application.getGender())
-                .nationality(application.getNationality())
-                .address(application.getAddress())
-                .identityDocumentUrl(application.getIdentityDocumentUrl())
+                .kycStatus(verification != null && verification.getStatus() != null ? verification.getStatus().name() : null)
+                .fullName(verification != null ? verification.getFullName() : null)
+                .dateOfBirth(verification != null ? verification.getDateOfBirth() : null)
+                .gender(verification != null ? verification.getGender() : null)
+                .nationality(verification != null ? verification.getNationality() : null)
+                .address(verification != null ? verification.getAddress() : null)
+                .identityDocumentUrl(verification != null ? verification.getIdentityFrontUrl() : null)
+                .identityBackUrl(verification != null ? verification.getIdentityBackUrl() : null)
+                .selfieUrl(verification != null ? verification.getSelfieUrl() : null)
                 .stableName(application.getStableName())
                 .stableAddress(application.getStableAddress())
                 .stableCertificateUrl(application.getStableCertificateUrl())
@@ -245,18 +273,23 @@ public class OwnerApplicationService {
     }
 
     private OwnerProfileResponse mapProfile(OwnerProfile profile, OwnerApplication application, User owner) {
+        UserVerification verification = getApplicationKyc(application);
         return OwnerProfileResponse.builder()
                 .ownerId(profile.getOwnerId())
                 .applicationId(profile.getApplicationId())
+                .kycVerificationId(application.getKycVerificationId())
                 .username(owner.getUsername())
                 .email(owner.getEmail())
                 .phone(owner.getPhone())
-                .fullName(application.getFullName())
-                .dateOfBirth(application.getDateOfBirth())
-                .gender(application.getGender())
-                .nationality(application.getNationality())
-                .address(application.getAddress())
-                .identityDocumentUrl(application.getIdentityDocumentUrl())
+                .kycStatus(verification != null && verification.getStatus() != null ? verification.getStatus().name() : null)
+                .fullName(verification != null ? verification.getFullName() : null)
+                .dateOfBirth(verification != null ? verification.getDateOfBirth() : null)
+                .gender(verification != null ? verification.getGender() : null)
+                .nationality(verification != null ? verification.getNationality() : null)
+                .address(verification != null ? verification.getAddress() : null)
+                .identityDocumentUrl(verification != null ? verification.getIdentityFrontUrl() : null)
+                .identityBackUrl(verification != null ? verification.getIdentityBackUrl() : null)
+                .selfieUrl(verification != null ? verification.getSelfieUrl() : null)
                 .stableName(application.getStableName())
                 .stableAddress(application.getStableAddress())
                 .stableCertificateUrl(application.getStableCertificateUrl())

@@ -1,6 +1,5 @@
 package com.example.backend.entity;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
@@ -33,23 +32,8 @@ public class OwnerApplication {
     @Column(name = "userID", nullable = false)
     private Integer userId;
 
-    @Column(name = "fullName", nullable = false)
-    private String fullName;
-
-    @Column(name = "dateOfBirth", nullable = false)
-    private LocalDate dateOfBirth;
-
-    @Column(name = "gender", nullable = false)
-    private String gender;
-
-    @Column(name = "nationality", nullable = false)
-    private String nationality;
-
-    @Column(name = "address", nullable = false, length = 500)
-    private String address;
-
-    @Column(name = "identityDocumentUrl", nullable = false, columnDefinition = "TEXT")
-    private String identityDocumentUrl;
+    @Column(name = "kycVerificationID", nullable = false)
+    private Integer kycVerificationId;
 
     @Column(name = "stableName", nullable = false)
     private String stableName;

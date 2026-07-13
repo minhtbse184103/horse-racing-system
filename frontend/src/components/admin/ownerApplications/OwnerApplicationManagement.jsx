@@ -263,7 +263,9 @@ export default function OwnerApplicationManagement() {
             <InfoCard label={t('address')} value={selectedApplication.address} />
             <InfoCard label={t('email')} value={selectedApplication.applicantEmail} />
             <InfoCard label={t('phone')} value={selectedApplication.applicantPhone} />
-            <DocumentCard label="Identity Document" url={selectedApplication.identityDocumentUrl} />
+            <DocumentCard label="Identity Front" url={selectedApplication.identityDocumentUrl} />
+            <DocumentCard label="Identity Back" url={selectedApplication.identityBackUrl} />
+            <DocumentCard label="Selfie" url={selectedApplication.selfieUrl} />
           </div>
 
           <div className="mt-6">

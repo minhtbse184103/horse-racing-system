@@ -64,7 +64,7 @@ public interface RaceResultRepository extends JpaRepository<RaceResult, Integer>
                horse.horseId as horseId,
                horse.horseName as horseName,
                owner.userID as ownerId,
-               coalesce(ownerApplication.fullName, owner.username) as ownerName,
+               coalesce(ownerKyc.fullName, owner.username) as ownerName,
                jockey.userID as jockeyId,
                coalesce(jockeyProfile.fullName, jockey.username) as jockeyName,
                distribution.prizeDistributionId as prizeDistributionId,
@@ -86,6 +86,8 @@ public interface RaceResultRepository extends JpaRepository<RaceResult, Integer>
         left join OwnerApplication ownerApplication
           on ownerApplication.userId = owner.userID
          and ownerApplication.status = 'APPROVED'
+        left join UserVerification ownerKyc
+          on ownerKyc.verificationId = ownerApplication.kycVerificationId
         left join JockeyProfile jockeyProfile
           on jockeyProfile.jockeyId = jockey.userID
         left join PrizeDistribution distribution
