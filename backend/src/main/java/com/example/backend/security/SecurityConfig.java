@@ -46,7 +46,6 @@ public class SecurityConfig {
                         .requestMatchers(SWAGGER_WHITELIST).permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/api/payments/vnpay/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
                         .requestMatchers("/ws-race/**").permitAll()
                         .requestMatchers(HttpMethod.GET,
                                 "/api/tournaments/**",

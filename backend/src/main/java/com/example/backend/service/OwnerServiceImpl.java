@@ -1,16 +1,11 @@
 package com.example.backend.service;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.Period;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
-import java.util.UUID;
 
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
@@ -25,6 +20,7 @@ import com.example.backend.constant.RegistrationStatus;
 import com.example.backend.dto.request.CreateHorseRequest;
 import com.example.backend.dto.request.InviteJockeyRequest;
 import com.example.backend.dto.request.UpdateHorseRequest;
+import com.example.backend.dto.response.FileUploadResponse;
 import com.example.backend.dto.response.HorseResponse;
 import com.example.backend.dto.response.JockeyInvitationResponse;
 import com.example.backend.dto.response.OwnerDashboardResponse;
@@ -68,6 +64,7 @@ public class OwnerServiceImpl implements OwnerService {
     private final OwnerProfileRepository ownerProfileRepository;
     private final UserRepository userRepository;
     private final JdbcTemplate jdbcTemplate;
+    private final FileUploadService fileUploadService;
 
     public OwnerServiceImpl(
             HorseRepository horseRepository,
@@ -76,7 +73,8 @@ public class OwnerServiceImpl implements OwnerService {
             JockeyProfileRepository jockeyProfileRepository,
             OwnerProfileRepository ownerProfileRepository,
             UserRepository userRepository,
-            JdbcTemplate jdbcTemplate) {
+            JdbcTemplate jdbcTemplate,
+            FileUploadService fileUploadService) {
         this.horseRepository = horseRepository;
         this.registrationRepository = registrationRepository;
         this.jockeyInvitationRepository = jockeyInvitationRepository;
@@ -84,6 +82,7 @@ public class OwnerServiceImpl implements OwnerService {
         this.ownerProfileRepository = ownerProfileRepository;
         this.userRepository = userRepository;
         this.jdbcTemplate = jdbcTemplate;
+        this.fileUploadService = fileUploadService;
     }
 
     // Tính toán số liệu dashboard của owner gồm tổng ngựa, tổng registration và số ngựa đang tham gia.
@@ -565,18 +564,11 @@ public class OwnerServiceImpl implements OwnerService {
 
     private String storeHealthCertificate(MultipartFile file) {
         validateHealthCertificateFile(file);
-
-        String extension = getFileExtension(file.getOriginalFilename());
-        String filename = UUID.randomUUID() + "." + extension;
-        Path uploadDir = Paths.get("uploads", "horse-health-certificates").toAbsolutePath().normalize();
-
-        try {
-            Files.createDirectories(uploadDir);
-            Files.copy(file.getInputStream(), uploadDir.resolve(filename));
-            return "/uploads/horse-health-certificates/" + filename;
-        } catch (IOException ex) {
-            throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Khong the luu Health Certificate.");
-        }
+        FileUploadResponse uploaded = fileUploadService.upload(
+                file,
+                "horse-health-certificates"
+        );
+        return uploaded.getUrl();
     }
 
     private void validateHealthCertificateFile(MultipartFile file) {

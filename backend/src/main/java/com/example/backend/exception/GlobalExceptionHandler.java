@@ -49,7 +49,7 @@ public class GlobalExceptionHandler {
             MaxUploadSizeExceededException ex
     ) {
         return ResponseEntity.status(413)
-                .body(new ErrorResponse(413, "Venue image must not exceed 5MB."));
+                .body(new ErrorResponse(413, "Upload request exceeds the allowed size."));
     }
 
     @ExceptionHandler(Exception.class)

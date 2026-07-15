@@ -58,6 +58,8 @@ class OwnerServiceTest {
     private UserRepository userRepository;
     @Mock
     private JdbcTemplate jdbcTemplate;
+    @Mock
+    private FileUploadService fileUploadService;
 
     private OwnerServiceImpl ownerService;
 
@@ -70,7 +72,8 @@ class OwnerServiceTest {
                 jockeyProfileRepository,
                 ownerProfileRepository,
                 userRepository,
-                jdbcTemplate);
+                jdbcTemplate,
+                fileUploadService);
 
         SecurityContextHolder.getContext()
                 .setAuthentication(new UsernamePasswordAuthenticationToken("owner@example.com", null));
