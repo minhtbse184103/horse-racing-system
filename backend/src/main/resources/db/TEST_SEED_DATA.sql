@@ -26,7 +26,8 @@ VALUES
   (10, 5, 'owner.pending', 'owner.pending@horse.test',  @seed_password, '0900000010', 'ACTIVE', @seed_now, @seed_now),
   (11, 5, 'owner.rejected','owner.rejected@horse.test', @seed_password, '0900000011', 'ACTIVE', @seed_now, @seed_now),
   (12, 5, 'jockey.pending','jockey.pending@horse.test', @seed_password, '0900000012', 'ACTIVE', @seed_now, @seed_now),
-  (13, 5, 'spectator.kyc', 'spectator.kyc@horse.test',   @seed_password, '0900000013', 'ACTIVE', @seed_now, @seed_now);
+  (13, 5, 'spectator.kyc', 'spectator.kyc@horse.test',   @seed_password, '0900000013', 'ACTIVE', @seed_now, @seed_now),
+  (14, 5, 'spectator.bet', 'spectator.bet@horse.test',   @seed_password, '0900000014', 'ACTIVE', @seed_now, @seed_now);
 
 INSERT INTO `user_verifications`
   (`verification_id`, `user_id`, `status`, `full_name`, `date_of_birth`, `gender`, `nationality`, `address`, `identity_number`, `identity_front_url`, `identity_back_url`, `selfie_url`, `submitted_at`, `reviewed_at`, `reviewed_by`, `rejection_reason`, `expires_at`, `created_at`, `updated_at`)
@@ -40,7 +41,8 @@ VALUES
   (7, 10, 'PENDING',  'Pending Owner',    DATE_SUB(@seed_today, INTERVAL 28 YEAR), 'OTHER', 'Vietnamese', 'Ho Chi Minh City', '001000000010', 'https://picsum.photos/seed/kyc-10-front/900/560', 'https://picsum.photos/seed/kyc-10-back/900/560', 'https://picsum.photos/seed/kyc-10-selfie/700/700', DATE_SUB(@seed_now, INTERVAL 2 DAY),   NULL, NULL, NULL, NULL, DATE_SUB(@seed_now, INTERVAL 2 DAY),   DATE_SUB(@seed_now, INTERVAL 2 DAY)),
   (8, 11, 'REJECTED', 'Rejected Owner',   DATE_SUB(@seed_today, INTERVAL 29 YEAR), 'MALE', 'Vietnamese', 'Da Nang City', '001000000011', 'https://picsum.photos/seed/kyc-11-front/900/560', 'https://picsum.photos/seed/kyc-11-back/900/560', 'https://picsum.photos/seed/kyc-11-selfie/700/700', DATE_SUB(@seed_now, INTERVAL 6 DAY),   DATE_SUB(@seed_now, INTERVAL 3 DAY), 1, 'Selfie image does not match the identity document.', NULL, DATE_SUB(@seed_now, INTERVAL 6 DAY), DATE_SUB(@seed_now, INTERVAL 3 DAY)),
   (9, 12, 'PENDING',  'Pending Jockey',   DATE_SUB(@seed_today, INTERVAL 23 YEAR), 'MALE', 'Vietnamese', 'Saigon Racing Academy', '001000000012', 'https://picsum.photos/seed/kyc-12-front/900/560', 'https://picsum.photos/seed/kyc-12-back/900/560', 'https://picsum.photos/seed/kyc-12-selfie/700/700', DATE_SUB(@seed_now, INTERVAL 1 DAY),   NULL, NULL, NULL, NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY),   DATE_SUB(@seed_now, INTERVAL 1 DAY)),
-  (10, 13, 'PENDING', 'Spectator KYC',    DATE_SUB(@seed_today, INTERVAL 22 YEAR), 'OTHER', 'Vietnamese', 'Ho Chi Minh City', '001000000013', 'https://picsum.photos/seed/kyc-13-front/900/560', 'https://picsum.photos/seed/kyc-13-back/900/560', 'https://picsum.photos/seed/kyc-13-selfie/700/700', DATE_SUB(@seed_now, INTERVAL 4 HOUR), NULL, NULL, NULL, NULL, DATE_SUB(@seed_now, INTERVAL 4 HOUR), DATE_SUB(@seed_now, INTERVAL 4 HOUR));
+  (10, 13, 'PENDING', 'Spectator KYC',    DATE_SUB(@seed_today, INTERVAL 22 YEAR), 'OTHER', 'Vietnamese', 'Ho Chi Minh City', '001000000013', 'https://picsum.photos/seed/kyc-13-front/900/560', 'https://picsum.photos/seed/kyc-13-back/900/560', 'https://picsum.photos/seed/kyc-13-selfie/700/700', DATE_SUB(@seed_now, INTERVAL 4 HOUR), NULL, NULL, NULL, NULL, DATE_SUB(@seed_now, INTERVAL 4 HOUR), DATE_SUB(@seed_now, INTERVAL 4 HOUR)),
+  (11, 14, 'VERIFIED', 'Spectator Bettor', DATE_SUB(@seed_today, INTERVAL 30 YEAR), 'MALE', 'Vietnamese', 'Ho Chi Minh City', '001000000014', 'https://picsum.photos/seed/kyc-14-front/900/560', 'https://picsum.photos/seed/kyc-14-back/900/560', 'https://picsum.photos/seed/kyc-14-selfie/700/700', DATE_SUB(@seed_now, INTERVAL 3 DAY), DATE_SUB(@seed_now, INTERVAL 2 DAY), 1, NULL, DATE_ADD(@seed_now, INTERVAL 5 YEAR), DATE_SUB(@seed_now, INTERVAL 3 DAY), DATE_SUB(@seed_now, INTERVAL 2 DAY));
 
 INSERT INTO `OwnerApplication`
   (`applicationID`, `userID`, `kycVerificationID`, `stableName`, `stableAddress`, `stableCertificateUrl`, `totalHorsesOwned`, `horseOwnershipProofUrl`, `status`, `rejectReason`, `submittedAt`, `reviewedAt`, `reviewedBy`, `createdAt`, `updatedAt`)
@@ -89,7 +91,8 @@ VALUES
   (3, 4, 0.00, 0.00, 'VND', 'ACTIVE', DATE_SUB(@seed_now, INTERVAL 98 DAY),  DATE_SUB(@seed_now, INTERVAL 98 DAY)),
   (4, 5, 0.00, 0.00, 'VND', 'ACTIVE', DATE_SUB(@seed_now, INTERVAL 198 DAY), DATE_SUB(@seed_now, INTERVAL 198 DAY)),
   (5, 6, 0.00, 0.00, 'VND', 'ACTIVE', DATE_SUB(@seed_now, INTERVAL 188 DAY), DATE_SUB(@seed_now, INTERVAL 188 DAY)),
-  (6, 7, 0.00, 0.00, 'VND', 'ACTIVE', DATE_SUB(@seed_now, INTERVAL 28 DAY),  DATE_SUB(@seed_now, INTERVAL 28 DAY));
+  (6, 7, 0.00, 0.00, 'VND', 'ACTIVE', DATE_SUB(@seed_now, INTERVAL 28 DAY),  DATE_SUB(@seed_now, INTERVAL 28 DAY)),
+  (7, 14, 5000000.00, 0.00, 'VND', 'ACTIVE', DATE_SUB(@seed_now, INTERVAL 2 DAY), DATE_SUB(@seed_now, INTERVAL 2 DAY));
 
 INSERT INTO `Horse`
   (`horseID`, `ownerID`, `horseName`, `age`, `dayOfBirth`, `weight`, `colour`, `sex`, `breeding`, `trainer`, `healthCertExpiry`, `healthCertificateUrl`, `officialHorseProfileUrl`, `status`, `rejectionReason`, `createdAt`, `updatedAt`)
@@ -133,7 +136,8 @@ VALUES
   -- simulator capacity and satisfying
   -- MIN_RUNNERS_TO_LAUNCH, and no RaceResult yet, so it's launchable and
   -- ready to receive a result from Unity right after seeding.
-  (6, 1, 'Live Test Race',   'Bangkok Track A', DATE_SUB(@seed_now, INTERVAL 1 HOUR), DATE_ADD(@seed_now, INTERVAL 1 HOUR), 1000, 6, 4, 'OPEN_FOR_REGISTRATION', @seed_now, @seed_now);
+  (6, 1, 'Live Test Race',   'Bangkok Track A', DATE_SUB(@seed_now, INTERVAL 1 HOUR), DATE_ADD(@seed_now, INTERVAL 1 HOUR), 1000, 6, 4, 'OPEN_FOR_REGISTRATION', @seed_now, @seed_now),
+  (7, 1, 'Betting Demo Sprint', 'Bangkok Track C', DATE_ADD(@seed_now, INTERVAL 8 HOUR), DATE_ADD(@seed_now, INTERVAL 8 HOUR) + INTERVAL 30 MINUTE, 1200, 6, 5, 'REGISTRATION_CLOSED', @seed_now, @seed_now);
 
 INSERT INTO `RacePrize`
   (`racePrizeID`, `raceID`, `rankPosition`, `amount`, `ownerPercent`, `jockeyPercent`)
@@ -143,7 +147,8 @@ VALUES
   (7,  3, 1, 90000000.00, 80.00, 20.00), (8,  3, 2, 54000000.00, 80.00, 20.00), (9,  3, 3, 36000000.00, 80.00, 20.00),
   (10, 4, 1, 40000000.00, 80.00, 20.00), (11, 4, 2, 24000000.00, 80.00, 20.00), (12, 4, 3, 16000000.00, 80.00, 20.00),
   (13, 5, 1, 60000000.00, 80.00, 20.00), (14, 5, 2, 36000000.00, 80.00, 20.00), (15, 5, 3, 24000000.00, 80.00, 20.00),
-  (16, 6, 1, 20000000.00, 80.00, 20.00), (17, 6, 2, 12000000.00, 80.00, 20.00), (18, 6, 3, 8000000.00,  80.00, 20.00);
+  (16, 6, 1, 20000000.00, 80.00, 20.00), (17, 6, 2, 12000000.00, 80.00, 20.00), (18, 6, 3, 8000000.00,  80.00, 20.00),
+  (19, 7, 1, 20000000.00, 80.00, 20.00), (20, 7, 2, 12000000.00, 80.00, 20.00), (21, 7, 3, 8000000.00,  80.00, 20.00);
 
 INSERT INTO `Registration`
   (`registrationID`, `tournamentID`, `horseID`, `ownerID`, `jockeyID`, `registrationNo`, `paymentStatus`, `approvalStatus`, `rejectionReason`, `submittedAt`, `reviewedAt`, `reviewedBy`, `createdAt`, `updatedAt`)
@@ -163,7 +168,13 @@ VALUES
   (10, 1, 3, 3, 5,   'REG-DEMO-010', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now, 1, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now),
   (11, 1, 4, 3, 6,   'REG-DEMO-011', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now, 1, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now),
   (12, 1, 5, 4, 5,   'REG-DEMO-012', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now, 1, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now),
-  (13, 1, 6, 4, 6,   'REG-DEMO-013', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now, 1, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now);
+  (13, 1, 6, 4, 6,   'REG-DEMO-013', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now, 1, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now),
+  (14, 1, 1, 2, 5,   'REG-DEMO-014', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now, 1, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now),
+  (15, 1, 2, 2, 6,   'REG-DEMO-015', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now, 1, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now),
+  (16, 1, 3, 3, 5,   'REG-DEMO-016', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now, 1, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now),
+  (17, 1, 4, 3, 6,   'REG-DEMO-017', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now, 1, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now),
+  (18, 1, 5, 4, 5,   'REG-DEMO-018', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now, 1, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now),
+  (19, 1, 6, 4, 6,   'REG-DEMO-019', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now, 1, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now);
 
 INSERT INTO `RaceEntry`
   (`raceEntryID`, `raceID`, `registrationID`, `startingStall`, `status`, `assignedAt`, `assignedBy`, `cancelledAt`, `cancelledBy`, `cancellationReason`)
@@ -179,7 +190,25 @@ VALUES
   (6, 6, 10, 3, 'ASSIGNED', @seed_now, 1, NULL, NULL, NULL),
   (7, 6, 11, 4, 'ASSIGNED', @seed_now, 1, NULL, NULL, NULL),
   (8, 6, 12, 5, 'ASSIGNED', @seed_now, 1, NULL, NULL, NULL),
-  (9, 6, 13, 6, 'ASSIGNED', @seed_now, 1, NULL, NULL, NULL);
+  (9, 6, 13, 6, 'ASSIGNED', @seed_now, 1, NULL, NULL, NULL),
+  (10, 7, 14, 1, 'ASSIGNED', @seed_now, 1, NULL, NULL, NULL),
+  (11, 7, 15, 2, 'ASSIGNED', @seed_now, 1, NULL, NULL, NULL),
+  (12, 7, 16, 3, 'ASSIGNED', @seed_now, 1, NULL, NULL, NULL),
+  (13, 7, 17, 4, 'ASSIGNED', @seed_now, 1, NULL, NULL, NULL),
+  (14, 7, 18, 5, 'ASSIGNED', @seed_now, 1, NULL, NULL, NULL),
+  (15, 7, 19, 6, 'ASSIGNED', @seed_now, 1, NULL, NULL, NULL);
+
+INSERT INTO `BetProduct`
+  (`betProductID`, `code`, `name`, `description`, `minStake`, `maxDailyStake`, `operatorFeeRate`, `active`, `createdAt`, `updatedAt`)
+VALUES
+  (1, 'WIN', 'Win', 'Pick the horse that finishes first.', 10000.00, 1000000.00, 0.1000, true, @seed_now, @seed_now),
+  (2, 'PLACE', 'Place', 'Pick a horse that finishes in the top three.', 10000.00, 1000000.00, 0.1000, true, @seed_now, @seed_now);
+
+INSERT INTO `BetEvent`
+  (`betEventID`, `raceID`, `betProductID`, `status`, `openAt`, `closeAt`, `operatorFeeRate`, `createdBy`, `settledBy`, `settledAt`, `createdAt`, `updatedAt`)
+VALUES
+  (1, 7, 1, 'OPEN', DATE_SUB(@seed_now, INTERVAL 1 HOUR), DATE_ADD(@seed_now, INTERVAL 7 HOUR) + INTERVAL 58 MINUTE, 0.1000, 1, NULL, NULL, @seed_now, @seed_now),
+  (2, 7, 2, 'OPEN', DATE_SUB(@seed_now, INTERVAL 1 HOUR), DATE_ADD(@seed_now, INTERVAL 7 HOUR) + INTERVAL 58 MINUTE, 0.1000, 1, NULL, NULL, @seed_now, @seed_now);
 
 INSERT INTO `RaceResult`
   (`resultID`, `raceEntryID`, `finishPosition`, `finishTime`, `prizeMoney`, `recordedAt`, `recordedBy`)
@@ -240,6 +269,8 @@ UNION ALL SELECT 'Race', COUNT(*) FROM `Race`
 UNION ALL SELECT 'RacePrize', COUNT(*) FROM `RacePrize`
 UNION ALL SELECT 'Registration', COUNT(*) FROM `Registration`
 UNION ALL SELECT 'RaceEntry', COUNT(*) FROM `RaceEntry`
+UNION ALL SELECT 'BetProduct', COUNT(*) FROM `BetProduct`
+UNION ALL SELECT 'BetEvent', COUNT(*) FROM `BetEvent`
 UNION ALL SELECT 'RaceResult', COUNT(*) FROM `RaceResult`
 UNION ALL SELECT 'HorsePerformanceSummary', COUNT(*) FROM `HorsePerformanceSummary`
 UNION ALL SELECT 'JockeyPerformanceSummary', COUNT(*) FROM `JockeyPerformanceSummary`

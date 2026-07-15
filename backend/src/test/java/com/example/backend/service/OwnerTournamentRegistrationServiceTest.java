@@ -25,6 +25,7 @@ import com.example.backend.repository.RaceRepository;
 import com.example.backend.repository.RegistrationRepository;
 import com.example.backend.repository.TournamentRepository;
 import com.example.backend.repository.UserRepository;
+import com.example.backend.repository.UserVerificationRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -65,6 +66,7 @@ class OwnerTournamentRegistrationServiceTest {
     @Mock private JockeyInvitationRepository jockeyInvitationRepository;
     @Mock private RaceEntryRepository raceEntryRepository;
     @Mock private RaceRepository raceRepository;
+    @Mock private UserVerificationRepository userVerificationRepository;
     @Mock private VnpayPaymentService vnpayPaymentService;
 
     private OwnerTournamentRegistrationService service;
@@ -81,6 +83,7 @@ class OwnerTournamentRegistrationServiceTest {
                 jockeyInvitationRepository,
                 raceEntryRepository,
                 raceRepository,
+                userVerificationRepository,
                 vnpayPaymentService
         );
 

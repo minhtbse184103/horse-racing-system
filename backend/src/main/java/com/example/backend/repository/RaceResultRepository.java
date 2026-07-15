@@ -16,6 +16,17 @@ import com.example.backend.entity.RaceResult;
 public interface RaceResultRepository extends JpaRepository<RaceResult, Integer> {
     boolean existsByRaceEntryIdIn(Collection<Integer> raceEntryIds);
 
+    @Query("""
+        select result
+        from RaceResult result
+        join RaceEntry entry on entry.raceEntryId = result.raceEntryId
+        where entry.raceId = :raceId
+        order by result.finishPosition asc
+        """)
+    List<RaceResult> findByRaceIdOrderByFinishPositionAsc(
+            @Param("raceId") Integer raceId
+    );
+
     interface RaceResultCountProjection {
         Integer getRaceId();
         long getResultCount();

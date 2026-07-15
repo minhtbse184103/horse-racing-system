@@ -19,6 +19,7 @@ import com.example.backend.repository.RaceRepository;
 import com.example.backend.repository.RegistrationRepository;
 import com.example.backend.repository.TournamentRepository;
 import com.example.backend.repository.UserRepository;
+import com.example.backend.repository.UserVerificationRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -49,6 +50,7 @@ class AdminRegistrationServiceTest {
     @Mock private RegistrationEligibilityService eligibilityService;
     @Mock private OwnerApplicationRepository ownerApplicationRepository;
     @Mock private JockeyProfileRepository jockeyProfileRepository;
+    @Mock private UserVerificationRepository userVerificationRepository;
 
     private AdminRegistrationService service;
     private DisplayNameResolver displayNameResolver;
@@ -57,7 +59,8 @@ class AdminRegistrationServiceTest {
     void setUp() {
         displayNameResolver = new DisplayNameResolver(
                 ownerApplicationRepository,
-                jockeyProfileRepository
+                jockeyProfileRepository,
+                userVerificationRepository
         );
         service = new AdminRegistrationService(
                 registrationRepository,

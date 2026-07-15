@@ -542,6 +542,89 @@ CREATE TABLE `Bet` (
     CHECK (`status` IN ('PLACED', 'WON', 'LOST', 'VOID', 'CANCELLED'))
 );
 
+CREATE TABLE `BetProduct` (
+  `betProductID` int PRIMARY KEY AUTO_INCREMENT,
+  `code` varchar(30) NOT NULL UNIQUE,
+  `name` varchar(100) NOT NULL,
+  `description` varchar(500),
+  `minStake` decimal(14,2) NOT NULL DEFAULT 10000.00,
+  `maxDailyStake` decimal(14,2) NOT NULL DEFAULT 1000000.00,
+  `operatorFeeRate` decimal(5,4) NOT NULL DEFAULT 0.1000,
+  `active` boolean NOT NULL DEFAULT true,
+  `createdAt` datetime,
+  `updatedAt` datetime,
+  CONSTRAINT `chk_bet_product_code`
+    CHECK (`code` IN ('WIN', 'PLACE')),
+  CONSTRAINT `chk_bet_product_stake`
+    CHECK (`minStake` >= 10000.00 AND `maxDailyStake` >= `minStake`),
+  CONSTRAINT `chk_bet_product_fee`
+    CHECK (`operatorFeeRate` >= 0 AND `operatorFeeRate` <= 0.5000)
+);
+
+CREATE TABLE `BetEvent` (
+  `betEventID` int PRIMARY KEY AUTO_INCREMENT,
+  `raceID` int NOT NULL,
+  `betProductID` int NOT NULL,
+  `status` varchar(30) NOT NULL DEFAULT 'DRAFT',
+  `openAt` datetime NOT NULL,
+  `closeAt` datetime NOT NULL,
+  `operatorFeeRate` decimal(5,4) NOT NULL,
+  `createdBy` int NOT NULL,
+  `settledBy` int,
+  `settledAt` datetime,
+  `createdAt` datetime,
+  `updatedAt` datetime,
+  UNIQUE KEY `BetEvent_race_product_unique` (`raceID`, `betProductID`),
+  CONSTRAINT `chk_bet_event_status`
+    CHECK (`status` IN ('DRAFT', 'OPEN', 'CLOSED', 'SETTLED', 'CANCELLED')),
+  CONSTRAINT `chk_bet_event_window`
+    CHECK (`openAt` < `closeAt`),
+  CONSTRAINT `chk_bet_event_fee`
+    CHECK (`operatorFeeRate` >= 0 AND `operatorFeeRate` <= 0.5000)
+);
+
+CREATE TABLE `BetTicket` (
+  `betTicketID` int PRIMARY KEY AUTO_INCREMENT,
+  `betEventID` int NOT NULL,
+  `userID` int NOT NULL,
+  `walletID` int NOT NULL,
+  `raceID` int NOT NULL,
+  `raceEntryID` int NOT NULL,
+  `stake` decimal(14,2) NOT NULL,
+  `estimatedOddsAtBet` decimal(10,4),
+  `finalOdds` decimal(10,4),
+  `payoutAmount` decimal(14,2),
+  `status` varchar(30) NOT NULL DEFAULT 'PLACED',
+  `placedAt` datetime NOT NULL,
+  `settledAt` datetime,
+  `createdAt` datetime,
+  `updatedAt` datetime,
+  CONSTRAINT `chk_bet_ticket_stake`
+    CHECK (`stake` >= 10000.00),
+  CONSTRAINT `chk_bet_ticket_status`
+    CHECK (`status` IN ('PLACED', 'WON', 'LOST', 'REFUNDED', 'VOID'))
+);
+
+CREATE TABLE `BetSettlement` (
+  `betSettlementID` int PRIMARY KEY AUTO_INCREMENT,
+  `betEventID` int NOT NULL UNIQUE,
+  `totalStake` decimal(14,2) NOT NULL,
+  `winningStake` decimal(14,2) NOT NULL,
+  `losingStake` decimal(14,2) NOT NULL,
+  `operatorFee` decimal(14,2) NOT NULL,
+  `payoutPool` decimal(14,2) NOT NULL,
+  `settledBy` int NOT NULL,
+  `settledAt` datetime NOT NULL,
+  CONSTRAINT `chk_bet_settlement_amounts`
+    CHECK (
+      `totalStake` >= 0
+      AND `winningStake` >= 0
+      AND `losingStake` >= 0
+      AND `operatorFee` >= 0
+      AND `payoutPool` >= 0
+    )
+);
+
 CREATE TABLE `PrizeDistribution` (
   `prizeDistributionID` int PRIMARY KEY AUTO_INCREMENT,
   `raceID` int NOT NULL,
@@ -684,6 +767,21 @@ ON `Bet` (`spectatorID`, `status`);
 CREATE INDEX `Bet_race_entry_idx`
 ON `Bet` (`raceEntryID`);
 
+CREATE INDEX `BetEvent_status_open_idx`
+ON `BetEvent` (`status`, `openAt`);
+
+CREATE INDEX `BetEvent_race_idx`
+ON `BetEvent` (`raceID`);
+
+CREATE INDEX `BetTicket_event_status_idx`
+ON `BetTicket` (`betEventID`, `status`);
+
+CREATE INDEX `BetTicket_user_placed_idx`
+ON `BetTicket` (`userID`, `placedAt`);
+
+CREATE INDEX `BetTicket_event_entry_status_idx`
+ON `BetTicket` (`betEventID`, `raceEntryID`, `status`);
+
 CREATE INDEX `PrizeDistribution_race_status_idx`
 ON `PrizeDistribution` (`raceID`, `status`);
 
@@ -804,6 +902,28 @@ ALTER TABLE `Bet` ADD FOREIGN KEY (`raceID`) REFERENCES `Race` (`raceID`);
 ALTER TABLE `Bet` ADD FOREIGN KEY (`raceEntryID`) REFERENCES `RaceEntry` (`raceEntryID`);
 
 ALTER TABLE `Bet` ADD FOREIGN KEY (`walletID`) REFERENCES `Wallet` (`walletID`);
+
+ALTER TABLE `BetEvent` ADD FOREIGN KEY (`raceID`) REFERENCES `Race` (`raceID`);
+
+ALTER TABLE `BetEvent` ADD FOREIGN KEY (`betProductID`) REFERENCES `BetProduct` (`betProductID`);
+
+ALTER TABLE `BetEvent` ADD FOREIGN KEY (`createdBy`) REFERENCES `Users` (`userID`);
+
+ALTER TABLE `BetEvent` ADD FOREIGN KEY (`settledBy`) REFERENCES `Users` (`userID`);
+
+ALTER TABLE `BetTicket` ADD FOREIGN KEY (`betEventID`) REFERENCES `BetEvent` (`betEventID`);
+
+ALTER TABLE `BetTicket` ADD FOREIGN KEY (`userID`) REFERENCES `Users` (`userID`);
+
+ALTER TABLE `BetTicket` ADD FOREIGN KEY (`walletID`) REFERENCES `Wallet` (`walletID`);
+
+ALTER TABLE `BetTicket` ADD FOREIGN KEY (`raceID`) REFERENCES `Race` (`raceID`);
+
+ALTER TABLE `BetTicket` ADD FOREIGN KEY (`raceEntryID`) REFERENCES `RaceEntry` (`raceEntryID`);
+
+ALTER TABLE `BetSettlement` ADD FOREIGN KEY (`betEventID`) REFERENCES `BetEvent` (`betEventID`);
+
+ALTER TABLE `BetSettlement` ADD FOREIGN KEY (`settledBy`) REFERENCES `Users` (`userID`);
 
 ALTER TABLE `PrizeDistribution` ADD FOREIGN KEY (`raceID`) REFERENCES `Race` (`raceID`);
 

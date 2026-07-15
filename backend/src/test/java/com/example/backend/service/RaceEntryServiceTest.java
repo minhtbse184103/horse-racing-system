@@ -24,6 +24,7 @@ import com.example.backend.repository.RaceRepository;
 import com.example.backend.repository.RegistrationRepository;
 import com.example.backend.repository.TournamentRepository;
 import com.example.backend.repository.UserRepository;
+import com.example.backend.repository.UserVerificationRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -79,6 +80,8 @@ class RaceEntryServiceTest {
     private OwnerApplicationRepository ownerApplicationRepository;
     @Mock
     private JockeyProfileRepository jockeyProfileRepository;
+    @Mock
+    private UserVerificationRepository userVerificationRepository;
 
     private RaceEntryService raceEntryService;
     private DisplayNameResolver displayNameResolver;
@@ -87,7 +90,8 @@ class RaceEntryServiceTest {
     void setUp() {
         displayNameResolver = new DisplayNameResolver(
                 ownerApplicationRepository,
-                jockeyProfileRepository
+                jockeyProfileRepository,
+                userVerificationRepository
         );
         raceEntryService = new RaceEntryService(
                 raceEntryRepository,
