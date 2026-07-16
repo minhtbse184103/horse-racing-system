@@ -18,6 +18,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.example.backend.dto.response.AdminAssignableRaceResponse;
 import java.math.BigDecimal;
@@ -47,6 +48,7 @@ public class RaceService {
     private final TournamentRepository tournamentRepository;
     private final UserRepository userRepository;
     private final RaceRunWatchdogService raceRunWatchdogService;
+    private final RaceTrackImageStorageService raceTrackImageStorageService;
 
     public RaceService(
             RaceRepository raceRepository,
@@ -55,7 +57,8 @@ public class RaceService {
             RaceResultRepository raceResultRepository,
             TournamentRepository tournamentRepository,
             UserRepository userRepository,
-            RaceRunWatchdogService raceRunWatchdogService
+            RaceRunWatchdogService raceRunWatchdogService,
+            RaceTrackImageStorageService raceTrackImageStorageService
     ) {
         this.raceRepository = raceRepository;
         this.racePrizeRepository = racePrizeRepository;
@@ -64,6 +67,7 @@ public class RaceService {
         this.tournamentRepository = tournamentRepository;
         this.userRepository = userRepository;
         this.raceRunWatchdogService = raceRunWatchdogService;
+        this.raceTrackImageStorageService = raceTrackImageStorageService;
     }
 
     @Transactional(readOnly = true)
@@ -365,6 +369,46 @@ public class RaceService {
                     "Race name, order, or prize rank conflicts."
             );
         }
+    }
+
+    @Transactional
+    public RaceResponse uploadTrackImage(
+            Integer raceId,
+            MultipartFile file,
+            String adminEmail
+    ) {
+        Race race = raceRepository.findByIdForUpdate(raceId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "Race does not exist."
+                ));
+
+        getAdmin(adminEmail);
+
+        String imageUrl = raceTrackImageStorageService.store(raceId, file);
+        race.setTrackImageUrl(imageUrl);
+
+        return toResponse(raceRepository.save(race));
+    }
+
+    @Transactional
+    public RaceResponse removeTrackImage(
+            Integer raceId,
+            String adminEmail
+    ) {
+        Race race = raceRepository.findByIdForUpdate(raceId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "Race does not exist."
+                ));
+
+        getAdmin(adminEmail);
+
+        race.setTrackImageUrl(null);
+        Race savedRace = raceRepository.save(race);
+        raceTrackImageStorageService.delete(raceId);
+
+        return toResponse(savedRace);
     }
 
     @Transactional
@@ -768,6 +812,7 @@ public class RaceService {
                 .tournamentId(race.getTournamentId())
                 .raceName(race.getRaceName())
                 .trackName(race.getTrackName())
+                .trackImageUrl(race.getTrackImageUrl())
                 .raceStartTime(race.getRaceStartTime())
                 .raceEndTime(race.getRaceEndTime())
                 .distance(race.getDistance())

@@ -1,14 +1,25 @@
 import { useEffect, useId, useState } from 'react';
-import { ImagePlus, Trash2, Upload } from 'lucide-react';
+import { Eye, ImagePlus, Trash2, Upload } from 'lucide-react';
 import { useLanguage } from '../../../../context/LanguageContext';
+import ImagePreviewDialog from '../ImagePreviewDialog';
 
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 
-export default function VenueImageField({ file, existingSrc, onSelect, onRemove }) {
+export default function VenueImageField({
+  file,
+  existingSrc,
+  onSelect,
+  onRemove,
+  label,
+  hint,
+  previewAlt,
+  required = false
+}) {
   const { t } = useLanguage();
   const inputId = useId();
   const [previewSrc, setPreviewSrc] = useState(existingSrc || '');
+  const [previewOpen, setPreviewOpen] = useState(false);
   const [error, setError] = useState('');
   const [isDragging, setIsDragging] = useState(false);
 
@@ -65,7 +76,14 @@ export default function VenueImageField({ file, existingSrc, onSelect, onRemove 
 
   function removeImage() {
     setError('');
+    setPreviewOpen(false);
     onRemove();
+  }
+
+  function openPreview(event) {
+    event.preventDefault();
+    event.stopPropagation();
+    setPreviewOpen(true);
   }
 
   return (
@@ -84,7 +102,17 @@ export default function VenueImageField({ file, existingSrc, onSelect, onRemove 
           }`}
         >
           {previewSrc ? (
-            <img src={previewSrc} alt={t('eventWizardImagePreviewAlt')} className="h-full w-full object-cover" />
+            <>
+              <img src={previewSrc} alt={previewAlt || t('eventWizardImagePreviewAlt')} className="h-full w-full object-cover" />
+              <button
+                type="button"
+                onClick={openPreview}
+                className="absolute right-2 top-2 grid size-9 place-items-center rounded-lg border border-white/70 bg-white/90 text-brown-700 shadow-sm transition hover:bg-cream-100"
+                aria-label={t('eventWizardImagePreviewAlt')}
+              >
+                <Eye size={16} />
+              </button>
+            </>
           ) : (
             <div className="px-4 text-center">
               <ImagePlus className="mx-auto" size={24} />
@@ -97,11 +125,11 @@ export default function VenueImageField({ file, existingSrc, onSelect, onRemove 
               {t('eventWizardDropToUpload')}
             </div>
           )}
-          <input id={inputId} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={selectFile} />
+          <input id={inputId} type="file" accept="image/jpeg,image/png,image/webp" className="sr-only" onChange={selectFile} aria-required={required} />
         </label>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-black text-brown-900">{t('eventWizardVenueImage')}</p>
-          <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">{t('eventWizardImageHint')}</p>
+          <p className="text-sm font-black text-brown-900">{label || t('eventWizardVenueImage')}</p>
+          <p className="mt-1 text-xs font-semibold leading-5 text-slate-500">{hint || t('eventWizardImageHint')}</p>
           <div className="mt-2 min-h-9" aria-live="polite">
             {file && <p className="truncate text-xs font-extrabold text-emerald-700">{t('eventWizardImageSelected', { name: file.name })}</p>}
             {error && <p className="text-xs font-extrabold text-danger">{error}</p>}
@@ -121,6 +149,12 @@ export default function VenueImageField({ file, existingSrc, onSelect, onRemove 
           </div>
         </div>
       </div>
+      <ImagePreviewDialog
+        src={previewOpen ? previewSrc : ''}
+        alt={previewAlt || t('eventWizardImagePreviewAlt')}
+        title={label || t('eventWizardVenueImage')}
+        onClose={() => setPreviewOpen(false)}
+      />
     </div>
   );
 }

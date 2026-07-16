@@ -4,6 +4,7 @@ import { FIELD_CLASS } from './wizardConstants';
 import { WizardField } from './WizardPrimitives';
 import { formatRaceSchedule } from '../../../../lib/eventFormatters';
 import { useLanguage } from '../../../../context/LanguageContext';
+import VenueImageField from './VenueImageField';
 
 export default function RaceEditorCard({ race, index, draft, errors, onChange, onRemove }) {
   const { t } = useLanguage();
@@ -60,6 +61,25 @@ export default function RaceEditorCard({ race, index, draft, errors, onChange, o
         <WizardField label={t('eventWizardRaceCapacity')} error={errors[`${prefix}-maxRunners`]} hint={t('eventWizardUnityCapacityHint')} className="xl:col-span-4">
           <input type="number" min="3" max="6" className={FIELD_CLASS} value={race.maxRunners} onChange={(event) => onChange({ maxRunners: Number(event.target.value) })} />
         </WizardField>
+        <div className="md:col-span-2 xl:col-span-8">
+          <VenueImageField
+            file={race.trackImageFile}
+            existingSrc={race.trackImageSrc}
+            label={t('eventWizardRaceTrackImage')}
+            hint={t('eventWizardRaceTrackImageHint')}
+            previewAlt={t('eventWizardRaceTrackImagePreviewAlt')}
+            onSelect={(file) => onChange({
+              trackImageFile: file,
+              trackImageRemoved: false
+            })}
+            onRemove={() => onChange({
+              trackImageFile: null,
+              trackImageUrl: '',
+              trackImageSrc: '',
+              trackImageRemoved: Boolean(race.trackImageUrl) || race.trackImageRemoved
+            })}
+          />
+        </div>
       </div>
     </motion.article>
   );

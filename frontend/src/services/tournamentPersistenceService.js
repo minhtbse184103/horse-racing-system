@@ -9,7 +9,9 @@ import {
   cancelRace,
   createRace,
   createTournamentProgram as createTournamentProgramRequest,
+  removeRaceTrackImage,
   removeTournamentVenueImage,
+  uploadRaceTrackImage,
   uploadTournamentVenueImage,
   updateRace,
   updateTournament
@@ -19,6 +21,34 @@ function persistenceError(message, cause, partialTournamentId = null) {
   const error = new Error(`${message}${cause?.message ? ` ${cause.message}` : ''}`);
   error.partialTournamentId = partialTournamentId;
   return error;
+}
+
+async function syncRaceTrackImage(raceId, race) {
+  if (race.trackImageFile) {
+    await uploadRaceTrackImage(raceId, race.trackImageFile);
+  } else if (race.trackImageRemoved && race.trackImageUrl) {
+    await removeRaceTrackImage(raceId);
+  }
+}
+
+async function syncCreatedRaceTrackImages(savedTournament, draft) {
+  const savedRaces = Array.isArray(savedTournament?.races) ? savedTournament.races : [];
+  const savedRaceByOrder = new Map(
+    savedRaces.map((race) => [Number(race.raceOrder), race])
+  );
+
+  for (const race of draft.races) {
+    if (!race.trackImageFile) continue;
+
+    const raceOrder = Number(race.raceOrder || draft.races.indexOf(race) + 1);
+    const savedRace = savedRaceByOrder.get(raceOrder);
+
+    if (!savedRace?.raceId) {
+      throw new Error(`Không tìm thấy Race đã lưu cho ${race.name}.`);
+    }
+
+    await uploadRaceTrackImage(savedRace.raceId, race.trackImageFile);
+  }
 }
 
 export async function createTournamentProgram(draft) {
@@ -37,6 +67,16 @@ export async function createTournamentProgram(draft) {
         tournamentId
       );
     }
+  }
+
+  try {
+    await syncCreatedRaceTrackImages(tournament, draft);
+  } catch (error) {
+    throw persistenceError(
+      `Đã tạo ${draft.name} và chương trình Race, nhưng không thể tải hình đường đua lên. Hãy chỉnh sửa Tournament đã lưu để thử tải hình lại.`,
+      error,
+      tournamentId
+    );
   }
 
   return tournamentId;
@@ -60,8 +100,10 @@ export async function updateTournamentProgram(original, draft) {
           race.id,
           toUpdateRaceRequest(race, Number(race.raceOrder || 1))
         );
+        await syncRaceTrackImage(race.id, race);
       } else {
-        await createRace(toCreateRaceRequest(race, draft.id, nextRaceOrder));
+        const savedRace = await createRace(toCreateRaceRequest(race, draft.id, nextRaceOrder));
+        await syncRaceTrackImage(savedRace.raceId, race);
         nextRaceOrder += 1;
       }
     } catch (error) {

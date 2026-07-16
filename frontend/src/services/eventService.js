@@ -90,6 +90,22 @@ export function updateRace(raceId, payload) {
   });
 }
 
+export function uploadRaceTrackImage(raceId, file) {
+  const formData = new FormData();
+  formData.append('file', file);
+
+  return httpRequest(`/api/races/${raceId}/track-image`, {
+    method: 'POST',
+    body: formData
+  });
+}
+
+export function removeRaceTrackImage(raceId) {
+  return httpRequest(`/api/races/${raceId}/track-image`, {
+    method: 'DELETE'
+  });
+}
+
 export function cancelRace(raceId) {
   return httpRequest(`/api/races/${raceId}`, {
     method: 'DELETE'

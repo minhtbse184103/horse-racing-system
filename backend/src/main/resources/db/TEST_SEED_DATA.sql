@@ -121,23 +121,22 @@ VALUES
   (4, 2, 'AGE',    'BETWEEN', 3.00, 12.00, NULL);
 
 INSERT INTO `Race`
-  (`raceID`, `tournamentID`, `raceName`, `trackName`, `raceStartTime`, `raceEndTime`, `distance`, `maxRunners`, `raceOrder`, `status`, `createdAt`, `updatedAt`)
+  (`raceID`, `tournamentID`, `raceName`, `trackName`, `trackImageUrl`, `raceStartTime`, `raceEndTime`, `distance`, `maxRunners`, `raceOrder`, `status`, `createdAt`, `updatedAt`)
 VALUES
-  (1, 1, 'Future Sprint',    'Bangkok Track A', TIMESTAMP(DATE_ADD(@seed_today, INTERVAL 40 DAY), '10:00:00'), TIMESTAMP(DATE_ADD(@seed_today, INTERVAL 40 DAY), '10:30:00'), 1200, 6, 1, 'OPEN_FOR_REGISTRATION', @seed_now, @seed_now),
-  (2, 1, 'Future Classic',   'Bangkok Track A', TIMESTAMP(DATE_ADD(@seed_today, INTERVAL 41 DAY), '13:00:00'), TIMESTAMP(DATE_ADD(@seed_today, INTERVAL 41 DAY), '13:45:00'), 1800, 6, 2, 'OPEN_FOR_REGISTRATION', @seed_now, @seed_now),
-  (3, 1, 'Future Endurance', 'Bangkok Track B', TIMESTAMP(DATE_ADD(@seed_today, INTERVAL 42 DAY), '15:00:00'), TIMESTAMP(DATE_ADD(@seed_today, INTERVAL 42 DAY), '16:00:00'), 2400, 6, 3, 'OPEN_FOR_REGISTRATION', @seed_now, @seed_now),
-  (4, 2, 'Heritage Sprint',  'Chiang Mai Main', TIMESTAMP(DATE_SUB(@seed_today, INTERVAL 120 DAY), '10:00:00'), TIMESTAMP(DATE_SUB(@seed_today, INTERVAL 120 DAY), '10:30:00'), 1200, 6, 1, 'COMPLETED', DATE_SUB(@seed_now, INTERVAL 190 DAY), DATE_SUB(@seed_now, INTERVAL 120 DAY)),
-  (5, 2, 'Heritage Classic', 'Chiang Mai Main', TIMESTAMP(DATE_SUB(@seed_today, INTERVAL 119 DAY), '14:00:00'), TIMESTAMP(DATE_SUB(@seed_today, INTERVAL 119 DAY), '14:45:00'), 1800, 6, 2, 'COMPLETED', DATE_SUB(@seed_now, INTERVAL 190 DAY), DATE_SUB(@seed_now, INTERVAL 119 DAY)),
-  -- Manual-mode launch test race: raceStartTime is already in the past and
-  -- status is OPEN_FOR_REGISTRATION, so RaceEngineLaunchService.refreshRaceStatus
-  -- flips it to READY the moment the workspace or launch flow refreshes it;
-  -- "Run Race" then moves it to IN_PROGRESS after Unity launch succeeds (no waiting on
-  -- the clock). Has 6 ASSIGNED RaceEntry rows below, matching the Unity
+  (1, 1, 'Future Sprint',    'Bangkok Track A', 'https://images.unsplash.com/photo-1533587851505-d119e13fa0d7?auto=format&fit=crop&w=1200&q=80', TIMESTAMP(DATE_ADD(@seed_today, INTERVAL 40 DAY), '10:00:00'), TIMESTAMP(DATE_ADD(@seed_today, INTERVAL 40 DAY), '10:30:00'), 1200, 6, 1, 'OPEN_FOR_REGISTRATION', @seed_now, @seed_now),
+  (2, 1, 'Future Classic',   'Bangkok Track A', 'https://images.unsplash.com/photo-1553284965-83fd3e82fa5a?auto=format&fit=crop&w=1200&q=80', TIMESTAMP(DATE_ADD(@seed_today, INTERVAL 41 DAY), '13:00:00'), TIMESTAMP(DATE_ADD(@seed_today, INTERVAL 41 DAY), '13:45:00'), 1800, 6, 2, 'OPEN_FOR_REGISTRATION', @seed_now, @seed_now),
+  (3, 1, 'Future Endurance', 'Bangkok Track B', 'https://images.unsplash.com/photo-1511886929837-354d827aae26?auto=format&fit=crop&w=1200&q=80', TIMESTAMP(DATE_ADD(@seed_today, INTERVAL 42 DAY), '15:00:00'), TIMESTAMP(DATE_ADD(@seed_today, INTERVAL 42 DAY), '16:00:00'), 2400, 6, 3, 'OPEN_FOR_REGISTRATION', @seed_now, @seed_now),
+  (4, 2, 'Heritage Sprint',  'Chiang Mai Main', 'https://images.unsplash.com/photo-1534777410147-084a460870fc?auto=format&fit=crop&w=1200&q=80', TIMESTAMP(DATE_SUB(@seed_today, INTERVAL 120 DAY), '10:00:00'), TIMESTAMP(DATE_SUB(@seed_today, INTERVAL 120 DAY), '10:30:00'), 1200, 6, 1, 'COMPLETED', DATE_SUB(@seed_now, INTERVAL 190 DAY), DATE_SUB(@seed_now, INTERVAL 120 DAY)),
+  (5, 2, 'Heritage Classic', 'Chiang Mai Main', 'https://images.unsplash.com/photo-1526163180810-9a17e4f915a5?auto=format&fit=crop&w=1200&q=80', TIMESTAMP(DATE_SUB(@seed_today, INTERVAL 119 DAY), '14:00:00'), TIMESTAMP(DATE_SUB(@seed_today, INTERVAL 119 DAY), '14:45:00'), 1800, 6, 2, 'COMPLETED', DATE_SUB(@seed_now, INTERVAL 190 DAY), DATE_SUB(@seed_now, INTERVAL 119 DAY)),
+  -- Manual-mode launch test race: raceStartTime is already in the past.
+  -- Admin must explicitly mark it READY, then "Run Race" moves it to
+  -- IN_PROGRESS after Unity launch succeeds. Has 6 ASSIGNED RaceEntry rows
+  -- below, matching the Unity
   -- simulator capacity and satisfying
   -- MIN_RUNNERS_TO_LAUNCH, and no RaceResult yet, so it's launchable and
   -- ready to receive a result from Unity right after seeding.
-  (6, 1, 'Live Test Race',   'Bangkok Track A', DATE_SUB(@seed_now, INTERVAL 1 HOUR), DATE_ADD(@seed_now, INTERVAL 1 HOUR), 1000, 6, 4, 'OPEN_FOR_REGISTRATION', @seed_now, @seed_now),
-  (7, 1, 'Betting Demo Sprint', 'Bangkok Track C', DATE_ADD(@seed_now, INTERVAL 8 HOUR), DATE_ADD(@seed_now, INTERVAL 8 HOUR) + INTERVAL 30 MINUTE, 1200, 6, 5, 'REGISTRATION_CLOSED', @seed_now, @seed_now);
+  (6, 1, 'Live Test Race',   'Bangkok Track A', 'https://images.unsplash.com/photo-1540479859555-17af45c78602?auto=format&fit=crop&w=1200&q=80', DATE_SUB(@seed_now, INTERVAL 1 HOUR), DATE_ADD(@seed_now, INTERVAL 1 HOUR), 1000, 6, 4, 'OPEN_FOR_REGISTRATION', @seed_now, @seed_now),
+  (7, 1, 'Betting Demo Sprint', 'Bangkok Track C', 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80', DATE_ADD(@seed_now, INTERVAL 8 HOUR), DATE_ADD(@seed_now, INTERVAL 8 HOUR) + INTERVAL 30 MINUTE, 1200, 6, 5, 'REGISTRATION_CLOSED', @seed_now, @seed_now);
 
 INSERT INTO `RacePrize`
   (`racePrizeID`, `raceID`, `rankPosition`, `amount`, `ownerPercent`, `jockeyPercent`)

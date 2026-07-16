@@ -26,6 +26,7 @@ import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
+import org.springframework.mock.web.MockMultipartFile;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -51,6 +52,7 @@ class RaceServiceTest {
     @Mock private RaceResultRepository raceResultRepository;
     @Mock private UserRepository userRepository;
     @Mock private RaceRunWatchdogService raceRunWatchdogService;
+    @Mock private RaceTrackImageStorageService raceTrackImageStorageService;
 
     private RaceService service;
 
@@ -63,7 +65,8 @@ class RaceServiceTest {
                 raceResultRepository,
                 tournamentRepository,
                 userRepository,
-                raceRunWatchdogService
+                raceRunWatchdogService,
+                raceTrackImageStorageService
         );
     }
 
@@ -351,6 +354,55 @@ class RaceServiceTest {
         assertEquals("Race can no longer be modified.", exception.getMessage());
         verify(tournamentRepository, never()).findByIdForUpdate(any());
         verify(raceRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void uploadTrackImageStoresCloudinaryUrlOnRace() {
+        Race race = race();
+        MockMultipartFile file = new MockMultipartFile(
+                "file",
+                "track.png",
+                "image/png",
+                new byte[]{1, 2, 3}
+        );
+
+        stubAdmin();
+        when(raceRepository.findByIdForUpdate(8)).thenReturn(Optional.of(race));
+        when(raceTrackImageStorageService.store(8, file))
+                .thenReturn("https://res.cloudinary.com/demo/race-8.png");
+        when(raceRepository.save(race)).thenReturn(race);
+        when(raceResultRepository.countResultsByRaceIds(List.of(8))).thenReturn(List.of());
+        when(racePrizeRepository.findByRaceIdOrderByRankPositionAsc(8)).thenReturn(List.of());
+        when(raceEntryRepository.countByRaceIdAndStatus(8, RaceEntryStatus.ASSIGNED))
+                .thenReturn(0L);
+
+        RaceResponse response = service.uploadTrackImage(8, file, "admin@example.com");
+
+        assertEquals("https://res.cloudinary.com/demo/race-8.png", response.getTrackImageUrl());
+        assertEquals("https://res.cloudinary.com/demo/race-8.png", race.getTrackImageUrl());
+        verify(raceTrackImageStorageService).store(8, file);
+        verify(raceRepository).save(race);
+    }
+
+    @Test
+    void removeTrackImageClearsRaceImageAndDeletesCloudinaryAsset() {
+        Race race = race();
+        race.setTrackImageUrl("https://res.cloudinary.com/demo/race-8.png");
+
+        stubAdmin();
+        when(raceRepository.findByIdForUpdate(8)).thenReturn(Optional.of(race));
+        when(raceRepository.save(race)).thenReturn(race);
+        when(raceResultRepository.countResultsByRaceIds(List.of(8))).thenReturn(List.of());
+        when(racePrizeRepository.findByRaceIdOrderByRankPositionAsc(8)).thenReturn(List.of());
+        when(raceEntryRepository.countByRaceIdAndStatus(8, RaceEntryStatus.ASSIGNED))
+                .thenReturn(0L);
+
+        RaceResponse response = service.removeTrackImage(8, "admin@example.com");
+
+        assertEquals(null, response.getTrackImageUrl());
+        assertEquals(null, race.getTrackImageUrl());
+        verify(raceTrackImageStorageService).delete(8);
+        verify(raceRepository).save(race);
     }
 
     @Test

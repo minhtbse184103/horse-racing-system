@@ -14,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -75,6 +76,27 @@ public class RaceController {
             Authentication authentication
     ) {
         return raceService.updateRace(raceId, request, authentication.getName());
+    }
+
+    @PostMapping(value = "/{raceId}/track-image", consumes = "multipart/form-data")
+    public RaceResponse uploadTrackImage(
+            @PathVariable Integer raceId,
+            @RequestPart("file") MultipartFile file,
+            Authentication authentication
+    ) {
+        return raceService.uploadTrackImage(
+                raceId,
+                file,
+                authentication.getName()
+        );
+    }
+
+    @DeleteMapping("/{raceId}/track-image")
+    public RaceResponse removeTrackImage(
+            @PathVariable Integer raceId,
+            Authentication authentication
+    ) {
+        return raceService.removeTrackImage(raceId, authentication.getName());
     }
 
     @PutMapping("/{raceId}/close-registration")

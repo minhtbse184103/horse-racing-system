@@ -976,6 +976,7 @@ public class TournamentService {
                 .tournamentId(race.getTournamentId())
                 .raceName(race.getRaceName())
                 .trackName(race.getTrackName())
+                .trackImageUrl(race.getTrackImageUrl())
                 .raceStartTime(race.getRaceStartTime())
                 .raceEndTime(race.getRaceEndTime())
                 .distance(race.getDistance())

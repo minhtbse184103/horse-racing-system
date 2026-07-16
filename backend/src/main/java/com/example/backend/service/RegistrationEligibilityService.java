@@ -99,7 +99,7 @@ public class RegistrationEligibilityService {
     ) {
         if (!EventStatus.OPEN_FOR_REGISTRATION.equals(tournament.getStatus())
                 && !EventStatus.REGISTRATION_CLOSED.equals(
-                tournament.getStatus())) {
+                tournament.getStatus())&& !EventStatus.IN_PROGRESS.equals(tournament.getStatus())) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
                     "Tournament is not available for registration review."

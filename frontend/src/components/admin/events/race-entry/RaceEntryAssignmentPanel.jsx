@@ -1,6 +1,6 @@
 import { Fragment, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, Flag, LoaderCircle, Medal, PlayCircle, Radio, RefreshCw, Trophy, UserPlus, XCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, Flag, Image as ImageIcon, LoaderCircle, Medal, PlayCircle, Radio, RefreshCw, Trophy, UserPlus, XCircle } from 'lucide-react';
 import AssignmentDialog from './AssignmentDialog';
 import CancellationDialog from './CancellationDialog';
 import OfficialEntries from './OfficialEntries';
@@ -8,6 +8,7 @@ import PrizeRuleDialog from './PrizeRuleDialog';
 import RaceResultPrizeDialog from './RaceResultPrizeDialog';
 import RaceLiveView from './RaceLiveView';
 import useRaceEntryAssignment from './useRaceEntryAssignment';
+import ImagePreviewDialog from '../ImagePreviewDialog';
 import TournamentStatusBadge from '../TournamentStatusBadge';
 import { failRaceRun, readyRace, runRace } from '../../../../services/eventService';
 import { formatRaceSchedule } from '../../../../lib/eventFormatters';
@@ -35,6 +36,7 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
   const [cancellationEntry, setCancellationEntry] = useState(null);
   const [prizeRuleRace, setPrizeRuleRace] = useState(null);
   const [resultPrizeRace, setResultPrizeRace] = useState(null);
+  const [trackPreviewRace, setTrackPreviewRace] = useState(null);
   const [failTargetRace, setFailTargetRace] = useState(null);
   const [failReason, setFailReason] = useState('');
   const [failReasonError, setFailReasonError] = useState('');
@@ -188,7 +190,21 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
             <Fragment key={race.id}>
               <motion.div layout className={`grid gap-3 px-4 py-3.5 transition-colors lg:grid-cols-[2.25rem_minmax(0,1fr)_minmax(19rem,auto)] lg:items-center ${selected ? 'bg-white/80 shadow-[inset_3px_0_0_#d9a441]' : 'hover:bg-white/55'}`}>
                 <button type="button" onClick={() => selectRace(race.id)} className={`grid size-9 place-items-center rounded-lg ${selected ? 'bg-brown-700 text-white' : 'bg-cream-200 text-brown-700'}`} aria-label={selected ? t('eventCommonClose') : t('eventCommonViewDetail')}>{selected ? <ChevronDown size={16} /> : <ChevronRight size={16} />}</button>
-                <div className="min-w-0">
+                <div className="flex min-w-0 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => race.trackImageSrc && setTrackPreviewRace(race)}
+                    disabled={!race.trackImageSrc}
+                    className="hidden size-16 shrink-0 overflow-hidden rounded-lg border border-brown-700/10 bg-cream-200 text-brown-500 transition hover:border-brown-500 disabled:cursor-default sm:grid sm:place-items-center"
+                    aria-label={race.trackImageSrc ? `${t('eventWizardRaceTrackImagePreviewAlt')}: ${race.track}` : t('eventWizardRaceTrackImagePreviewAlt')}
+                  >
+                    {race.trackImageSrc ? (
+                      <img src={race.trackImageSrc} alt={race.track} className="h-full w-full cursor-zoom-in object-cover" />
+                    ) : (
+                      <ImageIcon size={18} />
+                    )}
+                  </button>
+                  <div className="min-w-0 flex-1">
                   <button type="button" onClick={() => selectRace(race.id)} className="min-w-0 text-left">
                     <p className="text-xs font-black uppercase text-brown-500">Race {String(index + 1).padStart(2, '0')}</p>
                     <h5 className="mt-1 truncate font-black text-brown-900">{race.name}</h5>
@@ -220,6 +236,7 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
                       )}
                     </div>
                   )}
+                  </div>
                 </div>
                 <div className="grid gap-2 sm:grid-cols-2 lg:justify-self-end">
                   {(canManageRaceEntries || race.status === 'READY' || isLive) && (
@@ -343,6 +360,17 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
             entry={cancellationEntry}
             onClose={() => setCancellationEntry(null)}
             onConfirm={assignment.cancelEntry}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {trackPreviewRace && (
+          <ImagePreviewDialog
+            src={trackPreviewRace.trackImageSrc}
+            alt={trackPreviewRace.track}
+            title={trackPreviewRace.name}
+            onClose={() => setTrackPreviewRace(null)}
           />
         )}
       </AnimatePresence>

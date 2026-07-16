@@ -20,6 +20,10 @@ export function createInitialTournamentDraft(initialTournament) {
       raceStartTime: race.raceStartTime || (date ? `${date}T09:00` : ''),
       raceEndTime: race.raceEndTime || (date ? `${date}T10:00` : ''),
       status: race.status || 'OPEN_FOR_REGISTRATION',
+      trackImageUrl: race.trackImageUrl || '',
+      trackImageSrc: race.trackImageSrc || '',
+      trackImageFile: null,
+      trackImageRemoved: false,
       prizes: (race.prizes || []).map((prize) => ({ ...prize }))
     }))
   };
@@ -92,6 +96,10 @@ export function createRace(draft) {
     maxRunners: DEFAULT_RACE_MAX_RUNNERS,
     entries: 0,
     status: 'OPEN_FOR_REGISTRATION',
+    trackImageUrl: '',
+    trackImageSrc: '',
+    trackImageFile: null,
+    trackImageRemoved: false,
     prizes: DEFAULT_RACE_PRIZES.map((prize) => ({ ...prize }))
   };
 }

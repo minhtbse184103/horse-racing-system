@@ -206,6 +206,7 @@ CREATE TABLE `Race` (
   `tournamentID` int NOT NULL,
   `raceName` varchar(255) NOT NULL,
   `trackName` varchar(255) NOT NULL,
+  `trackImageUrl` varchar(500),
   `raceStartTime` datetime NOT NULL,
   `raceEndTime` datetime,
   `distance` int NOT NULL,
