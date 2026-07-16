@@ -16,6 +16,7 @@ import OwnerApplicationForm from '../profile/OwnerApplicationForm';
 import JockeyApplicationForm from '../profile/JockeyApplicationForm';
 import KycApplicationForm from '../profile/KycApplicationForm';
 import WalletTransferPanel from '../payment/WalletTransferPanel';
+import BettingPanel from './BettingPanel';
 import StatCard from '../common/StatCard';
 import LanguageToggle from '../common/LanguageToggle';
 import { useLanguage } from '../../context/LanguageContext';
@@ -669,7 +670,7 @@ export default function UserPanel({ user, onLogout }) {
     }
 
     if (activeSection === 'betting') {
-      return <PlaceholderSection title="Betting" message="Betting overview placeholder for the future backend." icon="💰" />;
+      return <BettingPanel />;
     }
 
     if (activeSection === 'wallet' && role === 'SPECTATOR') {

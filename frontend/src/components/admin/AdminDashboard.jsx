@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
+  CircleDollarSign,
   ClipboardCheck,
   FileCheck2,
   FileText,
@@ -28,6 +29,7 @@ import { formatDisplayLabel } from '../../lib';
 import { tapPress } from './ui/motion';
 import { useLanguage } from '../../context/LanguageContext';
 import WalletTransferPanel from '../payment/WalletTransferPanel';
+import BettingManagement from './betting/BettingManagement';
 
 const adminNavItems = [
   {
@@ -53,6 +55,12 @@ const adminNavItems = [
     labelKey: 'tournament',
     descriptionKey: 'tournamentDescription',
     icon: Trophy
+  },
+  {
+    key: 'betting',
+    labelKey: 'bettingManagement',
+    descriptionKey: 'bettingDescription',
+    icon: CircleDollarSign
   },
   {
     key: 'jockeyReviews',
@@ -128,6 +136,7 @@ export default function AdminDashboard({ currentUser, onLogout }) {
     settings: <AdminSettings currentUser={currentAdmin} onUserUpdated={setCurrentAdmin} />,
     ownerApplications: <OwnerApplicationManagement />,
     events: <TournamentWorkspace adminName={adminName} focus={eventFocus} onFocusHandled={() => setEventFocus(null)} onNavigateToResultReview={() => setActiveSection('raceResultReviews')} />,
+    betting: <BettingManagement />,
     refereeAssignments: <RefereeAssignmentManagement />,
     raceResultReviews: <AdminRaceResultReview />,
     jockeyReviews: <JockeyReview />,

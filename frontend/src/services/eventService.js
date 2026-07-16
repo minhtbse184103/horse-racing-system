@@ -8,6 +8,10 @@ export function getTournaments() {
   return httpRequest('/api/tournaments');
 }
 
+export function getRaces() {
+  return httpRequest('/api/races');
+}
+
 export function getTournamentWorkspace() {
   return httpRequest('/api/admin/tournaments/workspace');
 }
