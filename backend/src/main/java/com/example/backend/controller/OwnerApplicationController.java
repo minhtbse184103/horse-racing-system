@@ -68,6 +68,12 @@ public class OwnerApplicationController {
         return ResponseEntity.ok(ownerApplicationService.getAdminApplication(applicationId));
     }
 
+    @GetMapping("/api/admin/owners/{ownerId}/profile")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<OwnerProfileResponse> getAdminOwnerProfile(@PathVariable Integer ownerId) {
+        return ResponseEntity.ok(ownerApplicationService.getAdminOwnerProfile(ownerId));
+    }
+
     @PutMapping("/api/admin/owner-applications/{applicationId}/approve")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<OwnerApplicationResponse> approveOwnerApplication(

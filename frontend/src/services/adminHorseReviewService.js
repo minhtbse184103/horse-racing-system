@@ -37,6 +37,14 @@ export async function getPendingHorses() {
   return Array.isArray(horses) ? horses.map(normalizeHorse) : [];
 }
 
+export async function getAdminHorseDetail(horseId) {
+  const horse = await httpRequest(`/api/admin/horses/${horseId}`, {
+    fallbackError: 'Khong the tai chi tiet ho so ngua.'
+  });
+
+  return normalizeHorse(horse);
+}
+
 export async function approveHorse(horseId) {
   const horse = await httpRequest(`/api/admin/horses/${horseId}/approve`, {
     method: 'PUT',

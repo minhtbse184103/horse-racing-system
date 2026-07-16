@@ -203,6 +203,30 @@ public class OwnerApplicationService {
         return mapProfile(profile, application, owner);
     }
 
+    @Transactional(readOnly = true)
+    public OwnerProfileResponse getAdminOwnerProfile(Integer ownerId) {
+        User owner = userRepository.findById(ownerId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Owner not found."));
+
+        if (owner.getRole() == null || !ROLE_OWNER.equals(owner.getRole().getRoleName())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "User is not an owner.");
+        }
+
+        OwnerProfile profile = ownerProfileRepository.findById(ownerId).orElse(null);
+        OwnerApplication application = profile == null
+                ? ownerApplicationRepository.findFirstByUserIdOrderByApplicationIdDesc(ownerId)
+                        .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Owner application not found."))
+                : getApplication(profile.getApplicationId());
+
+        return mapProfileFromApplication(
+                ownerId,
+                profile != null ? profile.getApplicationId() : application.getApplicationId(),
+                application,
+                owner,
+                profile != null ? profile.getCreatedAt() : application.getReviewedAt()
+        );
+    }
+
     private OwnerApplication getApplication(Integer applicationId) {
         return ownerApplicationRepository.findById(applicationId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Owner application not found."));
@@ -273,10 +297,26 @@ public class OwnerApplicationService {
     }
 
     private OwnerProfileResponse mapProfile(OwnerProfile profile, OwnerApplication application, User owner) {
+        return mapProfileFromApplication(
+                profile.getOwnerId(),
+                profile.getApplicationId(),
+                application,
+                owner,
+                profile.getCreatedAt()
+        );
+    }
+
+    private OwnerProfileResponse mapProfileFromApplication(
+            Integer ownerId,
+            Integer applicationId,
+            OwnerApplication application,
+            User owner,
+            LocalDateTime ownerSince
+    ) {
         UserVerification verification = getApplicationKyc(application);
         return OwnerProfileResponse.builder()
-                .ownerId(profile.getOwnerId())
-                .applicationId(profile.getApplicationId())
+                .ownerId(ownerId)
+                .applicationId(applicationId)
                 .kycVerificationId(application.getKycVerificationId())
                 .username(owner.getUsername())
                 .email(owner.getEmail())
@@ -298,7 +338,7 @@ public class OwnerApplicationService {
                 .status(application.getStatus())
                 .submittedAt(application.getSubmittedAt())
                 .reviewedAt(application.getReviewedAt())
-                .ownerSince(profile.getCreatedAt())
+                .ownerSince(ownerSince)
                 .build();
     }
 

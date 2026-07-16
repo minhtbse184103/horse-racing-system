@@ -4,8 +4,12 @@ import { AlertTriangle, ChevronDown, ChevronRight, ClipboardCheck, LoaderCircle,
 import { REGISTRATION_FILTER_ALL } from '../operations/operationConstants';
 import RegistrationFilters from './RegistrationFilters';
 import RegistrationList from './RegistrationList';
+import RegistrationEntityDetailDialog from './RegistrationEntityDetailDialog';
 import RegistrationReviewDialog from './RegistrationReviewDialog';
 import { filterRegistrations, getRegistrationSummary, getTournamentRegistrations } from './registrationHelpers';
+import { getAdminHorseDetail } from '../../../../services/adminHorseReviewService';
+import { getAdminJockeyProfile } from '../../../../services/adminProfileReviewService';
+import { getAdminOwnerProfile } from '../../../../services/ownerApplicationService';
 import { useLanguage } from '../../../../context/LanguageContext';
 
 const DEFAULT_FILTERS = {
@@ -26,6 +30,9 @@ export default function RegistrationApprovalPanel({
   const { t } = useLanguage();
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
   const [selectedRegistration, setSelectedRegistration] = useState(null);
+  const [selectedEntity, setSelectedEntity] = useState(null);
+  const [entityLoading, setEntityLoading] = useState(false);
+  const [entityError, setEntityError] = useState('');
   const [expanded, setExpanded] = useState(false);
 
   const tournamentRegistrations = useMemo(
@@ -49,6 +56,28 @@ export default function RegistrationApprovalPanel({
       await onReject(registration.id, reason);
     }
     setSelectedRegistration(null);
+  }
+
+  async function viewEntity(type, registration) {
+    setSelectedEntity({ type, registration, detail: null });
+    setEntityLoading(true);
+    setEntityError('');
+
+    try {
+      let detail = null;
+      if (type === 'horse') {
+        detail = await getAdminHorseDetail(registration.horseId);
+      } else if (type === 'owner') {
+        detail = await getAdminOwnerProfile(registration.ownerId);
+      } else if (registration.jockeyId) {
+        detail = await getAdminJockeyProfile(registration.jockeyId);
+      }
+      setSelectedEntity({ type, registration, detail });
+    } catch (error) {
+      setEntityError(error.message || t('eventRegistrationEntityLoadError'));
+    } finally {
+      setEntityLoading(false);
+    }
   }
 
   return (
@@ -83,14 +112,28 @@ export default function RegistrationApprovalPanel({
             ) : (
               <>
                 <RegistrationFilters filters={filters} resultCount={filteredRegistrations.length} onChange={updateFilter} onReset={() => setFilters(DEFAULT_FILTERS)} />
-                <RegistrationList registrations={filteredRegistrations} onReview={setSelectedRegistration} />
+                <RegistrationList registrations={filteredRegistrations} onReview={setSelectedRegistration} onViewEntity={viewEntity} />
               </>
             )}
           </motion.div>
         )}
       </AnimatePresence>
       <AnimatePresence>
-        {selectedRegistration && <RegistrationReviewDialog registration={selectedRegistration} onClose={() => setSelectedRegistration(null)} onDecision={decideRegistration} />}
+        {selectedRegistration && <RegistrationReviewDialog registration={selectedRegistration} onClose={() => setSelectedRegistration(null)} onDecision={decideRegistration} onViewEntity={viewEntity} />}
+      </AnimatePresence>
+      <AnimatePresence>
+        {selectedEntity && (
+          <RegistrationEntityDetailDialog
+            entity={selectedEntity}
+            isLoading={entityLoading}
+            error={entityError}
+            onClose={() => {
+              setSelectedEntity(null);
+              setEntityError('');
+              setEntityLoading(false);
+            }}
+          />
+        )}
       </AnimatePresence>
     </section>
   );

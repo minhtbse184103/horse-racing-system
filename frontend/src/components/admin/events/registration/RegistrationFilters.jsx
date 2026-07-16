@@ -22,15 +22,15 @@ export default function RegistrationFilters({ filters, resultCount, onChange, on
           value={filters.search}
           onChange={(event) => onChange('search', event.target.value)}
           className={`${FILTER_CLASS} w-full pl-9`}
-          placeholder={`${t('eventCommonSearch')} ${t('eventDomainRegistration')}, Horse, ${t('eventDomainOwner')}`}
+          placeholder={`${t('eventCommonSearch')} ${t('eventDomainRegistration')}, ${t('eventDomainHorse')}, ${t('eventDomainOwner')}`}
         />
       </label>
-      <select value={filters.paymentStatus} onChange={(event) => onChange('paymentStatus', event.target.value)} className={FILTER_CLASS} aria-label="Lọc theo Payment Status">
-        <option value={REGISTRATION_FILTER_ALL}>{t('eventCommonAll')} Payment Status</option>
+      <select value={filters.paymentStatus} onChange={(event) => onChange('paymentStatus', event.target.value)} className={FILTER_CLASS} aria-label={`${t('eventCommonFilter')} ${t('eventRegistrationPaymentStatus')}`}>
+        <option value={REGISTRATION_FILTER_ALL}>{t('eventCommonAll')} {t('eventRegistrationPaymentStatus')}</option>
         {Object.keys(PAYMENT_STATUS_LABELS).map((value) => <option key={value} value={value}>{t(`eventStatus_${value}`)}</option>)}
       </select>
-      <select value={filters.approvalStatus} onChange={(event) => onChange('approvalStatus', event.target.value)} className={FILTER_CLASS} aria-label="Lọc theo Status duyệt">
-        <option value={REGISTRATION_FILTER_ALL}>{t('eventCommonAll')} Approval Status</option>
+      <select value={filters.approvalStatus} onChange={(event) => onChange('approvalStatus', event.target.value)} className={FILTER_CLASS} aria-label={`${t('eventCommonFilter')} ${t('eventRegistrationApprovalStatus')}`}>
+        <option value={REGISTRATION_FILTER_ALL}>{t('eventCommonAll')} {t('eventRegistrationApprovalStatus')}</option>
         {Object.keys(APPROVAL_STATUS_LABELS).map((value) => <option key={value} value={value}>{t(`eventStatus_${value}`)}</option>)}
       </select>
       <div className="flex items-center justify-between gap-3 lg:justify-end">

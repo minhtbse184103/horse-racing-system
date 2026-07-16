@@ -100,6 +100,14 @@ export async function getOwnerApplicationById(applicationId) {
   return normalizeOwnerApplication(application);
 }
 
+export async function getAdminOwnerProfile(ownerId) {
+  const profile = await httpRequest(`/api/admin/owners/${ownerId}/profile`, {
+    fallbackError: 'Khong the tai chi tiet Owner.'
+  });
+
+  return normalizeOwnerProfile(profile);
+}
+
 export async function approveOwnerApplication(applicationId) {
   const application = await httpRequest(`/api/admin/owner-applications/${applicationId}/approve`, {
     method: 'PUT',

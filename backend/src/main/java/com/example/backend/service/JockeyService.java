@@ -11,6 +11,9 @@ public interface JockeyService {
     // Lấy hồ sơ jockey của tài khoản đang đăng nhập.
     JockeyProfileResponse getProfile();
 
+    // Admin xem hồ sơ jockey theo user id.
+    JockeyProfileResponse getAdminProfile(Integer jockeyId);
+
     // Tạo hồ sơ jockey cho tài khoản đang đăng nhập.
     JockeyProfileResponse createProfile(JockeyProfileRequest request);
 
