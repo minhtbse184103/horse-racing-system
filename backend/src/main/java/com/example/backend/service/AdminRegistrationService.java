@@ -70,6 +70,10 @@ public class AdminRegistrationService {
 
     @Transactional(readOnly = true)
     public List<RegistrationResponse> getRegistrations(String status) {
+        // FLOW: Admin Registration List / Load / Filter
+        // ORDER: 4/8 - Service validates optional approval status and selects the Registration repository query.
+        // Validation: optional status must be a supported Registration approval status.
+        // DB effect: read-only Registration list mapped to enriched admin response fields.
         if (status == null || status.isBlank()) {
             return toResponses(
                     registrationRepository
@@ -96,6 +100,9 @@ public class AdminRegistrationService {
 
     @Transactional(readOnly = true)
     public List<RegistrationResponse> getPendingRegistrations() {
+        // FLOW: Admin Registration List / Load / Filter
+        // ORDER: 4ALT/8 - Service reads oldest-first PENDING Registration queue.
+        // DB effect: read-only oldest-first PENDING Registration queue.
         return toResponses(
                 registrationRepository
                         .findByApprovalStatusOrderBySubmittedAtAsc(
@@ -106,6 +113,9 @@ public class AdminRegistrationService {
 
     @Transactional(readOnly = true)
     public List<RegistrationResponse> getRegistrationHistory() {
+        // FLOW: Admin Registration List / Load / Filter
+        // ORDER: 4ALT/8 - Service reads reviewed Registration history.
+        // DB effect: read-only reviewed Registration history for APPROVED, REJECTED, and CANCELLED records.
         return toResponses(
                 registrationRepository
                         .findByApprovalStatusInOrderByReviewedAtDesc(
@@ -123,6 +133,10 @@ public class AdminRegistrationService {
             Integer registrationId,
             String adminEmail
     ) {
+        // FLOW: Admin Approve Registration
+        // ORDER: 7/8 - Service locks Registration/Tournament, validates admin, runs eligibility checks, and writes approval audit fields.
+        // Validation: Registration must be PENDING; Tournament exists; current user is ACTIVE ADMIN; eligibility service verifies payment, window, capacity, horse/owner/jockey, and conditions.
+        // DB effect: sets approvalStatus APPROVED, clears rejectionReason, and writes reviewedAt/reviewedBy audit fields.
         Registration registration =
                 getPendingRegistrationForUpdate(registrationId);
 
@@ -158,6 +172,10 @@ public class AdminRegistrationService {
             RejectRegistrationRequest request,
             String adminEmail
     ) {
+        // FLOW: Admin Reject Registration
+        // ORDER: 6/6 - Service locks PENDING Registration, validates admin, and writes rejection audit fields.
+        // Validation: Registration must still be PENDING; current user must be ACTIVE ADMIN; request DTO requires a non-blank rejectionReason.
+        // DB effect: sets approvalStatus REJECTED, stores trimmed rejectionReason, and writes reviewedAt/reviewedBy audit fields.
         Registration registration =
                 getPendingRegistrationForUpdate(registrationId);
 
@@ -266,6 +284,9 @@ public class AdminRegistrationService {
     private RegistrationResponse toResponse(
             Registration registration
     ) {
+        // FLOW: Admin Registration List / Load / Filter
+        // ORDER: 5/8 - Service maps each Registration row into an enriched response for Admin UI.
+        // Purpose: enrich a Registration row with Tournament, Horse, Owner, Jockey, reviewer, and active RaceEntry assignment display data.
         Tournament tournament = tournamentRepository
                 .findById(registration.getTournamentId())
                 .orElse(null);

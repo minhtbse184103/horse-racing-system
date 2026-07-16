@@ -66,6 +66,8 @@ function AssignmentModal({
   onClose,
   onConfirm
 }) {
+  // FLOW: Admin Create Referee Assignment / Replace Referee
+  // ORDER: 1/6 - Dialog lets Admin choose the Race and ACTIVE Referee before submitting assignment changes.
   const { language, t } = useLanguage();
   const locale = language === 'en' ? 'en-US' : 'vi-VN';
   const unscheduledText = t('eventRefereeAssignmentUnscheduled');
@@ -286,6 +288,10 @@ function AssignmentModal({
 }
 
 function RemoveModal({ assignment, isProcessing, error, onClose, onConfirm }) {
+  // FLOW: Admin Remove Referee Assignment
+  // ORDER: 2/6 - Modal confirms Admin really wants to remove the Race -> Referee assignment.
+  // FE path: assignment table/card delete action -> RemoveModal -> confirmRemove().
+  // Purpose: confirm removal before deleting the Race -> Referee assignment row.
   const { language, t } = useLanguage();
   const locale = language === 'en' ? 'en-US' : 'vi-VN';
   if (!assignment) return null;
@@ -383,6 +389,10 @@ export default function RefereeAssignmentManagement() {
   }, []);
 
   async function loadData() {
+    // FLOW: Admin Referee Assignment Page Data Load
+    // ORDER: 1/7 - Page load/refresh starts all data reads needed for assignment list, Referee options, and Race options.
+    // FE path: RefereeAssignmentManagement initial load/refresh -> assignment, Referee, and assignable Race endpoints.
+    // Purpose: build the page state for current assignments, ACTIVE Referees, and Races that still need a Referee.
     setIsLoading(true);
     setError('');
 
@@ -394,13 +404,19 @@ export default function RefereeAssignmentManagement() {
       ]);
 
       const nextAssignments = Array.isArray(assignmentData) ? assignmentData : [];
+      // FLOW: Admin Referee Assignment Page Data Load
+      // ORDER: 5/7 - Frontend receives backend lists and normalizes assignment rows before deriving Race availability.
       const assignedRaceIds = new Set(
         nextAssignments.map((assignment) => String(assignment.raceId))
       );
 
+      // FLOW: Admin Referee Assignment Page Data Load
+      // ORDER: 6/7 - Frontend removes already-assigned Races from assignable options so the form shows only Race rows that need a Referee.
       const eligibleRaceList = (Array.isArray(allAssignableRaces) ? allAssignableRaces : [])
         .filter((race) => !assignedRaceIds.has(String(race.raceId)));
 
+      // FLOW: Admin Referee Assignment Page Data Load
+      // ORDER: 7/7 - Page state updates metrics, assignment table, Referee choices, and assignable Race choices for rendering.
       setAssignments(nextAssignments);
       setReferees(Array.isArray(refereeData) ? refereeData : []);
       setEligibleRaces(eligibleRaceList);
@@ -435,15 +451,25 @@ export default function RefereeAssignmentManagement() {
       : '';
 
   async function confirmAssignment(raceId, selectedRefereeId) {
+    // FLOW: Admin Create Referee Assignment / Replace Referee
+    // ORDER: 2/6 - Submit handler chooses create versus replace, then reloads backend page data after success.
+    // FE path: AssignmentModal selection -> create or replace API depending on action.type.
+    // Purpose: submit selected Race + Referee, then reload assignment/referee/race page data from backend.
     setIsProcessing(true);
     setActionError('');
     setMessage('');
 
     try {
       if (action.type === 'replace') {
+        // FLOW: Admin Replace Referee
+        // ORDER: 2/6 - Replace path sends selected Race and replacement Referee IDs to the replace API.
+        // Payload contract: sends raceId in the URL and new refereeUserId in the URL; backend keeps/creates one assignment row for that Race.
         await replaceRefereeAssignment(raceId, selectedRefereeId);
         setMessage(t('eventRefereeAssignmentReplaceSuccess'));
       } else {
+        // FLOW: Admin Create Referee Assignment
+        // ORDER: 2A/6 - Create path sends Race and Referee IDs from the dialog to the assignment API.
+        // Payload contract: sends raceId and refereeUserId; backend validates Race status, ACTIVE REFEREE role, duplicate assignment, and schedule conflict.
         await createRefereeAssignment({
           raceId,
           refereeUserId: selectedRefereeId
@@ -461,6 +487,10 @@ export default function RefereeAssignmentManagement() {
   }
 
   async function confirmRemove() {
+    // FLOW: Admin Remove Referee Assignment
+    // ORDER: 3/6 - Confirm handler calls delete API, then reloads assignment and assignable Race data.
+    // FE path: RemoveModal confirmation -> DELETE /api/admin/referee-assignments/{raceId}.
+    // Purpose: remove the assignment in backend, then reload current assignments and assignable Races.
     setIsProcessing(true);
     setActionError('');
     setMessage('');
@@ -685,6 +715,8 @@ export default function RefereeAssignmentManagement() {
                           title={t('eventRefereeAssignmentReplace')}
                           aria-label={t('eventRefereeAssignmentReplaceAria', { race: assignment.raceName })}
                           onClick={() => {
+                            // FLOW: Admin Replace Referee
+                            // ORDER: 1/6 - Assignment table opens the replace dialog for the selected Race assignment.
                             setActionError('');
                             setAction({ type: 'replace', assignment });
                           }}
@@ -698,6 +730,8 @@ export default function RefereeAssignmentManagement() {
                           title={t('eventRefereeAssignmentRemoveAction')}
                           aria-label={t('eventRefereeAssignmentRemoveAria', { race: assignment.raceName })}
                           onClick={() => {
+                            // FLOW: Admin Remove Referee Assignment
+                            // ORDER: 1/6 - Assignment table delete action opens the remove confirmation modal.
                             setActionError('');
                             setRemoveTarget(assignment);
                           }}
@@ -734,6 +768,8 @@ export default function RefereeAssignmentManagement() {
                     aria-label={t('eventRefereeAssignmentReplaceAria', { race: assignment.raceName })}
                     onClick={() => { setActionError(''); setAction({ type: 'replace', assignment }); }}
                   >
+                    {/* FLOW: Admin Replace Referee */}
+                    {/* ORDER: 1/6 - Compact assignment card opens the replace dialog for the selected Race assignment. */}
                     <UserRoundCog size={16} />
                   </button>
                   <button
@@ -743,6 +779,8 @@ export default function RefereeAssignmentManagement() {
                     aria-label={t('eventRefereeAssignmentRemoveAria', { race: assignment.raceName })}
                     onClick={() => { setActionError(''); setRemoveTarget(assignment); }}
                   >
+                    {/* FLOW: Admin Remove Referee Assignment */}
+                    {/* ORDER: 1/6 - Compact assignment card delete action opens the remove confirmation modal. */}
                     <Trash2 size={16} />
                   </button>
                 </div>

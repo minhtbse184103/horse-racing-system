@@ -113,6 +113,9 @@ public interface RaceRepository extends JpaRepository<Race, Integer> {
             @Param("tournamentId") Integer tournamentId
     );
 
+    // FLOW: Admin Tournament Workspace Read
+    // ORDER: 5B/7 - Repository returns all Race rows for the visible workspace Tournaments.
+    // Purpose: batch load Race programs for all visible Tournaments to prevent per-Tournament Race API calls.
     @Query("""
         select race
         from Race race

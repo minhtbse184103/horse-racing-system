@@ -38,6 +38,10 @@ export default function useTournamentWorkspace() {
   const loadSequence = useRef(0);
   const registrationLoadSequence = useRef(0);
 
+  // FLOW: Admin Tournament Workspace Read
+  // ORDER: 1/7 - Workspace hook starts the read flow and requests the aggregate Tournament payload.
+  // FE path: TournamentWorkspace -> useTournamentWorkspace -> getTournamentWorkspace().
+  // Purpose: load the aggregate Tournament/Race workspace DTO and adapt it for cards, filters, metrics, and operation panels.
   const loadTournaments = useCallback(async () => {
     const sequence = ++loadSequence.current;
     setIsLoading(true);
@@ -65,6 +69,12 @@ export default function useTournamentWorkspace() {
     }
   }, []);
 
+  // FLOW: Admin Tournament Workspace Read
+  // ORDER: 1B/7 - Workspace hook also loads Registration review data beside the Tournament aggregate.
+  // FLOW: Admin Registration List / Load / Filter
+  // ORDER: 1/8 - Workspace starts Registration loading for the Admin review panels.
+  // FE path: TournamentWorkspace -> useTournamentWorkspace -> Admin Registration API.
+  // Purpose: load Registration data beside the Tournament aggregate so the workspace can show review counts and registration panels.
   const loadRegistrations = useCallback(async () => {
     const sequence = ++registrationLoadSequence.current;
     setRegistrationsLoading(true);
@@ -100,6 +110,8 @@ export default function useTournamentWorkspace() {
 
   useEffect(() => {
     function refreshAfterResultRejection() {
+      // FLOW: Admin Reject Result
+      // ORDER: 8A/8 - Workspace reloads tournament data after rejected result returns Race to READY.
       loadTournaments();
     }
 
@@ -110,6 +122,10 @@ export default function useTournamentWorkspace() {
   }, [loadTournaments]);
 
   async function approveRegistration(registrationId) {
+    // FLOW: Admin Approve Registration
+    // ORDER: 4/8 - Workspace calls backend approval and replaces the reviewed Registration row from the response.
+    // FE path: RegistrationReviewDialog -> workspace approveRegistration().
+    // Purpose: call backend approval, adapt the response, and replace only the reviewed Registration in local workspace state.
     const updated = adaptRegistration(
       await approveRegistrationRequest(registrationId)
     );
@@ -120,6 +136,9 @@ export default function useTournamentWorkspace() {
   }
 
   async function rejectRegistration(registrationId, rejectionReason) {
+    // FLOW: Admin Reject Registration
+    // ORDER: 3/6 - Workspace calls backend rejection and replaces the reviewed Registration row from the response.
+    // Purpose: keep the Registration list source-of-truth aligned with backend audit fields and rejection reason.
     const updated = adaptRegistration(
       await rejectRegistrationRequest(registrationId, rejectionReason)
     );
@@ -149,6 +168,9 @@ export default function useTournamentWorkspace() {
     [registrations]
   );
 
+  // FLOW: Admin Tournament Workspace Read
+  // ORDER: 7/7 - UI derives summary metrics after Tournament and Registration data are already in local state.
+  // Purpose: derive dashboard-level counts from already loaded workspace data, without extra API requests per Tournament or Race.
   const metrics = useMemo(() => {
     const visibleTournamentIds = new Set(tournaments.map((tournament) => tournament.id));
 
@@ -185,6 +207,10 @@ export default function useTournamentWorkspace() {
   }
 
   function openClone(tournament) {
+    // FLOW: Admin Clone Tournament
+    // ORDER: 2/4 - Workspace clears backend IDs/status/counts so the copy becomes a new create draft.
+    // FE path: TournamentActions -> useTournamentWorkspace.openClone() -> TournamentWizard.
+    // Purpose: create a FE-only draft by clearing backend IDs/status/counts; there is no clone API, so saving reuses Create Tournament Program.
     setMutationError('');
     setWizardTournament({
       ...tournament,
@@ -210,6 +236,10 @@ export default function useTournamentWorkspace() {
   async function saveTournament(tournament) {
     setMutationError('');
     try {
+      // FLOW: Admin Create Tournament Program / Edit Tournament Program
+      // ORDER: 2/8 - Workspace decides whether this draft is a new atomic create or an existing Tournament edit.
+      // FE path: TournamentWizard -> useTournamentWorkspace.saveTournament().
+      // Purpose: route new drafts to the atomic create endpoint and existing drafts to the edit synchronization flow.
       const tournamentId = tournament.id
         ? await updateTournamentProgram(wizardTournament, tournament)
         : await createTournamentProgram(tournament);
@@ -220,8 +250,8 @@ export default function useTournamentWorkspace() {
       return tournamentId;
     } catch (error) {
       await loadTournaments();
-      setMutationError(error.message || 'Không thể lưu Tournament này.');
       if (error.partialTournamentId) {
+        setMutationError(error.message || 'Không thể lưu Tournament này.');
         setExpandedId(error.partialTournamentId);
         setWizardOpen(false);
         return error.partialTournamentId;
@@ -231,6 +261,10 @@ export default function useTournamentWorkspace() {
   }
 
   async function deleteTournament() {
+    // FLOW: Admin Tournament Lifecycle
+    // ORDER: 3CANCEL/5 - Workspace calls cancel API, then reloads aggregate data from backend.
+    // FE path: DeleteTournamentDialog -> useTournamentWorkspace.deleteTournament().
+    // Purpose: cancel a Tournament through the backend, then reload the workspace so Tournament/Race statuses come from the source of truth.
     const target = deleteTarget;
     setMutationError('');
     try {
@@ -245,6 +279,10 @@ export default function useTournamentWorkspace() {
   }
 
   async function transitionTournament(tournament, action) {
+    // FLOW: Admin Tournament Lifecycle
+    // ORDER: 2/5 - Workspace routes close/complete actions to the matching lifecycle API and refreshes after success.
+    // FE path: TournamentLifecycleActions -> useTournamentWorkspace.transitionTournament().
+    // Purpose: route close-registration and complete actions to backend lifecycle endpoints, then refresh aggregate workspace data.
     setLifecycleProcessingId(tournament.id);
     setMutationError('');
     try {

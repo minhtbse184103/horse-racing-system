@@ -20,11 +20,13 @@ import com.example.backend.entity.OwnerApplication;
 import com.example.backend.entity.OwnerProfile;
 import com.example.backend.entity.Role;
 import com.example.backend.entity.User;
+import com.example.backend.entity.UserVerification;
 import com.example.backend.exception.ApiException;
 import com.example.backend.repository.OwnerApplicationRepository;
 import com.example.backend.repository.OwnerProfileRepository;
 import com.example.backend.repository.RoleRepository;
 import com.example.backend.repository.UserRepository;
+import com.example.backend.repository.UserVerificationRepository;
 
 @Service
 public class OwnerApplicationService {
@@ -39,6 +41,7 @@ public class OwnerApplicationService {
     private final OwnerProfileRepository ownerProfileRepository;
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final UserVerificationRepository userVerificationRepository;
     private final FileUploadService fileUploadService;
 
     public OwnerApplicationService(
@@ -46,11 +49,13 @@ public class OwnerApplicationService {
             OwnerProfileRepository ownerProfileRepository,
             UserRepository userRepository,
             RoleRepository roleRepository,
+            UserVerificationRepository userVerificationRepository,
             FileUploadService fileUploadService) {
         this.ownerApplicationRepository = ownerApplicationRepository;
         this.ownerProfileRepository = ownerProfileRepository;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
+        this.userVerificationRepository = userVerificationRepository;
         this.fileUploadService = fileUploadService;
     }
 
@@ -191,6 +196,34 @@ public class OwnerApplicationService {
         return mapProfile(profile, application, owner);
     }
 
+    @Transactional(readOnly = true)
+    public OwnerProfileResponse getAdminOwnerProfile(Integer ownerId) {
+        // FLOW: Admin Registration Entity Detail Popup
+        // ORDER: 5OWNER/6 - Service validates OWNER identity/profile evidence and maps the read-only owner detail response.
+        // Validation: clicked user must exist and have OWNER role; profile/application evidence must be available.
+        // DB effect: read-only User + OwnerProfile/OwnerApplication lookup mapped to OwnerProfileResponse.
+        User owner = userRepository.findById(ownerId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Owner not found."));
+
+        if (owner.getRole() == null || !ROLE_OWNER.equals(owner.getRole().getRoleName())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "User is not an owner.");
+        }
+
+        OwnerProfile profile = ownerProfileRepository.findById(ownerId).orElse(null);
+        OwnerApplication application = profile == null
+                ? ownerApplicationRepository.findFirstByUserIdOrderByApplicationIdDesc(ownerId)
+                        .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Owner application not found."))
+                : getApplication(profile.getApplicationId());
+
+        return mapProfileFromApplication(
+                ownerId,
+                profile != null ? profile.getApplicationId() : application.getApplicationId(),
+                application,
+                owner,
+                profile != null ? profile.getCreatedAt() : application.getReviewedAt()
+        );
+    }
+
     private OwnerApplication getApplication(Integer applicationId) {
         return ownerApplicationRepository.findById(applicationId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Owner application not found."));
@@ -227,12 +260,39 @@ public class OwnerApplicationService {
     }
 
     private OwnerProfileResponse mapProfile(OwnerProfile profile, OwnerApplication application, User owner) {
+        return mapProfileFromApplication(
+                profile.getOwnerId(),
+                profile.getApplicationId(),
+                application,
+                owner,
+                profile.getCreatedAt()
+        );
+    }
+
+    private OwnerProfileResponse mapProfileFromApplication(
+            Integer ownerId,
+            Integer applicationId,
+            OwnerApplication application,
+            User owner,
+            LocalDateTime ownerSince
+    ) {
+        UserVerification verification = userVerificationRepository.findByUserId(owner.getUserID()).orElse(null);
         return OwnerProfileResponse.builder()
-                .ownerId(profile.getOwnerId())
-                .applicationId(profile.getApplicationId())
+                .ownerId(ownerId)
+                .applicationId(applicationId)
+                .kycVerificationId(verification != null ? verification.getVerificationId() : null)
                 .username(owner.getUsername())
                 .email(owner.getEmail())
                 .phone(owner.getPhone())
+                .kycStatus(verification != null && verification.getStatus() != null ? verification.getStatus().name() : null)
+                .fullName(verification != null ? verification.getFullName() : null)
+                .dateOfBirth(verification != null ? verification.getDateOfBirth() : null)
+                .gender(null)
+                .nationality(null)
+                .address(null)
+                .identityDocumentUrl(null)
+                .identityBackUrl(null)
+                .selfieUrl(null)
                 .stableName(application.getStableName())
                 .stableAddress(application.getStableAddress())
                 .stableCertificateUrl(application.getStableCertificateUrl())
@@ -241,7 +301,7 @@ public class OwnerApplicationService {
                 .status(application.getStatus())
                 .submittedAt(application.getSubmittedAt())
                 .reviewedAt(application.getReviewedAt())
-                .ownerSince(profile.getCreatedAt())
+                .ownerSince(ownerSince)
                 .build();
     }
 

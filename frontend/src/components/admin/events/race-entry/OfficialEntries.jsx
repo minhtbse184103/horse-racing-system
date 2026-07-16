@@ -6,6 +6,11 @@ import { formatOperationDateTime } from '../operations/operationHelpers';
 import { useLanguage } from '../../../../context/LanguageContext';
 
 export default function OfficialEntries({ race, entries, onCancel, canCancel = true, cancelDisabledReason = '' }) {
+  // FLOW: Admin Assigned RaceEntry Load / Cancel RaceEntry
+  // ORDER: 6/6 - UI renders active ASSIGNED RaceEntry rows after hook/service/adapter finish loading them.
+  // ORDER: 1/6 - Active ASSIGNED entry card exposes the cancel action that opens CancellationDialog.
+  // FE path: useRaceEntryAssignment loads ASSIGNED entries; this component renders current stalls for the selected Race.
+  // Purpose: let Admin verify assigned horses/jockeys and open cancellation for active RaceEntry rows before launch.
   const { t } = useLanguage();
 
   return (

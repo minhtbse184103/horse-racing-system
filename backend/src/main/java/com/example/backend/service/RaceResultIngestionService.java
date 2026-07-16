@@ -71,6 +71,10 @@ public class RaceResultIngestionService {
             String raceEngineToken,
             RaceResultIngestRequest request
     ) {
+        // FLOW: Unity Result Endpoint
+        // ORDER: 3/10 - Service locks Race row and validates the X-Race-Engine-Key belongs to this launched session.
+        // Validation: Race row is locked, X-Race-Engine-Key matches the launch
+        // token, Race is IN_PROGRESS, and submitted entries match assigned stalls.
         Race race = raceRepository.findByIdForUpdate(raceId)
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
@@ -99,6 +103,8 @@ public class RaceResultIngestionService {
                         Function.identity()
                 ));
 
+        // FLOW: Unity Result Endpoint
+        // ORDER: 5/10 - Build assigned-entry lookup so Unity result rows must match backend-owned starting stalls.
         List<RaceResultEntryRequest> submitted = request.getEntries();
 
         if (submitted.size() != assignedEntries.size()) {
@@ -113,6 +119,8 @@ public class RaceResultIngestionService {
         Set<Integer> seenStalls = new HashSet<>();
         Set<Integer> seenPositions = new HashSet<>();
 
+        // FLOW: Unity Result Endpoint
+        // ORDER: 6/10 - Validate every submitted stall/finish position is unique, assigned, and contiguous.
         for (RaceResultEntryRequest entryRequest : submitted) {
             Integer stall = entryRequest.getStartingStall();
             Integer finishPosition = entryRequest.getFinishPosition();
@@ -168,6 +176,10 @@ public class RaceResultIngestionService {
             );
         }
 
+        // FLOW: Provisional Race Result Submission
+        // ORDER: 7/10 - Duplicate guard ensures one active provisional submission per Race review cycle.
+        // Unity is allowed to create only one active submission per Race. It
+        // does not create official RaceResult/PrizeDistribution rows here.
         if (submissionRepository.existsByRaceIdAndStatusIn(
                 raceId,
                 RaceResultSubmissionStatus.ACTIVE_SUBMISSION_STATUSES
@@ -180,6 +192,10 @@ public class RaceResultIngestionService {
 
         LocalDateTime now = LocalDateTime.now();
 
+        // FLOW: Provisional Race Result Submission
+        // ORDER: 8/10 - Create provisional submission header in SUBMITTED state for Referee/Admin review.
+        // DB effect: create submission header with SUBMITTED review status;
+        // Referee/Admin review later decides whether this becomes official.
         RaceResultSubmission submission = new RaceResultSubmission();
         submission.setRaceId(raceId);
         submission.setSubmittedAt(now);
@@ -189,6 +205,10 @@ public class RaceResultIngestionService {
         RaceResultSubmission savedSubmission =
                 submissionRepository.save(submission);
 
+        // FLOW: Provisional Race Result Submission
+        // ORDER: 9/10 - Persist Unity finish rows as provisional submission entries, not official RaceResult rows.
+        // DB effect: copy each Unity result row into submission entries tied
+        // to existing RaceEntry IDs, preserving stalls/finish order for review.
         List<RaceResultSubmissionEntry> submissionEntries = submitted.stream()
                 .map(entryRequest -> toSubmissionEntry(
                         savedSubmission.getSubmissionId(),
@@ -198,6 +218,10 @@ public class RaceResultIngestionService {
                 .toList();
         submissionEntryRepository.saveAll(submissionEntries);
 
+        // FLOW: Race Status After Unity Finish
+        // ORDER: 10/10 - After provisional rows exist, move Race to PENDING_REVIEW and clear single-use engine token.
+        // DB effect: Unity finish does not complete the Race. It moves
+        // IN_PROGRESS -> PENDING_REVIEW and clears the single-use engine token.
         race.setStatus(EventStatus.PENDING_REVIEW);
         race.setRaceEngineToken(null);
         race.setRaceEngineTokenIssuedAt(null);
@@ -217,6 +241,10 @@ public class RaceResultIngestionService {
             RaceEntry entry,
             RaceResultEntryRequest entryRequest
     ) {
+        // FLOW: Provisional Race Result Submission
+        // ORDER: 9A/10 - Map one validated Unity result row to the provisional entry entity.
+        // Maps one Unity result row to a reviewable entry. This is not an
+        // official RaceResult row until Admin approves the submission.
         RaceResultSubmissionEntry submissionEntry =
                 new RaceResultSubmissionEntry();
         submissionEntry.setSubmissionId(submissionId);
@@ -228,6 +256,10 @@ public class RaceResultIngestionService {
     }
 
     private void validateRaceCanReceiveResult(Race race) {
+        // FLOW: Unity Result Endpoint
+        // ORDER: 4/10 - Race must still be launched and IN_PROGRESS before Unity result can be accepted.
+        // Only an actively launched Race can accept Unity's final payload;
+        // READY/PENDING_REVIEW/COMPLETED/CANCELLED states are rejected here.
         if (EventStatus.COMPLETED.equals(race.getStatus())) {
             throw new ApiException(
                     HttpStatus.CONFLICT,

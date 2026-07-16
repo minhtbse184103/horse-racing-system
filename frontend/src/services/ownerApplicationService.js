@@ -94,6 +94,18 @@ export async function getOwnerApplicationById(applicationId) {
   return normalizeOwnerApplication(application);
 }
 
+export async function getAdminOwnerProfile(ownerId) {
+  // FLOW: Admin Registration Entity Detail Popup
+  // ORDER: 3OWNER/6 - Frontend service requests enriched Owner application/profile data for the clicked Registration row.
+  // API: GET /api/admin/owners/{ownerId}/profile.
+  // Purpose: enrich a Registration row with Owner profile/application data shown in the detail modal.
+  const profile = await httpRequest(`/api/admin/owners/${ownerId}/profile`, {
+    fallbackError: 'Khong the tai chi tiet Owner.'
+  });
+
+  return normalizeOwnerProfile(profile);
+}
+
 export async function approveOwnerApplication(applicationId) {
   const application = await httpRequest(`/api/admin/owner-applications/${applicationId}/approve`, {
     method: 'PUT',

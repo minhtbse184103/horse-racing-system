@@ -17,12 +17,19 @@ public class RaceEngineTokenService {
     private final SecureRandom secureRandom = new SecureRandom();
 
     public String generateToken() {
+        // FLOW: Admin Launch Unity Race
+        // ORDER: 6/9 - Token service creates the per-launch secret passed only to Unity and stored on Race.
+        // Purpose: create a random per-launch token stored on Race and passed to Unity when the process starts.
         byte[] bytes = new byte[TOKEN_BYTES];
         secureRandom.nextBytes(bytes);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 
     public void validateToken(Race race, String providedToken) {
+        // FLOW: Admin Launch Unity Race
+        // FLOW: Admin Live Race Data
+        // ORDER: 3/10 - Token validation proves lineup/tick/result requests belong to the active launched Race session.
+        // Purpose: Unity live/result endpoints use this token to prove they belong to the launched Race session.
         String expectedToken = race.getRaceEngineToken();
 
         if (expectedToken == null

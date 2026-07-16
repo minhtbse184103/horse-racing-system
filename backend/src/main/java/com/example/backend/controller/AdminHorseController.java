@@ -37,6 +37,10 @@ public class AdminHorseController {
 
     @GetMapping("/{horseId}")
     public HorseResponse getHorseById(@PathVariable Integer horseId) {
+        // FLOW: Admin Registration Entity Detail Popup
+        // ORDER: 4HORSE/6 - Controller receives the Horse detail lookup and delegates to AdminHorseService.
+        // API: GET /api/admin/horses/{horseId}.
+        // Purpose: returns full Horse details when Admin clicks a Horse inside Registration review.
         return adminHorseService.getHorseById(horseId);
     }
 

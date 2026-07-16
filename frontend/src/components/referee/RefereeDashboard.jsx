@@ -16,6 +16,10 @@ const refereeNavItems = [
 export default function RefereeDashboard({ currentUser, onLogout }) {
   const { t } = useLanguage();
   const [activeSection, setActiveSection] = useState('resultReview');
+  // FLOW: Referee Review Queue
+  // ORDER: 1/7 - Referee dashboard routes the signed-in REFEREE to the Result Review workspace.
+  // Referee dashboard currently routes the signed-in REFEREE directly to the
+  // pending result review workspace for assigned Race submissions.
   const refereeName =
     currentUser?.username || currentUser?.fullName || currentUser?.email || 'Referee';
   const activeNavItem =

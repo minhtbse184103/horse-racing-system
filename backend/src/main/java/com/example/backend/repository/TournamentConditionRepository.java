@@ -19,6 +19,9 @@ public interface TournamentConditionRepository
 
     void deleteByTournamentId(Integer tournamentId);
 
+    // FLOW: Admin Tournament Workspace Read
+    // ORDER: 5A/7 - Repository returns all TournamentCondition rows for the workspace aggregate.
+    // Purpose: batch load eligibility Conditions for all workspace Tournaments in one query.
     @Query("""
         select condition
         from TournamentCondition condition

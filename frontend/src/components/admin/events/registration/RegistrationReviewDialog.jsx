@@ -6,11 +6,32 @@ import OperationStatusBadge from '../operations/OperationStatusBadge';
 import { formatOperationDateTime } from '../operations/operationHelpers';
 import { useLanguage } from '../../../../context/LanguageContext';
 
-function DetailItem({ label, value }) {
-  return <div className="rounded-lg border border-brown-700/10 bg-white/70 p-4"><p className="text-xs font-black uppercase text-slate-500">{label}</p><p className="mt-2 break-words text-sm font-black text-brown-900">{value}</p></div>;
+function DetailItem({ label, value, onClick, disabled = false }) {
+  const content = (
+    <>
+      <p className="text-xs font-black uppercase text-slate-500">{label}</p>
+      <p className="mt-2 break-words text-sm font-black text-brown-900">{value}</p>
+    </>
+  );
+
+  if (!onClick || disabled) {
+    return <div className="rounded-lg border border-brown-700/10 bg-white/70 p-4">{content}</div>;
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="rounded-lg border border-brown-700/10 bg-white/70 p-4 text-left transition hover:border-gold-400/45 hover:bg-cream-200/70 focus:outline-none focus:ring-4 focus:ring-gold-400/15"
+    >
+      {content}
+    </button>
+  );
 }
 
-export default function RegistrationReviewDialog({ registration, onClose, onDecision }) {
+export default function RegistrationReviewDialog({ registration, onClose, onDecision, onViewEntity }) {
+  // FLOW: Admin Registration Entity Detail Popup
+  // ORDER: 1/6 - Review dialog also exposes Horse/Owner/Jockey detail click targets before approve/reject.
   const { t } = useLanguage();
   const [reason, setReason] = useState(registration.rejectionReason || '');
   const [error, setError] = useState('');
@@ -18,6 +39,9 @@ export default function RegistrationReviewDialog({ registration, onClose, onDeci
   const isPending = registration.approvalStatus === 'PENDING';
 
   async function decide(status, rejectionReason = null) {
+    // FLOW: Admin Approve Registration / Reject Registration
+    // ORDER: 1/8 - Review dialog submits the selected decision and keeps backend errors visible.
+    // Purpose: submit the chosen review decision and display backend validation errors in the dialog.
     setIsSubmitting(true);
     setError('');
     try {
@@ -30,6 +54,9 @@ export default function RegistrationReviewDialog({ registration, onClose, onDeci
   }
 
   function reject() {
+    // FLOW: Admin Reject Registration
+    // ORDER: 1/6 - Review dialog validates rejection reason before submitting REJECTED decision.
+    // FE validation: rejectionReason is required before calling the backend reject endpoint.
     if (!reason.trim()) {
       setError(t('rejectReasonRequired'));
       return;
@@ -46,11 +73,11 @@ export default function RegistrationReviewDialog({ registration, onClose, onDeci
         </header>
 
         <div className="min-h-0 overflow-y-auto p-5 md:p-6">
-          <div className="mb-4 rounded-lg border border-gold-400/25 bg-gold-400/10 p-4"><p className="text-xs font-black uppercase text-brown-500">Tournament</p><p className="mt-1 font-black text-brown-900">{registration.tournamentName}</p></div>
+          <div className="mb-4 rounded-lg border border-gold-400/25 bg-gold-400/10 p-4"><p className="text-xs font-black uppercase text-brown-500">{t('eventDomainTournament')}</p><p className="mt-1 font-black text-brown-900">{registration.tournamentName}</p></div>
           <div className="grid gap-3 sm:grid-cols-2">
-            <DetailItem label="Horse" value={registration.horse} />
-            <DetailItem label={t('eventDomainOwner')} value={registration.owner} />
-            <DetailItem label={t('eventDomainJockey')} value={registration.jockey || t('eventRegistrationNoJockey')} />
+            <DetailItem label={t('eventDomainHorse')} value={registration.horse} onClick={() => onViewEntity?.('horse', registration)} />
+            <DetailItem label={t('eventDomainOwner')} value={registration.owner} onClick={() => onViewEntity?.('owner', registration)} />
+            <DetailItem label={t('eventDomainJockey')} value={registration.jockey || t('eventRegistrationNoJockey')} disabled={!registration.jockeyId} onClick={() => onViewEntity?.('jockey', registration)} />
             <DetailItem label={t('eventRegistrationSubmittedAt')} value={formatOperationDateTime(registration.submittedAt)} />
             <DetailItem label={t('eventRegistrationReviewedAt')} value={formatOperationDateTime(registration.reviewedAt)} />
             <DetailItem label={t('eventRegistrationReviewedBy')} value={registration.reviewedBy || t('eventStatus_PENDING')} />

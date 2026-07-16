@@ -1,4 +1,7 @@
 export function adaptRegistration(registration) {
+  // FLOW: Admin Registration List / Load / Filter
+  // ORDER: 6/8 - Frontend adapter normalizes backend RegistrationResponse into the UI view model.
+  // Purpose: normalize backend RegistrationResponse into the view model used by list, review dialog, RaceEntry queue refresh, and entity detail popups.
   const reviewerName = registration.reviewerName || null;
 
   return {
@@ -45,6 +48,9 @@ export function adaptRegistration(registration) {
 }
 
 export function adaptRegistrations(registrations) {
+  // FLOW: Admin Registration List / Load / Filter
+  // ORDER: 6A/8 - Frontend adapter guards the list response before storing it in workspace state.
+  // Purpose: guard the admin Registration API contract before the workspace stores Registration view models.
   if (!Array.isArray(registrations)) {
     throw new Error('The registration service returned an invalid response.');
   }

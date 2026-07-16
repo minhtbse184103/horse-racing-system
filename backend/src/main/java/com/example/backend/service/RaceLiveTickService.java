@@ -41,6 +41,10 @@ public class RaceLiveTickService {
             String raceEngineToken,
             Map<String, Object> tickPayload
     ) {
+        // FLOW: Admin Live Race Data
+        // ORDER: 6/10 - Service validates Race is IN_PROGRESS with runStartedAt before broadcasting the tick.
+        // Validation: Race exists, engine token matches, Race is IN_PROGRESS,
+        // and runStartedAt is present before any live tick is broadcast.
         Race race = raceRepository.findById(raceId)
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,

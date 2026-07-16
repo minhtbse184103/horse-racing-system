@@ -164,6 +164,9 @@ function AdminDecisionDialog({
 function SubmissionDetail({ submission, isLoading, error, onBack, onRetry, onApprove, onReject }) {
   const { t } = useLanguage();
 
+  // FLOW: Admin Result Review Detail
+  // ORDER: 8/8 - Modal displays provisional entries, Referee comment, review history, and Admin decision actions.
+  // Displays referee-reviewed provisional entries and decision history before final approval/rejection.
   if (isLoading) {
     return (
       <section className="rounded-lg border border-white/80 bg-cream-100/90 p-10 text-center shadow-[0_20px_52px_rgba(78,44,25,0.12)]">
@@ -381,6 +384,9 @@ export default function AdminRaceResultReview() {
   }, [query, submissions]);
 
   async function loadReviewQueue() {
+    // FLOW: Admin Result Review Queue
+    // ORDER: 1/6 - Admin Result Review page loads submissions already reviewed by Referee.
+    // FE path: Admin Dashboard -> Result Review -> GET submissions reviewed by Referee.
     setIsLoadingList(true);
     setListError('');
 
@@ -395,6 +401,9 @@ export default function AdminRaceResultReview() {
   }
 
   async function loadDetail(submissionId) {
+    // FLOW: Admin Result Review Detail
+    // ORDER: 1/8 - Admin review queue -> Review icon -> load the selected provisional result detail.
+    // FE path: Admin review queue -> Review icon -> GET submission detail.
     setSelectedId(submissionId);
     setDetail(null);
     setDetailError('');
@@ -454,6 +463,9 @@ export default function AdminRaceResultReview() {
 
     const reason = decisionReason.trim();
     if (dialogMode === 'reject' && !reason) {
+      // FLOW: Admin Reject Result
+      // ORDER: 1/8 - FE blocks reject submit until Admin enters a reason.
+      // FE validation: rejecting a provisional result requires a non-empty reason.
       setDecisionError(t('adminResultReviewRejectRequired'));
       return;
     }
@@ -463,12 +475,20 @@ export default function AdminRaceResultReview() {
 
     try {
       if (dialogMode === 'reject') {
+        // FLOW: Admin Reject Result
+        // ORDER: 2/8 - Admin submits reject decision for the selected provisional result.
+        // FE action: required reason -> PUT /reject -> backend returns Race to READY for rerun.
         await rejectRaceResultSubmission(detail.submissionId, reason);
+        // FLOW: Admin Reject Result
+        // ORDER: 8/8 - Notify Tournament Workspace to refresh because Race returned to READY.
         window.dispatchEvent(new CustomEvent('admin-event:race-result-rejected', {
           detail: { raceId: detail.raceId, submissionId: detail.submissionId }
         }));
         returnToQueue(t('adminResultReviewRejectSuccess'));
       } else {
+        // FLOW: Admin Approve Result
+        // ORDER: 1/9 - Admin confirms approval from the decision dialog.
+        // FE action: optional comment -> PUT /approve -> backend creates official RaceResult and prize rows.
         await approveRaceResultSubmission(detail.submissionId, reason);
         returnToQueue(t('adminResultReviewApproveSuccess'));
       }

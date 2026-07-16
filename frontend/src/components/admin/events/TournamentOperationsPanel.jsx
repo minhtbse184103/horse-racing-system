@@ -18,6 +18,10 @@ export default function TournamentOperationsPanel({
   const [assignmentQueueRefreshKey, setAssignmentQueueRefreshKey] = useState(0);
 
   async function approveAndRefreshQueue(registrationId) {
+    // FLOW: Admin Approve Registration
+    // ORDER: 3/8 - Operations panel approves first, then increments queue refresh key because approved paid records become assignable.
+    // FE path: RegistrationReviewDialog -> RegistrationApprovalPanel -> TournamentOperationsPanel.
+    // Purpose: approve the Registration, then refresh RaceEntry assignment candidates because APPROVED + PAID records become assignable.
     const updatedRegistration = await approveRegistration(registrationId);
     setAssignmentQueueRefreshKey((current) => current + 1);
     return updatedRegistration;

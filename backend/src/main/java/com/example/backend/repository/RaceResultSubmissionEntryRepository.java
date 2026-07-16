@@ -12,12 +12,19 @@ import java.util.List;
 public interface RaceResultSubmissionEntryRepository
         extends JpaRepository<RaceResultSubmissionEntry, Integer> {
 
+    // FLOW: Provisional Race Result Submission
+    // ORDER: 9/10 - Review screens later read these provisional rows before Admin approval creates official results.
+    // Loads provisional finish rows in race order for Referee/Admin review
+    // before official RaceResult rows are created.
     List<RaceResultSubmissionEntry> findBySubmissionIdOrderByFinishPositionAsc(
             Integer submissionId
     );
 
     long countBySubmissionId(Integer submissionId);
 
+    // FLOW: Referee Review Detail / Admin Result Review Detail
+    // ORDER: 6/8 - Entry detail query enriches provisional rows with Horse, Owner, and Jockey display names.
+    // Joins RaceEntry -> Registration -> Horse/Owner/Jockey names for the review detail table.
     @Query("""
             select entry.submissionEntryId as submissionEntryId,
                    entry.raceEntryId as raceEntryId,

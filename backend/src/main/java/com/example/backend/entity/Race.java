@@ -38,6 +38,9 @@ public class Race {
     @Column(name = "trackName", nullable = false)
     private String trackName;
 
+    @Column(name = "trackImageUrl", length = 500)
+    private String trackImageUrl;
+
     @Column(name = "raceStartTime", nullable = false)
     private LocalDateTime raceStartTime;
 

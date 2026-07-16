@@ -38,6 +38,10 @@ function buildLeaderboard(horses) {
 
 export default function LiveRaceDisplay({ tick, result }) {
   const { t } = useLanguage();
+  // FLOW: Admin Live Race Data
+  // ORDER: 10/10 - Display converts latest Unity tick into readable live leaderboard UI; it does not create official results.
+  // Converts Unity tick payload into a readable leaderboard without owning any
+  // official result logic; official results are created later by Admin review.
   const horses = Array.isArray(tick?.horses) ? buildLeaderboard(tick.horses) : [];
   const leader = horses[0] || null;
   const elapsedTime = formatElapsedTime(tick?.elapsedTime);

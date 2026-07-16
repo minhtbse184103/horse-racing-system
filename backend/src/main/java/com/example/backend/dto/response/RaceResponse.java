@@ -15,6 +15,7 @@ public class RaceResponse {
 
     private String raceName;
     private String trackName;
+    private String trackImageUrl;
 
     private LocalDateTime raceStartTime;
     private LocalDateTime raceEndTime;

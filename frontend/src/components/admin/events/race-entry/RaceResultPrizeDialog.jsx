@@ -12,6 +12,9 @@ export default function RaceResultPrizeDialog({ race, onClose }) {
   const [error, setError] = useState('');
 
   async function loadResults() {
+    // FLOW: Official Result Display
+    // ORDER: 1B/7 - Dialog load starts the official RaceResult read for the selected completed Race.
+    // FE path: Race result/prize dialog -> GET official RaceResult rows after Admin approval.
     setLoading(true);
     setError('');
     try {
@@ -28,6 +31,9 @@ export default function RaceResultPrizeDialog({ race, onClose }) {
     loadResults();
   }, [race.id]);
 
+  // FLOW: Prize Split Display
+  // ORDER: 7A/7 - Dialog totals PrizeDistribution-backed prize rows for the summary amount.
+  // Totals the official result/prize rows that include PrizeDistribution owner and jockey split amounts.
   const totalPrize = results.reduce(
     (sum, result) => sum + Number(result.totalPrize || result.prizeMoney || 0),
     0
@@ -102,6 +108,8 @@ export default function RaceResultPrizeDialog({ race, onClose }) {
               </div>
             </div>
           ) : (
+            // FLOW: Official Result Display
+            // Renders only official approved RaceResult rows; provisional submissions are reviewed elsewhere.
             <div className="overflow-x-auto rounded-lg border border-brown-700/10 bg-white/85 shadow-[0_10px_28px_rgba(78,44,25,0.06)]">
               <div className="grid grid-cols-[4.5rem_minmax(12rem,1fr)_minmax(9rem,0.7fr)_minmax(9rem,0.7fr)_7rem_8rem_8rem_8rem_7rem] gap-3 border-b border-brown-700/10 bg-cream-200/70 px-4 py-3 text-xs font-black uppercase text-brown-700">
                 <span>{t('eventCommonRank')}</span>
@@ -115,6 +123,11 @@ export default function RaceResultPrizeDialog({ race, onClose }) {
                 <span>Status</span>
               </div>
               <div className="divide-y divide-brown-700/10">
+                {/* FLOW: Official Result Display */}
+                {/* ORDER: 7/7 - Render official finish order and the prize split fields returned by the backend. */}
+                {/* FLOW: Prize Split Display
+                   ORDER: 7B/7 - Row cells display ownerAmount, jockeyAmount, and distributionStatus from PrizeDistribution.
+                   Shows official prize money plus owner/jockey split amounts calculated during Admin approval. */}
                 {results.map((result) => (
                   <article key={result.resultId} className="grid grid-cols-[4.5rem_minmax(12rem,1fr)_minmax(9rem,0.7fr)_minmax(9rem,0.7fr)_7rem_8rem_8rem_8rem_7rem] items-center gap-3 px-4 py-3 text-sm">
                     <span className="inline-flex size-10 items-center justify-center rounded-lg bg-amber-50 text-sm font-black text-amber-800">

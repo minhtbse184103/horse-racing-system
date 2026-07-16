@@ -1,8 +1,22 @@
 const defaultTranslate = (key, params = {}) =>
   Object.entries(params).reduce((text, [paramKey, value]) => text.replaceAll(`{{${paramKey}}}`, String(value)), key);
 
+function todayDateString() {
+  const today = new Date();
+  const timezoneOffset = today.getTimezoneOffset() * 60000;
+  return new Date(today.getTime() - timezoneOffset).toISOString().slice(0, 10);
+}
+
+function currentDateTimeString() {
+  const now = new Date();
+  const timezoneOffset = now.getTimezoneOffset() * 60000;
+  return new Date(now.getTime() - timezoneOffset).toISOString().slice(0, 16);
+}
+
 export function validateWizardStep(step, draft, t = defaultTranslate) {
   const errors = {};
+  const today = todayDateString();
+  const now = currentDateTimeString();
 
   if (step === 1) {
     if (!draft.name.trim()) errors.name = t('eventValidationTournamentNameRequired');
@@ -13,6 +27,14 @@ export function validateWizardStep(step, draft, t = defaultTranslate) {
     if (!draft.end) errors.end = t('eventValidationTournamentEndRequired');
     if (Number(draft.maxRegistration) < 3) errors.maxRegistration = t('eventValidationCapacityMin3');
     if (Number(draft.entryFee) < 0) errors.entryFee = t('eventValidationEntryFeeNonNegative');
+    if (draft.start && draft.start < today) {
+      errors.start = t('eventValidationTournamentStartNotPast');
+    }
+    // Temporarily disabled for demo testing so admins can create historical
+    // Registration windows while exercising the full flow end to end.
+    // if (draft.registrationClose && draft.registrationClose < today) {
+    //   errors.registrationClose = t('eventValidationRegistrationCloseNotPast');
+    // }
     if (draft.registrationOpen && draft.registrationClose && draft.registrationClose < draft.registrationOpen) {
       errors.registrationClose = t('eventValidationRegistrationCloseAfterOpen');
     }
@@ -32,6 +54,9 @@ export function validateWizardStep(step, draft, t = defaultTranslate) {
       if (!race.track.trim()) errors[`${prefix}-track`] = t('eventValidationRaceTrackRequired');
       if (!race.raceStartTime) errors[`${prefix}-raceStartTime`] = t('eventValidationRaceStartRequired');
       if (!race.raceEndTime) errors[`${prefix}-raceEndTime`] = t('eventValidationRaceEndRequired');
+      if (race.raceStartTime && race.raceStartTime <= now) {
+        errors[`${prefix}-raceStartTime`] = t('eventValidationRaceStartFuture');
+      }
       if (race.raceStartTime && race.raceEndTime && race.raceEndTime <= race.raceStartTime) {
         errors[`${prefix}-raceEndTime`] = t('eventValidationRaceEndAfterStart');
       }

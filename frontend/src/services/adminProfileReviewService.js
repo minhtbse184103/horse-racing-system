@@ -26,6 +26,19 @@ function normalizeJockeyVerification(verification) {
   };
 }
 
+function normalizeJockeyProfile(profile) {
+  if (!profile) return profile;
+
+  return {
+    ...profile,
+    id: profile.id ?? profile.jockeyId,
+    jockeyId: profile.jockeyId ?? profile.id,
+    fullName: profile.fullName || `Jockey ${profile.jockeyId ?? ''}`.trim(),
+    email: profile.email || '',
+    phoneNumber: profile.phoneNumber || profile.phone || ''
+  };
+}
+
 export async function getJockeyProfilesUnderReview() {
   const [pendingResponse, approvedResponse] = await Promise.all([
     httpRequest('/api/admin/jockeys/verifications/pending', {
@@ -42,6 +55,18 @@ export async function getJockeyProfilesUnderReview() {
     ...(Array.isArray(pendingData) ? pendingData : []),
     ...(Array.isArray(approvedData) ? approvedData : [])
   ].map(normalizeJockeyVerification);
+}
+
+export async function getAdminJockeyProfile(jockeyId) {
+  // FLOW: Admin Registration Entity Detail Popup
+  // ORDER: 3JOCKEY/6 - Frontend service requests enriched Jockey profile/licence data for the clicked Registration row.
+  // API: GET /api/admin/jockeys/{jockeyId}/profile.
+  // Purpose: enrich a Registration row with Jockey profile/licence data shown in the detail modal.
+  const profile = await httpRequest(`/api/admin/jockeys/${jockeyId}/profile`, {
+    fallbackError: 'Khong the tai chi tiet Jockey.'
+  });
+
+  return normalizeJockeyProfile(profile);
 }
 
 export async function getJockeyProfilesPendingOnly() {

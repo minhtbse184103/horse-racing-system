@@ -27,6 +27,10 @@ public class AdminRaceEntryController {
 
     @GetMapping("/assignment-queue")
     public List<RaceEntryCandidateResponse> getAssignmentQueue() {
+        // FLOW: Admin RaceEntry Assignment Queue Load
+        // ORDER: 5GLOBAL/7 - Controller exposes the global candidate queue and delegates eligibility to RaceEntryService.
+        // API: GET /api/admin/race-entries/assignment-queue.
+        // Purpose: returns APPROVED + PAID Registration candidates that are not actively assigned to a Race.
         return raceEntryService.getAssignmentQueue();
     }
 
@@ -35,6 +39,10 @@ public class AdminRaceEntryController {
     getAssignmentQueueByTournament(
             @PathVariable Integer tournamentId
     ) {
+        // FLOW: Admin RaceEntry Assignment Queue Load
+        // ORDER: 5TOURNAMENT/7 - Controller exposes the Tournament-scoped candidate queue for the expanded workspace.
+        // API: GET /api/admin/race-entries/assignment-queue/by-tournament/{tournamentId}.
+        // Purpose: returns the same eligible candidates but scoped to the expanded Tournament workspace.
         return raceEntryService
                 .getAssignmentQueueByTournament(tournamentId);
     }
@@ -43,6 +51,10 @@ public class AdminRaceEntryController {
     public List<RaceEntryResponse> getEntriesByRace(
             @PathVariable Integer raceId
     ) {
+        // FLOW: Admin Assigned RaceEntry Load
+        // ORDER: 5/6 - Controller exposes by-race official entries and delegates ASSIGNED filtering to RaceEntryService.
+        // API: GET /api/admin/race-entries/by-race/{raceId}.
+        // Purpose: returns active ASSIGNED RaceEntry rows for the selected Race in stall order.
         return raceEntryService.getEntriesByRace(raceId);
     }
 
@@ -51,6 +63,10 @@ public class AdminRaceEntryController {
             @Valid @RequestBody CreateRaceEntryRequest request,
             Authentication authentication
     ) {
+        // FLOW: Admin Assign RaceEntry
+        // ORDER: 4/8 - Controller accepts create request, reads authenticated Admin email, and delegates to RaceEntryService.
+        // API: POST /api/admin/race-entries.
+        // Purpose: assigns an APPROVED + PAID Registration to a Race; backend owns random startingStall/audit fields.
         RaceEntryResponse response =
                 raceEntryService.assignRegistration(
                         request,
@@ -67,6 +83,10 @@ public class AdminRaceEntryController {
             @Valid @RequestBody CancelRaceEntryRequest request,
             Authentication authentication
     ) {
+        // FLOW: Admin Cancel RaceEntry
+        // ORDER: 5/6 - Controller receives cancellation reason and delegates status/audit change to RaceEntryService.
+        // API: PUT /api/admin/race-entries/{raceEntryId}/cancel.
+        // Purpose: marks an active RaceEntry as CANCELLED with reason; history remains for audit.
         return ResponseEntity.ok(
                 raceEntryService.cancelEntry(
                         raceEntryId,

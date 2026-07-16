@@ -65,13 +65,13 @@ public class TournamentService {
         this.raceRunWatchdogService = raceRunWatchdogService;
     }
 
-    // Not readOnly: refreshLifecycleStatuses below saves races/tournaments
-    // whose raceStartTime has passed. This is the same "transition on
-    // read" pattern RaceService.refreshRaceStatus already uses for its
-    // own endpoints — replicated here because this BFF endpoint has its
-    // own query path and was never wired into that logic, so races sat
-    // in OPEN_FOR_REGISTRATION/REGISTRATION_CLOSED past their start time
-    // until something else happened to touch them (e.g. Run Race).
+    // Not readOnly: the workspace also runs the race watchdog. READY is not
+    // promoted on read; Admin must explicitly mark a race ready after the
+    // scheduled start time and minimum assigned RaceEntry validation pass.
+    // FLOW: Admin Tournament Workspace Read
+    // ORDER: 4/7 - Service orchestrates the aggregate read and lifecycle sync before returning workspace DTOs.
+    // Validation: admin workspace endpoint is protected by /api/admin/** security; this service performs aggregate read and lifecycle sync only.
+    // DB effect: batch reads Tournament, Condition, Race, RacePrize, Registration, RaceEntry, and RaceResult data; may promote Tournament to IN_PROGRESS when a Race is READY/IN_PROGRESS/PENDING_REVIEW.
     @Transactional
     public List<AdminTournamentWorkspaceResponse> getAdminTournamentWorkspace() {
         List<Tournament> tournaments =
@@ -85,7 +85,9 @@ public class TournamentService {
                 .map(Tournament::getTournamentId)
                 .toList();
 
-        // Batch load conditions
+        // FLOW: Admin Tournament Workspace Read
+        // ORDER: 4A/7 - Service gathers Tournament IDs and requests all Conditions in one batch query.
+        // Purpose: batch load Conditions for all visible Tournaments to avoid N+1 detail requests.
         Map<Integer, List<TournamentConditionResponse>> conditionsByTournamentId =
                 new HashMap<>();
         conditionRepository.findByTournamentIds(tournamentIds)
@@ -104,14 +106,11 @@ public class TournamentService {
                                 .build())
                 );
 
-        // Batch load races
+        // FLOW: Admin Tournament Workspace Read
+        // ORDER: 4B/7 - Service loads all Race rows for the visible Tournaments before grouping them in memory.
+        // Purpose: batch load all Races for the workspace so each Tournament card already has its Race program.
         List<Race> allRaces = raceRepository.findByTournamentIds(tournamentIds);
 
-        // Transition any race whose raceStartTime has passed to READY, and
-        // cascade its tournament to IN_PROGRESS. Mutates the same Race/Tournament
-        // instances used below, so the rest of this method (grouping,
-        // response mapping) sees the post-transition status without a
-        // second query.
         refreshLifecycleStatuses(tournaments, allRaces);
 
         Map<Integer, List<Race>> racesByTournamentId = allRaces.stream()
@@ -121,7 +120,9 @@ public class TournamentService {
                 .map(Race::getRaceId)
                 .toList();
 
-        // Batch load prizes
+        // FLOW: Admin Tournament Workspace Read
+        // ORDER: 4C/7 - Service loads RacePrize rules for every Race included in the workspace.
+        // Purpose: batch load RacePrize rules for the Race prize dialog and Race summary without per-Race calls.
         Map<Integer, List<RacePrizeResponse>> prizesByRaceId = new HashMap<>();
         if (!raceIds.isEmpty()) {
             racePrizeRepository.findByRaceIds(raceIds)
@@ -141,7 +142,9 @@ public class TournamentService {
                     );
         }
 
-        // Batch load assigned entry counts
+        // FLOW: Admin Tournament Workspace Read
+        // ORDER: 4D/7 - Service counts active ASSIGNED RaceEntry rows for capacity display.
+        // Purpose: batch load ASSIGNED RaceEntry counts so Race capacity can be displayed without loading every entry row.
         Map<Integer, Long> entryCountByRaceId = new HashMap<>();
         if (!raceIds.isEmpty()) {
             raceEntryRepository.countAssignedEntriesByRaceIds(
@@ -154,6 +157,9 @@ public class TournamentService {
                     );
         }
 
+        // FLOW: Admin Tournament Workspace Read
+        // ORDER: 4E/7 - Service counts official RaceResult rows for completed/result-aware Race display.
+        // Purpose: batch count official RaceResult rows so the workspace can compute result/watchdog state from approved results only.
         Map<Integer, Long> resultCountByRaceId = new HashMap<>();
         if (!raceIds.isEmpty()) {
             raceResultRepository.countResultsByRaceIds(raceIds)
@@ -165,7 +171,9 @@ public class TournamentService {
                     );
         }
 
-        // Batch load registration counts
+        // FLOW: Admin Tournament Workspace Read
+        // ORDER: 4F/7 - Service counts all Registrations per Tournament for portfolio capacity.
+        // Purpose: batch load Registration counts for Tournament portfolio capacity and summary metrics.
         Map<Integer, Long> registrationCountByTournamentId = new HashMap<>();
         registrationRepository.countRegistrationsByTournamentIds(tournamentIds)
                 .forEach(projection ->
@@ -175,7 +183,9 @@ public class TournamentService {
                         )
                 );
 
-        // Batch load approved registration counts
+        // FLOW: Admin Tournament Workspace Read
+        // ORDER: 4G/7 - Service counts approved Registrations per Tournament for review progress.
+        // Purpose: batch load APPROVED Registration counts for admin review progress indicators.
         Map<Integer, Long> approvedCountByTournamentId = new HashMap<>();
         registrationRepository.countApprovedRegistrationsByTournamentIds(
                         tournamentIds,
@@ -188,7 +198,9 @@ public class TournamentService {
                         )
                 );
 
-        // Assemble response in memory
+        // FLOW: Admin Tournament Workspace Read
+        // ORDER: 4H/7 - Service assembles the final aggregate response after all batch reads finish.
+        // Purpose: assemble the aggregate response in memory after all batch queries have completed.
         return tournaments.stream()
                 .map(tournament -> {
                     Integer tid = tournament.getTournamentId();
@@ -245,39 +257,20 @@ public class TournamentService {
                 .toList();
     }
 
-    // Same transition rules as RaceService.refreshRaceStatus /
-    // RaceEngineLaunchService's mirror of it: a race past its
-    // raceStartTime moves OPEN_FOR_REGISTRATION/REGISTRATION_CLOSED ->
-    // READY, and the first race to do so cascades its tournament
-    // to IN_PROGRESS (other races in the same tournament are untouched
-    // until their own raceStartTime passes — intentional, each race is
-    // gated independently for Run Race). Batched: one saveAll per
-    // collection instead of per-row saves, consistent with the rest of
-    // this method's batch-query design.
     private void refreshLifecycleStatuses(
             List<Tournament> tournaments,
             List<Race> races
     ) {
-        LocalDateTime now = LocalDateTime.now();
-
-        List<Race> racesToTransition = races.stream()
-                .filter(race ->
-                        (EventStatus.OPEN_FOR_REGISTRATION.equals(race.getStatus())
-                                || EventStatus.REGISTRATION_CLOSED.equals(race.getStatus()))
-                                && !now.isBefore(race.getRaceStartTime())
-                )
-                .toList();
-
-        if (racesToTransition.isEmpty()) {
-            return;
-        }
-
-        racesToTransition.forEach(race -> race.setStatus(EventStatus.READY));
-        raceRepository.saveAll(racesToTransition);
-
-        Set<Integer> tournamentIdsToTransition = racesToTransition.stream()
+        Set<Integer> tournamentIdsToTransition = races.stream()
+                .filter(race -> EventStatus.READY.equals(race.getStatus())
+                        || EventStatus.IN_PROGRESS.equals(race.getStatus())
+                        || EventStatus.PENDING_REVIEW.equals(race.getStatus()))
                 .map(Race::getTournamentId)
                 .collect(Collectors.toSet());
+
+        if (tournamentIdsToTransition.isEmpty()) {
+            return;
+        }
 
         List<Tournament> tournamentsToTransition = tournaments.stream()
                 .filter(tournament ->
@@ -383,6 +376,10 @@ public class TournamentService {
             MultipartFile file,
             String adminEmail
     ) {
+        // FLOW: Admin Tournament Images
+        // ORDER: 5V/7 - TournamentService validates admin/Tournament and stores the venue image URL on Tournament.
+        // Validation: Tournament exists and current user is ACTIVE ADMIN; storage service validates file type/size.
+        // DB effect: stores image in Cloudinary, then saves returned secure URL on Tournament.venueImageUrl.
         Tournament tournament = tournamentRepository
                 .findByIdForUpdate(tournamentId)
                 .orElseThrow(() -> new ApiException(
@@ -406,6 +403,10 @@ public class TournamentService {
             Integer tournamentId,
             String adminEmail
     ) {
+        // FLOW: Admin Tournament Images
+        // ORDER: 5V/7 - TournamentService validates admin/Tournament, clears URL, then deletes stored venue image.
+        // Validation: Tournament exists and current user is ACTIVE ADMIN.
+        // DB effect: clears Tournament.venueImageUrl and deletes the Cloudinary object.
         Tournament tournament = tournamentRepository
                 .findByIdForUpdate(tournamentId)
                 .orElseThrow(() -> new ApiException(
@@ -429,6 +430,10 @@ public class TournamentService {
             UpdateTournamentRequest request,
             String adminEmail
     ) {
+        // FLOW: Admin Edit Tournament Program
+        // ORDER: 6A/8 - Service validates and updates Tournament base fields and replaces Conditions.
+        // Validation: ACTIVE ADMIN, no Registration exists for Tournament, editable Tournament status, valid dates, valid unique Conditions.
+        // DB effect: updates Tournament base fields and replaces TournamentCondition rows; Race synchronization is handled by RaceService calls.
         Tournament tournament = tournamentRepository
                 .findByIdForUpdate(tournamentId)
                 .orElseThrow(() -> new ApiException(
@@ -479,6 +484,10 @@ public class TournamentService {
             Integer tournamentId,
             String adminEmail
     ) {
+        // FLOW: Admin Tournament Lifecycle
+        // ORDER: 5CANCEL/5 - Service validates cancel rules, then marks Tournament and child Races CANCELLED.
+        // Validation: ACTIVE ADMIN, no Registration exists, and Tournament is not IN_PROGRESS/COMPLETED/CANCELLED.
+        // DB effect: marks Tournament CANCELLED and marks every child Race CANCELLED.
         Tournament tournament = tournamentRepository
                 .findByIdForUpdate(tournamentId)
                 .orElseThrow(() -> new ApiException(
@@ -507,6 +516,10 @@ public class TournamentService {
             Integer tournamentId,
             String adminEmail
     ) {
+        // FLOW: Admin Tournament Lifecycle
+        // ORDER: 5CLOSE/5 - Service validates close rules, then closes Tournament and still-open child Races.
+        // Validation: ACTIVE ADMIN and Tournament must be OPEN_FOR_REGISTRATION.
+        // DB effect: marks Tournament REGISTRATION_CLOSED and moves OPEN_FOR_REGISTRATION child Races to REGISTRATION_CLOSED.
         getAdmin(adminEmail);
 
         Tournament tournament = tournamentRepository
@@ -547,6 +560,10 @@ public class TournamentService {
             Integer tournamentId,
             String adminEmail
     ) {
+        // FLOW: Admin Tournament Lifecycle
+        // ORDER: 5COMPLETE/5 - Service validates all child Races are completed before completing Tournament.
+        // Validation: ACTIVE ADMIN, Tournament not CANCELLED/COMPLETED, at least one Race exists, and every child Race is COMPLETED.
+        // DB effect: marks Tournament COMPLETED only after Race Result Review has completed all Races.
         getAdmin(adminEmail);
 
         Tournament tournament = tournamentRepository
@@ -597,6 +614,8 @@ public class TournamentService {
     }
 
     private void validateTournamentCanBeModified(Tournament tournament) {
+        // FLOW: Admin Edit Tournament Program
+        // Validation: Tournament edit is locked once Registrations exist or Tournament is IN_PROGRESS/COMPLETED/CANCELLED.
         if (registrationRepository.existsByTournamentId(
                 tournament.getTournamentId())) {
             throw new ApiException(
@@ -649,12 +668,14 @@ public class TournamentService {
             );
         }
 
-        if (registrationCloseAt.isBefore(LocalDateTime.now())) {
-            throw new ApiException(
-                    HttpStatus.BAD_REQUEST,
-                    "Registration closing time cannot be in the past."
-            );
-        }
+        // Temporarily disabled for demo testing so historical Registration
+        // windows can be used while exercising the full admin event flow.
+        // if (registrationCloseAt.isBefore(LocalDateTime.now())) {
+        //     throw new ApiException(
+        //             HttpStatus.BAD_REQUEST,
+        //             "Registration closing time cannot be in the past."
+        //     );
+        // }
     }
 
     private void validateConditions(
@@ -1002,6 +1023,7 @@ public class TournamentService {
                 .tournamentId(race.getTournamentId())
                 .raceName(race.getRaceName())
                 .trackName(race.getTrackName())
+                .trackImageUrl(race.getTrackImageUrl())
                 .raceStartTime(race.getRaceStartTime())
                 .raceEndTime(race.getRaceEndTime())
                 .distance(race.getDistance())

@@ -51,6 +51,10 @@ public class RaceEngineController {
             @PathVariable Integer raceId,
             @RequestHeader(RACE_ENGINE_TOKEN_HEADER) String raceEngineToken
     ) {
+        // FLOW: Unity Race Engine Lineup
+        // ORDER: 1/10 - Unity requests the exact ASSIGNED runners and starting stalls for the launched Race.
+        // Unity calls this after launch to get ASSIGNED RaceEntries and
+        // starting stalls; service validates the per-launch engine token.
         return raceEngineQueryService.getLineup(raceId, raceEngineToken);
     }
 
@@ -60,6 +64,10 @@ public class RaceEngineController {
             @RequestHeader(RACE_ENGINE_TOKEN_HEADER) String raceEngineToken,
             @RequestBody Map<String, Object> tickPayload
     ) {
+        // FLOW: Admin Live Race Data
+        // ORDER: 5/10 - Unity posts each live tick payload to backend using the per-launch engine token.
+        // Unity sends live position ticks here; backend validates the running
+        // Race and relays the opaque payload to browser subscribers.
         raceLiveTickService.relayTick(raceId, raceEngineToken, tickPayload);
     }
 
@@ -69,6 +77,10 @@ public class RaceEngineController {
             @RequestHeader(RACE_ENGINE_TOKEN_HEADER) String raceEngineToken,
             @Valid @RequestBody RaceResultIngestRequest request
     ) {
+        // FLOW: Unity Result Endpoint
+        // ORDER: 2/10 - Unity posts final race result with per-launch token; controller delegates validation/storage.
+        // Unity posts the final simulated result here using the per-launch
+        // engine token; service validates payload and stores provisional data.
         RaceResultIngestResponse response =
                 raceResultIngestionService.ingestResult(
                         raceId,

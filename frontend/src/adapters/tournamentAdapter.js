@@ -9,6 +9,13 @@ function toNumber(value, fallback = 0) {
   return Number.isFinite(number) ? number : fallback;
 }
 
+function resolveImageUrl(url) {
+  if (!url) return '';
+  if (/^https?:\/\//i.test(url)) return url;
+
+  return `${API_BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
+}
+
 function adaptCondition(condition) {
   return {
     id: condition.conditionId,
@@ -21,6 +28,7 @@ function adaptCondition(condition) {
 }
 
 function adaptRace(race) {
+  const trackImageUrl = race.trackImageUrl || race.trackImagePath || '';
   const prizes = [...(race.prizes || [])]
     .sort((left, right) => left.rankPosition - right.rankPosition)
     .map((prize) => ({
@@ -33,6 +41,10 @@ function adaptRace(race) {
     id: race.raceId,
     name: race.raceName || '',
     track: race.trackName || '',
+    trackImageUrl,
+    trackImageSrc: resolveImageUrl(trackImageUrl),
+    trackImageFile: null,
+    trackImageRemoved: false,
     raceStartTime: race.raceStartTime || '',
     raceEndTime: race.raceEndTime || '',
     distance: toNumber(race.distance),
@@ -52,6 +64,9 @@ function adaptRace(race) {
   };
 }
 
+// FLOW: Admin Tournament Workspace Read
+// ORDER: 6/7 - Frontend adapter converts backend aggregate DTOs into the shared workspace/wizard view shape.
+// Purpose: convert the admin workspace aggregate DTO into the Tournament draft/view shape reused by cards, wizard edit, Race panels, and metrics.
 export function adaptWorkspaceTournament(tournament) {
   return adaptTournament(
     tournament,
@@ -68,7 +83,7 @@ function adaptTournament(tournament, races = []) {
     description: tournament.description || '',
     venue: tournament.venue || '',
     venueImageUrl,
-    venueImageSrc: resolveVenueImageUrl(venueImageUrl),
+    venueImageSrc: resolveImageUrl(venueImageUrl),
     venueImageFile: null,
     venueImageRemoved: false,
     registrationOpen: toDateInputValue(tournament.registrationOpenAt),
@@ -84,10 +99,4 @@ function adaptTournament(tournament, races = []) {
     conditions: (tournament.conditions || []).map(adaptCondition),
     races: races.map(adaptRace)
   };
-  function resolveVenueImageUrl(url) {
-  if (!url) return '';
-  if (/^https?:\/\//i.test(url)) return url;
-
-  return `${API_BASE_URL}${url.startsWith('/') ? '' : '/'}${url}`;
-}
 }

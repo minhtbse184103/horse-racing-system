@@ -48,6 +48,10 @@ public class TournamentController {
             @RequestPart("file") MultipartFile file,
             Authentication authentication
     ) {
+        // FLOW: Admin Tournament Images
+        // ORDER: 4V/7 - Backend controller receives venue multipart upload and delegates to TournamentService.
+        // API: POST /api/tournaments/{id}/venue-image.
+        // Purpose: receives the venue multipart file after Tournament create/edit and delegates Cloudinary storage to the service layer.
         return tournamentService.uploadVenueImage(
                 tournamentId,
                 file,
@@ -60,6 +64,10 @@ public class TournamentController {
             @PathVariable Integer tournamentId,
             Authentication authentication
     ) {
+        // FLOW: Admin Tournament Images
+        // ORDER: 4V/7 - Backend controller receives venue image removal and delegates to TournamentService.
+        // API: DELETE /api/tournaments/{id}/venue-image.
+        // Purpose: clears the venue image URL and removes the Cloudinary object.
         return tournamentService.removeVenueImage(
                 tournamentId,
                 authentication.getName()
@@ -71,6 +79,10 @@ public class TournamentController {
             @Valid @RequestBody CreateTournamentProgramRequest request,
             Authentication authentication
     ) {
+        // FLOW: Admin Create Tournament Program
+        // ORDER: 6/8 - Backend controller receives the atomic create request and delegates to TournamentProgramService.
+        // API: POST /api/tournaments/program.
+        // Purpose: entry point for the Admin wizard's atomic Tournament + Race program create flow.
         TournamentDetailResponse response =
                 tournamentProgramService.createTournamentProgram(
                         request,
@@ -88,6 +100,10 @@ public class TournamentController {
             @Valid @RequestBody UpdateTournamentRequest request,
             Authentication authentication
     ) {
+        // FLOW: Admin Edit Tournament Program
+        // ORDER: 5A/8 - Backend controller receives Tournament base-field update and delegates to TournamentService.
+        // API: PUT /api/tournaments/{id}.
+        // Purpose: updates Tournament base fields and Conditions before the frontend syncs Race changes.
         return tournamentService.updateTournament(
                 tournamentId,
                 request,
@@ -100,6 +116,10 @@ public class TournamentController {
             @PathVariable Integer tournamentId,
             Authentication authentication
     ) {
+        // FLOW: Admin Tournament Lifecycle
+        // ORDER: 4CLOSE/5 - Backend controller receives close-registration request and delegates to TournamentService.
+        // API: PUT /api/tournaments/{id}/close-registration.
+        // Purpose: closes registration for the Tournament and its still-open Races.
         return tournamentService.closeRegistration(
                 tournamentId,
                 authentication.getName()
@@ -111,6 +131,10 @@ public class TournamentController {
             @PathVariable Integer tournamentId,
             Authentication authentication
     ) {
+        // FLOW: Admin Tournament Lifecycle
+        // ORDER: 4COMPLETE/5 - Backend controller receives complete request and delegates to TournamentService.
+        // API: PUT /api/tournaments/{id}/complete.
+        // Purpose: finalizes the Tournament only after all child Races are completed.
         return tournamentService.completeTournament(
                 tournamentId,
                 authentication.getName()
@@ -122,6 +146,10 @@ public class TournamentController {
             @PathVariable Integer tournamentId,
             Authentication authentication
     ) {
+        // FLOW: Admin Tournament Lifecycle
+        // ORDER: 5CANCEL/5 - Backend controller receives cancel request and delegates to TournamentService.
+        // API: DELETE /api/tournaments/{id}.
+        // Purpose: cancels an editable Tournament and cascades status cancellation to child Races.
         return tournamentService.cancelTournament(
                 tournamentId,
                 authentication.getName()

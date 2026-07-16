@@ -29,6 +29,10 @@ export default function useRaceEntryAssignment(
   const entriesSequence = useRef(0);
 
   const loadQueue = useCallback(async () => {
+    // FLOW: Admin RaceEntry Assignment Queue Load
+    // ORDER: 2/7 - Hook calls the tournament-scoped queue endpoint, adapts candidates, and stores loading/error state.
+    // FE path: RaceEntryAssignmentPanel -> getAssignmentQueueByTournament -> backend eligibility query.
+    // Purpose: load only Registration candidates that are APPROVED, PAID, and not actively assigned.
     if (tournamentId == null) return;
     const sequence = ++queueSequence.current;
     setQueueLoading(true);
@@ -46,6 +50,10 @@ export default function useRaceEntryAssignment(
   }, [messages.queueLoadError, tournamentId]);
 
   const loadEntries = useCallback(async () => {
+    // FLOW: Admin Assigned RaceEntry Load
+    // ORDER: 2/6 - Hook loads by-race entries, adapts them, and pushes the loaded count back to workspace state.
+    // FE path: selected Race -> getRaceEntriesByRace -> backend ASSIGNED RaceEntry query.
+    // Purpose: display official RaceEntry slots and push the loaded count back into the Tournament workspace.
     if (raceId == null) {
       setEntries([]);
       setEntriesRaceId(null);
@@ -82,6 +90,10 @@ export default function useRaceEntryAssignment(
   }, [loadEntries]);
 
   async function assignRegistration(registrationId) {
+    // FLOW: Admin Assign RaceEntry
+    // ORDER: 2/8 - Hook posts selected Race/Registration, adapts backend response, updates entries, then refreshes queue.
+    // FE path: AssignmentDialog selection -> POST /api/admin/race-entries.
+    // Purpose: use the backend-created RaceEntry response, then refresh the candidate queue because assigned Registration is no longer eligible.
     const assignedEntry = adaptRaceEntry(
       await createRaceEntry({ raceId, registrationId })
     );
@@ -97,6 +109,10 @@ export default function useRaceEntryAssignment(
   }
 
   async function cancelEntry(raceEntryId, cancellationReason) {
+    // FLOW: Admin Cancel RaceEntry
+    // ORDER: 3/6 - Hook calls cancel API, adapts response, then refreshes assigned entries and the candidate queue.
+    // FE path: CancellationDialog -> PUT /api/admin/race-entries/{raceEntryId}/cancel.
+    // Purpose: use backend cancellation as source of truth, then refresh entries and queue so the Registration can reappear if eligible.
     const cancelledEntry = adaptRaceEntry(
       await cancelRaceEntry(raceEntryId, cancellationReason)
     );

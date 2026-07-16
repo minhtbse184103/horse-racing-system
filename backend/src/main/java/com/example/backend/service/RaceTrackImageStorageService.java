@@ -11,25 +11,25 @@ import java.util.Map;
 import java.util.Set;
 
 @Service
-public class VenueImageStorageService {
+public class RaceTrackImageStorageService {
 
     static final long MAX_FILE_SIZE = 5L * 1024 * 1024;
     private static final String FOLDER =
-            "horse-racing-system/tournament-venues";
+            "horse-racing-system/race-tracks";
 
     private static final Set<String> ALLOWED_TYPES =
             Set.of("image/jpeg", "image/png", "image/webp");
 
     private final Cloudinary cloudinary;
 
-    public VenueImageStorageService(Cloudinary cloudinary) {
+    public RaceTrackImageStorageService(Cloudinary cloudinary) {
         this.cloudinary = cloudinary;
     }
 
-    public String store(Integer tournamentId, MultipartFile file) {
+    public String store(Integer raceId, MultipartFile file) {
         // FLOW: Admin Tournament Images
-        // ORDER: 6V/7 - Storage service validates and uploads venue image to Cloudinary.
-        // Storage: validates the venue image and uploads it to Cloudinary using a stable tournament public_id.
+        // ORDER: 6R/7 - Storage service validates and uploads Race track image to Cloudinary.
+        // Storage: validates the Race track image and uploads it to Cloudinary using a stable race public_id.
         validate(file);
 
         try {
@@ -37,7 +37,7 @@ public class VenueImageStorageService {
                     file.getBytes(),
                     Map.of(
                             "folder", FOLDER,
-                            "public_id", "tournament-" + tournamentId,
+                            "public_id", "race-" + raceId,
                             "resource_type", "image",
                             "overwrite", true,
                             "invalidate", true
@@ -56,18 +56,18 @@ public class VenueImageStorageService {
         } catch (IOException exception) {
             throw new ApiException(
                     HttpStatus.INTERNAL_SERVER_ERROR,
-                    "Không thể tải hình địa điểm lên Cloudinary."
+                    "Không thể tải hình đường đua lên Cloudinary."
             );
         }
     }
 
-    public void delete(Integer tournamentId) {
+    public void delete(Integer raceId) {
         // FLOW: Admin Tournament Images
-        // ORDER: 6V/7 - Storage service deletes the venue image object from Cloudinary.
-        // Storage: removes the Cloudinary venue image object for this Tournament.
+        // ORDER: 6R/7 - Storage service deletes the Race track image object from Cloudinary.
+        // Storage: removes the Cloudinary track image object for this Race.
         try {
             cloudinary.uploader().destroy(
-                    FOLDER + "/tournament-" + tournamentId,
+                    FOLDER + "/race-" + raceId,
                     Map.of(
                             "resource_type", "image",
                             "invalidate", true
@@ -76,7 +76,7 @@ public class VenueImageStorageService {
         } catch (IOException exception) {
             throw new ApiException(
                     HttpStatus.INTERNAL_SERVER_ERROR,
-                    "Không thể xóa hình địa điểm trên Cloudinary."
+                    "Không thể xóa hình đường đua trên Cloudinary."
             );
         }
     }
@@ -85,14 +85,14 @@ public class VenueImageStorageService {
         if (file == null || file.isEmpty()) {
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
-                    "Vui lòng chọn hình địa điểm."
+                    "Vui lòng chọn hình đường đua."
             );
         }
 
         if (file.getSize() > MAX_FILE_SIZE) {
             throw new ApiException(
                     HttpStatus.PAYLOAD_TOO_LARGE,
-                    "Hình địa điểm không được vượt quá 5MB."
+                    "Hình đường đua không được vượt quá 5MB."
             );
         }
 
@@ -101,7 +101,7 @@ public class VenueImageStorageService {
                 || !ALLOWED_TYPES.contains(contentType.toLowerCase())) {
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
-                    "Hình địa điểm phải là JPEG, PNG hoặc WebP."
+                    "Hình đường đua phải là JPEG, PNG hoặc WebP."
             );
         }
     }

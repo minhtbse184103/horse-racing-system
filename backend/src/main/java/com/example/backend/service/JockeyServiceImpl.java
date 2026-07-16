@@ -91,6 +91,26 @@ public class JockeyServiceImpl implements JockeyService {
         return mapProfileToResponse(profile, jockey);
     }
 
+    @Transactional(readOnly = true)
+    @Override
+    public JockeyProfileResponse getAdminProfile(Integer jockeyId) {
+        // FLOW: Admin Registration Entity Detail Popup
+        // ORDER: 5JOCKEY/6 - Service validates JOCKEY identity/profile existence and maps profile evidence for display.
+        // Validation: clicked user must exist, have JOCKEY role, and own a JockeyProfile.
+        // DB effect: read-only User + JockeyProfile lookup mapped to JockeyProfileResponse.
+        User jockey = userRepository.findById(jockeyId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Nài ngựa không tồn tại."));
+
+        if (jockey.getRole() == null || !ROLE_JOCKEY.equals(jockey.getRole().getRoleName())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "User is not a jockey.");
+        }
+
+        JockeyProfile profile = jockeyProfileRepository.findById(jockeyId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Hồ sơ nài ngựa không tồn tại."));
+
+        return mapProfileToResponse(profile, jockey);
+    }
+
     // Tạo hồ sơ jockey mới.
     @Transactional
     @Override

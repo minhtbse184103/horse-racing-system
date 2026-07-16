@@ -18,6 +18,14 @@ import TournamentMobileCard from './TournamentMobileCard';
 import { formatTournamentDate } from './tournamentWorkspaceUtils';
 import VenueImage from './VenueImage';
 
+const TOURNAMENT_FILTER_STATUSES = [
+  'OPEN_FOR_REGISTRATION',
+  'REGISTRATION_CLOSED',
+  'IN_PROGRESS',
+  'COMPLETED',
+  'CANCELLED'
+];
+
 export default function TournamentPortfolio({
   tournaments,
   filteredTournaments,
@@ -78,7 +86,7 @@ export default function TournamentPortfolio({
                 className="min-h-11 w-full appearance-none rounded-lg border border-brown-700/15 bg-white py-2.5 pl-9 pr-8 text-sm font-extrabold text-brown-900 outline-none transition focus:border-brown-500 focus:ring-4 focus:ring-gold-400/15"
               >
                 <option value="ALL">{t('eventWorkspaceAllStatuses')}</option>
-                {Object.keys(tournamentStatusLabels).map((value) => (
+                {TOURNAMENT_FILTER_STATUSES.map((value) => (
                   <option key={value} value={value}>{t(`eventStatus_${value}`)}</option>
                 ))}
               </select>

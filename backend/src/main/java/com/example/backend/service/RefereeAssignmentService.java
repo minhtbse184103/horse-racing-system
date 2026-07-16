@@ -49,6 +49,10 @@ public class RefereeAssignmentService {
             CreateRefereeAssignmentRequest request,
             String adminEmail
     ) {
+        // FLOW: Admin Create Referee Assignment
+        // ORDER: 5/6 - Service locks Race, validates Admin/Race/Referee/schedule, then creates the assignment row.
+        // Validation: Admin must be ACTIVE ADMIN; Race must allow Referee assignment; Race must not already have a Referee; selected user must be ACTIVE REFEREE; schedule must not overlap.
+        // DB effect: creates one ASSIGNED RefereeAssignment row for the Race.
         getAdmin(adminEmail);
         Race race = raceRepository
                 .findByIdForUpdate(request.getRaceId())
@@ -100,6 +104,10 @@ public class RefereeAssignmentService {
             Integer refereeUserId,
             String adminEmail
     ) {
+        // FLOW: Admin Replace Referee
+        // ORDER: 5/6 - Service locks Race, validates replacement rules, checks schedule conflict, then updates or recreates assignment.
+        // Validation: Admin must be ACTIVE ADMIN; Race must allow assignment; new Referee must be ACTIVE REFEREE; same Referee and overlapping schedules are blocked.
+        // DB effect: updates the existing RefereeAssignment row, or creates one if the Race had no row.
         getAdmin(adminEmail);
         Race race = raceRepository.findByIdForUpdate(raceId)
                 .orElseThrow(() -> new ApiException(
@@ -154,6 +162,10 @@ public class RefereeAssignmentService {
 
     @Transactional
     public void removeAssignment(Integer raceId, String adminEmail) {
+        // FLOW: Admin Remove Referee Assignment
+        // ORDER: 6/6 - Service locks Race, validates assignment changes are still allowed, then deletes existing assignment row.
+        // Validation: Admin must be ACTIVE ADMIN; Race must still allow assignment changes; existing assignment must be present.
+        // DB effect: deletes the RefereeAssignment row for the Race.
         getAdmin(adminEmail);
         Race race = raceRepository.findByIdForUpdate(raceId)
                 .orElseThrow(() -> new ApiException(
@@ -175,6 +187,10 @@ public class RefereeAssignmentService {
 
     @Transactional(readOnly = true)
     public List<RefereeAssignmentResponse> getAllAssignments() {
+        // FLOW: Admin Referee Assignment Page Data Load
+        // ORDER: 4A/7 - Service reads all current RefereeAssignment rows and maps them for the assignment table.
+        // Validation: admin endpoint security is handled by the controller/security layer.
+        // DB effect: read-only RefereeAssignment list mapped to table rows.
         return assignmentRepository.findAll()
                 .stream()
                 .map(this::toResponse)
@@ -197,6 +213,10 @@ public class RefereeAssignmentService {
 
     @Transactional(readOnly = true)
     public List<UserResponse> getActiveReferees() {
+        // FLOW: Admin Referee Assignment Page Data Load
+        // ORDER: 4B/7 - Service filters Users to ACTIVE REFEREE accounts before the UI can select them.
+        // Validation: only Users with status ACTIVE and role REFEREE are returned as assignable Referees.
+        // DB effect: read-only User query mapped to compact UserResponse cards.
         return userRepository
                 .findByStatusAndRoleRoleNameOrderByUpdatedAtDesc(
                         "ACTIVE",
@@ -232,6 +252,9 @@ public class RefereeAssignmentService {
     }
 
     private void validateRaceCanReceiveAssignment(Race race) {
+        // FLOW: Admin Create Referee Assignment / Replace Referee
+        // ORDER: 5A/6 - Shared validation blocks non-assignable Race status, late assignment, missing end time, or terminal Tournament.
+        // Validation: Race status must allow assignment, Race must not be past start unless READY, raceEndTime must exist, and Tournament must not be terminal.
         if (!ASSIGNABLE_RACE_STATUSES.contains(race.getStatus())) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
@@ -271,6 +294,9 @@ public class RefereeAssignmentService {
     }
 
     private User validateReferee(Integer refereeUserId) {
+        // FLOW: Admin Create Referee Assignment / Replace Referee
+        // ORDER: 5B/6 - Shared validation confirms selected user is an ACTIVE REFEREE before save.
+        // Validation: selected user must exist, have REFEREE role, and be ACTIVE.
         User referee = userRepository.findById(refereeUserId)
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
@@ -301,6 +327,10 @@ public class RefereeAssignmentService {
             Race race,
             Integer excludedRaceId
     ) {
+        // FLOW: Admin Create Referee Assignment / Replace Referee
+        // ORDER: 5C/6 - Shared validation blocks assigning one Referee to overlapping non-cancelled Race windows.
+        // Validation: same Referee cannot be assigned to another non-cancelled Race whose time window overlaps this Race.
+        // excludedRaceId lets replacement ignore the current Race while checking the Referee's other assignments.
         boolean conflict =
                 assignmentRepository.existsOverlappingAssignment(
                         refereeUserId,
@@ -322,6 +352,8 @@ public class RefereeAssignmentService {
     private RefereeAssignmentResponse toResponse(
             RefereeAssignment assignment
     ) {
+        // FLOW: Admin Create Referee Assignment / Replace Referee
+        // ORDER: 6/6 - Mapper reloads Race, Tournament, and Referee details for the response consumed by the Admin table.
         Race race = raceRepository
                 .findById(assignment.getRaceId())
                 .orElseThrow(() -> new ApiException(

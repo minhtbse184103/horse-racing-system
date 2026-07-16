@@ -34,6 +34,10 @@ public class AdminRefereeAssignmentController {
             @Valid @RequestBody CreateRefereeAssignmentRequest request,
             Authentication authentication
     ) {
+        // FLOW: Admin Create Referee Assignment
+        // ORDER: 4/6 - Controller receives the create request and delegates all business validation to RefereeAssignmentService.
+        // API: POST /api/admin/referee-assignments.
+        // Purpose: creates one Race -> Referee assignment after service-level role, status, duplicate, and schedule checks.
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(assignmentService.createAssignment(
@@ -48,6 +52,10 @@ public class AdminRefereeAssignmentController {
             @PathVariable Integer refereeUserId,
             Authentication authentication
     ) {
+        // FLOW: Admin Replace Referee
+        // ORDER: 4/6 - Controller receives replace request and delegates role/status/conflict checks to the service.
+        // API: PUT /api/admin/referee-assignments/{raceId}/referee/{refereeUserId}.
+        // Purpose: replaces the Referee assigned to a Race, or creates the assignment if the row is missing.
         return assignmentService.replaceAssignment(
                 raceId,
                 refereeUserId,
@@ -61,11 +69,19 @@ public class AdminRefereeAssignmentController {
             @PathVariable Integer raceId,
             Authentication authentication
     ) {
+        // FLOW: Admin Remove Referee Assignment
+        // ORDER: 5/6 - Controller receives delete request and delegates Race/admin validation to the service.
+        // API: DELETE /api/admin/referee-assignments/{raceId}.
+        // Purpose: deletes the current RefereeAssignment row after service-level Race/admin validation.
         assignmentService.removeAssignment(raceId, authentication.getName());
     }
 
     @GetMapping
     public List<RefereeAssignmentResponse> getAllAssignments() {
+        // FLOW: Admin Referee Assignment Page Data Load
+        // ORDER: 3A/7 - Controller exposes current assignment rows to the Admin page.
+        // API: GET /api/admin/referee-assignments.
+        // Purpose: returns current Race -> Referee assignment rows for the assignment list.
         return assignmentService.getAllAssignments();
     }
 
@@ -78,11 +94,19 @@ public class AdminRefereeAssignmentController {
 
     @GetMapping("/referees")
     public List<UserResponse> getActiveReferees() {
+        // FLOW: Admin Referee Assignment Page Data Load
+        // ORDER: 3B/7 - Controller exposes ACTIVE REFEREE options to the Admin page.
+        // API: GET /api/admin/referee-assignments/referees.
+        // Purpose: returns ACTIVE REFEREE users for assignment selection.
         return assignmentService.getActiveReferees();
     }
 
     @GetMapping("/assignable-races")
     public List<AdminAssignableRaceResponse> getAssignableRaces() {
+        // FLOW: Admin Referee Assignment Page Data Load
+        // ORDER: 3C/7 - Controller exposes assignable Race options to the Admin page.
+        // API: GET /api/admin/referee-assignments/assignable-races.
+        // Purpose: returns Race options whose status can accept a Referee assignment.
         return raceService.getAssignableRaces();
     }
 }

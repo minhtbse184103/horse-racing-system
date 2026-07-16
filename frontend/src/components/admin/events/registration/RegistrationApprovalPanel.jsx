@@ -4,8 +4,12 @@ import { AlertTriangle, ChevronDown, ChevronRight, ClipboardCheck, LoaderCircle,
 import { REGISTRATION_FILTER_ALL } from '../operations/operationConstants';
 import RegistrationFilters from './RegistrationFilters';
 import RegistrationList from './RegistrationList';
+import RegistrationEntityDetailDialog from './RegistrationEntityDetailDialog';
 import RegistrationReviewDialog from './RegistrationReviewDialog';
 import { filterRegistrations, getRegistrationSummary, getTournamentRegistrations } from './registrationHelpers';
+import { getAdminHorseDetail } from '../../../../services/adminHorseReviewService';
+import { getAdminJockeyProfile } from '../../../../services/adminProfileReviewService';
+import { getAdminOwnerProfile } from '../../../../services/ownerApplicationService';
 import { useLanguage } from '../../../../context/LanguageContext';
 
 const DEFAULT_FILTERS = {
@@ -23,9 +27,16 @@ export default function RegistrationApprovalPanel({
   onApprove,
   onReject
 }) {
+  // FLOW: Admin Registration List / Load / Filter
+  // ORDER: 7/8 - Registration panel scopes loaded rows to the expanded Tournament and applies summary/filter state.
+  // FE path: TournamentWorkspace -> TournamentOperationsPanel -> RegistrationApprovalPanel.
+  // Purpose: scope the loaded Registration list to the expanded Tournament, summarize review state, and apply local filters before review actions.
   const { t } = useLanguage();
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
   const [selectedRegistration, setSelectedRegistration] = useState(null);
+  const [selectedEntity, setSelectedEntity] = useState(null);
+  const [entityLoading, setEntityLoading] = useState(false);
+  const [entityError, setEntityError] = useState('');
   const [expanded, setExpanded] = useState(false);
 
   const tournamentRegistrations = useMemo(
@@ -44,11 +55,43 @@ export default function RegistrationApprovalPanel({
 
   async function decideRegistration(registration, status, reason = null) {
     if (status === 'APPROVED') {
+      // FLOW: Admin Approve Registration
+      // ORDER: 2/8 - Registration panel delegates approval upward so list state and RaceEntry queue refresh stay coordinated.
+      // Purpose: delegate approval to the workspace so Registration state and RaceEntry queue refresh stay coordinated.
       await onApprove(registration.id);
     } else {
+      // FLOW: Admin Reject Registration
+      // ORDER: 2/6 - Registration panel delegates rejection upward with the reviewed reason.
+      // Purpose: delegate rejection with the reviewed reason so the workspace can replace the Registration row from the backend response.
       await onReject(registration.id, reason);
     }
     setSelectedRegistration(null);
+  }
+
+  async function viewEntity(type, registration) {
+    // FLOW: Admin Registration Entity Detail Popup
+    // ORDER: 2/6 - Panel routes the clicked Horse/Owner/Jockey to the correct read-only profile API and owns modal loading/error state.
+    // FE path: Registration row/review dialog -> click Horse/Owner/Jockey -> admin profile endpoint.
+    // Purpose: load enriched profile data without changing the Registration review decision state.
+    setSelectedEntity({ type, registration, detail: null });
+    setEntityLoading(true);
+    setEntityError('');
+
+    try {
+      let detail = null;
+      if (type === 'horse') {
+        detail = await getAdminHorseDetail(registration.horseId);
+      } else if (type === 'owner') {
+        detail = await getAdminOwnerProfile(registration.ownerId);
+      } else if (registration.jockeyId) {
+        detail = await getAdminJockeyProfile(registration.jockeyId);
+      }
+      setSelectedEntity({ type, registration, detail });
+    } catch (error) {
+      setEntityError(error.message || t('eventRegistrationEntityLoadError'));
+    } finally {
+      setEntityLoading(false);
+    }
   }
 
   return (
@@ -83,14 +126,28 @@ export default function RegistrationApprovalPanel({
             ) : (
               <>
                 <RegistrationFilters filters={filters} resultCount={filteredRegistrations.length} onChange={updateFilter} onReset={() => setFilters(DEFAULT_FILTERS)} />
-                <RegistrationList registrations={filteredRegistrations} onReview={setSelectedRegistration} />
+                <RegistrationList registrations={filteredRegistrations} onReview={setSelectedRegistration} onViewEntity={viewEntity} />
               </>
             )}
           </motion.div>
         )}
       </AnimatePresence>
       <AnimatePresence>
-        {selectedRegistration && <RegistrationReviewDialog registration={selectedRegistration} onClose={() => setSelectedRegistration(null)} onDecision={decideRegistration} />}
+        {selectedRegistration && <RegistrationReviewDialog registration={selectedRegistration} onClose={() => setSelectedRegistration(null)} onDecision={decideRegistration} onViewEntity={viewEntity} />}
+      </AnimatePresence>
+      <AnimatePresence>
+        {selectedEntity && (
+          <RegistrationEntityDetailDialog
+            entity={selectedEntity}
+            isLoading={entityLoading}
+            error={entityError}
+            onClose={() => {
+              setSelectedEntity(null);
+              setEntityError('');
+              setEntityLoading(false);
+            }}
+          />
+        )}
       </AnimatePresence>
     </section>
   );

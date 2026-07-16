@@ -63,6 +63,10 @@ public class AdminHorseService {
 
     @Transactional(readOnly = true)
     public HorseResponse getHorseById(Integer horseId) {
+        // FLOW: Admin Registration Entity Detail Popup
+        // ORDER: 5HORSE/6 - Service validates the Horse exists and maps the read-only Horse detail response.
+        // Validation: Horse ID from Registration must resolve to an existing Horse.
+        // DB effect: read-only Horse lookup mapped to the admin Horse detail DTO.
         return horseRepository.findById(horseId)
                 .map(this::mapHorseToResponse)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Ngá»±a khĂ´ng tá»“n táº¡i."));

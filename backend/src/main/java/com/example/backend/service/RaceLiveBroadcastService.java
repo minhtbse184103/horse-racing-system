@@ -27,6 +27,10 @@ public class RaceLiveBroadcastService {
     }
 
     private void broadcast(Integer raceId, String type, Object data) {
+        // FLOW: Admin Live Race Data
+        // ORDER: 7/10 - Broadcast service wraps tick/result data and publishes it to the Race-specific STOMP topic.
+        // One topic per Race keeps simultaneous live races isolated:
+        // /topic/races/{raceId} only receives that Race's ticks/result envelope.
         messagingTemplate.convertAndSend(
                 "/topic/races/" + raceId,
                 RaceLiveEventMessage.builder()

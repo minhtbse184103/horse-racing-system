@@ -15,6 +15,9 @@ import java.util.Collection;
 public interface RaceEntryRepository
         extends JpaRepository<RaceEntry, Integer> {
 
+    // FLOW: Admin Assigned RaceEntry Load
+    // ORDER: 6B/6 - Repository returns only active ASSIGNED entries for the selected Race in startingStall order.
+    // Returns active RaceEntry rows for one Race ordered by startingStall for official entry display.
     List<RaceEntry> findByRaceIdAndStatusOrderByStartingStallAsc(
             Integer raceId,
             String status
@@ -31,12 +34,17 @@ public interface RaceEntryRepository
             Integer registrationId,
             String status
     );
+    // FLOW: Admin Assign RaceEntry
+    // ORDER: 6A/8 - Repository counts active ASSIGNED entries for Race capacity validation.
     long countByRaceIdAndStatus(
             Integer raceId,
             String status
     );
     boolean existsByRaceId(Integer raceId);
 
+    // FLOW: Admin Assign RaceEntry
+    // ORDER: 6B/8 - Repository reads occupied ASSIGNED stalls for backend random startingStall selection.
+    // Reads active occupied stalls for backend random startingStall selection.
     @Query("""
         select entry.startingStall
         from RaceEntry entry
@@ -68,6 +76,9 @@ public interface RaceEntryRepository
         long getEntryCount();
     }
 
+    // FLOW: Admin Tournament Workspace Read
+    // ORDER: 5D/7 - Repository counts active assigned entries for Race capacity indicators.
+    // Purpose: count active ASSIGNED entries by Race for capacity indicators without loading full RaceEntry rows.
     @Query("""
         select entry.raceId as raceId, count(entry) as entryCount
         from RaceEntry entry
