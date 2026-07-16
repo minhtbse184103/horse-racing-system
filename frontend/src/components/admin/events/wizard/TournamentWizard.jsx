@@ -73,6 +73,27 @@ export default function TournamentWizard({ initialTournament, onClose, onSave })
     updateTournamentField('races', [...draft.races, createRace(draft)]);
   }
 
+  function validateBeforeConfirmation() {
+    for (const stepId of [1, 2, 3]) {
+      const stepErrors = validateWizardStep(stepId, draft, t);
+      if (Object.keys(stepErrors).length > 0) {
+        setErrors(stepErrors);
+        setStep(stepId);
+        scrollToTop();
+        return false;
+      }
+    }
+
+    setErrors({});
+    return true;
+  }
+
+  function openConfirmation() {
+    if (validateBeforeConfirmation()) {
+      setShowConfirmation(true);
+    }
+  }
+
   async function submitTournament() {
     return onSave(draft);
   }
@@ -132,7 +153,7 @@ export default function TournamentWizard({ initialTournament, onClose, onSave })
               {step < 4 ? (
                 <button type="button" onClick={nextStep} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-brown-700 px-5 text-sm font-extrabold text-white shadow-md hover:bg-brown-900">{t('eventCommonNext')} <ArrowRight size={16} /></button>
               ) : (
-                <button type="button" onClick={() => setShowConfirmation(true)} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-brown-700 px-5 text-sm font-extrabold text-white shadow-md hover:bg-brown-900"><Trophy size={16} /> {initialTournament ? t('saveChanges') : t('eventWorkspaceCreateTournament')}</button>
+                <button type="button" onClick={openConfirmation} className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-brown-700 px-5 text-sm font-extrabold text-white shadow-md hover:bg-brown-900"><Trophy size={16} /> {initialTournament ? t('saveChanges') : t('eventWorkspaceCreateTournament')}</button>
               )}
             </div>
           </div>

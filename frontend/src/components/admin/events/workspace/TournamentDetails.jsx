@@ -16,6 +16,7 @@ export default function TournamentDetails({
   approveRegistration,
   rejectRegistration,
   onRaceEntryCountChange,
+  onRaceStatusChange,
   onLifecycleAction,
   lifecycleProcessingId,
   adminName,
@@ -60,6 +61,7 @@ export default function TournamentDetails({
         approveRegistration={approveRegistration}
         rejectRegistration={rejectRegistration}
         onRaceEntryCountChange={onRaceEntryCountChange}
+        onRaceStatusChange={onRaceStatusChange}
         onNavigateToResultReview={onNavigateToResultReview}
         adminName={adminName}
       />

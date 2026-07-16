@@ -250,12 +250,14 @@ public class TournamentProgramService {
             );
         }
 
-        if (registrationCloseAt.isBefore(LocalDateTime.now())) {
-            throw new ApiException(
-                    HttpStatus.BAD_REQUEST,
-                    "Registration closing time cannot be in the past."
-            );
-        }
+        // Temporarily disabled for demo testing so historical Registration
+        // windows can be used while exercising the full admin event flow.
+        // if (registrationCloseAt.isBefore(LocalDateTime.now())) {
+        //     throw new ApiException(
+        //             HttpStatus.BAD_REQUEST,
+        //             "Registration closing time cannot be in the past."
+        //     );
+        // }
     }
 
     private void validateRaceTime(
@@ -267,6 +269,13 @@ public class TournamentProgramService {
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
                     "Race start time must be before end time."
+            );
+        }
+
+        if (!startTime.isAfter(LocalDateTime.now())) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Race start time must be after the current time."
             );
         }
 

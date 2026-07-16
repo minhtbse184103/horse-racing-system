@@ -85,6 +85,14 @@ public class RaceController {
         return raceService.closeRegistration(raceId, authentication.getName());
     }
 
+    @PutMapping("/{raceId}/ready")
+    public RaceResponse markRaceReady(
+            @PathVariable Integer raceId,
+            Authentication authentication
+    ) {
+        return raceService.markRaceReady(raceId, authentication.getName());
+    }
+
     @PutMapping("/{raceId}/complete")
     public RaceResponse completeRace(
             @PathVariable Integer raceId,

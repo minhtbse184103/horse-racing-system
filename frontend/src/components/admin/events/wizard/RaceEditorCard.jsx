@@ -8,6 +8,11 @@ import { useLanguage } from '../../../../context/LanguageContext';
 export default function RaceEditorCard({ race, index, draft, errors, onChange, onRemove }) {
   const { t } = useLanguage();
   const prefix = `race-${race.id}`;
+  const now = new Date();
+  const timezoneOffset = now.getTimezoneOffset() * 60000;
+  const currentDateTime = new Date(now.getTime() - timezoneOffset).toISOString().slice(0, 16);
+  const tournamentStartTime = draft.start ? `${draft.start}T00:00` : '';
+  const raceStartMin = [currentDateTime, tournamentStartTime].filter(Boolean).sort().at(-1);
 
   return (
     <motion.article layout className="overflow-hidden rounded-lg border border-white/80 bg-white/90 shadow-[0_10px_28px_rgba(78,44,25,0.08)] transition-shadow hover:shadow-[0_16px_36px_rgba(78,44,25,0.12)]">
@@ -41,7 +46,7 @@ export default function RaceEditorCard({ race, index, draft, errors, onChange, o
           <input className={FIELD_CLASS} value={race.track} onChange={(event) => onChange({ track: event.target.value })} placeholder="Đường đua chính" />
         </WizardField>
         <WizardField label={t('eventWizardRaceStartTime')} error={errors[`${prefix}-raceStartTime`]} className="xl:col-span-2">
-          <input type="datetime-local" min={draft.start ? `${draft.start}T00:00` : undefined} max={draft.end ? `${draft.end}T23:59` : undefined} className={FIELD_CLASS} value={race.raceStartTime} onChange={(event) => onChange({ raceStartTime: event.target.value })} />
+          <input type="datetime-local" min={raceStartMin || undefined} max={draft.end ? `${draft.end}T23:59` : undefined} className={FIELD_CLASS} value={race.raceStartTime} onChange={(event) => onChange({ raceStartTime: event.target.value })} />
         </WizardField>
         <WizardField label={t('eventWizardRaceEndTime')} error={errors[`${prefix}-raceEndTime`]} className="xl:col-span-2">
           <input type="datetime-local" min={race.raceStartTime || (draft.start ? `${draft.start}T00:00` : undefined)} max={draft.end ? `${draft.end}T23:59` : undefined} className={FIELD_CLASS} value={race.raceEndTime} onChange={(event) => onChange({ raceEndTime: event.target.value })} />

@@ -141,6 +141,7 @@ class RaceEngineLaunchServiceTest {
     @Test
     void launchRaceRejectsBeforeRaceIsReady() {
         Race race = launchableRace();
+        race.setStatus(EventStatus.REGISTRATION_CLOSED);
         race.setRaceStartTime(LocalDateTime.now().plusMinutes(10));
         stubAdmin();
         when(raceRepository.findByIdForUpdate(RACE_ID))
@@ -340,7 +341,7 @@ class RaceEngineLaunchServiceTest {
         race.setDistance(1200);
         race.setMaxRunners(6);
         race.setRaceOrder(1);
-        race.setStatus(EventStatus.OPEN_FOR_REGISTRATION);
+        race.setStatus(EventStatus.READY);
         return race;
     }
 

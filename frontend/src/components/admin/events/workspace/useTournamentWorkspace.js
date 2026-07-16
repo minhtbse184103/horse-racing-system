@@ -220,8 +220,8 @@ export default function useTournamentWorkspace() {
       return tournamentId;
     } catch (error) {
       await loadTournaments();
-      setMutationError(error.message || 'Không thể lưu Tournament này.');
       if (error.partialTournamentId) {
+        setMutationError(error.message || 'Không thể lưu Tournament này.');
         setExpandedId(error.partialTournamentId);
         setWizardOpen(false);
         return error.partialTournamentId;

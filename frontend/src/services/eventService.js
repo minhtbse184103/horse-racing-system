@@ -102,6 +102,12 @@ export function runRace(raceId) {
   });
 }
 
+export function readyRace(raceId) {
+  return httpRequest(`/api/races/${raceId}/ready`, {
+    method: 'PUT'
+  });
+}
+
 export function failRaceRun(raceId, reason) {
   return httpRequest(`/api/races/${raceId}/run/fail`, {
     method: 'PUT',

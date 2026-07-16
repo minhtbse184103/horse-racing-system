@@ -32,6 +32,8 @@ import java.util.stream.Collectors;
 @Service
 public class RaceService {
 
+    private static final int MIN_RUNNERS_TO_READY = 3;
+
     private static final Set<String> RACE_SETUP_TOURNAMENT_STATUSES =
             Set.of(
                     EventStatus.OPEN_FOR_REGISTRATION,
@@ -390,6 +392,55 @@ public class RaceService {
     }
 
     @Transactional
+    public RaceResponse markRaceReady(Integer raceId, String adminEmail) {
+        getAdmin(adminEmail);
+
+        Race race = raceRepository.findByIdForUpdate(raceId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "Race does not exist."
+                ));
+
+        if (EventStatus.READY.equals(race.getStatus())) {
+            return toResponse(race);
+        }
+
+        if (!EventStatus.OPEN_FOR_REGISTRATION.equals(race.getStatus())
+                && !EventStatus.REGISTRATION_CLOSED.equals(race.getStatus())) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "Only a race waiting for setup can be marked ready."
+            );
+        }
+
+        if (LocalDateTime.now().isBefore(race.getRaceStartTime())) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "Race cannot be marked ready before its scheduled start time."
+            );
+        }
+
+        long assignedEntries = raceEntryRepository.countByRaceIdAndStatus(
+                raceId,
+                RaceEntryStatus.ASSIGNED
+        );
+
+        if (assignedEntries < MIN_RUNNERS_TO_READY) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "Race needs at least " + MIN_RUNNERS_TO_READY
+                            + " assigned entries before it can be marked ready."
+            );
+        }
+
+        race.setStatus(EventStatus.READY);
+        Race savedRace = raceRepository.save(race);
+        updateTournamentToInProgress(savedRace.getTournamentId());
+
+        return toResponse(savedRace);
+    }
+
+    @Transactional
     public RaceResponse completeRace(Integer raceId, String adminEmail) {
         getAdmin(adminEmail);
 
@@ -484,15 +535,8 @@ public class RaceService {
     }
 
     private void refreshRaceStatus(Race race) {
-        if ((EventStatus.OPEN_FOR_REGISTRATION.equals(race.getStatus())
-                || EventStatus.REGISTRATION_CLOSED.equals(race.getStatus()))
-                && !LocalDateTime.now().isBefore(race.getRaceStartTime())) {
-
-            race.setStatus(EventStatus.READY);
-            raceRepository.save(race);
-
-            updateTournamentToInProgress(race.getTournamentId());
-        }
+        // READY is now an explicit admin action. A scheduled start time alone
+        // must not promote the race because it may have no assigned entries.
     }
 
     private void updateTournamentToInProgress(Integer tournamentId) {
@@ -553,6 +597,13 @@ public class RaceService {
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
                     "Race start time must be before end time."
+            );
+        }
+
+        if (!startTime.isAfter(LocalDateTime.now())) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Race start time must be after the current time."
             );
         }
 

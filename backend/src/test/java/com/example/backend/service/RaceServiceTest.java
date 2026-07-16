@@ -354,6 +354,76 @@ class RaceServiceTest {
     }
 
     @Test
+    void markRaceReadyRejectsBeforeScheduledStartTime() {
+        Race race = race();
+
+        stubAdmin();
+        when(raceRepository.findByIdForUpdate(8)).thenReturn(Optional.of(race));
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.markRaceReady(8, "admin@example.com")
+        );
+
+        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
+        assertEquals(
+                "Race cannot be marked ready before its scheduled start time.",
+                exception.getMessage()
+        );
+        verify(raceEntryRepository, never()).countByRaceIdAndStatus(any(), any());
+        verify(raceRepository, never()).save(any());
+    }
+
+    @Test
+    void markRaceReadyRejectsWhenAssignedEntriesAreLessThanThree() {
+        Race race = race();
+        race.setRaceStartTime(LocalDateTime.now().minusMinutes(5));
+        race.setRaceEndTime(LocalDateTime.now().plusMinutes(55));
+
+        stubAdmin();
+        when(raceRepository.findByIdForUpdate(8)).thenReturn(Optional.of(race));
+        when(raceEntryRepository.countByRaceIdAndStatus(8, RaceEntryStatus.ASSIGNED))
+                .thenReturn(2L);
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.markRaceReady(8, "admin@example.com")
+        );
+
+        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
+        assertEquals(
+                "Race needs at least 3 assigned entries before it can be marked ready.",
+                exception.getMessage()
+        );
+        verify(raceRepository, never()).save(any());
+    }
+
+    @Test
+    void markRaceReadySetsRaceReadyAndMovesTournamentInProgress() {
+        Race race = race();
+        race.setRaceStartTime(LocalDateTime.now().minusMinutes(5));
+        race.setRaceEndTime(LocalDateTime.now().plusMinutes(55));
+        Tournament tournament = tournament();
+
+        stubAdmin();
+        when(raceRepository.findByIdForUpdate(8)).thenReturn(Optional.of(race));
+        when(raceEntryRepository.countByRaceIdAndStatus(8, RaceEntryStatus.ASSIGNED))
+                .thenReturn(3L);
+        when(raceRepository.save(race)).thenReturn(race);
+        when(tournamentRepository.findById(12)).thenReturn(Optional.of(tournament));
+        when(raceResultRepository.countResultsByRaceIds(List.of(8))).thenReturn(List.of());
+        when(racePrizeRepository.findByRaceIdOrderByRankPositionAsc(8)).thenReturn(List.of());
+
+        RaceResponse response = service.markRaceReady(8, "admin@example.com");
+
+        assertEquals(EventStatus.READY, response.getStatus());
+        assertEquals(EventStatus.READY, race.getStatus());
+        assertEquals(EventStatus.IN_PROGRESS, tournament.getStatus());
+        verify(raceRepository).save(race);
+        verify(tournamentRepository).save(tournament);
+    }
+
+    @Test
     void updateRaceRejectsNonAdmin() {
         UpdateRaceRequest request = updateRequest();
 

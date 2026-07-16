@@ -65,13 +65,9 @@ public class TournamentService {
         this.raceRunWatchdogService = raceRunWatchdogService;
     }
 
-    // Not readOnly: refreshLifecycleStatuses below saves races/tournaments
-    // whose raceStartTime has passed. This is the same "transition on
-    // read" pattern RaceService.refreshRaceStatus already uses for its
-    // own endpoints — replicated here because this BFF endpoint has its
-    // own query path and was never wired into that logic, so races sat
-    // in OPEN_FOR_REGISTRATION/REGISTRATION_CLOSED past their start time
-    // until something else happened to touch them (e.g. Run Race).
+    // Not readOnly: the workspace also runs the race watchdog. READY is not
+    // promoted on read; Admin must explicitly mark a race ready after the
+    // scheduled start time and minimum assigned RaceEntry validation pass.
     @Transactional
     public List<AdminTournamentWorkspaceResponse> getAdminTournamentWorkspace() {
         List<Tournament> tournaments =
@@ -107,11 +103,6 @@ public class TournamentService {
         // Batch load races
         List<Race> allRaces = raceRepository.findByTournamentIds(tournamentIds);
 
-        // Transition any race whose raceStartTime has passed to READY, and
-        // cascade its tournament to IN_PROGRESS. Mutates the same Race/Tournament
-        // instances used below, so the rest of this method (grouping,
-        // response mapping) sees the post-transition status without a
-        // second query.
         refreshLifecycleStatuses(tournaments, allRaces);
 
         Map<Integer, List<Race>> racesByTournamentId = allRaces.stream()
@@ -245,39 +236,20 @@ public class TournamentService {
                 .toList();
     }
 
-    // Same transition rules as RaceService.refreshRaceStatus /
-    // RaceEngineLaunchService's mirror of it: a race past its
-    // raceStartTime moves OPEN_FOR_REGISTRATION/REGISTRATION_CLOSED ->
-    // READY, and the first race to do so cascades its tournament
-    // to IN_PROGRESS (other races in the same tournament are untouched
-    // until their own raceStartTime passes — intentional, each race is
-    // gated independently for Run Race). Batched: one saveAll per
-    // collection instead of per-row saves, consistent with the rest of
-    // this method's batch-query design.
     private void refreshLifecycleStatuses(
             List<Tournament> tournaments,
             List<Race> races
     ) {
-        LocalDateTime now = LocalDateTime.now();
-
-        List<Race> racesToTransition = races.stream()
-                .filter(race ->
-                        (EventStatus.OPEN_FOR_REGISTRATION.equals(race.getStatus())
-                                || EventStatus.REGISTRATION_CLOSED.equals(race.getStatus()))
-                                && !now.isBefore(race.getRaceStartTime())
-                )
-                .toList();
-
-        if (racesToTransition.isEmpty()) {
-            return;
-        }
-
-        racesToTransition.forEach(race -> race.setStatus(EventStatus.READY));
-        raceRepository.saveAll(racesToTransition);
-
-        Set<Integer> tournamentIdsToTransition = racesToTransition.stream()
+        Set<Integer> tournamentIdsToTransition = races.stream()
+                .filter(race -> EventStatus.READY.equals(race.getStatus())
+                        || EventStatus.IN_PROGRESS.equals(race.getStatus())
+                        || EventStatus.PENDING_REVIEW.equals(race.getStatus()))
                 .map(Race::getTournamentId)
                 .collect(Collectors.toSet());
+
+        if (tournamentIdsToTransition.isEmpty()) {
+            return;
+        }
 
         List<Tournament> tournamentsToTransition = tournaments.stream()
                 .filter(tournament ->
@@ -649,12 +621,14 @@ public class TournamentService {
             );
         }
 
-        if (registrationCloseAt.isBefore(LocalDateTime.now())) {
-            throw new ApiException(
-                    HttpStatus.BAD_REQUEST,
-                    "Registration closing time cannot be in the past."
-            );
-        }
+        // Temporarily disabled for demo testing so historical Registration
+        // windows can be used while exercising the full admin event flow.
+        // if (registrationCloseAt.isBefore(LocalDateTime.now())) {
+        //     throw new ApiException(
+        //             HttpStatus.BAD_REQUEST,
+        //             "Registration closing time cannot be in the past."
+        //     );
+        // }
     }
 
     private void validateConditions(

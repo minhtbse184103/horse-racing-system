@@ -78,8 +78,6 @@ public class RaceEngineLaunchService {
                         "Race does not exist."
                 ));
 
-        refreshRaceStatus(race);
-
         validateRaceCanBeLaunched(race);
 
         LocalDateTime now = LocalDateTime.now();
@@ -261,23 +259,6 @@ public class RaceEngineLaunchService {
                     "Race needs at least " + MIN_RUNNERS_TO_LAUNCH
                             + " assigned entries before it can be run."
             );
-        }
-    }
-
-    /**
-     * Mirrors RaceService's private refreshRaceStatus: flips
-     * OPEN_FOR_REGISTRATION/REGISTRATION_CLOSED to READY once
-     * raceStartTime has passed. Duplicated here (rather than calling
-     * RaceService) because the Race row is already locked
-     * (findByIdForUpdate) in this transaction and re-fetching through
-     * another service would re-read it unlocked.
-     */
-    private void refreshRaceStatus(Race race) {
-        if ((EventStatus.OPEN_FOR_REGISTRATION.equals(race.getStatus())
-                || EventStatus.REGISTRATION_CLOSED.equals(race.getStatus()))
-                && !LocalDateTime.now().isBefore(race.getRaceStartTime())) {
-            race.setStatus(EventStatus.READY);
-            raceRepository.save(race);
         }
     }
 
