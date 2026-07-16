@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ArrowLeft, Eye, EyeOff, LogIn, Trophy } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, LogIn, Medal, Trophy, Users } from 'lucide-react';
 import AuthLayout from './AuthLayout';
 import { signup } from '../../services/authService';
 import { useLanguage } from '../../context/LanguageContext';
@@ -7,13 +7,20 @@ import { useLanguage } from '../../context/LanguageContext';
 const inputClasses =
   'w-full rounded-lg border bg-white px-4 py-3 text-sm font-semibold text-brown-900 outline-none transition placeholder:text-slate-500/65 focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20 disabled:cursor-not-allowed disabled:opacity-60';
 
+const accountTypes = [
+  { value: 'SPECTATOR', labelKey: 'spectatorAccount', descriptionKey: 'spectatorAccountDescription', icon: Users },
+  { value: 'OWNER', labelKey: 'ownerAccount', descriptionKey: 'ownerAccountDescription', icon: Trophy },
+  { value: 'JOCKEY', labelKey: 'jockeyAccount', descriptionKey: 'jockeyAccountDescription', icon: Medal }
+];
+
 export default function RegisterForm({ onGoHome, onGoLogin }) {
   const { t } = useLanguage();
   const [values, setValues] = useState({
     username: '',
     email: '',
     phone: '',
-    password: ''
+    password: '',
+    accountType: 'SPECTATOR'
   });
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState({});
@@ -26,7 +33,8 @@ export default function RegisterForm({ onGoHome, onGoLogin }) {
       values.username.trim() &&
       values.email.trim() &&
       values.phone.trim() &&
-      values.password,
+      values.password &&
+      values.accountType,
     [values]
   );
 
@@ -53,14 +61,16 @@ export default function RegisterForm({ onGoHome, onGoLogin }) {
         username: values.username.trim(),
         email: values.email.trim(),
         phone: values.phone.trim(),
-        password: values.password
+        password: values.password,
+        accountType: values.accountType
       });
       setSuccessMessage(t('registerSuccess'));
       setValues({
         username: '',
         email: '',
         phone: '',
-        password: ''
+        password: '',
+        accountType: 'SPECTATOR'
       });
       window.setTimeout(() => {
         onGoLogin?.();
@@ -131,6 +141,37 @@ export default function RegisterForm({ onGoHome, onGoLogin }) {
         )}
 
         <form className="mt-7 grid gap-4" onSubmit={handleSubmit} noValidate>
+          <fieldset className="grid gap-3">
+            <legend className="text-sm font-extrabold text-brown-900">{t('chooseAccountType')}</legend>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {accountTypes.map((option) => {
+                const Icon = option.icon;
+                const selected = values.accountType === option.value;
+                return (
+                  <button
+                    className={`min-h-32 rounded-lg border p-4 text-left transition ${selected
+                      ? 'border-brown-700 bg-cream-200 shadow-sm ring-2 ring-gold-400/30'
+                      : 'border-brown-700/15 bg-white hover:border-brown-700/40 hover:bg-cream-100'}`}
+                    type="button"
+                    key={option.value}
+                    aria-pressed={selected}
+                    onClick={() => handleChange({ target: { name: 'accountType', value: option.value } })}
+                    disabled={isSubmitting}
+                  >
+                    <Icon size={20} className="text-brown-500" />
+                    <strong className="mt-3 block text-sm text-brown-900">{t(option.labelKey)}</strong>
+                    <span className="mt-1 block text-xs font-semibold leading-5 text-slate-500">{t(option.descriptionKey)}</span>
+                  </button>
+                );
+              })}
+            </div>
+            {values.accountType !== 'SPECTATOR' && (
+              <p className="rounded-lg border border-gold-500/25 bg-gold-50 px-3 py-2 text-xs font-bold text-brown-700">
+                {t('professionalApprovalNotice')}
+              </p>
+            )}
+          </fieldset>
+
           <div className="grid gap-4 sm:grid-cols-2">
             <label className="grid gap-2" htmlFor="username">
               <span className="text-sm font-extrabold text-brown-900">

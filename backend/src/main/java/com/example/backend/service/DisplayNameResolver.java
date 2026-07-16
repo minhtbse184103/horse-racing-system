@@ -3,7 +3,6 @@ package com.example.backend.service;
 import com.example.backend.entity.JockeyProfile;
 import com.example.backend.entity.OwnerApplication;
 import com.example.backend.entity.User;
-import com.example.backend.entity.UserVerification;
 import com.example.backend.repository.JockeyProfileRepository;
 import com.example.backend.repository.OwnerApplicationRepository;
 import com.example.backend.repository.UserVerificationRepository;
@@ -39,25 +38,11 @@ public class DisplayNameResolver {
         }
 
         List<OwnerApplication> applications = ownerApplicationRepository.findLatestByUserIds(userIds);
-        Map<Integer, String> kycNames = userVerificationRepository.findAllById(
-                        applications.stream()
-                                .map(OwnerApplication::getKycVerificationId)
-                                .filter(id -> id != null)
-                                .toList()
-                )
-                .stream()
-                .collect(Collectors.toMap(
-                        UserVerification::getVerificationId,
-                        UserVerification::getFullName,
-                        (current, ignored) -> current
-                ));
-
         return applications.stream()
-                .filter(application -> application.getKycVerificationId() != null)
-                .filter(application -> kycNames.get(application.getKycVerificationId()) != null)
+                .filter(application -> application.getStableName() != null)
                 .collect(Collectors.toMap(
                         OwnerApplication::getUserId,
-                        application -> kycNames.get(application.getKycVerificationId()),
+                        OwnerApplication::getStableName,
                         (current, ignored) -> current
                 ));
     }
@@ -83,12 +68,7 @@ public class DisplayNameResolver {
             return null;
         }
 
-        return ownerApplicationRepository
-                .findFirstByUserIdOrderByApplicationIdDesc(owner.getUserID())
-                .flatMap(application -> userVerificationRepository.findById(application.getKycVerificationId()))
-                .map(UserVerification::getFullName)
-                .filter(name -> !name.isBlank())
-                .orElse(owner.getUsername());
+        return owner.getUsername();
     }
 
     public String getOwnerDisplayName(

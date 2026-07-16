@@ -64,6 +64,7 @@ public class AuthService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "So dien thoai da ton tai");
         }
 
+        String accountType = normalizePublicAccountType(request.getAccountType());
         Role role = getRoleByName(DEFAULT_PUBLIC_ROLE);
         User user = createUser(
                 request.getUsername(),
@@ -71,7 +72,8 @@ public class AuthService {
                 request.getPhone(),
                 request.getPassword(),
                 role,
-                STATUS_ACTIVE);
+                STATUS_ACTIVE,
+                accountType);
         return toResponse(user);
     }
 
@@ -97,7 +99,8 @@ public class AuthService {
                 request.getPhone(),
                 request.getPassword(),
                 role,
-                null);
+                null,
+                role.getRoleName());
         return toResponse(user);
     }
 
@@ -141,6 +144,19 @@ public class AuthService {
         if (!request.getPhone().matches(PHONE_REGEX)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "So dien thoai phai gom 9-15 chu so va co the bat dau bang +");
         }
+        normalizePublicAccountType(request.getAccountType());
+    }
+
+    private String normalizePublicAccountType(String accountType) {
+        if (accountType == null || accountType.isBlank()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Loai tai khoan khong duoc de trong");
+        }
+        String normalized = accountType.trim().toUpperCase();
+        if (!normalized.equals("SPECTATOR") && !normalized.equals("OWNER") && !normalized.equals("JOCKEY")) {
+            throw new ApiException(HttpStatus.BAD_REQUEST,
+                    "Loai tai khoan phai la SPECTATOR, OWNER hoac JOCKEY");
+        }
+        return normalized;
     }
 
     private String normalizeAdminRole(String roleName) {
@@ -163,7 +179,8 @@ public class AuthService {
                         "Vai tro " + roleName + " chua duoc khoi tao trong he thong"));
     }
 
-    private User createUser(String username, String email, String phone, String password, Role role, String status) {
+    private User createUser(String username, String email, String phone, String password, Role role,
+                            String status, String accountType) {
         User user = new User();
         user.setUsername(username.trim());
         user.setEmail(email.trim());
@@ -171,6 +188,7 @@ public class AuthService {
         user.setPassword(passwordEncoder.encode(password));
         user.setRole(role);
         user.setStatus(status);
+        user.setAccountType(accountType);
         return userRepository.save(user);
     }
 
@@ -181,7 +199,8 @@ public class AuthService {
                 user.getEmail(),
                 user.getPhone(),
                 user.getStatus(),
-                user.getRole().getRoleName());
+                user.getRole().getRoleName(),
+                user.getAccountType());
     }
 
     private boolean canLogin(User user) {

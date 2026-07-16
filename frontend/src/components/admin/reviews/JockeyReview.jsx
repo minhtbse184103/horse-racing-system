@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, BadgeCheck, Eye, RefreshCw, Search, XCircle } from 'lucide-react';
 import UrlImagePreview from '../../common/UrlImagePreview';
-import KycReviewPanel, { canApproveRoleWithKyc, getKycStatusLabel } from './KycReviewPanel';
-import { getAdminKycByUserIds } from '../../../services/adminKycService';
 import {
   approveJockeyProfile,
   getJockeyProfilesUnderReview,
@@ -171,11 +169,7 @@ export default function JockeyReview() {
     try {
       const data = await getJockeyProfilesUnderReview();
       const list = Array.isArray(data) ? data : [];
-      const kycByUserId = await getAdminKycByUserIds(list.map((profile) => profile.jockeyId));
-      setProfiles(list.map((profile) => ({
-        ...profile,
-        kyc: kycByUserId.get(Number(profile.jockeyId)) || null
-      })));
+      setProfiles(list);
     } catch (err) {
       setError(err.message || 'Cannot load jockey review profiles.');
     } finally {
@@ -223,8 +217,7 @@ export default function JockeyReview() {
 
   function canApprove(profile) {
     return canReview(profile)
-      && getValidImageUrls(profile).length > 0
-      && canApproveRoleWithKyc(profile.kyc);
+      && getValidImageUrls(profile).length > 0;
   }
 
   async function handleApprove() {
@@ -236,10 +229,8 @@ export default function JockeyReview() {
 
     try {
       await approveJockeyProfile(approveTarget.reviewId);
-      const kycByUserId = await getAdminKycByUserIds([approveTarget.jockeyId]);
-      const approvedKyc = kycByUserId.get(Number(approveTarget.jockeyId)) || approveTarget.kyc || null;
       setApproveTarget(null);
-      setSelectedProfile((current) => current ? { ...current, kyc: approvedKyc, status: 'APPROVED' } : null);
+      setSelectedProfile((current) => current ? { ...current, status: 'APPROVED' } : null);
       setMessage(`${approveTarget.fullName} was approved.`);
       await loadProfiles();
     } catch (err) {
@@ -369,8 +360,6 @@ export default function JockeyReview() {
             </div>
           )}
 
-          <KycReviewPanel kyc={selectedProfile.kyc} />
-
           {isPending ? (
             <div className="mt-6 flex flex-wrap gap-3 border-t border-brown-700/10 pt-5">
               <button
@@ -378,7 +367,7 @@ export default function JockeyReview() {
                 type="button"
                 onClick={() => setApproveTarget(selectedProfile)}
                 disabled={isProcessing || !canApprove(selectedProfile)}
-                title={!canApprove(selectedProfile) ? 'A valid license image and pending/verified KYC are required before approval.' : 'Approve jockey, verify KYC, and open wallet'}
+                title={!canApprove(selectedProfile) ? 'A valid license image is required before approval.' : 'Approve jockey application'}
               >
                 <BadgeCheck size={18} />
                 Approve
@@ -398,7 +387,7 @@ export default function JockeyReview() {
         {approveTarget && (
           <ConfirmModal
             title="Approve jockey profile"
-            message={`Approve ${approveTarget.fullName}, verify KYC, open the wallet, and mark this jockey profile as verified?`}
+            message={`Approve ${approveTarget.fullName} and mark this jockey profile as verified?`}
             confirmLabel="Approve"
             isLoading={isProcessing}
             onCancel={() => setApproveTarget(null)}
@@ -480,7 +469,6 @@ export default function JockeyReview() {
                 <th className="px-4 py-3">Jockey ID</th>
                 <th className="px-4 py-3">Jockey</th>
                 <th className="px-4 py-3">License</th>
-                <th className="px-4 py-3">KYC</th>
                 <th className="px-4 py-3">Submitted</th>
                 <th className="px-4 py-3">Status</th>
                 <th className="px-4 py-3 text-right">Action</th>
@@ -488,9 +476,9 @@ export default function JockeyReview() {
             </thead>
             <tbody className="divide-y divide-brown-700/10">
               {isLoading ? (
-                <tr><td className="px-4 py-8 text-center font-bold text-slate-500" colSpan="7">Loading jockey profiles...</td></tr>
+                <tr><td className="px-4 py-8 text-center font-bold text-slate-500" colSpan="6">Loading jockey profiles...</td></tr>
               ) : visibleProfiles.length === 0 ? (
-                <tr><td className="px-4 py-8" colSpan="7"><EmptyState /></td></tr>
+                <tr><td className="px-4 py-8" colSpan="6"><EmptyState /></td></tr>
               ) : (
                 visibleProfiles.map((profile) => (
                   <tr className="transition hover:bg-cream-200/35" key={profile.reviewId || profile.jockeyId}>
@@ -503,7 +491,6 @@ export default function JockeyReview() {
                       <strong className="block text-brown-900">{getLicenceTypeLabel(profile.licenceType || profile.licenseNo)}</strong>
                       <small className="font-semibold text-slate-500">{getValidImageUrls(profile).length} image(s)</small>
                     </td>
-                    <td className="px-4 py-4"><span className={`status-badge ${String(profile.kyc?.status || 'not_submitted').toLowerCase()}`}>{getKycStatusLabel(profile.kyc)}</span></td>
                     <td className="px-4 py-4 font-bold text-slate-500">{formatDate(profile.submittedAt)}</td>
                     <td className="px-4 py-4"><StatusBadge status={profile.status} /></td>
                     <td className="px-4 py-4 text-right">

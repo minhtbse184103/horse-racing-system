@@ -1,9 +1,5 @@
 package com.example.backend.dto.request;
 
-import java.time.LocalDateTime;
-
-import jakarta.validation.constraints.AssertTrue;
-import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
@@ -17,9 +13,4 @@ public class AdminReviewRequestDTO {
     
     private String rejectionReason;
 
-    @AssertTrue(message = "Admin must confirm KYC review before approving this role.")
-    private Boolean confirmKycReviewed;
-
-    @Future(message = "KYC expiry time must be in the future.")
-    private LocalDateTime kycExpiresAt;
 }

@@ -161,7 +161,7 @@ public class WalletService {
 
     private void validateVerifiedKyc(User user) {
         var verification = userVerificationRepository
-                .findByUserId(user.getUserID())
+                .findFirstByUserIdAndStatusOrderByAttemptNumberDesc(user.getUserID(), KycStatus.VERIFIED)
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.FORBIDDEN,
                         "Bạn phải hoàn tất xác minh KYC trước khi nạp tiền."

@@ -20,7 +20,6 @@ import AdminSettings from './AdminAccountSettings';
 import TournamentWorkspace from './events/TournamentWorkspace';
 import HorseReview from './horses/HorseReview';
 import JockeyReview from './reviews/JockeyReview';
-import KycReviewManagement from './kyc/KycReviewManagement';
 import RefereeAssignmentManagement from './refereeAssignments/RefereeAssignmentManagement';
 import AdminRaceResultReview from './raceResults/AdminRaceResultReview';
 import OwnerApplicationManagement from './ownerApplications/OwnerApplicationManagement';
@@ -67,12 +66,6 @@ const adminNavItems = [
     labelKey: 'manageJockeys',
     descriptionKey: 'jockeysDescription',
     icon: ClipboardCheck
-  },
-  {
-    key: 'kycReviews',
-    labelKey: 'manageKyc',
-    descriptionKey: 'kycDescription',
-    icon: ShieldCheck
   },
   {
     key: 'horseReviews',
@@ -140,7 +133,6 @@ export default function AdminDashboard({ currentUser, onLogout }) {
     refereeAssignments: <RefereeAssignmentManagement />,
     raceResultReviews: <AdminRaceResultReview />,
     jockeyReviews: <JockeyReview />,
-    kycReviews: <KycReviewManagement />,
     horseReviews: <HorseReview />,
     wallet: <WalletTransferPanel currentUser={currentAdmin} role="ADMIN" />
   }[activeSection];

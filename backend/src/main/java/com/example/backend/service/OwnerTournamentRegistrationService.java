@@ -540,14 +540,10 @@ public class OwnerTournamentRegistrationService {
     }
 
     private String resolveOwnerName(OwnerApplication ownerApplication) {
-        if (ownerApplication == null || ownerApplication.getKycVerificationId() == null) {
+        if (ownerApplication == null) {
             return null;
         }
-
-        return userVerificationRepository.findById(ownerApplication.getKycVerificationId())
-                .map(UserVerification::getFullName)
-                .filter(name -> !name.isBlank())
-                .orElse(null);
+        return ownerApplication.getStableName();
     }
 
     private TournamentResponse toTournamentResponse(Tournament tournament) {

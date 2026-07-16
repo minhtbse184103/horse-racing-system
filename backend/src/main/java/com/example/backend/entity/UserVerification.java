@@ -1,83 +1,91 @@
 package com.example.backend.entity;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.PrePersist;
-import jakarta.persistence.PreUpdate;
-import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import com.example.backend.enums.KycStatus;
+import jakarta.persistence.*;
+import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import com.example.backend.enums.KycStatus;
 
 @Entity
-@Table(name = "user_verifications")
-@Getter
-@Setter
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
+@Table(name = "user_verifications", indexes = {
+        @Index(name = "idx_user_verifications_user_attempt", columnList = "user_id,attempt_number"),
+        @Index(name = "idx_user_verifications_status", columnList = "status")
+})
+@Getter @Setter @Builder @NoArgsConstructor @AllArgsConstructor
 public class UserVerification {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "verification_id")
     private Integer verificationId;
 
-    @Column(name = "user_id", nullable = false, unique = true)
+    @Column(name = "user_id", nullable = false)
     private Integer userId;
+
+    @Column(name = "provider", nullable = false, length = 30)
+    private String provider;
+
+    @Column(name = "provider_session_id", nullable = false, unique = true, length = 100)
+    private String providerSessionId;
+
+    @Column(name = "provider_session_number")
+    private Long providerSessionNumber;
+
+    @Column(name = "workflow_id", nullable = false, length = 100)
+    private String workflowId;
+
+    @Column(name = "vendor_data", nullable = false, length = 100)
+    private String vendorData;
+
+    @Column(name = "verification_url", columnDefinition = "TEXT")
+    private String verificationUrl;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 30)
     private KycStatus status;
 
-    @Column(name = "full_name", nullable = false, length = 150)
-    private String fullName;
+    @Column(name = "id_verification_status", length = 40)
+    private String idVerificationStatus;
 
-    @Column(name = "date_of_birth", nullable = false)
-    private LocalDate dateOfBirth;
+    @Column(name = "liveness_status", length = 40)
+    private String livenessStatus;
 
-    @Column(name = "gender", nullable = false, length = 50)
-    private String gender;
+    @Column(name = "face_match_status", length = 40)
+    private String faceMatchStatus;
 
-    @Column(name = "nationality", nullable = false)
-    private String nationality;
+    @Column(name = "ip_analysis_status", length = 40)
+    private String ipAnalysisStatus;
 
-    @Column(name = "address", nullable = false, length = 500)
-    private String address;
+    @Column(name = "verified_full_name", length = 150)
+    private String verifiedFullName;
 
-    @Column(name = "identity_number", nullable = false, unique = true, length = 30)
-    private String identityNumber;
+    @Column(name = "verified_date_of_birth")
+    private LocalDate verifiedDateOfBirth;
 
-    @Column(name = "identity_front_url", nullable = false, columnDefinition = "TEXT")
-    private String identityFrontUrl;
+    @Column(name = "document_type", length = 50)
+    private String documentType;
 
-    @Column(name = "identity_back_url", nullable = false, columnDefinition = "TEXT")
-    private String identityBackUrl;
+    @Column(name = "document_last_four", length = 4)
+    private String documentLastFour;
 
-    @Column(name = "selfie_url", nullable = false, columnDefinition = "TEXT")
-    private String selfieUrl;
+    @Column(name = "document_expiry_date")
+    private LocalDate documentExpiryDate;
+
+    @Column(name = "face_match_score", precision = 8, scale = 4)
+    private BigDecimal faceMatchScore;
+
+    @Column(name = "rejection_reason", length = 500)
+    private String rejectionReason;
+
+    @Column(name = "attempt_number", nullable = false)
+    private Integer attemptNumber;
 
     @Column(name = "submitted_at", nullable = false)
     private LocalDateTime submittedAt;
 
-    @Column(name = "reviewed_at")
-    private LocalDateTime reviewedAt;
-
-    @Column(name = "reviewed_by")
-    private Integer reviewedBy;
-
-    @Column(name = "rejection_reason", length = 500)
-    private String rejectionReason;
+    @Column(name = "verified_at")
+    private LocalDateTime verifiedAt;
 
     @Column(name = "expires_at")
     private LocalDateTime expiresAt;
@@ -91,6 +99,7 @@ public class UserVerification {
     @PrePersist
     void prePersist() {
         LocalDateTime now = LocalDateTime.now();
+        if (submittedAt == null) submittedAt = now;
         createdAt = now;
         updatedAt = now;
     }
@@ -99,4 +108,7 @@ public class UserVerification {
     void preUpdate() {
         updatedAt = LocalDateTime.now();
     }
+
+    public String getFullName() { return verifiedFullName; }
+    public LocalDate getDateOfBirth() { return verifiedDateOfBirth; }
 }

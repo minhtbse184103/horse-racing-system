@@ -14,7 +14,6 @@ import {
 } from 'lucide-react';
 import OwnerApplicationForm from '../profile/OwnerApplicationForm';
 import JockeyApplicationForm from '../profile/JockeyApplicationForm';
-import KycApplicationForm from '../profile/KycApplicationForm';
 import WalletTransferPanel from '../payment/WalletTransferPanel';
 import BettingPanel from './BettingPanel';
 import StatCard from '../common/StatCard';
@@ -27,16 +26,16 @@ import {
   resubmitJockeyVerification,
   submitJockeyVerification
 } from '../../services/jockeyVerificationService';
-import { getMyKyc, needsKycSubmission, submitKyc } from '../../services/kycService';
+import { getMyKyc, needsKycSubmission } from '../../services/kycService';
 
 const navItems = [
   { key: 'dashboard', label: 'Dashboard', icon: Home },
   { key: 'horses', label: 'Horses', icon: Trophy },
   { key: 'races', label: 'Races', icon: Flag },
-  { key: 'betting', label: 'Betting', icon: CircleDollarSign },
+  { key: 'betting', label: 'Betting', icon: CircleDollarSign, accountTypes: ['SPECTATOR'] },
   { key: 'results', label: 'Results', icon: Medal },
   { key: 'profile', label: 'Profile', icon: UserRound },
-  { key: 'wallet', labelKey: 'wallet', icon: Wallet, roles: ['SPECTATOR'] }
+  { key: 'wallet', labelKey: 'wallet', icon: Wallet }
 ];
 
 const sampleRaces = [
@@ -84,31 +83,34 @@ function EmptyState({ title, message }) {
   );
 }
 
-function DashboardHome({ onGoProfile, onBecomeJockey }) {
+function DashboardHome({ accountType, onGoProfile }) {
+  const isSpectator = accountType === 'SPECTATOR';
+  const professionalLabel = accountType === 'OWNER' ? 'Owner' : 'Jockey';
   return (
     <section className="owner-stack">
       <section className="owner-stats-grid">
         <StatCard label="Total Horses" value={248} description="Published horse profiles" highlight />
         <StatCard label="Upcoming Races" value={12} description="Open schedule for spectators" />
         <StatCard label="Today's Races" value={4} description="Races running today" />
-        <StatCard label="Betting Overview" value="Mock" description="UI placeholder for future API" />
+        {isSpectator
+          ? <StatCard label="Betting Overview" value="Mock" description="UI placeholder for future API" />
+          : <StatCard label="Application" value="Required" description={`${professionalLabel} access requires admin approval`} />}
       </section>
 
       <section className="owner-overview-grid">
         <div className="owner-panel hero-owner-panel">
           <div>
-            <p className="eyebrow">Spectator Dashboard</p>
-            <h2>Premium race-day command center</h2>
+            <p className="eyebrow">{isSpectator ? 'Spectator Dashboard' : `${professionalLabel} Onboarding`}</p>
+            <h2>{isSpectator ? 'Premium race-day command center' : `Complete your ${professionalLabel} application`}</h2>
             <p>
-              Track horses, upcoming races, betting summaries, and results from one clean dashboard. Become an Owner from your profile when you are ready to register horses.
+              {isSpectator
+                ? 'Track horses, upcoming races, betting summaries, and results from one dashboard.'
+                : `Your account is active. Submit the required ${professionalLabel} documents and wait for administrator approval to unlock professional features.`}
             </p>
           </div>
           <div className="owner-shortcut-actions">
             <button className="primary-button owner-hero-action" type="button" onClick={onGoProfile}>
-              Become an Owner
-            </button>
-            <button className="outline-button owner-hero-action" type="button" onClick={onBecomeJockey}>
-              Become a Jockey
+              {isSpectator ? 'View Profile' : `Open ${professionalLabel} Application`}
             </button>
           </div>
         </div>
@@ -204,18 +206,6 @@ function OwnerApplicationDetail({ application }) {
 
       <div className="grid gap-5">
         <div>
-          <h3 className="text-xl font-black text-brown-900">Personal Information</h3>
-          <div className="mt-3 grid gap-3 md:grid-cols-2">
-            <ApplicationDetailItem label="Full Name" value={application.fullName} />
-            <ApplicationDetailItem label="Date of Birth" value={formatDate(application.dateOfBirth)} />
-            <ApplicationDetailItem label="Gender" value={application.gender} />
-            <ApplicationDetailItem label="Nationality" value={application.nationality} />
-            <ApplicationDetailItem label="Address" value={application.address} />
-            <ApplicationDocumentLink label="Identity Document" url={application.identityDocumentUrl} />
-          </div>
-        </div>
-
-        <div>
           <h3 className="text-xl font-black text-brown-900">Stable Information</h3>
           <div className="mt-3 grid gap-3 md:grid-cols-2">
             <ApplicationDetailItem label="Stable Name" value={application.stableName} />
@@ -248,20 +238,24 @@ function OwnerApplicationDetail({ application }) {
 
 function ProfileSection({ user, ownerApplication, jockeyApplication, kyc, isLoading, onOpenApplication, onOpenAgain, onBecomeJockey, onOpenKyc }) {
   const role = getUserRole(user) || 'SPECTATOR';
+  const accountType = String(user?.accountType || role).toUpperCase();
   const status = ownerApplication?.status || null;
   const jockeyStatus = jockeyApplication?.verificationStatus || null;
   const kycStatus = getKycStatus(kyc);
+  const isKycVerified = kycStatus === 'VERIFIED';
+  const profileDisplayName = kyc?.verifiedFullName || user?.fullName || user?.email;
   const [showOwnerApplicationDetail, setShowOwnerApplicationDetail] = useState(false);
 
   const detailRows = [
     ['Username', user?.username || user?.fullName || 'Chưa cập nhật'],
     ['Email', user?.email || 'Chưa cập nhật'],
     ['Phone Number', user?.phone || 'Chưa cập nhật'],
-    ['Role', <span className="role-badge" key="role">{formatDisplayLabel(role)}</span>],
-    ['KYC Status', <StatusBadge key="kyc-status" status={kycStatus} />],
-    ['Owner Status', <StatusBadge key="status" status={status} />],
-    ['Jockey Status', <StatusBadge key="jockey-status" status={jockeyStatus} />]
+    ['Account Type', <span className="role-badge" key="account-type">{formatDisplayLabel(accountType)}</span>],
+    ['Access Role', <span className="role-badge" key="role">{formatDisplayLabel(role)}</span>]
   ];
+
+  if (accountType === 'OWNER') detailRows.push(['Owner Status', <StatusBadge key="status" status={status} />]);
+  if (accountType === 'JOCKEY') detailRows.push(['Jockey Status', <StatusBadge key="jockey-status" status={jockeyStatus} />]);
 
   if (status === 'PENDING') {
     detailRows.push(['Application Date', formatDate(ownerApplication.submittedAt)]);
@@ -283,12 +277,12 @@ function ProfileSection({ user, ownerApplication, jockeyApplication, kyc, isLoad
         <div className="owner-panel-header">
           <div className="flex items-center gap-4">
             <div className="grid size-16 place-items-center rounded-[22px] bg-brown-900 text-2xl text-gold-400">
-              {(user?.fullName || user?.email || 'U').charAt(0).toUpperCase()}
+              {(profileDisplayName || 'U').charAt(0).toUpperCase()}
             </div>
             <div>
               <p className="eyebrow">Profile</p>
-              <h2>{user?.fullName || user?.email}</h2>
-              <p>Manage account information and Owner application status.</p>
+              <h2>{profileDisplayName}</h2>
+              <p>Manage account, identity verification, and role applications.</p>
             </div>
           </div>
         </div>
@@ -307,7 +301,7 @@ function ProfileSection({ user, ownerApplication, jockeyApplication, kyc, isLoad
         )}
       </section>
 
-      <section className={kycStatus === 'PENDING' ? 'owner-panel warning-owner-panel' : 'owner-panel'}>
+      <section className={kycStatus === 'IN_REVIEW' ? 'owner-panel warning-owner-panel' : 'owner-panel'}>
         <div className="owner-panel-header">
           <div className="flex items-center gap-4">
             <div className="grid size-12 place-items-center rounded-2xl bg-cream-200 text-brown-700">
@@ -318,9 +312,9 @@ function ProfileSection({ user, ownerApplication, jockeyApplication, kyc, isLoad
               <h2>Identity verification</h2>
               <p>
                 {needsKycSubmission(kyc)
-                  ? 'Submit KYC so admin can verify your identity and open your wallet.'
-                  : kycStatus === 'PENDING'
-                    ? 'Your KYC is waiting for administrator review.'
+                  ? `Verify with Didit to open your wallet${accountType === 'SPECTATOR' ? ' and enable betting' : ''}.`
+                  : kycStatus === 'IN_REVIEW'
+                    ? 'Didit is reviewing your identity verification.'
                     : 'Your KYC has been verified.'}
               </p>
             </div>
@@ -334,40 +328,95 @@ function ProfileSection({ user, ownerApplication, jockeyApplication, kyc, isLoad
           </div>
         )}
 
+        {isKycVerified && (
+          <div className="mt-5 grid gap-3 md:grid-cols-2">
+            <div className="rounded-lg border border-brown-700/10 bg-white/70 p-4">
+              <span className="block text-xs font-extrabold uppercase text-slate-500">Verified Name</span>
+              <strong className="mt-1 block break-words text-brown-900">{kyc?.verifiedFullName || 'Not provided'}</strong>
+            </div>
+            <div className="rounded-lg border border-brown-700/10 bg-white/70 p-4">
+              <span className="block text-xs font-extrabold uppercase text-slate-500">Date of Birth</span>
+              <strong className="mt-1 block text-brown-900">{formatDate(kyc?.verifiedDateOfBirth)}</strong>
+            </div>
+            <div className="rounded-lg border border-brown-700/10 bg-white/70 p-4">
+              <span className="block text-xs font-extrabold uppercase text-slate-500">Document</span>
+              <strong className="mt-1 block text-brown-900">
+                {formatDisplayLabel(kyc?.documentType || 'Identity document')}
+                {kyc?.documentLastFour ? ` **** ${kyc.documentLastFour}` : ''}
+              </strong>
+            </div>
+            <div className="rounded-lg border border-brown-700/10 bg-white/70 p-4">
+              <span className="block text-xs font-extrabold uppercase text-slate-500">Verified By</span>
+              <strong className="mt-1 block text-brown-900">{formatDisplayLabel(kyc?.provider || 'DIDIT')}</strong>
+            </div>
+            <div className="rounded-lg border border-brown-700/10 bg-white/70 p-4">
+              <span className="block text-xs font-extrabold uppercase text-slate-500">Verified At</span>
+              <strong className="mt-1 block text-brown-900">{formatDate(kyc?.verifiedAt)}</strong>
+            </div>
+            <div className="rounded-lg border border-brown-700/10 bg-white/70 p-4">
+              <span className="block text-xs font-extrabold uppercase text-slate-500">Document Expiry Date</span>
+              <strong className="mt-1 block text-brown-900">{kyc?.documentExpiryDate ? formatDate(kyc.documentExpiryDate) : 'No expiry on document'}</strong>
+            </div>
+            <div className="rounded-lg border border-brown-700/10 bg-white/70 p-4 md:col-span-2">
+              <span className="block text-xs font-extrabold uppercase text-slate-500">Wallet Access</span>
+              <strong className="mt-1 flex items-center gap-2 text-brown-900">
+                <StatusBadge status={kyc?.walletOpen ? 'ACTIVE' : 'PENDING'} />
+                {kyc?.walletOpen
+                  ? accountType === 'SPECTATOR' ? 'Betting and wallet access enabled' : 'Wallet access enabled'
+                  : 'Wallet is being opened'}
+              </strong>
+            </div>
+          </div>
+        )}
+
         {isLoading ? (
           <button className="outline-button mt-5" type="button" disabled>
             Loading KYC...
           </button>
         ) : needsKycSubmission(kyc) ? (
           <button className="primary-button owner-hero-action mt-5" type="button" onClick={onOpenKyc}>
-            {kycStatus === 'REJECTED' || kycStatus === 'EXPIRED' ? 'Resubmit KYC' : 'Submit KYC'}
+            {kycStatus === 'REJECTED' || kycStatus === 'EXPIRED' ? 'Verify Again' : 'Open Wallet'}
+          </button>
+        ) : isKycVerified ? (
+          <button className="primary-button owner-hero-action mt-5" type="button" onClick={onOpenKyc}>
+            Go to Wallet
           </button>
         ) : (
           <button className="outline-button mt-5" type="button" disabled>
-            {kycStatus === 'PENDING' ? 'Waiting For Review' : 'KYC Verified'}
+            {kycStatus === 'IN_REVIEW' ? 'Didit Review In Progress' : 'KYC In Progress'}
           </button>
         )}
       </section>
 
-      {!status && (
+      {accountType === 'OWNER' && !status && (
         <section className="owner-panel hero-owner-panel">
           <div>
             <p className="eyebrow">Not Registered</p>
-            <h2>You are currently registered as a Spectator.</h2>
-            <p>Become an Owner to register horses, or apply as a Jockey to receive race invitations after admin approval.</p>
+            <h2>Your Owner application is required.</h2>
+            <p>Submit stable and horse ownership documents for administrator review.</p>
           </div>
           <div className="owner-shortcut-actions">
             <button className="primary-button owner-hero-action" type="button" onClick={onOpenApplication}>
-              Become an Owner
-            </button>
-            <button className="outline-button owner-hero-action" type="button" onClick={onBecomeJockey}>
-              {jockeyStatus === 'REJECTED' ? 'Apply Again as Jockey' : 'Become a Jockey'}
+              Start Owner Application
             </button>
           </div>
         </section>
       )}
 
-      {jockeyStatus === 'PENDING' && (
+      {accountType === 'JOCKEY' && !jockeyStatus && (
+        <section className="owner-panel hero-owner-panel">
+          <div>
+            <p className="eyebrow">Application Required</p>
+            <h2>Your Jockey application is required.</h2>
+            <p>Submit your licence and professional information for administrator review.</p>
+          </div>
+          <button className="primary-button owner-hero-action" type="button" onClick={onBecomeJockey}>
+            Start Jockey Application
+          </button>
+        </section>
+      )}
+
+      {accountType === 'JOCKEY' && jockeyStatus === 'PENDING' && (
         <section className="owner-panel warning-owner-panel">
           <p className="eyebrow">Jockey Pending Approval</p>
           <h2>Your Jockey application has been submitted and is waiting for administrator approval.</h2>
@@ -378,7 +427,7 @@ function ProfileSection({ user, ownerApplication, jockeyApplication, kyc, isLoad
         </section>
       )}
 
-      {jockeyStatus === 'REJECTED' && (
+      {accountType === 'JOCKEY' && jockeyStatus === 'REJECTED' && (
         <section className="owner-panel">
           <p className="eyebrow">Jockey Rejected</p>
           <h2>Your Jockey application has been rejected.</h2>
@@ -392,7 +441,7 @@ function ProfileSection({ user, ownerApplication, jockeyApplication, kyc, isLoad
         </section>
       )}
 
-      {jockeyStatus === 'APPROVED' && (
+      {accountType === 'JOCKEY' && jockeyStatus === 'APPROVED' && (
         <section className="owner-panel hero-owner-panel">
           <div>
             <p className="eyebrow">Jockey Approved</p>
@@ -402,7 +451,7 @@ function ProfileSection({ user, ownerApplication, jockeyApplication, kyc, isLoad
         </section>
       )}
 
-      {status === 'PENDING' && (
+      {accountType === 'OWNER' && status === 'PENDING' && (
         <section className="owner-panel warning-owner-panel">
           <p className="eyebrow">Pending Approval</p>
           <h2>Your application has been submitted successfully and is waiting for administrator approval.</h2>
@@ -416,11 +465,11 @@ function ProfileSection({ user, ownerApplication, jockeyApplication, kyc, isLoad
         </section>
       )}
 
-      {status === 'PENDING' && showOwnerApplicationDetail && (
+      {accountType === 'OWNER' && status === 'PENDING' && showOwnerApplicationDetail && (
         <OwnerApplicationDetail application={ownerApplication} />
       )}
 
-      {status === 'REJECTED' && (
+      {accountType === 'OWNER' && status === 'REJECTED' && (
         <section className="owner-panel">
           <p className="eyebrow">Rejected</p>
           <h2>Your Owner application has been rejected.</h2>
@@ -443,11 +492,11 @@ function ProfileSection({ user, ownerApplication, jockeyApplication, kyc, isLoad
         </section>
       )}
 
-      {status === 'REJECTED' && showOwnerApplicationDetail && (
+      {accountType === 'OWNER' && status === 'REJECTED' && showOwnerApplicationDetail && (
         <OwnerApplicationDetail application={ownerApplication} />
       )}
 
-      {status === 'APPROVED' && (
+      {accountType === 'OWNER' && status === 'APPROVED' && (
         <section className="owner-panel hero-owner-panel">
           <div>
             <p className="eyebrow">Approved</p>
@@ -478,22 +527,20 @@ export default function UserPanel({ user, onLogout }) {
   const [isLoadingApplication, setIsLoadingApplication] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isJockeyFormOpen, setIsJockeyFormOpen] = useState(false);
-  const [isKycFormOpen, setIsKycFormOpen] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [ownerFormError, setOwnerFormError] = useState('');
   const [jockeyFormError, setJockeyFormError] = useState('');
-  const [kycFormError, setKycFormError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmittingJockey, setIsSubmittingJockey] = useState(false);
-  const [isSubmittingKyc, setIsSubmittingKyc] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
 
   const profileName = user?.fullName || user?.email || 'Spectator';
   const role = getUserRole(user) || 'SPECTATOR';
+  const accountType = String(user?.accountType || role).toUpperCase();
   const visibleNavItems = useMemo(
-    () => navItems.filter((item) => !item.roles || item.roles.includes(role)),
-    [role]
+    () => navItems.filter((item) => !item.accountTypes || item.accountTypes.includes(accountType)),
+    [accountType]
   );
 
   const notifications = useMemo(() => {
@@ -513,8 +560,8 @@ export default function UserPanel({ user, onLogout }) {
       return ['Your Jockey application is waiting for administrator approval.'];
     }
 
-    if (getKycStatus(kyc) === 'PENDING') {
-      return ['Your KYC is waiting for administrator review.'];
+    if (getKycStatus(kyc) === 'IN_REVIEW') {
+      return ['Didit is reviewing your identity verification.'];
     }
 
     if (getKycStatus(kyc) === 'REJECTED') {
@@ -530,8 +577,8 @@ export default function UserPanel({ user, onLogout }) {
 
     try {
       const [ownerResult, jockeyResult, kycResult] = await Promise.allSettled([
-        getMyOwnerApplication(user),
-        getMyJockeyVerification(),
+        accountType === 'OWNER' ? getMyOwnerApplication(user) : Promise.resolve(null),
+        accountType === 'JOCKEY' ? getMyJockeyVerification() : Promise.resolve(null),
         getMyKyc()
       ]);
 
@@ -563,7 +610,7 @@ export default function UserPanel({ user, onLogout }) {
 
   useEffect(() => {
     loadOwnerApplication();
-  }, [user?.userID, user?.id]);
+  }, [user?.userID, user?.id, accountType]);
 
   async function handleSubmitApplication(values) {
     setIsSubmitting(true);
@@ -571,10 +618,6 @@ export default function UserPanel({ user, onLogout }) {
     setMessage('');
 
     try {
-      if (needsKycSubmission(kyc)) {
-        const submittedKyc = await submitKyc(values.kyc);
-        setKyc(submittedKyc);
-      }
       const application = await submitOwnerApplication(user, values);
       setOwnerApplication(application);
       setIsFormOpen(false);
@@ -602,10 +645,6 @@ export default function UserPanel({ user, onLogout }) {
     setMessage('');
 
     try {
-      if (needsKycSubmission(kyc)) {
-        const submittedKyc = await submitKyc(values.kyc);
-        setKyc(submittedKyc);
-      }
       const { kyc: _kycValues, ...jockeyValues } = values;
       const application = jockeyApplication?.verificationStatus === 'REJECTED'
         ? await resubmitJockeyVerification(jockeyApplication.verificationId, jockeyValues)
@@ -622,27 +661,9 @@ export default function UserPanel({ user, onLogout }) {
     }
   }
 
-  async function handleSubmitKycApplication(values) {
-    setIsSubmittingKyc(true);
-    setKycFormError('');
-    setMessage('');
-
-    try {
-      const submittedKyc = await submitKyc(values);
-      setKyc(submittedKyc);
-      setIsKycFormOpen(false);
-      setActiveSection('profile');
-      setMessage('Your KYC has been submitted and is pending admin review.');
-    } catch (err) {
-      setKycFormError(err.message || 'Cannot submit KYC.');
-    } finally {
-      setIsSubmittingKyc(false);
-    }
-  }
-
   function renderSection() {
     if (activeSection === 'dashboard') {
-      return <DashboardHome onGoProfile={() => setActiveSection('profile')} onBecomeJockey={handleBecomeJockey} />;
+      return <DashboardHome accountType={accountType} onGoProfile={() => setActiveSection('profile')} />;
     }
 
     if (activeSection === 'profile') {
@@ -656,7 +677,7 @@ export default function UserPanel({ user, onLogout }) {
           onOpenApplication={() => setIsFormOpen(true)}
           onOpenAgain={() => setIsFormOpen(true)}
           onBecomeJockey={handleBecomeJockey}
-          onOpenKyc={() => setIsKycFormOpen(true)}
+          onOpenKyc={() => setActiveSection('wallet')}
         />
       );
     }
@@ -669,12 +690,12 @@ export default function UserPanel({ user, onLogout }) {
       return <PlaceholderSection title="Races" message="View upcoming and current races." icon="🏁" />;
     }
 
-    if (activeSection === 'betting') {
+    if (activeSection === 'betting' && accountType === 'SPECTATOR') {
       return <BettingPanel />;
     }
 
-    if (activeSection === 'wallet' && role === 'SPECTATOR') {
-      return <WalletTransferPanel currentUser={user} role={role} />;
+    if (activeSection === 'wallet') {
+      return <WalletTransferPanel currentUser={user} role={accountType} />;
     }
 
     return <PlaceholderSection title="Results" message="Race results and standings will be connected later." icon="🏆" />;
@@ -687,11 +708,11 @@ export default function UserPanel({ user, onLogout }) {
           <div className="owner-logo">🏇</div>
           <div>
             <strong>Horse Racing</strong>
-            <span>Spectator Dashboard</span>
+            <span>{formatDisplayLabel(accountType)} Account</span>
           </div>
         </div>
 
-        <nav className="owner-nav" aria-label="Spectator navigation">
+        <nav className="owner-nav" aria-label={`${formatDisplayLabel(accountType)} navigation`}>
           {visibleNavItems.map((item) => {
             const Icon = item.icon;
             const active = activeSection === item.key;
@@ -714,7 +735,7 @@ export default function UserPanel({ user, onLogout }) {
         <div className="owner-profile-card">
           <span>Signed in as</span>
           <strong>{profileName}</strong>
-          <small>{formatDisplayLabel(role)}</small>
+          <small>{formatDisplayLabel(accountType)}</small>
         </div>
 
         <button className="owner-logout" type="button" onClick={onLogout}>
@@ -726,8 +747,10 @@ export default function UserPanel({ user, onLogout }) {
         <header className="owner-topbar">
           <div>
             <p className="eyebrow">Horse Racing</p>
-            <h1>{activeSection === 'profile' ? 'Profile' : 'Spectator Dashboard'}</h1>
-            <p>Explore races as a Spectator and apply to become an Owner when ready.</p>
+            <h1>{activeSection === 'profile' ? 'Profile' : `${formatDisplayLabel(accountType)} Dashboard`}</h1>
+            <p>{accountType === 'SPECTATOR'
+              ? 'Explore races and use betting after KYC verification.'
+              : `Complete your ${formatDisplayLabel(accountType)} application to unlock professional features.`}</p>
           </div>
 
           <div className="relative flex flex-wrap items-center justify-end gap-3">
@@ -762,7 +785,7 @@ export default function UserPanel({ user, onLogout }) {
         {renderSection()}
       </section>
 
-      {isFormOpen && (
+      {accountType === 'OWNER' && isFormOpen && (
         <OwnerApplicationForm
           user={user}
           application={ownerApplication}
@@ -777,7 +800,7 @@ export default function UserPanel({ user, onLogout }) {
         />
       )}
 
-      {isJockeyFormOpen && (
+      {accountType === 'JOCKEY' && isJockeyFormOpen && (
         <JockeyApplicationForm
           user={user}
           application={jockeyApplication}
@@ -793,19 +816,6 @@ export default function UserPanel({ user, onLogout }) {
         />
       )}
 
-      {isKycFormOpen && (
-        <KycApplicationForm
-          user={user}
-          kyc={kyc}
-          formError={kycFormError}
-          isSubmitting={isSubmittingKyc}
-          onCancel={() => {
-            setKycFormError('');
-            setIsKycFormOpen(false);
-          }}
-          onSubmit={handleSubmitKycApplication}
-        />
-      )}
     </main>
   );
 }

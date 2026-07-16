@@ -10,22 +10,18 @@ import java.time.LocalDateTime;
 @Builder
 public class KycResponseDTO {
     private Integer verificationId;
-    private Integer userId;
-    private String username;
-    private String email;
+    private String provider;
     private String status;
-    private String fullName;
-    private LocalDate dateOfBirth;
-    private String gender;
-    private String nationality;
-    private String address;
-    private String identityNumber;
-    private String identityFrontUrl;
-    private String identityBackUrl;
-    private String selfieUrl;
-    private LocalDateTime submittedAt;
-    private LocalDateTime reviewedAt;
-    private Integer reviewedBy;
+    private String verificationUrl;
+    private Integer attemptNumber;
+    private String verifiedFullName;
+    private LocalDate verifiedDateOfBirth;
+    private String documentType;
+    private String documentLastFour;
+    private LocalDate documentExpiryDate;
     private String rejectionReason;
+    private LocalDateTime submittedAt;
+    private LocalDateTime verifiedAt;
     private LocalDateTime expiresAt;
+    private boolean walletOpen;
 }
