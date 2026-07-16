@@ -59,19 +59,22 @@ public class VnpayPaymentService {
     private final RegistrationRepository registrationRepository;
     private final WalletRepository walletRepository;
     private final WalletTransactionRepository walletTransactionRepository;
+    private final FundAccountingService fundAccountingService;
 
     public VnpayPaymentService(
             VnpayProperties properties,
             PaymentTransactionRepository paymentTransactionRepository,
             RegistrationRepository registrationRepository,
             WalletRepository walletRepository,
-            WalletTransactionRepository walletTransactionRepository
+            WalletTransactionRepository walletTransactionRepository,
+            FundAccountingService fundAccountingService
     ) {
         this.properties = properties;
         this.paymentTransactionRepository = paymentTransactionRepository;
         this.registrationRepository = registrationRepository;
         this.walletRepository = walletRepository;
         this.walletTransactionRepository = walletTransactionRepository;
+        this.fundAccountingService = fundAccountingService;
     }
 
     @Transactional
@@ -236,6 +239,9 @@ public class VnpayPaymentService {
             paymentTransaction.setStatus(PaymentTransactionStatus.SUCCESS);
             paymentTransaction.setPaidAt(LocalDateTime.now());
             registration.setPaymentStatus(PaymentStatus.PAID);
+            paymentTransactionRepository.save(paymentTransaction);
+            registrationRepository.save(registration);
+            fundAccountingService.recordRegistrationFee(paymentTransaction, registration);
         } else {
             paymentTransaction.setStatus(PaymentTransactionStatus.FAILED);
             registration.setPaymentStatus(PaymentStatus.FAILED);

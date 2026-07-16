@@ -12,7 +12,7 @@ import {
   ShieldCheck,
   Trophy,
   Users,
-  Wallet
+  Landmark
 } from 'lucide-react';
 
 import AdminOverview from './AdminOverview';
@@ -27,8 +27,8 @@ import UserManagement from './users/UserManagement';
 import { formatDisplayLabel } from '../../lib';
 import { tapPress } from './ui/motion';
 import { useLanguage } from '../../context/LanguageContext';
-import WalletTransferPanel from '../payment/WalletTransferPanel';
 import BettingManagement from './betting/BettingManagement';
+import FinancialManagement from './finance/FinancialManagement';
 
 const adminNavItems = [
   {
@@ -86,10 +86,10 @@ const adminNavItems = [
     icon: FileCheck2
   },
   {
-    key: 'wallet',
-    labelKey: 'wallet',
-    descriptionKey: 'walletDescription',
-    icon: Wallet
+    key: 'finance',
+    labelKey: 'financialManagement',
+    descriptionKey: 'financialManagementDescription',
+    icon: Landmark
   }
 ];
 
@@ -105,7 +105,6 @@ export default function AdminDashboard({ currentUser, onLogout }) {
   const [currentAdmin, setCurrentAdmin] = useState(currentUser);
   const [activeSection, setActiveSection] = useState(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.has('vnp_TxnRef') || params.has('vnp_SecureHash')) return 'wallet';
     return params.get('section') || 'overview';
   });
   const [eventFocus, setEventFocus] = useState(null);
@@ -134,7 +133,7 @@ export default function AdminDashboard({ currentUser, onLogout }) {
     raceResultReviews: <AdminRaceResultReview />,
     jockeyReviews: <JockeyReview />,
     horseReviews: <HorseReview />,
-    wallet: <WalletTransferPanel currentUser={currentAdmin} role="ADMIN" />
+    finance: <FinancialManagement />
   }[activeSection];
 
   return (

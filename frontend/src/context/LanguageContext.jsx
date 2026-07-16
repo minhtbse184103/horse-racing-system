@@ -7,6 +7,8 @@ const translations = {
   vi: {
     wallet: 'Ví',
     walletDescription: 'Số dư và nạp tiền',
+    financialManagement: 'Quản lý tài chính',
+    financialManagementDescription: 'Quỹ, giải thưởng và giao dịch',
     walletAccess: 'Quyền truy cập ví',
     walletAccessDenied: 'Không có quyền truy cập',
     walletTopupsUnavailable: 'Tài khoản này không thể sử dụng chức năng nạp ví.',
@@ -858,6 +860,8 @@ const translations = {
   en: {
     wallet: 'Wallet',
     walletDescription: 'Balance and top-ups',
+    financialManagement: 'Financial Management',
+    financialManagementDescription: 'Funds, payouts and transactions',
     walletAccess: 'Wallet access',
     walletAccessDenied: 'Access denied',
     walletTopupsUnavailable: 'Wallet top-ups are not available for this account.',

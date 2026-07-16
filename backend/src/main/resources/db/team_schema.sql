@@ -106,7 +106,6 @@ CREATE TABLE `JockeyProfile` (
 CREATE TABLE `JockeyVerification` (
   `verificationID` int PRIMARY KEY AUTO_INCREMENT,
   `jockeyID` int NOT NULL,
-  `fullName` varchar(255) NOT NULL,
   `trainerName` varchar(255) NOT NULL,
   `trainerEmail` varchar(255) NOT NULL,
   `academyStableAddress` varchar(500),
@@ -529,6 +528,55 @@ CREATE TABLE `WalletTransaction` (
     CHECK (`amount` > 0)
 );
 
+CREATE TABLE `TournamentFund` (
+  `tournamentID` int PRIMARY KEY,
+  `collectedAmount` decimal(14,2) NOT NULL DEFAULT 0,
+  `paidPrizeAmount` decimal(14,2) NOT NULL DEFAULT 0,
+  `availableBalance` decimal(14,2) NOT NULL DEFAULT 0,
+  `createdAt` datetime NOT NULL,
+  `updatedAt` datetime NOT NULL,
+  CONSTRAINT `chk_tournament_fund_amounts`
+    CHECK (
+      `collectedAmount` >= 0
+      AND `paidPrizeAmount` >= 0
+      AND `availableBalance` >= 0
+      AND `paidPrizeAmount` + `availableBalance` = `collectedAmount`
+    )
+);
+
+CREATE TABLE `SystemFund` (
+  `systemFundID` int PRIMARY KEY,
+  `balance` decimal(14,2) NOT NULL DEFAULT 0,
+  `bettingFeeRevenue` decimal(14,2) NOT NULL DEFAULT 0,
+  `createdAt` datetime NOT NULL,
+  `updatedAt` datetime NOT NULL,
+  CONSTRAINT `chk_system_fund_amounts`
+    CHECK (`balance` >= 0 AND `bettingFeeRevenue` >= 0)
+);
+
+CREATE TABLE `FundTransaction` (
+  `fundTransactionID` bigint PRIMARY KEY AUTO_INCREMENT,
+  `fundKey` varchar(80) NOT NULL,
+  `tournamentID` int,
+  `transactionType` varchar(50) NOT NULL,
+  `direction` varchar(10) NOT NULL,
+  `amount` decimal(14,2) NOT NULL,
+  `balanceBefore` decimal(14,2) NOT NULL,
+  `balanceAfter` decimal(14,2) NOT NULL,
+  `referenceType` varchar(50) NOT NULL,
+  `referenceID` int NOT NULL,
+  `description` varchar(500),
+  `createdAt` datetime NOT NULL,
+  CONSTRAINT `FundTransaction_unique_reference`
+    UNIQUE (`fundKey`, `transactionType`, `referenceType`, `referenceID`),
+  CONSTRAINT `chk_fund_transaction_type`
+    CHECK (`transactionType` IN ('REGISTRATION_FEE', 'PRIZE_PAYOUT', 'BETTING_OPERATOR_FEE')),
+  CONSTRAINT `chk_fund_transaction_direction`
+    CHECK (`direction` IN ('CREDIT', 'DEBIT')),
+  CONSTRAINT `chk_fund_transaction_amount`
+    CHECK (`amount` > 0 AND `balanceBefore` >= 0 AND `balanceAfter` >= 0)
+);
+
 CREATE TABLE `Bet` (
   `betID` int PRIMARY KEY AUTO_INCREMENT,
   `spectatorID` int NOT NULL,
@@ -895,6 +943,10 @@ ALTER TABLE `RaceResultReviewAction` ADD FOREIGN KEY (`actorUserID`) REFERENCES 
 ALTER TABLE `WalletTransaction` ADD FOREIGN KEY (`walletID`) REFERENCES `Wallet` (`walletID`);
 
 ALTER TABLE `WalletTransaction` ADD FOREIGN KEY (`userID`) REFERENCES `Users` (`userID`);
+
+ALTER TABLE `TournamentFund` ADD FOREIGN KEY (`tournamentID`) REFERENCES `Tournament` (`tournamentID`);
+
+ALTER TABLE `FundTransaction` ADD FOREIGN KEY (`tournamentID`) REFERENCES `Tournament` (`tournamentID`);
 
 ALTER TABLE `Bet` ADD FOREIGN KEY (`spectatorID`) REFERENCES `Users` (`userID`);
 

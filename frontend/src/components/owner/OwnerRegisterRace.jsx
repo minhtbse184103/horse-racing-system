@@ -31,7 +31,6 @@ import {
 } from '../../services/ownerService';
 import { confirmVnpayReturn } from '../../services/paymentService';
 import { getTournaments } from '../../services/eventService';
-import { updateState } from '../../services/mockStore';
 import API_BASE_URL from '../../configs/apiConfig';
 import { formatDate, formatDisplayLabel, getHorseId, getHorseName, getUserId, getUserRole } from '../../lib';
 import ConfirmModal from '../common/ConfirmModal';
@@ -546,41 +545,6 @@ function StepItem({ number, label, complete, active }) {
   );
 }
 
-function createJockeyInvitationNotification({ invitation, tournament, race, horse, jockeyId, message }) {
-  const receiverId = Number(jockeyId ?? invitation?.jockeyId ?? invitation?.jockeyID);
-  if (!receiverId) return;
-
-  const tournamentName = invitation?.tournamentName || getTournamentName(tournament) || `Tournament ${invitation?.tournamentId || ''}`.trim();
-  const horseName = invitation?.horseName || getHorseName(horse) || `Ngựa ${invitation?.horseId || ''}`.trim();
-  const venue = getRaceTrack(race, tournament);
-  const raceTime = formatDateTime(getRaceDateTime(race, tournament));
-  const deadline = formatDateTime(invitation?.expiredAt || getRegistrationDeadline(tournament));
-  const ownerMessage = String(message || invitation?.message || '').trim();
-
-  updateState((state) => {
-    const notifications = Array.isArray(state.notifications) ? state.notifications : [];
-    const nextId = notifications.reduce((max, item) => Math.max(max, Number(item.id || 0)), 0) + 1;
-
-    notifications.push({
-      id: nextId,
-      userID: receiverId,
-      title: 'Owner gửi lời mời thi đấu',
-      message: [
-        `${tournamentName} - ${horseName}`,
-        `Địa điểm: ${venue}`,
-        `Thời gian: ${raceTime}`,
-        `Deadline phản hồi: ${deadline}`,
-        ownerMessage ? `Lời nhắn: ${ownerMessage}` : ''
-      ].filter(Boolean).join('. '),
-      createdAt: new Date().toLocaleString('vi-VN'),
-      read: false
-    });
-
-    state.notifications = notifications;
-    return state;
-  });
-}
-
 export default function OwnerRegisterRace({ horses, onBackToHorses }) {
   const [wizardStep, setWizardStep] = useState(1);
   const [flowMode, setFlowMode] = useState(null);
@@ -1018,14 +982,6 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
           normalizedInvitation,
           ...current.filter((invitation) => getInvitationId(invitation) !== createdInvitationId)
         ];
-      });
-      createJockeyInvitationNotification({
-        invitation: normalizedInvitation,
-        tournament: selectedTournament,
-        race: selectedRace,
-        horse: selectedHorse,
-        jockeyId: Number(nextValues.jockeyId),
-        message: nextValues.message
       });
       setFormValues((current) => ({ ...current, jockeyId: String(nextValues.jockeyId), expiredAt: '', message: '' }));
       setFormErrors({});

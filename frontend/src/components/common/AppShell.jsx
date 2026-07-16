@@ -51,8 +51,10 @@ export default function AppShell({
             return (
               <button
                 key={item.key}
-                className={activeSection === item.key ? `${navItemClass} active` : navItemClass}
+                className={`${activeSection === item.key ? `${navItemClass} active` : navItemClass}${item.disabled ? ' opacity-50 cursor-not-allowed' : ''}`}
                 type="button"
+                disabled={item.disabled}
+                title={item.disabled ? item.disabledReason : undefined}
                 onClick={() => onNavigate?.(item.key)}
               >
                 {typeof Icon === 'string' ? <span>{Icon}</span> : Icon ? <Icon size={18} aria-hidden="true" /> : null}

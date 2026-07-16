@@ -40,3 +40,6 @@ build/
 
 application.properties
 db-repair-auth-schema.sql
+
+### Runtime logs ###
+*.log

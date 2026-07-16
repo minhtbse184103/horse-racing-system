@@ -9,9 +9,10 @@ import OwnerProfile from './OwnerProfile';
 import WalletTransferPanel from '../payment/WalletTransferPanel';
 import { useHorses } from '../../hooks/useHorses';
 import { useOwnerDashboard } from '../../hooks/useOwnerDashboard';
-import { emptyHorseForm, formatDisplayLabel, getHorseId, getHorseName, toHorsePayload } from '../../lib';
+import { emptyHorseForm, formatDisplayLabel, getHorseId, getHorseName, getUserRole, toHorsePayload } from '../../lib';
 import { validateHorseForm } from '../../utils/validators';
 import { getOwnerHorseById } from '../../services/ownerService';
+import OwnerPendingDashboard from './OwnerPendingDashboard';
 
 const ownerNavItems = [
   { key: 'overview', label: 'Tổng quan', icon: '📊' },
@@ -70,7 +71,15 @@ function getHorseDocumentUrl(file) {
   return String(file?.dataUrl || file?.url || '').trim();
 }
 
-export default function OwnerDashboard({ currentUser, onLogout, onUserUpdated }) {
+export default function OwnerDashboard(props) {
+  if (getUserRole(props.currentUser) !== 'OWNER') {
+    return <OwnerPendingDashboard {...props} />;
+  }
+
+  return <ApprovedOwnerDashboard {...props} />;
+}
+
+function ApprovedOwnerDashboard({ currentUser, onLogout, onUserUpdated }) {
   const [activeSection, setActiveSection] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     if (hasRegistrationPaymentReturn(params)) return 'register';

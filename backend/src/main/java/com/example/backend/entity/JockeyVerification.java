@@ -35,9 +35,6 @@ public class JockeyVerification {
     @Column(name = "jockeyID", nullable = false)
     private Integer jockeyId;
 
-    @Column(name = "fullName", nullable = false)
-    private String fullName;
-
     @Column(name = "trainerName", nullable = false)
     private String trainerName;
 

@@ -23,6 +23,7 @@ class KycServiceImplTest {
     private final WalletRepository wallets = mock(WalletRepository.class);
     private final DiditClient client = mock(DiditClient.class);
     private final DiditWebhookVerifier verifier = mock(DiditWebhookVerifier.class);
+    private final PrizePayoutService prizePayoutService = mock(PrizePayoutService.class);
     private final DiditProperties properties = new DiditProperties(
             "https://verification.didit.me", "key", "workflow", "secret",
             "http://localhost:5173", "sandbox", "ID_VERIFICATION,LIVENESS,FACE_MATCH");
@@ -31,7 +32,7 @@ class KycServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        service = new KycServiceImpl(users, verifications, events, wallets, client, properties, verifier);
+        service = new KycServiceImpl(users, verifications, events, wallets, client, properties, verifier, prizePayoutService);
         Role role = new Role();
         role.setRoleName("SPECTATOR");
         user = new User();
@@ -141,6 +142,7 @@ class KycServiceImplTest {
         assertEquals(KycStatus.VERIFIED, verification.getStatus());
         assertEquals("5678", verification.getDocumentLastFour());
         verify(wallets).save(argThat(wallet -> wallet.getUserId() == 7));
+        verify(prizePayoutService).payPendingForUser(7);
     }
 
     @Test

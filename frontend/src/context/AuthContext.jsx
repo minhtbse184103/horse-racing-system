@@ -1,6 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import * as authService from '../services/authService.js';
-import { getState } from '../services/mockStore.js';
 
 const AuthContext = createContext(null);
 
@@ -22,10 +21,8 @@ export function AuthProvider({ children }) {
     };
 
     window.addEventListener('horse-racing-auth-updated', handler);
-    window.addEventListener('horse-racing-store-updated', handler);
     return () => {
       window.removeEventListener('horse-racing-auth-updated', handler);
-      window.removeEventListener('horse-racing-store-updated', handler);
     };
   }, [refreshUser]);
 
@@ -42,13 +39,7 @@ export function AuthProvider({ children }) {
     setUser(null);
   }, []);
 
-  const notifications = useMemo(() => {
-    if (!user) return [];
-    const state = getState();
-    return state.notifications
-      .filter((notification) => notification.userID === user.userID)
-      .sort((a, b) => Number(b.id) - Number(a.id));
-  }, [user]);
+  const notifications = useMemo(() => [], []);
 
   const value = useMemo(
     () => ({ user, booting, login, register, logout, refreshUser, notifications }),

@@ -6,7 +6,7 @@ import { confirmVnpayReturn } from '../../services/paymentService';
 import { createWalletDeposit, getMyWallet } from '../../services/walletService';
 import { createKycSession, getMyKyc } from '../../services/kycService';
 
-const ALLOWED_ROLES = new Set(['ADMIN', 'OWNER', 'JOCKEY', 'SPECTATOR']);
+const ALLOWED_ROLES = new Set(['OWNER', 'JOCKEY', 'SPECTATOR']);
 const QUICK_AMOUNTS = [100000, 200000, 500000, 1000000];
 function formatVnd(value) {
   const number = Number(value || 0);

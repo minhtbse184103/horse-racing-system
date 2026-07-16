@@ -6,7 +6,7 @@ export default function NotFound() {
       <div className="max-w-md rounded-[2rem] bg-white p-8 text-center shadow-soft">
         <p className="text-sm font-bold uppercase tracking-[0.24em] text-[#D4AF37]">404</p>
         <h1 className="mt-3 text-3xl font-black text-slate-950">Page not found</h1>
-        <p className="mt-3 text-sm leading-6 text-slate-500">The requested route does not exist in the mock frontend.</p>
+        <p className="mt-3 text-sm leading-6 text-slate-500">The requested route does not exist.</p>
         <Link to="/dashboard" className="btn btn-primary mt-6 inline-flex">
           Return Dashboard
         </Link>

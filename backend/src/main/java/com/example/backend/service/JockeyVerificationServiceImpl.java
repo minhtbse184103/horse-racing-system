@@ -74,7 +74,6 @@ public class JockeyVerificationServiceImpl implements JockeyVerificationService 
 
         JockeyVerification verification = JockeyVerification.builder()
                 .jockeyId(user.getUserID())
-                .fullName(normalizeText(request.getFullName()))
                 .trainerName(normalizeText(request.getTrainerName()))
                 .trainerEmail(normalizeText(request.getTrainerEmail()))
                 .academyStableAddress(normalizeText(request.getAcademyStableAddress()))
@@ -118,7 +117,6 @@ public class JockeyVerificationServiceImpl implements JockeyVerificationService 
         }
 
         verification.setTrainerName(normalizeText(request.getTrainerName()));
-        verification.setFullName(normalizeText(request.getFullName()));
         verification.setTrainerEmail(normalizeText(request.getTrainerEmail()));
         verification.setAcademyStableAddress(normalizeText(request.getAcademyStableAddress()));
         verification.setIssuingAuthority(normalizeText(request.getIssuingAuthority()));
@@ -268,7 +266,7 @@ public class JockeyVerificationServiceImpl implements JockeyVerificationService 
         user.setRole(jockeyRole);
         user.setAccountType(ROLE_JOCKEY);
         userRepository.save(user);
-        createOrUpdateApprovedProfile(saved);
+        createOrUpdateApprovedProfile(saved, user);
 
         List<JockeyVerificationFile> files = verificationFileRepository
                 .findByVerificationId(verificationId);
@@ -365,14 +363,14 @@ public class JockeyVerificationServiceImpl implements JockeyVerificationService 
         return verificationFileRepository.saveAll(files);
     }
 
-    private void createOrUpdateApprovedProfile(JockeyVerification verification) {
+    private void createOrUpdateApprovedProfile(JockeyVerification verification, User user) {
         JockeyProfile profile = jockeyProfileRepository.findById(verification.getJockeyId())
                 .orElseGet(() -> {
                     JockeyProfile newProfile = new JockeyProfile();
                     newProfile.setJockeyId(verification.getJockeyId());
                     return newProfile;
                 });
-        profile.setFullName(verification.getFullName());
+        profile.setFullName(user.getUsername());
         profile.setWeight(verification.getWeight());
         profile.setBiography(verification.getBiography());
         jockeyProfileRepository.save(profile);
@@ -386,7 +384,7 @@ public class JockeyVerificationServiceImpl implements JockeyVerificationService 
         return JockeyVerificationResponse.builder()
                 .verificationId(verification.getVerificationId())
                 .jockeyId(verification.getJockeyId())
-                .jockeyFullName(verification.getFullName())
+                .jockeyUsername(user != null ? user.getUsername() : null)
                 .jockeyEmail(user != null ? user.getEmail() : null)
                 .trainerName(verification.getTrainerName())
                 .trainerEmail(verification.getTrainerEmail())

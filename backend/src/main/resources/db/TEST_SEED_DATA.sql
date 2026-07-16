@@ -64,12 +64,12 @@ VALUES
   (7, 'Demo Jockey Seven', 55.25, 'New jockey awaiting verification.', 5, 1, DATE_SUB(@seed_now, INTERVAL 30 DAY), @seed_now);
 
 INSERT INTO `JockeyVerification`
-  (`verificationID`, `jockeyID`, `fullName`, `trainerName`, `trainerEmail`, `academyStableAddress`, `issuingAuthority`, `verificationLink`, `licenceType`, `expiryDate`, `weight`, `biography`, `verificationStatus`, `rejectionReason`, `resubmitCount`, `submittedAt`, `reviewedAt`, `reviewedBy`, `createdAt`, `updatedAt`)
+  (`verificationID`, `jockeyID`, `trainerName`, `trainerEmail`, `academyStableAddress`, `issuingAuthority`, `verificationLink`, `licenceType`, `expiryDate`, `weight`, `biography`, `verificationStatus`, `rejectionReason`, `resubmitCount`, `submittedAt`, `reviewedAt`, `reviewedBy`, `createdAt`, `updatedAt`)
 VALUES
-  (1, 5, 'Demo Jockey Five', 'Trainer Somchai', 'somchai@trainer.test', 'Bangkok Racing Academy', 'Thailand Racing Authority', 'https://example.com/verify/jockey-5', 'PROFESSIONAL', DATE_ADD(@seed_today, INTERVAL 2 YEAR), 52.50, 'Experienced sprint jockey.', 'APPROVED', NULL, 0, DATE_SUB(@seed_now, INTERVAL 200 DAY), DATE_SUB(@seed_now, INTERVAL 198 DAY), 1, DATE_SUB(@seed_now, INTERVAL 200 DAY), DATE_SUB(@seed_now, INTERVAL 198 DAY)),
-  (2, 6, 'Demo Jockey Six', 'Trainer Mali', 'mali@trainer.test', 'Chiang Mai Racing Academy', 'Thailand Racing Authority', 'https://example.com/verify/jockey-6', 'PROFESSIONAL', DATE_ADD(@seed_today, INTERVAL 2 YEAR), 54.00, 'Specialist in middle-distance races.', 'APPROVED', NULL, 0, DATE_SUB(@seed_now, INTERVAL 190 DAY), DATE_SUB(@seed_now, INTERVAL 188 DAY), 1, DATE_SUB(@seed_now, INTERVAL 190 DAY), DATE_SUB(@seed_now, INTERVAL 188 DAY)),
-  (3, 7, 'Demo Jockey Seven', 'Trainer Arun', 'arun@trainer.test', 'Phuket Riding School', 'Thailand Racing Authority', 'https://example.com/verify/jockey-7', 'AMATEUR', DATE_ADD(@seed_today, INTERVAL 1 YEAR), 55.25, 'Newly approved jockey.', 'APPROVED', NULL, 0, DATE_SUB(@seed_now, INTERVAL 30 DAY), DATE_SUB(@seed_now, INTERVAL 28 DAY), 1, DATE_SUB(@seed_now, INTERVAL 30 DAY), DATE_SUB(@seed_now, INTERVAL 28 DAY)),
-  (4, 12, 'Pending Jockey', 'Trainer Linh', 'linh@trainer.test', 'Saigon Racing Academy', 'Vietnam Racing Authority', 'https://example.com/verify/jockey-12', 'TRAINEE', DATE_ADD(@seed_today, INTERVAL 18 MONTH), 51.75, 'Pending jockey application with KYC waiting for admin approval.', 'PENDING', NULL, 0, DATE_SUB(@seed_now, INTERVAL 1 DAY), NULL, NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), DATE_SUB(@seed_now, INTERVAL 1 DAY));
+  (1, 5, 'Trainer Somchai', 'somchai@trainer.test', 'Bangkok Racing Academy', 'Thailand Racing Authority', 'https://example.com/verify/jockey-5', 'PROFESSIONAL', DATE_ADD(@seed_today, INTERVAL 2 YEAR), 52.50, 'Experienced sprint jockey.', 'APPROVED', NULL, 0, DATE_SUB(@seed_now, INTERVAL 200 DAY), DATE_SUB(@seed_now, INTERVAL 198 DAY), 1, DATE_SUB(@seed_now, INTERVAL 200 DAY), DATE_SUB(@seed_now, INTERVAL 198 DAY)),
+  (2, 6, 'Trainer Mali', 'mali@trainer.test', 'Chiang Mai Racing Academy', 'Thailand Racing Authority', 'https://example.com/verify/jockey-6', 'PROFESSIONAL', DATE_ADD(@seed_today, INTERVAL 2 YEAR), 54.00, 'Specialist in middle-distance races.', 'APPROVED', NULL, 0, DATE_SUB(@seed_now, INTERVAL 190 DAY), DATE_SUB(@seed_now, INTERVAL 188 DAY), 1, DATE_SUB(@seed_now, INTERVAL 190 DAY), DATE_SUB(@seed_now, INTERVAL 188 DAY)),
+  (3, 7, 'Trainer Arun', 'arun@trainer.test', 'Phuket Riding School', 'Thailand Racing Authority', 'https://example.com/verify/jockey-7', 'AMATEUR', DATE_ADD(@seed_today, INTERVAL 1 YEAR), 55.25, 'Newly approved jockey.', 'APPROVED', NULL, 0, DATE_SUB(@seed_now, INTERVAL 30 DAY), DATE_SUB(@seed_now, INTERVAL 28 DAY), 1, DATE_SUB(@seed_now, INTERVAL 30 DAY), DATE_SUB(@seed_now, INTERVAL 28 DAY)),
+  (4, 12, 'Trainer Linh', 'linh@trainer.test', 'Saigon Racing Academy', 'Vietnam Racing Authority', 'https://example.com/verify/jockey-12', 'TRAINEE', DATE_ADD(@seed_today, INTERVAL 18 MONTH), 51.75, 'Pending jockey application waiting for admin approval.', 'PENDING', NULL, 0, DATE_SUB(@seed_now, INTERVAL 1 DAY), NULL, NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), DATE_SUB(@seed_now, INTERVAL 1 DAY));
 
 INSERT INTO `JockeyVerificationFile`
   (`fileID`, `verificationID`, `fileUrl`, `fileType`, `uploadedAt`)
@@ -254,6 +254,9 @@ UNION ALL SELECT 'OwnerApplication', COUNT(*) FROM `OwnerApplication`
 UNION ALL SELECT 'OwnerProfile', COUNT(*) FROM `OwnerProfile`
 UNION ALL SELECT 'user_verifications', COUNT(*) FROM `user_verifications`
 UNION ALL SELECT 'Wallet', COUNT(*) FROM `Wallet`
+UNION ALL SELECT 'TournamentFund', COUNT(*) FROM `TournamentFund`
+UNION ALL SELECT 'SystemFund', COUNT(*) FROM `SystemFund`
+UNION ALL SELECT 'FundTransaction', COUNT(*) FROM `FundTransaction`
 UNION ALL SELECT 'Horse', COUNT(*) FROM `Horse`
 UNION ALL SELECT 'JockeyProfile', COUNT(*) FROM `JockeyProfile`
 UNION ALL SELECT 'JockeyVerification', COUNT(*) FROM `JockeyVerification`

@@ -22,6 +22,7 @@ export default function App() {
   const { user, setUser, clearAuth } = useAuth();
   const [page, setPage] = useState(getInitialPage);
   const userRole = getUserRole(user);
+  const accountType = String(user?.accountType || userRole || '').toUpperCase();
   const currentPath = window.location.pathname;
 
   useEffect(() => {
@@ -44,11 +45,15 @@ export default function App() {
     navigateTo('/login');
   }
 
-  if (user && currentPath.startsWith('/owner') && userRole !== 'OWNER') {
+  if (user && currentPath.startsWith('/owner') && accountType !== 'OWNER' && userRole !== 'OWNER') {
     return <AccessDenied onReturnDashboard={() => navigateTo('/dashboard')} />;
   }
 
   if (user && currentPath.startsWith('/admin') && userRole !== 'ADMIN') {
+    return <AccessDenied onReturnDashboard={() => navigateTo('/dashboard')} />;
+  }
+
+  if (user && currentPath === '/wallet/kyc/result' && !['SPECTATOR', 'OWNER', 'JOCKEY'].includes(userRole)) {
     return <AccessDenied onReturnDashboard={() => navigateTo('/dashboard')} />;
   }
 
@@ -66,16 +71,16 @@ export default function App() {
     return <AdminDashboard currentUser={user} onLogout={handleLogout} />;
   }
 
-  if (userRole === 'OWNER') {
+  if (userRole === 'REFEREE') {
+    return <RefereeDashboard currentUser={user} onLogout={handleLogout} />;
+  }
+
+  if (accountType === 'OWNER' || userRole === 'OWNER') {
     return <OwnerDashboard currentUser={user} onLogout={handleLogout} onUserUpdated={setUser} />;
   }
 
-  if (userRole === 'JOCKEY') {
-    return <JockeyDashboard currentUser={user} onLogout={handleLogout} />;
-  }
-
-  if (userRole === 'REFEREE') {
-    return <RefereeDashboard currentUser={user} onLogout={handleLogout} />;
+  if (accountType === 'JOCKEY' || userRole === 'JOCKEY') {
+    return <JockeyDashboard currentUser={user} onLogout={handleLogout} onUserUpdated={setUser} />;
   }
 
   if (user) {

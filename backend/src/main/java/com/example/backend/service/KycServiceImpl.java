@@ -40,6 +40,7 @@ public class KycServiceImpl implements KycService {
     private final DiditClient diditClient;
     private final DiditProperties properties;
     private final DiditWebhookVerifier webhookVerifier;
+    private final PrizePayoutService prizePayoutService;
 
     @Override
     @Transactional
@@ -178,6 +179,8 @@ public class KycServiceImpl implements KycService {
         if (walletRepository.findByUserIdForUpdate(userId).isPresent()) return;
         walletRepository.save(Wallet.builder().userId(userId).balance(BigDecimal.ZERO)
                 .lockedBalance(BigDecimal.ZERO).currency("VND").status(WalletStatus.ACTIVE).build());
+        walletRepository.flush();
+        prizePayoutService.payPendingForUser(userId);
     }
 
     private Map<String, String> extractFeatures(JsonNode decision) {

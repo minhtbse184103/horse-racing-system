@@ -42,7 +42,13 @@ public class UserService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Không tìm thấy người dùng"));
 
         if (hasText(request.getFullName())) {
-            user.setUsername(request.getFullName().trim());
+            String nextUsername = request.getFullName().trim();
+            userRepository.findByUsername(nextUsername)
+                    .filter(existingUser -> !existingUser.getUserID().equals(user.getUserID()))
+                    .ifPresent(existingUser -> {
+                        throw new ApiException(HttpStatus.BAD_REQUEST, "Username da ton tai");
+                    });
+            user.setUsername(nextUsername);
         }
 
         if (hasText(request.getEmail()) && !request.getEmail().equalsIgnoreCase(user.getEmail())) {

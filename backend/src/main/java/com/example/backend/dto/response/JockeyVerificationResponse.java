@@ -13,7 +13,7 @@ import lombok.Getter;
 public class JockeyVerificationResponse {
     private Integer verificationId;
     private Integer jockeyId;
-    private String jockeyFullName;
+    private String jockeyUsername;
     private String jockeyEmail;
     private String trainerName;
     private String trainerEmail;

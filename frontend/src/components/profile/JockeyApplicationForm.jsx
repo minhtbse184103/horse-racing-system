@@ -34,7 +34,6 @@ function makeInitialValues(user, application) {
     .filter(Boolean);
 
   return {
-    fullName: application?.jockeyFullName || application?.fullName || user?.fullName || user?.username || '',
     applicantEmail: user?.email || '',
     trainerName: application?.trainerName || '',
     trainerEmail: application?.trainerEmail || '',
@@ -65,7 +64,6 @@ export default function JockeyApplicationForm({ user, application, mode = 'submi
 
     return (
       values.trainerName.trim() &&
-      values.fullName.trim() &&
       values.trainerEmail.trim() &&
       values.issuingAuthority.trim() &&
       values.licenceType.trim() &&
@@ -82,7 +80,6 @@ export default function JockeyApplicationForm({ user, application, mode = 'submi
   function validate() {
     const nextErrors = {};
     const weight = Number(values.weight);
-    if (!values.fullName.trim()) nextErrors.fullName = 'Full name is required.';
     if (!values.trainerName.trim()) nextErrors.trainerName = 'Trainer name is required.';
     if (!values.trainerEmail.trim()) nextErrors.trainerEmail = 'Trainer email is required.';
     if (values.trainerEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.trainerEmail)) {
@@ -206,7 +203,6 @@ export default function JockeyApplicationForm({ user, application, mode = 'submi
     if (Object.keys(nextErrors).length > 0) return;
 
     onSubmit({
-      fullName: values.fullName.trim(),
       trainerName: values.trainerName.trim(),
       trainerEmail: values.trainerEmail.trim(),
       academyStableAddress: values.academyStableAddress.trim(),
@@ -249,12 +245,6 @@ export default function JockeyApplicationForm({ user, application, mode = 'submi
         <form className="mt-6 grid gap-5" onSubmit={handleSubmit} noValidate>
           {formError && <div className="admin-alert error" role="alert">{formError}</div>}
           <div className="grid gap-4 md:grid-cols-2">
-            <label className="grid gap-2">
-              <span className="text-sm font-extrabold text-brown-900">Full Name</span>
-              <input className={inputClass} name="fullName" value={values.fullName} onChange={handleChange} disabled={isSubmitting} />
-              {renderError('fullName')}
-            </label>
-
             <label className="grid gap-2">
               <span className="text-sm font-extrabold text-brown-900">Applicant Email</span>
               <input className={inputClass} value={values.applicantEmail || 'Chua cap nhat'} readOnly disabled />

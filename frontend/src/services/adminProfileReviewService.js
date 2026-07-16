@@ -16,7 +16,7 @@ function normalizeJockeyVerification(verification) {
 
   return {
     ...verification,
-    fullName: verification.jockeyFullName || `Jockey ${verification.jockeyId}`,
+    fullName: verification.jockeyUsername || `Jockey ${verification.jockeyId}`,
     email: verification.jockeyEmail || '',
     licenseNo: verification.licenceType || verification.verificationLink || `Verification ${verification.verificationId}`,
     imgUrl: firstFile?.fileUrl || verification.verificationLink || '',

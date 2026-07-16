@@ -6,7 +6,6 @@ import {
   Gauge,
   Home,
   Medal,
-  Search,
   ShieldCheck,
   Trophy,
   UserRound,
@@ -27,6 +26,8 @@ import {
   submitJockeyVerification
 } from '../../services/jockeyVerificationService';
 import { getMyKyc, needsKycSubmission } from '../../services/kycService';
+import { getRaces } from '../../services/eventService';
+import { getBettingEvents } from '../../services/bettingService';
 
 const navItems = [
   { key: 'dashboard', label: 'Dashboard', icon: Home },
@@ -36,30 +37,6 @@ const navItems = [
   { key: 'results', label: 'Results', icon: Medal },
   { key: 'profile', label: 'Profile', icon: UserRound },
   { key: 'wallet', labelKey: 'wallet', icon: Wallet }
-];
-
-const sampleRaces = [
-  {
-    id: 1,
-    name: 'Golden Mile Sprint',
-    time: 'Today · 15:30',
-    venue: 'Saigon Grand Track',
-    horses: 12
-  },
-  {
-    id: 2,
-    name: 'Emerald Cup Qualifier',
-    time: 'Tomorrow · 09:00',
-    venue: 'Hanoi Racing Park',
-    horses: 10
-  },
-  {
-    id: 3,
-    name: 'Autumn Derby Preview',
-    time: 'Jun 22 · 17:00',
-    venue: 'Da Nang Turf Club',
-    horses: 14
-  }
 ];
 
 function StatusBadge({ status }) {
@@ -83,17 +60,42 @@ function EmptyState({ title, message }) {
   );
 }
 
-function DashboardHome({ accountType, onGoProfile }) {
+function raceStart(race) {
+  if (!race?.raceStartTime) return null;
+  const date = new Date(race.raceStartTime);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function raceDateTime(race) {
+  const date = raceStart(race);
+  return date ? date.toLocaleString('vi-VN', {
+    hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric'
+  }) : 'Chua cap nhat';
+}
+
+function DashboardHome({ accountType, onGoProfile, races, bettingEvents, isLoading, error }) {
   const isSpectator = accountType === 'SPECTATOR';
   const professionalLabel = accountType === 'OWNER' ? 'Owner' : 'Jockey';
+  const now = new Date();
+  const upcomingRaces = races
+    .filter((race) => {
+      const start = raceStart(race);
+      const status = String(race?.status || '').toUpperCase();
+      return start && start >= now && !['COMPLETED', 'CANCELLED'].includes(status);
+    })
+    .sort((left, right) => raceStart(left) - raceStart(right));
+  const todayRaces = races.filter((race) => raceStart(race)?.toDateString() === now.toDateString());
+  const openBettingEvents = bettingEvents.filter((event) => String(event?.status || '').toUpperCase() === 'OPEN');
+
   return (
     <section className="owner-stack">
+      {error && <div className="admin-alert error" role="alert">{error}</div>}
       <section className="owner-stats-grid">
-        <StatCard label="Total Horses" value={248} description="Published horse profiles" highlight />
-        <StatCard label="Upcoming Races" value={12} description="Open schedule for spectators" />
-        <StatCard label="Today's Races" value={4} description="Races running today" />
+        <StatCard label="Total Races" value={isLoading ? '...' : races.length} description="Races returned by the system" highlight />
+        <StatCard label="Upcoming Races" value={isLoading ? '...' : upcomingRaces.length} description="Scheduled races" />
+        <StatCard label="Today's Races" value={isLoading ? '...' : todayRaces.length} description="Races scheduled today" />
         {isSpectator
-          ? <StatCard label="Betting Overview" value="Mock" description="UI placeholder for future API" />
+          ? <StatCard label="Open Betting" value={isLoading ? '...' : openBettingEvents.length} description="Betting events currently open" />
           : <StatCard label="Application" value="Required" description={`${professionalLabel} access requires admin approval`} />}
       </section>
 
@@ -120,23 +122,31 @@ function DashboardHome({ accountType, onGoProfile }) {
             <div>
               <p className="eyebrow">Upcoming Race Cards</p>
               <h2>Race highlights</h2>
-              <p>Image placeholders are ready for real race media.</p>
+              <p>Upcoming races from the backend.</p>
             </div>
           </div>
-          <div className="grid gap-3">
-            {sampleRaces.map((race) => (
-              <div className="rounded-[20px] border border-brown-700/10 bg-white/70 p-4" key={race.id}>
+          {isLoading ? (
+            <div className="admin-alert success" role="status">Loading races...</div>
+          ) : upcomingRaces.length === 0 ? (
+            <EmptyState title="No upcoming races" message="There are no scheduled races available right now." />
+          ) : (
+            <div className="grid gap-3">
+            {upcomingRaces.slice(0, 3).map((race) => (
+              <div className="rounded-lg border border-brown-700/10 bg-white/70 p-4" key={race.raceId}>
                 <div className="flex items-start gap-3">
-                  <div className="grid size-14 shrink-0 place-items-center rounded-2xl bg-brown-900 text-2xl text-gold-400">🏁</div>
+                  <div className="grid size-14 shrink-0 place-items-center rounded-lg bg-brown-900 text-2xl text-gold-400">🏁</div>
                   <div className="min-w-0">
-                    <strong className="block truncate text-brown-900">{race.name}</strong>
-                    <small className="mt-1 block font-bold text-slate-500">{race.time}</small>
-                    <small className="mt-1 block truncate font-semibold text-slate-500">{race.venue} · {race.horses} horses</small>
+                    <strong className="block truncate text-brown-900">{race.raceName}</strong>
+                    <small className="mt-1 block font-bold text-slate-500">{raceDateTime(race)}</small>
+                    <small className="mt-1 block truncate font-semibold text-slate-500">
+                      {race.trackName || 'Track not provided'} · {race.entryCount ?? 0}/{race.maxRunners ?? 0} runners
+                    </small>
                   </div>
                 </div>
               </div>
             ))}
-          </div>
+            </div>
+          )}
         </div>
       </section>
     </section>
@@ -154,7 +164,46 @@ function PlaceholderSection({ title, message, icon }) {
         </div>
         <div className="grid size-12 place-items-center rounded-2xl bg-cream-200 text-2xl">{icon}</div>
       </div>
-      <EmptyState title={`No ${title.toLowerCase()} data yet.`} message="This section uses mock UI now and can be connected to backend APIs later." />
+      <EmptyState title={`No ${title.toLowerCase()} data yet.`} message={message} />
+    </section>
+  );
+}
+
+function RaceListSection({ title, races, isLoading, resultsOnly = false }) {
+  const visibleRaces = resultsOnly
+    ? races.filter((race) => String(race?.status || '').toUpperCase() === 'COMPLETED')
+    : races;
+
+  return (
+    <section className="owner-panel">
+      <div className="owner-panel-header">
+        <div>
+          <p className="eyebrow">{title}</p>
+          <h2>{title}</h2>
+          <p>Data loaded from the racing API.</p>
+        </div>
+        <Flag size={22} className="text-brown-500" />
+      </div>
+      {isLoading ? (
+        <div className="admin-alert success" role="status">Loading races...</div>
+      ) : visibleRaces.length === 0 ? (
+        <EmptyState title={`No ${title.toLowerCase()} available`} message="The system has not published any matching races." />
+      ) : (
+        <div className="grid gap-3 md:grid-cols-2">
+          {visibleRaces.map((race) => (
+            <article className="rounded-lg border border-brown-700/10 bg-white/70 p-4" key={race.raceId}>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <strong className="block truncate text-brown-900">{race.raceName}</strong>
+                  <p className="mt-1 text-sm font-semibold text-slate-500">{race.trackName || 'Track not provided'}</p>
+                  <small className="mt-2 block font-bold text-slate-500">{raceDateTime(race)}</small>
+                </div>
+                <StatusBadge status={race.status} />
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
     </section>
   );
 }
@@ -534,6 +583,10 @@ export default function UserPanel({ user, onLogout }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmittingJockey, setIsSubmittingJockey] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [races, setRaces] = useState([]);
+  const [bettingEvents, setBettingEvents] = useState([]);
+  const [isLoadingDashboard, setIsLoadingDashboard] = useState(true);
+  const [dashboardError, setDashboardError] = useState('');
 
   const profileName = user?.fullName || user?.email || 'Spectator';
   const role = getUserRole(user) || 'SPECTATOR';
@@ -612,6 +665,32 @@ export default function UserPanel({ user, onLogout }) {
     loadOwnerApplication();
   }, [user?.userID, user?.id, accountType]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadDashboard() {
+      setIsLoadingDashboard(true);
+      setDashboardError('');
+      const [raceResult, bettingResult] = await Promise.allSettled([
+        getRaces(),
+        accountType === 'SPECTATOR' ? getBettingEvents() : Promise.resolve([])
+      ]);
+      if (cancelled) return;
+
+      setRaces(raceResult.status === 'fulfilled' && Array.isArray(raceResult.value) ? raceResult.value : []);
+      setBettingEvents(bettingResult.status === 'fulfilled' && Array.isArray(bettingResult.value) ? bettingResult.value : []);
+      if (raceResult.status === 'rejected') {
+        setDashboardError(raceResult.reason?.message || 'Unable to load race data.');
+      } else if (bettingResult.status === 'rejected') {
+        setDashboardError(bettingResult.reason?.message || 'Unable to load betting data.');
+      }
+      setIsLoadingDashboard(false);
+    }
+
+    loadDashboard();
+    return () => { cancelled = true; };
+  }, [accountType]);
+
   async function handleSubmitApplication(values) {
     setIsSubmitting(true);
     setOwnerFormError('');
@@ -663,7 +742,16 @@ export default function UserPanel({ user, onLogout }) {
 
   function renderSection() {
     if (activeSection === 'dashboard') {
-      return <DashboardHome accountType={accountType} onGoProfile={() => setActiveSection('profile')} />;
+      return (
+        <DashboardHome
+          accountType={accountType}
+          onGoProfile={() => setActiveSection('profile')}
+          races={races}
+          bettingEvents={bettingEvents}
+          isLoading={isLoadingDashboard}
+          error={dashboardError}
+        />
+      );
     }
 
     if (activeSection === 'profile') {
@@ -683,11 +771,11 @@ export default function UserPanel({ user, onLogout }) {
     }
 
     if (activeSection === 'horses') {
-      return <PlaceholderSection title="Horses" message="Browse horse profiles and race-card information." icon="🐎" />;
+      return <PlaceholderSection title="Horses" message="No public horse profiles are available from the backend." icon="🐎" />;
     }
 
     if (activeSection === 'races') {
-      return <PlaceholderSection title="Races" message="View upcoming and current races." icon="🏁" />;
+      return <RaceListSection title="Races" races={races} isLoading={isLoadingDashboard} />;
     }
 
     if (activeSection === 'betting' && accountType === 'SPECTATOR') {
@@ -698,7 +786,7 @@ export default function UserPanel({ user, onLogout }) {
       return <WalletTransferPanel currentUser={user} role={accountType} />;
     }
 
-    return <PlaceholderSection title="Results" message="Race results and standings will be connected later." icon="🏆" />;
+    return <RaceListSection title="Results" races={races} isLoading={isLoadingDashboard} resultsOnly />;
   }
 
   return (
@@ -755,10 +843,6 @@ export default function UserPanel({ user, onLogout }) {
 
           <div className="relative flex flex-wrap items-center justify-end gap-3">
             <LanguageToggle />
-            <div className="hidden items-center gap-2 rounded-2xl border border-brown-700/10 bg-white/70 px-3 py-2 font-bold text-slate-500 md:flex">
-              <Search size={16} />
-              Search mock data
-            </div>
             <button
               className="refresh-button relative"
               type="button"

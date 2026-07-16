@@ -55,7 +55,6 @@ export default function Login() {
       </form>
 
       <div className="mt-6 rounded-2xl bg-slate-50 p-4 text-xs leading-6 text-slate-500">
-        <p className="font-bold text-slate-700">Mock accounts</p>
         <p>Spectator: oanh@gmail.com / password123</p>
         <p>Admin: admin@horse.test / admin123</p>
         <p>Owner: owner@horse.test / owner123</p>
