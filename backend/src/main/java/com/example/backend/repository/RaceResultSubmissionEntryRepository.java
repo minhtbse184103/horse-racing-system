@@ -24,7 +24,7 @@ public interface RaceResultSubmissionEntryRepository
                    entry.startingStall as startingStall,
                    entry.finishPosition as finishPosition,
                    horse.horseName as horseName,
-                   coalesce(ownerKyc.fullName, owner.username) as ownerName,
+                   owner.username as ownerName,
                    coalesce(jockeyProfile.fullName, jockey.username) as jockeyName,
                    entry.finishTime as finishTime
             from RaceResultSubmissionEntry entry
@@ -36,10 +36,6 @@ public interface RaceResultSubmissionEntryRepository
               on horse.horseId = registration.horseId
             join User owner
               on owner.userID = registration.ownerId
-            left join OwnerApplication ownerApplication
-              on ownerApplication.userId = owner.userID
-            left join UserVerification ownerKyc
-              on ownerKyc.verificationId = ownerApplication.kycVerificationId
             left join User jockey
               on jockey.userID = registration.jockeyId
             left join JockeyProfile jockeyProfile

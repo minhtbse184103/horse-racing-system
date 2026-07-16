@@ -22,9 +22,6 @@ function normalizeOwnerApplication(application) {
     rejectedAt: application.rejectedAt ?? application.reviewedAt,
     ownerSince: application.ownerSince ?? application.approvedAt ?? application.reviewedAt,
     rejectReason: application.rejectReason ?? application.feedback,
-    identityDocumentUrl: toAbsoluteFileUrl(application.identityDocumentUrl),
-    identityBackUrl: toAbsoluteFileUrl(application.identityBackUrl),
-    selfieUrl: toAbsoluteFileUrl(application.selfieUrl),
     stableCertificateUrl: toAbsoluteFileUrl(application.stableCertificateUrl),
     horseOwnershipProofUrl: toAbsoluteFileUrl(application.horseOwnershipProofUrl)
   };
@@ -38,9 +35,6 @@ function normalizeOwnerProfile(profile) {
     approvedAt: profile.approvedAt ?? profile.reviewedAt,
     ownerSince: profile.ownerSince ?? profile.approvedAt ?? profile.reviewedAt,
     status: profile.status ?? 'APPROVED',
-    identityDocumentUrl: toAbsoluteFileUrl(profile.identityDocumentUrl),
-    identityBackUrl: toAbsoluteFileUrl(profile.identityBackUrl),
-    selfieUrl: toAbsoluteFileUrl(profile.selfieUrl),
     stableCertificateUrl: toAbsoluteFileUrl(profile.stableCertificateUrl),
     horseOwnershipProofUrl: toAbsoluteFileUrl(profile.horseOwnershipProofUrl)
   };
@@ -103,7 +97,7 @@ export async function getOwnerApplicationById(applicationId) {
 export async function approveOwnerApplication(applicationId) {
   const application = await httpRequest(`/api/admin/owner-applications/${applicationId}/approve`, {
     method: 'PUT',
-    body: { confirmKycReviewed: true },
+    body: {},
     fallbackError: 'Khong the phe duyet don dang ky owner.'
   });
 

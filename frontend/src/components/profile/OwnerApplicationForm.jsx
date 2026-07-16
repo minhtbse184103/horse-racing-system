@@ -1,13 +1,10 @@
 import { useMemo, useState } from 'react';
-import KycInlineSection, { makeInitialKycValues, validateKycValues } from './KycInlineSection';
-import { needsKycSubmission } from '../../services/kycService';
 
 const inputClass = 'w-full rounded-lg border border-brown-700/15 bg-white px-4 py-3 text-sm font-bold text-brown-900 outline-none transition placeholder:text-slate-500/65 focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20 disabled:cursor-not-allowed disabled:bg-cream-200 disabled:text-slate-500';
 const acceptedTypes = '.pdf,.jpg,.jpeg,.png';
 
-function makeInitialValues(user, application, kyc) {
+function makeInitialValues(user, application) {
   return {
-    kyc: makeInitialKycValues(user, kyc),
     stableName: application?.stableName || '',
     stableAddress: application?.stableAddress || '',
     totalHorsesOwned: application?.totalHorsesOwned || '',
@@ -80,19 +77,17 @@ function SummaryRow({ label, value, file }) {
   );
 }
 
-export default function OwnerApplicationForm({ user, application, kyc, formError = '', onSubmit, onCancel, isSubmitting }) {
-  const [values, setValues] = useState(() => makeInitialValues(user, application, kyc));
+export default function OwnerApplicationForm({ user, application, formError = '', onSubmit, onCancel, isSubmitting }) {
+  const [values, setValues] = useState(() => makeInitialValues(user, application));
   const [errors, setErrors] = useState({});
   const [step, setStep] = useState(0);
-  const shouldSubmitKyc = needsKycSubmission(kyc);
   const steps = useMemo(
     () => [
-      ...(shouldSubmitKyc ? ['KYC Verification'] : []),
       'Stable Information',
       'Horse Ownership Proof',
       'Review & Submit'
     ],
-    [shouldSubmitKyc]
+    []
   );
 
   const isLastStep = step === steps.length - 1;
@@ -105,10 +100,6 @@ export default function OwnerApplicationForm({ user, application, kyc, formError
   function validateStep(targetStep = step) {
     const nextErrors = {};
     const stepKey = getStepKey(targetStep);
-
-    if (stepKey === 'KYC Verification') {
-      Object.assign(nextErrors, validateKycValues(values.kyc, kyc));
-    }
 
     if (stepKey === 'Stable Information') {
       if (!required(values.stableName)) nextErrors.stableName = 'Stable Name is required.';
@@ -199,17 +190,6 @@ export default function OwnerApplicationForm({ user, application, kyc, formError
         {formError && <div className="admin-alert error mt-5" role="alert">{formError}</div>}
 
         <form className="mt-6 grid gap-5" onSubmit={handleSubmit} noValidate>
-          {getStepKey() === 'KYC Verification' && (
-            <KycInlineSection
-              kyc={kyc}
-              values={values.kyc}
-              setValues={setValues}
-              errors={currentErrors}
-              setErrors={setErrors}
-              disabled={isSubmitting}
-            />
-          )}
-
           {getStepKey() === 'Stable Information' && (
             <div className="grid gap-4">
               <label className="grid gap-2">
@@ -239,21 +219,6 @@ export default function OwnerApplicationForm({ user, application, kyc, formError
 
           {getStepKey() === 'Review & Submit' && (
             <div className="grid gap-5">
-              <section>
-                <h3 className="text-xl font-black text-brown-900">KYC Verification</h3>
-                <div className="mt-3 grid gap-3 md:grid-cols-2">
-                  <SummaryRow label="KYC Status" value={shouldSubmitKyc ? 'Will be submitted with this application' : kyc?.status} />
-                  <SummaryRow label="Full Name" value={shouldSubmitKyc ? values.kyc.fullName : kyc?.fullName} />
-                  <SummaryRow label="Date of Birth" value={shouldSubmitKyc ? values.kyc.dateOfBirth : kyc?.dateOfBirth} />
-                  <SummaryRow label="Gender" value={shouldSubmitKyc ? values.kyc.gender : kyc?.gender} />
-                  <SummaryRow label="Nationality" value={shouldSubmitKyc ? values.kyc.nationality : kyc?.nationality} />
-                  <SummaryRow label="Address" value={shouldSubmitKyc ? values.kyc.address : kyc?.address} />
-                  <SummaryRow label="Identity Number" value={shouldSubmitKyc ? values.kyc.identityNumber : 'Already submitted'} />
-                  {shouldSubmitKyc && <SummaryRow label="Identity Front" file={values.kyc.identityFrontFile} />}
-                  {shouldSubmitKyc && <SummaryRow label="Identity Back" file={values.kyc.identityBackFile} />}
-                  {shouldSubmitKyc && <SummaryRow label="Selfie" file={values.kyc.selfieFile} />}
-                </div>
-              </section>
               <section>
                 <h3 className="text-xl font-black text-brown-900">Stable Information</h3>
                 <div className="mt-3 grid gap-3 md:grid-cols-2">

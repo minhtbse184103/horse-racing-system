@@ -2,8 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, CheckCircle2, Eye, RefreshCw, Search, XCircle } from 'lucide-react';
 import { formatDate } from '../../../lib';
 import { useLanguage } from '../../../context/LanguageContext';
-import KycReviewPanel, { canApproveRoleWithKyc, getKycStatusLabel } from '../reviews/KycReviewPanel';
-import { getAdminKycByUserIds } from '../../../services/adminKycService';
 import {
   approveOwnerApplication,
   getAllOwnerApplications,
@@ -117,11 +115,7 @@ export default function OwnerApplicationManagement() {
     try {
       const data = await getAllOwnerApplications();
       const list = Array.isArray(data) ? data : [];
-      const kycByUserId = await getAdminKycByUserIds(list.map((application) => application.userID));
-      setApplications(list.map((application) => ({
-        ...application,
-        kyc: kycByUserId.get(Number(application.userID)) || null
-      })));
+      setApplications(list);
     } catch (err) {
       setError(err.message || t('ownerApplicationsLoadError'));
     } finally {
@@ -166,11 +160,7 @@ export default function OwnerApplicationManagement() {
 
     try {
       const detail = await getOwnerApplicationById(applicationId);
-      const kycByUserId = await getAdminKycByUserIds([detail?.userID]);
-      setSelectedApplication({
-        ...detail,
-        kyc: kycByUserId.get(Number(detail?.userID)) || null
-      });
+      setSelectedApplication(detail);
     } catch (err) {
       setError(err.message || t('ownerApplicationDetailLoadError'));
     } finally {
@@ -187,13 +177,8 @@ export default function OwnerApplicationManagement() {
 
     try {
       const updated = await approveOwnerApplication(approveTarget.applicationID);
-      const kycByUserId = await getAdminKycByUserIds([updated.userID]);
-      const updatedWithKyc = {
-        ...updated,
-        kyc: kycByUserId.get(Number(updated.userID)) || approveTarget.kyc || null
-      };
-      setApplications((current) => current.map((item) => (item.applicationID === updatedWithKyc.applicationID ? updatedWithKyc : item)));
-      setSelectedApplication(updatedWithKyc);
+      setApplications((current) => current.map((item) => (item.applicationID === updated.applicationID ? updated : item)));
+      setSelectedApplication(updated);
       setApproveTarget(null);
       setMessage(t('ownerApplicationApproved'));
     } catch (err) {
@@ -226,7 +211,7 @@ export default function OwnerApplicationManagement() {
 
   if (selectedApplication) {
     const canAct = selectedApplication.status === 'PENDING';
-    const canApprove = canAct && canApproveRoleWithKyc(selectedApplication.kyc);
+    const canApprove = canAct;
 
     return (
       <section className="space-y-6 text-brown-900">
@@ -256,16 +241,8 @@ export default function OwnerApplicationManagement() {
           </div>
 
           <div className="mt-5 grid gap-4 md:grid-cols-2">
-            <InfoCard label={t('fullName')} value={selectedApplication.fullName} />
-            <InfoCard label={t('dateOfBirth')} value={formatDate(selectedApplication.dateOfBirth)} />
-            <InfoCard label={t('gender')} value={selectedApplication.gender} />
-            <InfoCard label={t('nationality')} value={selectedApplication.nationality} />
-            <InfoCard label={t('address')} value={selectedApplication.address} />
             <InfoCard label={t('email')} value={selectedApplication.applicantEmail} />
             <InfoCard label={t('phone')} value={selectedApplication.applicantPhone} />
-            <DocumentCard label="Identity Front" url={selectedApplication.identityDocumentUrl} />
-            <DocumentCard label="Identity Back" url={selectedApplication.identityBackUrl} />
-            <DocumentCard label="Selfie" url={selectedApplication.selfieUrl} />
           </div>
 
           <div className="mt-6">
@@ -295,8 +272,6 @@ export default function OwnerApplicationManagement() {
             </div>
           </div>
 
-          <KycReviewPanel kyc={selectedApplication.kyc} />
-
           {selectedApplication.rejectReason && (
             <div className="mt-5 rounded-2xl border border-danger/20 bg-danger-bg p-4 font-bold text-danger">
               {t('rejectReason')}: {selectedApplication.rejectReason}
@@ -310,7 +285,7 @@ export default function OwnerApplicationManagement() {
                 type="button"
                 onClick={() => setApproveTarget(selectedApplication)}
                 disabled={isActionLoading || !canApprove}
-                title={!canApprove ? 'KYC must be pending or verified before approval.' : 'Approve owner and KYC'}
+                title="Approve owner application"
               >
                 <CheckCircle2 size={18} />
                 {t('approve')}
@@ -330,7 +305,7 @@ export default function OwnerApplicationManagement() {
         {approveTarget && (
           <ConfirmModal
             title={t('approveOwnerApplication')}
-            message="Approve this owner application, verify KYC, and open the wallet?"
+            message="Approve this owner application and grant the Owner role?"
             confirmLabel={t('approve')}
             isLoading={isActionLoading}
             onCancel={() => setApproveTarget(null)}
@@ -400,23 +375,21 @@ export default function OwnerApplicationManagement() {
                 <th className="px-4 py-3">{t('applicationId')}</th>
                 <th className="px-4 py-3">{t('applicantName')}</th>
                 <th className="px-4 py-3">{t('submissionDate')}</th>
-                <th className="px-4 py-3">KYC</th>
                 <th className="px-4 py-3">{t('status')}</th>
                 <th className="px-4 py-3 text-right">{t('action')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-brown-700/10">
               {isLoading ? (
-                <tr><td className="px-4 py-8 text-center font-bold text-slate-500" colSpan="6">{t('loadingOwnerApplications')}</td></tr>
+                <tr><td className="px-4 py-8 text-center font-bold text-slate-500" colSpan="5">{t('loadingOwnerApplications')}</td></tr>
               ) : visibleApplications.length === 0 ? (
-                <tr><td className="px-4 py-8" colSpan="6"><EmptyState t={t} /></td></tr>
+                <tr><td className="px-4 py-8" colSpan="5"><EmptyState t={t} /></td></tr>
               ) : (
                 visibleApplications.map((application) => (
                   <tr className="transition hover:bg-cream-200/35" key={application.applicationID}>
                     <td className="px-4 py-4 font-black text-brown-900">#{application.applicationID}</td>
                     <td className="px-4 py-4"><strong className="block text-brown-900">{application.fullName}</strong><small className="font-semibold text-slate-500">{application.applicantEmail}</small></td>
                     <td className="px-4 py-4 font-bold text-slate-500">{formatDate(application.submittedAt)}</td>
-                    <td className="px-4 py-4"><span className={`status-badge ${String(application.kyc?.status || 'not_submitted').toLowerCase()}`}>{getKycStatusLabel(application.kyc)}</span></td>
                     <td className="px-4 py-4"><StatusBadge status={application.status} t={t} /></td>
                     <td className="px-4 py-4 text-right"><button className="inline-flex items-center gap-2 rounded-lg border border-brown-700/15 bg-white px-3 py-2 font-extrabold text-brown-700 transition hover:bg-cream-200" type="button" onClick={() => handleViewDetails(application.applicationID)}><Eye size={16} />{t('viewDetails')}</button></td>
                   </tr>

@@ -27,4 +27,10 @@ public class SignupRequest {
     @NotBlank(message = "Mat khau khong duoc de trong")
     @Size(min = 6, max = 72, message = "Mat khau phai co tu 6 den 72 ky tu")
     private String password;
+
+    @Schema(example = "SPECTATOR", allowableValues = {"SPECTATOR", "OWNER", "JOCKEY"})
+    @NotBlank(message = "Loai tai khoan khong duoc de trong")
+    @Pattern(regexp = "(?i)SPECTATOR|OWNER|JOCKEY",
+            message = "Loai tai khoan phai la SPECTATOR, OWNER hoac JOCKEY")
+    private String accountType;
 }

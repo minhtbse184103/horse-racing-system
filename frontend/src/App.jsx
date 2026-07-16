@@ -10,6 +10,7 @@ import AccessDenied from './components/common/AccessDenied';
 import LandingPage from './pages/LandingPage';
 import { useAuth } from './hooks/useAuth';
 import { getUserRole } from './lib';
+import WalletTransferPanel from './components/payment/WalletTransferPanel';
 
 function getInitialPage() {
   if (window.location.pathname === '/register') return 'register';
@@ -49,6 +50,16 @@ export default function App() {
 
   if (user && currentPath.startsWith('/admin') && userRole !== 'ADMIN') {
     return <AccessDenied onReturnDashboard={() => navigateTo('/dashboard')} />;
+  }
+
+  if (user && currentPath === '/wallet/kyc/result') {
+    return (
+      <main className="min-h-screen bg-cream-100 p-4 sm:p-8">
+        <div className="mx-auto max-w-4xl">
+          <WalletTransferPanel currentUser={user} role={user?.accountType || userRole} />
+        </div>
+      </main>
+    );
   }
 
   if (userRole === 'ADMIN') {

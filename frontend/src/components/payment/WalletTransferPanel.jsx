@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, CircleDollarSign, CreditCard, RefreshCw, ShieldCheck, Wallet, X } from 'lucide-react';
+import { ArrowRight, CircleDollarSign, CreditCard, ExternalLink, RefreshCw, ShieldCheck, Wallet, X } from 'lucide-react';
 import { getUserRole } from '../../lib';
 import { useLanguage } from '../../context/LanguageContext';
 import { confirmVnpayReturn } from '../../services/paymentService';
 import { createWalletDeposit, getMyWallet } from '../../services/walletService';
+import { createKycSession, getMyKyc } from '../../services/kycService';
 
 const ALLOWED_ROLES = new Set(['ADMIN', 'OWNER', 'JOCKEY', 'SPECTATOR']);
 const QUICK_AMOUNTS = [100000, 200000, 500000, 1000000];
@@ -29,6 +30,8 @@ export default function WalletTransferPanel({ currentUser, role: roleOverride })
   const [error, setError] = useState('');
   const [notice, setNotice] = useState(null);
   const [isDepositOpen, setIsDepositOpen] = useState(false);
+  const [kyc, setKyc] = useState(null);
+  const [startingKyc, setStartingKyc] = useState(false);
 
   const amountValue = useMemo(() => normalizeAmount(amount), [amount]);
   const canSubmit = ALLOWED_ROLES.has(role) && amountValue > 0 && !submitting;
@@ -38,7 +41,12 @@ export default function WalletTransferPanel({ currentUser, role: roleOverride })
     setLoading(true);
     setError('');
     try {
-      setWallet(await getMyWallet());
+      const [walletResult, kycResult] = await Promise.allSettled([getMyWallet(), getMyKyc()]);
+      setWallet(walletResult.status === 'fulfilled' ? walletResult.value : null);
+      if (kycResult.status === 'fulfilled') setKyc(kycResult.value);
+      if (walletResult.status === 'rejected' && kycResult.status === 'rejected') {
+        throw walletResult.reason;
+      }
     } catch (err) {
       setError(err.message || t('walletLoadError'));
     } finally {
@@ -49,6 +57,44 @@ export default function WalletTransferPanel({ currentUser, role: roleOverride })
   useEffect(() => {
     loadWallet();
   }, [role]);
+
+  useEffect(() => {
+    if (window.location.pathname !== '/wallet/kyc/result') return undefined;
+    let cancelled = false;
+    let attempts = 0;
+    const poll = async () => {
+      if (cancelled) return;
+      attempts += 1;
+      try {
+        const current = await getMyKyc();
+        if (cancelled) return;
+        setKyc(current);
+        if (current?.status === 'VERIFIED') {
+          await loadWallet();
+          window.history.replaceState(null, '', '/dashboard?section=wallet');
+          return;
+        }
+      } catch {
+        // A later poll can recover from a transient callback race.
+      }
+      if (!cancelled && attempts < 15) window.setTimeout(poll, 2000);
+    };
+    poll();
+    return () => { cancelled = true; };
+  }, []);
+
+  async function handleStartKyc() {
+    setStartingKyc(true);
+    setError('');
+    try {
+      const session = await createKycSession();
+      if (!session?.verificationUrl) throw new Error('Didit did not return a verification URL.');
+      window.location.assign(session.verificationUrl);
+    } catch (err) {
+      setError(err.message || 'Cannot start Didit verification.');
+      setStartingKyc(false);
+    }
+  }
 
   function replaceWalletUrl() {
     window.history.replaceState(null, '', '/dashboard?section=wallet');
@@ -186,6 +232,29 @@ export default function WalletTransferPanel({ currentUser, role: roleOverride })
         {!isDepositOpen && error && <div className="admin-alert error" role="alert">{error}</div>}
         {!isDepositOpen && notice && <div className={`admin-alert ${notice.type}`} role="status">{notice.key ? t(notice.key) : notice.text}</div>}
 
+        {!wallet && (
+          <div className="mb-5 border-y border-brown-700/10 bg-white/55 px-1 py-5">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <span className="flex items-center gap-2 text-xs font-black uppercase text-slate-500">
+                  <ShieldCheck size={15} /> Identity verification
+                </span>
+                <strong className="mt-2 block text-lg font-black text-brown-900">
+                  {kyc?.status === 'VERIFIED' ? 'Opening your wallet' : 'Verify identity to open wallet'}
+                </strong>
+                <p className="mt-1 text-sm font-semibold text-slate-600">
+                  Status: {String(kyc?.status || 'NOT_SUBMITTED').replaceAll('_', ' ')}
+                </p>
+              </div>
+              {kyc?.status !== 'VERIFIED' && (
+                <button className="primary-button compact-button inline-flex items-center justify-center gap-2" type="button" onClick={handleStartKyc} disabled={startingKyc}>
+                  {startingKyc ? 'Starting...' : 'Verify with Didit'} <ExternalLink size={16} />
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
         <div className="rounded-lg border border-brown-700/10 bg-white/75 p-5">
           <span className="flex items-center gap-2 text-xs font-black uppercase text-slate-500">
             <Wallet size={15} /> {t('walletBalance')}
@@ -201,7 +270,7 @@ export default function WalletTransferPanel({ currentUser, role: roleOverride })
                 <CreditCard size={17} /> VNPAY
               </strong>
             </div>
-            <button className="primary-button compact-button inline-flex items-center justify-center gap-2" type="button" onClick={openDepositDialog}>
+            <button className="primary-button compact-button inline-flex items-center justify-center gap-2" type="button" onClick={openDepositDialog} disabled={!wallet}>
               {t('walletTopUp')} <ArrowRight size={16} />
             </button>
           </div>

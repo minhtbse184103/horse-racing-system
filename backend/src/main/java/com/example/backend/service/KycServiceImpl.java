@@ -1,394 +1,294 @@
 package com.example.backend.service;
 
-import com.example.backend.enums.KycStatus;
-import com.example.backend.dto.request.KycSubmissionRequestDTO;
-import com.example.backend.dto.response.FileUploadResponse;
-import com.example.backend.dto.response.KycResponseDTO;
-import com.example.backend.entity.User;
-import com.example.backend.entity.UserVerification;
-import com.example.backend.exception.ApiException;
-import com.example.backend.repository.UserRepository;
-import com.example.backend.repository.UserVerificationRepository;
-import com.example.backend.repository.WalletRepository;
+import com.example.backend.client.DiditClient;
+import com.example.backend.config.DiditProperties;
 import com.example.backend.constant.WalletStatus;
+import com.example.backend.dto.response.KycResponseDTO;
+import com.example.backend.dto.response.KycSessionResponse;
+import com.example.backend.entity.*;
+import com.example.backend.enums.KycStatus;
+import com.example.backend.exception.ApiException;
+import com.example.backend.repository.*;
+import com.fasterxml.jackson.databind.JsonNode;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
+import java.time.LocalTime;
+import java.time.format.DateTimeParseException;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class KycServiceImpl implements KycService {
-    private static final int MINIMUM_AGE = 18;
-    private static final int VALIDITY_YEARS = 5;
-    private static final String KYC_FOLDER = "kyc";
-    private static final Set<String> KYC_ROLES =
-            Set.of("OWNER", "SPECTATOR", "JOCKEY");
+    private static final String PROVIDER = "DIDIT";
+    private static final Set<String> ALLOWED_ROLES = Set.of("SPECTATOR", "OWNER", "JOCKEY");
+    private static final Set<KycStatus> ACTIVE_STATUSES = EnumSet.of(
+            KycStatus.NOT_STARTED, KycStatus.IN_PROGRESS, KycStatus.AWAITING_USER,
+            KycStatus.IN_REVIEW, KycStatus.RESUBMITTED);
 
     private final UserRepository userRepository;
     private final UserVerificationRepository verificationRepository;
-    private final FileUploadService fileUploadService;
+    private final DiditWebhookEventRepository webhookEventRepository;
     private final WalletRepository walletRepository;
+    private final DiditClient diditClient;
+    private final DiditProperties properties;
+    private final DiditWebhookVerifier webhookVerifier;
 
+    @Override
     @Transactional
-    public KycResponseDTO submit(String email, KycSubmissionRequestDTO request) {
+    public KycSessionResponse createSession(String email) {
         User user = getUser(email);
-        validateRole(user);
-        validateAdult(request.getDateOfBirth());
-        validateImage(request.getIdentityFrontFile(), "Ảnh mặt trước CCCD");
-        validateImage(request.getIdentityBackFile(), "Ảnh mặt sau CCCD");
-        validateImage(request.getSelfieFile(), "Ảnh selfie");
+        userRepository.findByIdForUpdate(user.getUserID())
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found."));
+        validateEligibleUser(user);
 
-        String identityNumber = request.getIdentityNumber().trim();
-        if (verificationRepository.existsByIdentityNumberAndUserIdNot(
-                identityNumber,
-                user.getUserID()
-        )) {
-            throw new ApiException(
-                    HttpStatus.CONFLICT,
-                    "Số CCCD đã được sử dụng bởi tài khoản khác."
-            );
+        List<UserVerification> active = verificationRepository.findActiveByUserId(user.getUserID(), ACTIVE_STATUSES);
+        if (!active.isEmpty()) return sessionResponse(active.get(0), true);
+
+        UserVerification verified = verificationRepository
+                .findFirstByUserIdAndStatusOrderByAttemptNumberDesc(user.getUserID(), KycStatus.VERIFIED)
+                .orElse(null);
+        if (verified != null && !isExpired(verified)) return sessionResponse(verified, true);
+
+        JsonNode created;
+        try {
+            created = diditClient.createSession("user-" + user.getUserID());
+        } catch (IllegalStateException exception) {
+            throw new ApiException(HttpStatus.SERVICE_UNAVAILABLE, exception.getMessage());
+        }
+        String sessionId = requiredText(created, "session_id");
+        String verificationUrl = firstText(created, "verification_url", "url");
+        if (verificationUrl == null) {
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "Didit did not return a verification URL.");
         }
 
-        UserVerification verification = verificationRepository
-                .findByUserId(user.getUserID())
-                .orElseGet(UserVerification::new);
-        if (KycStatus.PENDING == verification.getStatus()
-                || KycStatus.VERIFIED == verification.getStatus()) {
-            throw new ApiException(
-                    HttpStatus.CONFLICT,
-                    "Hồ sơ KYC đang chờ duyệt hoặc đã được xác minh."
-            );
-        }
-
-        FileUploadResponse front =
-                fileUploadService.upload(request.getIdentityFrontFile(), KYC_FOLDER);
-        FileUploadResponse back =
-                fileUploadService.upload(request.getIdentityBackFile(), KYC_FOLDER);
-        FileUploadResponse selfie =
-                fileUploadService.upload(request.getSelfieFile(), KYC_FOLDER);
-
-        verification.setUserId(user.getUserID());
-        verification.setStatus(KycStatus.PENDING);
-        verification.setFullName(request.getFullName().trim());
-        verification.setDateOfBirth(request.getDateOfBirth());
-        verification.setGender(request.getGender().trim().toUpperCase(Locale.ROOT));
-        verification.setNationality(request.getNationality().trim());
-        verification.setAddress(request.getAddress().trim());
-        verification.setIdentityNumber(identityNumber);
-        verification.setIdentityFrontUrl(front.getUrl());
-        verification.setIdentityBackUrl(back.getUrl());
-        verification.setSelfieUrl(selfie.getUrl());
-        verification.setSubmittedAt(LocalDateTime.now());
-        verification.setReviewedAt(null);
-        verification.setReviewedBy(null);
-        verification.setRejectionReason(null);
-        verification.setExpiresAt(null);
-
-        UserVerification savedVerification = verificationRepository.save(verification);
-        log.info("KYC submitted. userId={}, verificationId={}",
-                user.getUserID(), savedVerification.getVerificationId());
-        return mapToDTO(savedVerification, user, false);
+        UserVerification verification = UserVerification.builder()
+                .userId(user.getUserID()).provider(PROVIDER).providerSessionId(sessionId)
+                .providerSessionNumber(longValue(created, "session_number"))
+                .workflowId(properties.getWorkflowId()).vendorData("user-" + user.getUserID())
+                .verificationUrl(verificationUrl).status(KycStatus.NOT_STARTED)
+                .attemptNumber(Optional.ofNullable(verificationRepository.findMaxAttemptNumber(user.getUserID())).orElse(0) + 1)
+                .submittedAt(LocalDateTime.now()).build();
+        verificationRepository.save(verification);
+        log.info("Didit KYC session created. userId={}, verificationId={}", user.getUserID(), verification.getVerificationId());
+        return sessionResponse(verification, false);
     }
 
+    @Override
     @Transactional(readOnly = true)
     public KycResponseDTO getMine(String email) {
         User user = getUser(email);
-        return verificationRepository.findByUserId(user.getUserID())
-                .map(verification -> mapToDTO(verification, user, false))
-                .orElseGet(() -> KycResponseDTO.builder()
-                        .userId(user.getUserID())
-                        .username(user.getUsername())
-                        .email(user.getEmail())
-                        .status(KycStatus.NOT_SUBMITTED.name())
-                        .build());
+        return verificationRepository.findFirstByUserIdOrderByAttemptNumberDesc(user.getUserID())
+                .map(this::response)
+                .orElseGet(() -> KycResponseDTO.builder().provider(PROVIDER)
+                        .status("NOT_SUBMITTED").walletOpen(walletRepository.findByUserId(user.getUserID()).isPresent()).build());
     }
 
-    @Transactional(readOnly = true)
-    public List<KycResponseDTO> getForAdmin(String status) {
-        KycStatus normalized = normalizeStatus(status);
-        List<UserVerification> verifications = normalized == null
-                ? verificationRepository.findAllByOrderBySubmittedAtDesc()
-                : verificationRepository.findByStatusOrderBySubmittedAtAsc(normalized);
-        return verifications.stream()
-                .map(verification -> mapToDTO(
-                        verification,
-                        userRepository.findById(verification.getUserId()).orElse(null),
-                        true
-                ))
-                .toList();
-    }
-
-    @Transactional(readOnly = true)
-    public KycResponseDTO getForAdmin(Integer verificationId) {
-        UserVerification verification = getVerification(verificationId);
-        return mapToDTO(
-                verification,
-                userRepository.findById(verification.getUserId()).orElse(null),
-                true
-        );
-    }
-
-    @Transactional
-    public KycResponseDTO approve(Integer verificationId, String adminEmail) {
-        User admin = getUser(adminEmail);
-        UserVerification verification = getPendingForUpdate(verificationId);
-        if (admin.getUserID().equals(verification.getUserId())) {
-            throw new ApiException(
-                    HttpStatus.CONFLICT,
-                    "Admin không được duyệt hồ sơ KYC của chính mình."
-            );
-        }
-
-        verifyKycAndOpenWallet(verification, admin.getUserID());
-        log.info("KYC approved and wallet opened. verificationId={}, userId={}, reviewedBy={}",
-                verificationId, verification.getUserId(), admin.getUserID());
-        return mapToDTO(
-                verification,
-                userRepository.findById(verification.getUserId()).orElse(null),
-                true
-        );
-    }
-
-    @Transactional
     @Override
-    public void approveUserKycAndOpenWallet(
-            Integer userId,
-            Integer adminId,
-            Boolean confirmKycReviewed,
-            LocalDateTime requestedExpiresAt
-    ) {
-        if (!Boolean.TRUE.equals(confirmKycReviewed)) {
-            throw new ApiException(
-                    HttpStatus.BAD_REQUEST,
-                    "Admin must confirm KYC review before approving this role."
-            );
-        }
-        if (requestedExpiresAt != null && !requestedExpiresAt.isAfter(LocalDateTime.now())) {
-            throw new ApiException(
-                    HttpStatus.BAD_REQUEST,
-                    "KYC expiry time must be in the future."
-            );
-        }
-        UserVerification verification = verificationRepository.findByUserId(userId)
-                .orElseThrow(() -> new ApiException(
-                        HttpStatus.CONFLICT,
-                        "Người dùng cần gửi hồ sơ KYC trước khi được duyệt vai trò."
-                ));
-        if (KycStatus.PENDING == verification.getStatus()) {
-            verifyKycAndOpenWallet(verification, adminId, requestedExpiresAt);
-            return;
-        }
-        if (KycStatus.VERIFIED == verification.getStatus()) {
-            if (verification.getExpiresAt() != null
-                    && !verification.getExpiresAt().isAfter(LocalDateTime.now())) {
-                throw new ApiException(
-                        HttpStatus.CONFLICT,
-                        "Hồ sơ KYC đã hết hạn."
-                );
-            }
-            if (requestedExpiresAt != null) {
-                verification.setExpiresAt(requestedExpiresAt);
-                verificationRepository.save(verification);
-            }
-            ensureWalletOpened(userId);
-            return;
-        }
-        throw new ApiException(
-                HttpStatus.CONFLICT,
-                "Chỉ có thể duyệt vai trò khi KYC đang chờ duyệt hoặc đã xác minh."
-        );
-    }
-
     @Transactional
-    public KycResponseDTO reject(
-            Integer verificationId,
-            String reason,
-            String adminEmail
-    ) {
-        User admin = getUser(adminEmail);
-        if (reason == null || reason.isBlank()) {
-            throw new ApiException(
-                    HttpStatus.BAD_REQUEST,
-                    "Lý do từ chối là bắt buộc."
-            );
+    public void processWebhook(byte[] rawBody, String timestamp, String signatureV2,
+                               String rawSignature, String simpleSignature, boolean testWebhook) {
+        JsonNode webhook = webhookVerifier.verify(rawBody, timestamp, signatureV2, rawSignature, simpleSignature);
+        if (testWebhook) return;
+
+        String eventId = requiredText(webhook, "event_id");
+        String sessionId = requiredText(webhook, "session_id");
+        int inserted = webhookEventRepository.insertIfAbsent(eventId, sessionId,
+                firstText(webhook, "webhook_type", "event_type"), firstText(webhook, "status"));
+        if (inserted == 0) return;
+        DiditWebhookEvent event = webhookEventRepository.findByEventId(eventId)
+                .orElseThrow(() -> new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Webhook event was not persisted."));
+
+        try {
+            JsonNode decision = diditClient.retrieveDecision(sessionId);
+            applyDecision(sessionId, decision);
+            event.setProcessedAt(LocalDateTime.now());
+        } catch (RuntimeException exception) {
+            event.setProcessingError(truncate(exception.getMessage(), 500));
+            webhookEventRepository.save(event);
+            throw exception;
         }
-        UserVerification verification = getPendingForUpdate(verificationId);
-        verification.setStatus(KycStatus.REJECTED);
-        verification.setReviewedAt(LocalDateTime.now());
-        verification.setReviewedBy(admin.getUserID());
-        verification.setRejectionReason(reason.trim());
-        verification.setExpiresAt(null);
-        verificationRepository.save(verification);
-        log.info("KYC rejected. verificationId={}, userId={}, reviewedBy={}",
-                verificationId, verification.getUserId(), admin.getUserID());
-        return mapToDTO(
-                verification,
-                userRepository.findById(verification.getUserId()).orElse(null),
-                true
-        );
+        webhookEventRepository.save(event);
     }
 
-    private UserVerification getPendingForUpdate(Integer verificationId) {
-        UserVerification verification = verificationRepository
-                .findByIdForUpdate(verificationId)
-                .orElseThrow(() -> new ApiException(
-                        HttpStatus.NOT_FOUND,
-                        "Hồ sơ KYC không tồn tại."
-                ));
-        if (KycStatus.PENDING != verification.getStatus()) {
-            throw new ApiException(
-                    HttpStatus.CONFLICT,
-                    "Chỉ hồ sơ KYC đang chờ mới được xét duyệt."
-            );
+    private void applyDecision(String sessionId, JsonNode decision) {
+        UserVerification verification = verificationRepository.findByProviderSessionIdForUpdate(sessionId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Unknown Didit session."));
+        requireEqual(sessionId, requiredText(decision, "session_id"), "Didit session mismatch.");
+        requireEqual(verification.getVendorData(), requiredText(decision, "vendor_data"), "Didit vendor data mismatch.");
+        requireEqual(verification.getWorkflowId(), requiredText(decision, "workflow_id"), "Didit workflow mismatch.");
+
+        String kind = firstText(decision, "session_kind", "kind");
+        if (kind != null && !"KYC".equals(kind) && !"user".equals(kind)) {
+            throw new ApiException(HttpStatus.CONFLICT, "Unexpected Didit session kind.");
         }
-        return verification;
-    }
+        String environment = firstText(decision, "environment");
+        if (!properties.getExpectedEnvironment().isBlank() && environment != null) {
+            requireEqual(properties.getExpectedEnvironment(), environment, "Didit environment mismatch.");
+        }
 
-    private UserVerification getVerification(Integer verificationId) {
-        return verificationRepository.findById(verificationId)
-                .orElseThrow(() -> new ApiException(
-                        HttpStatus.NOT_FOUND,
-                        "Hồ sơ KYC không tồn tại."
-                ));
-    }
+        String providerStatus = requiredText(decision, "status");
+        KycStatus mapped = mapStatus(providerStatus);
+        if (mapped != KycStatus.VERIFIED) {
+            verification.setStatus(mapped);
+            verification.setRejectionReason(mapped == KycStatus.REJECTED
+                    ? truncate(firstText(decision, "decline_reason", "reason"), 500) : null);
+            verificationRepository.save(verification);
+            return;
+        }
 
-    private void verifyKycAndOpenWallet(UserVerification verification, Integer adminId) {
-        verifyKycAndOpenWallet(verification, adminId, null);
-    }
+        Map<String, String> features = extractFeatures(decision);
+        for (String required : properties.getRequiredFeatures()) {
+            if (!"Approved".equals(features.get(required))) {
+                throw new ApiException(HttpStatus.CONFLICT, "Required Didit feature is not approved: " + required);
+            }
+        }
 
-    private void verifyKycAndOpenWallet(
-            UserVerification verification,
-            Integer adminId,
-            LocalDateTime requestedExpiresAt
-    ) {
-        LocalDateTime now = LocalDateTime.now();
+        JsonNode document = firstArrayItem(decision, "id_verifications", "document_verifications");
+        verification.setIdVerificationStatus(features.get("ID_VERIFICATION"));
+        verification.setLivenessStatus(features.get("LIVENESS"));
+        verification.setFaceMatchStatus(features.get("FACE_MATCH"));
+        verification.setIpAnalysisStatus(features.get("IP_ANALYSIS"));
+        verification.setVerifiedFullName(extractFullName(document));
+        verification.setVerifiedDateOfBirth(dateValue(document, "date_of_birth", "dob"));
+        verification.setDocumentType(firstText(document, "document_type", "type"));
+        String number = firstText(document, "document_number", "number");
+        verification.setDocumentLastFour(number == null ? null : number.substring(Math.max(0, number.length() - 4)));
+        LocalDate documentExpiry = dateValue(document, "expiration_date", "expiry_date");
+        verification.setDocumentExpiryDate(documentExpiry);
+        verification.setExpiresAt(documentExpiry == null ? null : documentExpiry.atTime(LocalTime.MAX));
+        verification.setFaceMatchScore(decimalValue(firstArrayItem(decision, "face_matches"), "score"));
         verification.setStatus(KycStatus.VERIFIED);
-        verification.setReviewedAt(now);
-        verification.setReviewedBy(adminId);
+        verification.setVerifiedAt(LocalDateTime.now());
         verification.setRejectionReason(null);
-        verification.setExpiresAt(requestedExpiresAt != null
-                ? requestedExpiresAt
-                : now.plusYears(VALIDITY_YEARS));
         verificationRepository.save(verification);
-        ensureWalletOpened(verification.getUserId());
+        openWalletIfAbsent(verification.getUserId());
+        log.info("Didit KYC verified and wallet opened. userId={}, verificationId={}",
+                verification.getUserId(), verification.getVerificationId());
     }
 
-    private void ensureWalletOpened(Integer userId) {
-        walletRepository.findByUserId(userId)
-                .orElseGet(() -> walletRepository.save(
-                        com.example.backend.entity.Wallet.builder()
-                                .userId(userId)
-                                .balance(java.math.BigDecimal.ZERO)
-                                .lockedBalance(java.math.BigDecimal.ZERO)
-                                .currency("VND")
-                                .status(WalletStatus.ACTIVE)
-                                .build()
-                ));
+    private void openWalletIfAbsent(Integer userId) {
+        if (walletRepository.findByUserIdForUpdate(userId).isPresent()) return;
+        walletRepository.save(Wallet.builder().userId(userId).balance(BigDecimal.ZERO)
+                .lockedBalance(BigDecimal.ZERO).currency("VND").status(WalletStatus.ACTIVE).build());
+    }
+
+    private Map<String, String> extractFeatures(JsonNode decision) {
+        Map<String, String> result = new HashMap<>();
+        result.put("ID_VERIFICATION", featureStatus(decision, "id_verifications", "document_verifications"));
+        result.put("LIVENESS", featureStatus(decision, "liveness_checks", "liveness"));
+        result.put("FACE_MATCH", featureStatus(decision, "face_matches"));
+        result.put("IP_ANALYSIS", featureStatus(decision, "ip_analyses", "ip_analysis"));
+        return result;
+    }
+
+    private String featureStatus(JsonNode root, String... names) {
+        JsonNode item = firstArrayItem(root, names);
+        return firstText(item, "status", "decision");
+    }
+
+    private JsonNode firstArrayItem(JsonNode root, String... names) {
+        if (root == null) return null;
+        for (String name : names) {
+            JsonNode value = root.path(name);
+            if (value.isArray() && !value.isEmpty()) return value.get(0);
+            if (value.isObject()) return value;
+        }
+        return null;
+    }
+
+    private String extractFullName(JsonNode document) {
+        String full = firstText(document, "full_name", "fullName");
+        if (full != null) return truncate(full, 150);
+        String first = firstText(document, "first_name");
+        String last = firstText(document, "last_name");
+        String combined = String.join(" ", first == null ? "" : first, last == null ? "" : last).trim();
+        return combined.isEmpty() ? null : truncate(combined, 150);
+    }
+
+    private KycStatus mapStatus(String status) {
+        return switch (status) {
+            case "Not Started" -> KycStatus.NOT_STARTED;
+            case "In Progress" -> KycStatus.IN_PROGRESS;
+            case "Awaiting User" -> KycStatus.AWAITING_USER;
+            case "In Review" -> KycStatus.IN_REVIEW;
+            case "Approved" -> KycStatus.VERIFIED;
+            case "Declined" -> KycStatus.REJECTED;
+            case "Resubmitted" -> KycStatus.RESUBMITTED;
+            case "Expired", "Kyc Expired" -> KycStatus.EXPIRED;
+            case "Abandoned" -> KycStatus.ABANDONED;
+            default -> throw new ApiException(HttpStatus.CONFLICT, "Unknown Didit status.");
+        };
+    }
+
+    private void validateEligibleUser(User user) {
+        String role = user.getRole() == null ? null : user.getRole().getRoleName();
+        if (!"ACTIVE".equalsIgnoreCase(user.getStatus()) || role == null || !ALLOWED_ROLES.contains(role.toUpperCase(Locale.ROOT))) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "This account cannot start KYC.");
+        }
     }
 
     private User getUser(String email) {
         return userRepository.findByEmail(email)
-                .orElseThrow(() -> new ApiException(
-                        HttpStatus.NOT_FOUND,
-                        "Người dùng không tồn tại."
-                ));
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found."));
     }
 
-    private void validateRole(User user) {
-        String role = user.getRole() == null ? null : user.getRole().getRoleName();
-        if (role == null || !KYC_ROLES.contains(role.toUpperCase(Locale.ROOT))) {
-            throw new ApiException(
-                    HttpStatus.FORBIDDEN,
-                    "Vai trò không được phép gửi hồ sơ KYC."
-            );
-        }
+    private boolean isExpired(UserVerification verification) {
+        return verification.getExpiresAt() != null && !verification.getExpiresAt().isAfter(LocalDateTime.now());
     }
 
-    private void validateAdult(LocalDate dateOfBirth) {
-        if (dateOfBirth == null
-                || dateOfBirth.isAfter(LocalDate.now().minusYears(MINIMUM_AGE))) {
-            throw new ApiException(
-                    HttpStatus.BAD_REQUEST,
-                    "Người dùng phải đủ 18 tuổi để xác minh KYC."
-            );
-        }
+    private KycSessionResponse sessionResponse(UserVerification v, boolean reused) {
+        return KycSessionResponse.builder().verificationId(v.getVerificationId())
+                .status(v.getStatus().name()).verificationUrl(v.getVerificationUrl()).reused(reused).build();
     }
 
-    private void validateImage(MultipartFile file, String label) {
-        if (file == null || file.isEmpty()) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, label + " là bắt buộc.");
-        }
-        String contentType = file.getContentType();
-        if (!"image/jpeg".equalsIgnoreCase(contentType)
-                && !"image/png".equalsIgnoreCase(contentType)) {
-            throw new ApiException(
-                    HttpStatus.BAD_REQUEST,
-                    label + " chỉ hỗ trợ JPG hoặc PNG."
-            );
-        }
+    private KycResponseDTO response(UserVerification v) {
+        return KycResponseDTO.builder().verificationId(v.getVerificationId()).provider(v.getProvider())
+                .status(v.getStatus().name()).verificationUrl(v.getVerificationUrl())
+                .attemptNumber(v.getAttemptNumber()).verifiedFullName(v.getVerifiedFullName())
+                .verifiedDateOfBirth(v.getVerifiedDateOfBirth()).documentType(v.getDocumentType())
+                .documentLastFour(v.getDocumentLastFour()).documentExpiryDate(v.getDocumentExpiryDate())
+                .rejectionReason(v.getRejectionReason())
+                .submittedAt(v.getSubmittedAt()).verifiedAt(v.getVerifiedAt()).expiresAt(v.getExpiresAt())
+                .walletOpen(walletRepository.findByUserId(v.getUserId()).isPresent()).build();
     }
 
-    private KycStatus normalizeStatus(String status) {
-        if (status == null || status.isBlank() || "ALL".equalsIgnoreCase(status)) {
-            return null;
-        }
-        KycStatus normalized;
-        try {
-            normalized = KycStatus.valueOf(status.trim().toUpperCase(Locale.ROOT));
-        } catch (IllegalArgumentException exception) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Trạng thái KYC không hợp lệ.");
-        }
-        if (KycStatus.NOT_SUBMITTED == normalized) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Trạng thái KYC không hợp lệ.");
-        }
-        return normalized;
+    private static String requiredText(JsonNode node, String name) {
+        String value = firstText(node, name);
+        if (value == null) throw new ApiException(HttpStatus.BAD_GATEWAY, "Didit response is missing " + name + ".");
+        return value;
     }
-
-    private KycResponseDTO mapToDTO(
-            UserVerification verification,
-            User user,
-            boolean adminView
-    ) {
-        return KycResponseDTO.builder()
-                .verificationId(verification.getVerificationId())
-                .userId(verification.getUserId())
-                .username(user == null ? null : user.getUsername())
-                .email(user == null ? null : user.getEmail())
-                .status(verification.getStatus().name())
-                .fullName(verification.getFullName())
-                .dateOfBirth(verification.getDateOfBirth())
-                .gender(verification.getGender())
-                .nationality(verification.getNationality())
-                .address(verification.getAddress())
-                .identityNumber(adminView
-                        ? verification.getIdentityNumber()
-                        : maskIdentityNumber(verification.getIdentityNumber()))
-                .identityFrontUrl(verification.getIdentityFrontUrl())
-                .identityBackUrl(verification.getIdentityBackUrl())
-                .selfieUrl(verification.getSelfieUrl())
-                .submittedAt(verification.getSubmittedAt())
-                .reviewedAt(verification.getReviewedAt())
-                .reviewedBy(verification.getReviewedBy())
-                .rejectionReason(verification.getRejectionReason())
-                .expiresAt(verification.getExpiresAt())
-                .build();
-    }
-
-    private String maskIdentityNumber(String value) {
-        if (value == null || value.length() <= 4) {
-            return value;
+    private static String firstText(JsonNode node, String... names) {
+        if (node == null) return null;
+        for (String name : names) {
+            JsonNode value = node.get(name);
+            if (value != null && !value.isNull() && !value.asText().isBlank()) return value.asText();
         }
-        return "*".repeat(value.length() - 4)
-                + value.substring(value.length() - 4);
+        return null;
+    }
+    private static Long longValue(JsonNode node, String name) {
+        JsonNode value = node.get(name); return value != null && value.canConvertToLong() ? value.asLong() : null;
+    }
+    private static BigDecimal decimalValue(JsonNode node, String name) {
+        if (node == null || node.get(name) == null || !node.get(name).isNumber()) return null;
+        return node.get(name).decimalValue();
+    }
+    private static LocalDate dateValue(JsonNode node, String... names) {
+        String value = firstText(node, names);
+        try { return value == null ? null : LocalDate.parse(value); }
+        catch (DateTimeParseException ignored) { return null; }
+    }
+    private static void requireEqual(String expected, String actual, String message) {
+        if (!Objects.equals(expected, actual)) throw new ApiException(HttpStatus.CONFLICT, message);
+    }
+    private static String truncate(String value, int max) {
+        return value == null ? null : value.substring(0, Math.min(max, value.length()));
     }
 }

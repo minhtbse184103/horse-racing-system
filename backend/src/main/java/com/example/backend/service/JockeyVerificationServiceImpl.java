@@ -47,21 +47,18 @@ public class JockeyVerificationServiceImpl implements JockeyVerificationService 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final JockeyProfileRepository jockeyProfileRepository;
-    private final KycService kycService;
 
     public JockeyVerificationServiceImpl(
             JockeyVerificationRepository verificationRepository,
             JockeyVerificationFileRepository verificationFileRepository,
             UserRepository userRepository,
             RoleRepository roleRepository,
-            JockeyProfileRepository jockeyProfileRepository,
-            KycService kycService) {
+            JockeyProfileRepository jockeyProfileRepository) {
         this.verificationRepository = verificationRepository;
         this.verificationFileRepository = verificationFileRepository;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.jockeyProfileRepository = jockeyProfileRepository;
-        this.kycService = kycService;
     }
 
     @Transactional
@@ -259,12 +256,6 @@ public class JockeyVerificationServiceImpl implements JockeyVerificationService 
         verification.setVerificationStatus(STATUS_APPROVED);
         verification.setReviewedAt(LocalDateTime.now());
         verification.setReviewedBy(admin.getUserID());
-        kycService.approveUserKycAndOpenWallet(
-                verification.getJockeyId(),
-                admin.getUserID(),
-                reviewRequest != null ? reviewRequest.getConfirmKycReviewed() : null,
-                reviewRequest != null ? reviewRequest.getKycExpiresAt() : null
-        );
         JockeyVerification saved = verificationRepository.save(verification);
 
         User user = userRepository.findById(verification.getJockeyId())
@@ -275,6 +266,7 @@ public class JockeyVerificationServiceImpl implements JockeyVerificationService 
                 .orElseThrow(() -> new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Vai trò JOCKEY chưa được khởi tạo."));
         
         user.setRole(jockeyRole);
+        user.setAccountType(ROLE_JOCKEY);
         userRepository.save(user);
         createOrUpdateApprovedProfile(saved);
 
@@ -337,6 +329,13 @@ public class JockeyVerificationServiceImpl implements JockeyVerificationService 
         String role = user.getRole().getRoleName();
         if (!ROLE_JOCKEY.equals(role) && !ROLE_SPECTATOR.equals(role)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Chỉ Jockey hoặc Spectator mới có thể thực hiện hành động này.");
+        }
+        String accountType = user.getAccountType() == null
+                ? role
+                : user.getAccountType().trim().toUpperCase(Locale.ROOT);
+        if (!ROLE_JOCKEY.equals(accountType)) {
+            throw new ApiException(HttpStatus.FORBIDDEN,
+                    "Only accounts registered as JOCKEY can submit a jockey application.");
         }
         return user;
     }

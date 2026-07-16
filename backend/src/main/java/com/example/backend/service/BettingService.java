@@ -470,7 +470,8 @@ public class BettingService {
     }
 
     private UserVerification validateBettingKyc(User user) {
-        UserVerification verification = userVerificationRepository.findByUserId(user.getUserID())
+        UserVerification verification = userVerificationRepository
+                .findFirstByUserIdAndStatusOrderByAttemptNumberDesc(user.getUserID(), KycStatus.VERIFIED)
                 .orElseThrow(() -> new ApiException(HttpStatus.FORBIDDEN, "KYC is required before betting."));
         if (KycStatus.VERIFIED != verification.getStatus()) {
             throw new ApiException(HttpStatus.FORBIDDEN, "KYC must be verified before betting.");
@@ -491,7 +492,9 @@ public class BettingService {
 
     private void validatePlayerRole(User user) {
         String roleName = user.getRole() != null ? user.getRole().getRoleName() : null;
-        if (!"SPECTATOR".equalsIgnoreCase(roleName)) {
+        String accountType = user.getAccountType() == null ? roleName : user.getAccountType();
+        if (!"SPECTATOR".equalsIgnoreCase(roleName)
+                || !"SPECTATOR".equalsIgnoreCase(accountType)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Only spectators can place bets.");
         }
     }

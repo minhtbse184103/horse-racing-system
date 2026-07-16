@@ -376,7 +376,8 @@ public class RefereeAssignmentService {
                 user.getEmail(),
                 user.getPhone(),
                 user.getStatus(),
-                user.getRole().getRoleName()
+                user.getRole().getRoleName(),
+                user.getAccountType()
         );
     }
 }

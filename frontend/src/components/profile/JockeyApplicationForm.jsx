@@ -1,7 +1,5 @@
 import { useMemo, useState } from 'react';
 import { uploadFile } from '../../services/uploadService.js';
-import KycInlineSection, { makeInitialKycValues, validateKycValues } from './KycInlineSection';
-import { needsKycSubmission } from '../../services/kycService';
 
 const inputClass = 'w-full rounded-lg border border-brown-700/15 bg-white px-4 py-3 text-sm font-bold text-brown-900 outline-none transition placeholder:text-slate-500/65 focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20 disabled:cursor-not-allowed disabled:bg-cream-200 disabled:text-slate-500';
 const licenceTypeOptions = [
@@ -28,7 +26,7 @@ function tomorrowInputValue() {
   return tomorrow.toISOString().slice(0, 10);
 }
 
-function makeInitialValues(user, application, kyc) {
+function makeInitialValues(user, application) {
   const files = Array.isArray(application?.files) ? application.files : [];
   const verificationLinks = String(application?.verificationLink || '')
     .split(/\r?\n/)
@@ -36,7 +34,6 @@ function makeInitialValues(user, application, kyc) {
     .filter(Boolean);
 
   return {
-    kyc: makeInitialKycValues(user, kyc),
     fullName: application?.jockeyFullName || application?.fullName || user?.fullName || user?.username || '',
     applicantEmail: user?.email || '',
     trainerName: application?.trainerName || '',
@@ -57,18 +54,16 @@ function makeInitialValues(user, application, kyc) {
   };
 }
 
-export default function JockeyApplicationForm({ user, application, kyc, mode = 'submit', formError = '', onSubmit, onCancel, isSubmitting }) {
-  const [values, setValues] = useState(() => makeInitialValues(user, application, kyc));
+export default function JockeyApplicationForm({ user, application, mode = 'submit', formError = '', onSubmit, onCancel, isSubmitting }) {
+  const [values, setValues] = useState(() => makeInitialValues(user, application));
   const [errors, setErrors] = useState({});
   const [isUploadingLicense, setIsUploadingLicense] = useState(false);
-  const shouldSubmitKyc = needsKycSubmission(kyc);
 
   const isReady = useMemo(() => {
     const weight = Number(values.weight);
     const expiryDate = parseLocalDate(values.expiryDate);
 
     return (
-      (!shouldSubmitKyc || Object.keys(validateKycValues(values.kyc, kyc)).length === 0) &&
       values.trainerName.trim() &&
       values.fullName.trim() &&
       values.trainerEmail.trim() &&
@@ -82,13 +77,11 @@ export default function JockeyApplicationForm({ user, application, kyc, mode = '
       values.licenseFiles.length > 0 &&
       values.licenseFiles.length <= 5
     );
-  }, [kyc, shouldSubmitKyc, values]);
+  }, [values]);
 
   function validate() {
     const nextErrors = {};
     const weight = Number(values.weight);
-    Object.assign(nextErrors, validateKycValues(values.kyc, kyc));
-
     if (!values.fullName.trim()) nextErrors.fullName = 'Full name is required.';
     if (!values.trainerName.trim()) nextErrors.trainerName = 'Trainer name is required.';
     if (!values.trainerEmail.trim()) nextErrors.trainerEmail = 'Trainer email is required.';
@@ -226,8 +219,7 @@ export default function JockeyApplicationForm({ user, application, kyc, mode = '
       files: values.licenseFiles.map((file) => ({
         fileUrl: file.url,
         fileType: file.fileType
-      })),
-      kyc: values.kyc
+      }))
     });
   }
 
@@ -257,15 +249,6 @@ export default function JockeyApplicationForm({ user, application, kyc, mode = '
         <form className="mt-6 grid gap-5" onSubmit={handleSubmit} noValidate>
           {formError && <div className="admin-alert error" role="alert">{formError}</div>}
           <div className="grid gap-4 md:grid-cols-2">
-            <KycInlineSection
-              kyc={kyc}
-              values={values.kyc}
-              setValues={setValues}
-              errors={errors}
-              setErrors={setErrors}
-              disabled={isSubmitting}
-            />
-
             <label className="grid gap-2">
               <span className="text-sm font-extrabold text-brown-900">Full Name</span>
               <input className={inputClass} name="fullName" value={values.fullName} onChange={handleChange} disabled={isSubmitting} />

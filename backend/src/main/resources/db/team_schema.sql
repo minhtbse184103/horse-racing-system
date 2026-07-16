@@ -14,6 +14,7 @@ CREATE TABLE `Roles` (
 CREATE TABLE `Users` (
   `userID` int PRIMARY KEY AUTO_INCREMENT,
   `roleID` int NOT NULL,
+  `accountType` varchar(50) NOT NULL DEFAULT 'SPECTATOR',
   `username` varchar(255) UNIQUE NOT NULL,
   `email` varchar(255) UNIQUE NOT NULL,
   `password` varchar(255) NOT NULL,
@@ -21,13 +22,13 @@ CREATE TABLE `Users` (
   `status` varchar(50) NOT NULL DEFAULT 'ACTIVE',
   `createdAt` datetime,
   `updatedAt` datetime,
-  CONSTRAINT `chk_users_status` CHECK (`status` IN ('ACTIVE', 'INACTIVE', 'BLOCKED'))
+  CONSTRAINT `chk_users_status` CHECK (`status` IN ('ACTIVE', 'INACTIVE', 'BLOCKED')),
+  CONSTRAINT `chk_users_account_type` CHECK (`accountType` IN ('ADMIN', 'OWNER', 'JOCKEY', 'REFEREE', 'SPECTATOR'))
 );
 
 CREATE TABLE `OwnerApplication` (
   `applicationID` int PRIMARY KEY AUTO_INCREMENT,
   `userID` int NOT NULL,
-  `kycVerificationID` int NOT NULL,
   `stableName` varchar(255) NOT NULL,
   `stableAddress` varchar(500) NOT NULL,
   `stableCertificateUrl` text NOT NULL,
@@ -301,47 +302,50 @@ CREATE TABLE `Registration` (
 
 CREATE TABLE `user_verifications` (
   `verification_id` int PRIMARY KEY AUTO_INCREMENT,
-  `user_id` int UNIQUE NOT NULL,
-  `status` varchar(30) NOT NULL DEFAULT 'NOT_SUBMITTED',
-  `full_name` varchar(150) NOT NULL,
-  `date_of_birth` date NOT NULL,
-  `gender` varchar(50) NOT NULL,
-  `nationality` varchar(255) NOT NULL,
-  `address` varchar(500) NOT NULL,
-  `identity_number` varchar(30) UNIQUE NOT NULL,
-  `identity_front_url` text NOT NULL,
-  `identity_back_url` text NOT NULL,
-  `selfie_url` text NOT NULL,
+  `user_id` int NOT NULL,
+  `provider` varchar(30) NOT NULL DEFAULT 'DIDIT',
+  `provider_session_id` varchar(100) UNIQUE NOT NULL,
+  `provider_session_number` bigint,
+  `workflow_id` varchar(100) NOT NULL,
+  `vendor_data` varchar(100) NOT NULL,
+  `verification_url` text,
+  `status` varchar(30) NOT NULL DEFAULT 'NOT_STARTED',
+  `id_verification_status` varchar(40),
+  `liveness_status` varchar(40),
+  `face_match_status` varchar(40),
+  `ip_analysis_status` varchar(40),
+  `verified_full_name` varchar(150),
+  `verified_date_of_birth` date,
+  `document_type` varchar(50),
+  `document_last_four` varchar(4),
+  `document_expiry_date` date,
+  `face_match_score` decimal(8,4),
+  `attempt_number` int NOT NULL,
   `submitted_at` datetime NOT NULL,
-  `reviewed_at` datetime,
-  `reviewed_by` int,
+  `verified_at` datetime,
   `rejection_reason` varchar(500),
   `expires_at` datetime,
   `created_at` datetime NOT NULL,
   `updated_at` datetime NOT NULL,
   CONSTRAINT `chk_user_verification_status`
     CHECK (`status` IN (
-      'NOT_SUBMITTED', 'PENDING', 'VERIFIED', 'REJECTED', 'EXPIRED'
+      'NOT_STARTED', 'IN_PROGRESS', 'AWAITING_USER', 'IN_REVIEW',
+      'VERIFIED', 'REJECTED', 'RESUBMITTED', 'EXPIRED', 'ABANDONED'
     )),
-  CONSTRAINT `chk_user_verification_review`
-    CHECK (
-      (`status` = 'PENDING'
-        AND `reviewed_at` IS NULL
-        AND `reviewed_by` IS NULL)
-      OR
-      (`status` IN ('VERIFIED', 'REJECTED', 'EXPIRED')
-        AND `reviewed_at` IS NOT NULL
-        AND `reviewed_by` IS NOT NULL)
-      OR
-      (`status` = 'NOT_SUBMITTED')
-    ),
-  CONSTRAINT `chk_user_verification_rejection`
-    CHECK (
-      (`status` = 'REJECTED'
-        AND `rejection_reason` IS NOT NULL)
-      OR
-      (`status` <> 'REJECTED')
-    )
+  UNIQUE KEY `uk_user_verification_attempt` (`user_id`, `attempt_number`),
+  KEY `idx_user_verifications_status` (`status`)
+);
+
+CREATE TABLE `didit_webhook_events` (
+  `webhook_event_id` bigint PRIMARY KEY AUTO_INCREMENT,
+  `event_id` varchar(120) UNIQUE NOT NULL,
+  `provider_session_id` varchar(100) NOT NULL,
+  `event_type` varchar(80),
+  `provider_status` varchar(50),
+  `received_at` datetime NOT NULL,
+  `processed_at` datetime,
+  `processing_error` varchar(500),
+  KEY `idx_didit_webhook_session` (`provider_session_id`)
 );
 
 CREATE TABLE `Wallet` (
@@ -813,8 +817,6 @@ ALTER TABLE `Users` ADD FOREIGN KEY (`roleID`) REFERENCES `Roles` (`roleID`);
 
 ALTER TABLE `OwnerApplication` ADD FOREIGN KEY (`userID`) REFERENCES `Users` (`userID`);
 
-ALTER TABLE `OwnerApplication` ADD FOREIGN KEY (`kycVerificationID`) REFERENCES `user_verifications` (`verification_id`);
-
 ALTER TABLE `OwnerApplication` ADD FOREIGN KEY (`reviewedBy`) REFERENCES `Users` (`userID`);
 
 ALTER TABLE `OwnerProfile` ADD FOREIGN KEY (`ownerID`) REFERENCES `Users` (`userID`);
@@ -852,8 +854,6 @@ ALTER TABLE `Registration` ADD FOREIGN KEY (`jockeyID`) REFERENCES `Users` (`use
 ALTER TABLE `Registration` ADD FOREIGN KEY (`reviewedBy`) REFERENCES `Users` (`userID`);
 
 ALTER TABLE `user_verifications` ADD FOREIGN KEY (`user_id`) REFERENCES `Users` (`userID`);
-
-ALTER TABLE `user_verifications` ADD FOREIGN KEY (`reviewed_by`) REFERENCES `Users` (`userID`);
 
 ALTER TABLE `Wallet` ADD FOREIGN KEY (`userID`) REFERENCES `Users` (`userID`);
 

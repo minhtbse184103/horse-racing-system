@@ -15,11 +15,11 @@ export async function login({ email, password }) {
   });
 }
 
-export async function signup({ username, email, phone, password }) {
+export async function signup({ username, email, phone, password, accountType }) {
   return httpRequest('/api/auth/signup', {
     method: 'POST',
     auth: false,
-    body: { username, email, phone, password },
+    body: { username, email, phone, password, accountType },
     fallbackError: 'Dang ky that bai. Vui long thu lai.'
   });
 }

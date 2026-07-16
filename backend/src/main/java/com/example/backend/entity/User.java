@@ -38,6 +38,9 @@ public class User {
     @Column(name = "status")
     private String status;
 
+    @Column(name = "accountType", nullable = false)
+    private String accountType;
+
     @Column(name = "createdAt")
     private LocalDateTime createdAt;
 
@@ -55,6 +58,9 @@ public class User {
         updatedAt = now;
         if (status == null) {
             status = "ACTIVE";
+        }
+        if (accountType == null && role != null) {
+            accountType = role.getRoleName();
         }
     }
 

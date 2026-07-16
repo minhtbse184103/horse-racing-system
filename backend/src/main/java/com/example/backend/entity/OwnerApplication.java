@@ -32,9 +32,6 @@ public class OwnerApplication {
     @Column(name = "userID", nullable = false)
     private Integer userId;
 
-    @Column(name = "kycVerificationID", nullable = false)
-    private Integer kycVerificationId;
-
     @Column(name = "stableName", nullable = false)
     private String stableName;
 
