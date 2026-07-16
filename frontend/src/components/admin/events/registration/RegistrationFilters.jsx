@@ -9,6 +9,9 @@ import { useLanguage } from '../../../../context/LanguageContext';
 const FILTER_CLASS = 'min-h-10 rounded-lg border border-brown-700/15 bg-white px-3 text-sm font-bold text-brown-900 outline-none focus:border-brown-500 focus:ring-4 focus:ring-gold-400/15';
 
 export default function RegistrationFilters({ filters, resultCount, onChange, onReset }) {
+  // FLOW: Admin Registration List / Load / Filter
+  // ORDER: 7D/8 - UI filter controls update local filter state without another backend request.
+  // Purpose: filter the already-loaded Tournament Registration list by search, paymentStatus, and approvalStatus without another API request.
   const { t } = useLanguage();
   const hasFilters = filters.search
     || filters.paymentStatus !== REGISTRATION_FILTER_ALL

@@ -95,6 +95,10 @@ export default function TournamentWizard({ initialTournament, onClose, onSave })
   }
 
   async function submitTournament() {
+    // FLOW: Admin Create Tournament Program
+    // ORDER: 1/8 - Wizard confirmation submits the completed draft to the workspace save orchestrator.
+    // FE path: TournamentWizard confirmation -> workspace onSave().
+    // Purpose: hand the completed wizard draft to the workspace create/edit orchestrator after all wizard-step validation passes.
     return onSave(draft);
   }
 

@@ -16,6 +16,10 @@ import java.util.Optional;
 public interface RaceResultSubmissionRepository
         extends JpaRepository<RaceResultSubmission, Integer> {
 
+    // FLOW: Provisional Race Result Submission
+    // ORDER: 7/10 - Repository-level active submission check prevents duplicate pending review work for one Race.
+    // Guards Unity ingestion so a Race cannot have multiple active
+    // submissions under Referee/Admin review at the same time.
     boolean existsByRaceIdAndStatusIn(
             Integer raceId,
             Collection<String> statuses
@@ -45,6 +49,10 @@ public interface RaceResultSubmissionRepository
               and submission.status = :submissionStatus
             order by submission.submittedAt asc
             """)
+    // FLOW: Referee Review Queue
+    // ORDER: 6/7 - Query joins RefereeAssignment so the queue is scoped to this referee's assigned Races.
+    // Repository filter: assigned Referee + ASSIGNED assignment status +
+    // SUBMITTED provisional result status.
     List<RaceResultSubmission> findPendingForReferee(
             @Param("refereeUserId") Integer refereeUserId,
             @Param("assignedStatus") String assignedStatus,
@@ -58,6 +66,9 @@ public interface RaceResultSubmissionRepository
             order by submission.refereeReviewedAt asc,
                      submission.submittedAt asc
             """)
+    // FLOW: Admin Result Review Queue
+    // ORDER: 5/6 - Query returns only submissions that have passed Referee confirm/flag review.
+    // Finds provisional submissions already reviewed by Referee and waiting for Admin decision.
     List<RaceResultSubmission> findAdminReviewQueue(
             @Param("statuses") List<String> statuses
     );

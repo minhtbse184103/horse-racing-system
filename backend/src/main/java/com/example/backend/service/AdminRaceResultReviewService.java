@@ -78,6 +78,9 @@ public class AdminRaceResultReviewService {
     public List<RaceResultSubmissionSummaryResponse> getReviewQueue(
             String adminEmail
     ) {
+        // FLOW: Admin Result Review Queue
+        // ORDER: 4/6 - Service verifies ACTIVE ADMIN and requests only Referee-reviewed submissions.
+        // Validation: ACTIVE ADMIN. Queue statuses: REFEREE_CONFIRMED and REFEREE_FLAGGED only.
         getAdmin(adminEmail);
 
         return submissionRepository.findAdminReviewQueue(ADMIN_REVIEW_STATUSES)
@@ -91,6 +94,9 @@ public class AdminRaceResultReviewService {
             Integer submissionId,
             String adminEmail
     ) {
+        // FLOW: Admin Result Review Detail
+        // ORDER: 4/8 - Service verifies ACTIVE ADMIN, loads submission, and delegates DTO assembly.
+        // Validation: ACTIVE ADMIN before exposing provisional result detail for final decision.
         getAdmin(adminEmail);
         RaceResultSubmission submission = getSubmission(submissionId);
         return toDetailResponse(submission);
@@ -102,6 +108,10 @@ public class AdminRaceResultReviewService {
             AdminRaceResultReviewRequest request,
             String adminEmail
     ) {
+        // FLOW: Admin Approve Result
+        // ORDER: 4/9 - Service validates admin, referee-reviewed submission, approvable Race, and duplicate official results.
+        // Validation: ACTIVE ADMIN, referee-reviewed submission, approvable Race, no duplicate official results.
+        // DB effect: creates RaceResult rows, PrizeDistribution rows, performance summary updates, and review action.
         User admin = getAdmin(adminEmail);
         RaceResultSubmission submission = getSubmissionForReview(submissionId);
         Race race = getRaceForUpdate(submission.getRaceId());
@@ -145,22 +155,33 @@ public class AdminRaceResultReviewService {
         }
 
         LocalDateTime now = LocalDateTime.now();
+        // FLOW: Admin Approve Result
+        // ORDER: 5/9 - Convert provisional submission entries into official RaceResult rows.
         List<RaceResult> officialResults = submissionEntries.stream()
                 .map(entry -> toOfficialResult(entry, admin.getUserID(), now))
                 .toList();
+        // FLOW: Admin Approve Result
+        // ORDER: 6/9 - Persist official RaceResult rows; this is when results become business records.
         List<RaceResult> savedResults =
                 raceResultRepository.saveAll(officialResults);
 
+        // FLOW: Admin Approve Result
+        // ORDER: 7/9 - Create pending PrizeDistribution rows from official results and prize rules.
         prizeSettlementService.settlePrizes(
                 race.getRaceId(),
                 savedResults,
                 entriesByRaceEntryId
         );
+        // FLOW: Admin Approve Result
+        // ORDER: 8/9 - Update Horse/Jockey performance summaries after official approval.
         performanceSummaryService.updateAfterRaceApproved(
                 savedResults,
                 entriesByRaceEntryId
         );
 
+        // FLOW: Admin Approve Result
+        // ORDER: 9/9 - Mark Race COMPLETED, mark submission ADMIN_APPROVED, and write review action history.
+        // Race lifecycle: official approval is the normal transition from PENDING_REVIEW to COMPLETED.
         race.setStatus(EventStatus.COMPLETED);
         raceRepository.save(race);
 
@@ -187,6 +208,10 @@ public class AdminRaceResultReviewService {
             AdminRaceResultReviewRequest request,
             String adminEmail
     ) {
+        // FLOW: Admin Reject Result
+        // ORDER: 5/8 - Service validates ACTIVE ADMIN, referee-reviewed submission, and required reason.
+        // Validation: ACTIVE ADMIN, referee-reviewed submission, required rejection reason.
+        // DB effect: keeps rejected submission/review history, clears engine run fields, and returns Race to READY.
         User admin = getAdmin(adminEmail);
         RaceResultSubmission submission = getSubmissionForReview(submissionId);
         validateAdminReviewStatus(submission);
@@ -201,6 +226,8 @@ public class AdminRaceResultReviewService {
 
         Race race = getRaceForUpdate(submission.getRaceId());
         LocalDateTime now = LocalDateTime.now();
+        // FLOW: Admin Reject Result
+        // ORDER: 6/8 - Mark submission ADMIN_REJECTED and preserve Admin reason in review history.
         submission.setStatus(RaceResultSubmissionStatus.ADMIN_REJECTED);
         submission.setAdminReviewedAt(now);
         submission.setAdminReviewedBy(admin.getUserID());
@@ -213,6 +240,8 @@ public class AdminRaceResultReviewService {
                 now
         );
 
+        // FLOW: Admin Reject Result
+        // ORDER: 7/8 - Reset Race to READY and clear stale Unity run/token fields for a new launch.
         // READY after Admin rejection is a manual recovery state. It is not
         // controlled by raceStartTime; Admin must launch Unity again to
         // generate a new engine token and a new provisional submission.
@@ -233,6 +262,8 @@ public class AdminRaceResultReviewService {
             Integer adminId,
             LocalDateTime recordedAt
     ) {
+        // FLOW: Admin Approve Result
+        // ORDER: 5A/9 - Mapper copies provisional finish position/time into a new official RaceResult entity.
         RaceResult result = new RaceResult();
         result.setRaceEntryId(entry.getRaceEntryId());
         result.setFinishPosition(entry.getFinishPosition());
@@ -262,6 +293,9 @@ public class AdminRaceResultReviewService {
     private void validateAdminReviewStatus(
             RaceResultSubmission submission
     ) {
+        // FLOW: Admin Approve Result
+        // ORDER: 4A/9 - Shared approval guard allows only REFEREE_CONFIRMED or REFEREE_FLAGGED submissions.
+        // Validation shared by approve/reject: only REFEREE_CONFIRMED or REFEREE_FLAGGED can be decided by Admin.
         if (!ADMIN_REVIEW_STATUSES.contains(submission.getStatus())) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
@@ -271,6 +305,9 @@ public class AdminRaceResultReviewService {
     }
 
     private void validateRaceCanBeApproved(Race race) {
+        // FLOW: Admin Approve Result
+        // ORDER: 4B/9 - Race guard allows approval only while the Race is PENDING_REVIEW.
+        // Validation: approval is allowed only while Race is PENDING_REVIEW and not already cancelled/completed.
         if (EventStatus.CANCELLED.equals(race.getStatus())) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
@@ -381,6 +418,9 @@ public class AdminRaceResultReviewService {
     private RaceResultSubmissionDetailResponse toDetailResponse(
             RaceResultSubmission submission
     ) {
+        // FLOW: Admin Result Review Detail
+        // ORDER: 5/8 - Service assembles Race metadata, enriched finish entries, and review history.
+        // DB read: Race metadata, enriched finish entries, and Referee/Admin review history.
         Race race = getRace(submission.getRaceId());
         List<RaceResultSubmissionEntryResponse> entries = entryRepository
                 .findEntryDetailsBySubmissionId(submission.getSubmissionId())

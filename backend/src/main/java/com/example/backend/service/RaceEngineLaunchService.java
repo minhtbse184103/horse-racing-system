@@ -70,6 +70,10 @@ public class RaceEngineLaunchService {
 
     @Transactional
     public RaceLaunchResponse launchRace(Integer raceId, String adminEmail) {
+        // FLOW: Admin Launch Unity Race
+        // ORDER: 5/9 - Service locks Race, validates launch prerequisites, generates token, and stores IN_PROGRESS state.
+        // Validation: Admin must be ACTIVE ADMIN; Race must be READY; no active result submission; Referee assigned; at least MIN_RUNNERS_TO_LAUNCH assigned entries.
+        // DB effect: sets Race IN_PROGRESS, writes runStartedAt/runTriggeredBy, stores one per-launch engine token, then starts Unity after commit.
         User admin = getAdmin(adminEmail);
 
         Race race = raceRepository.findByIdForUpdate(raceId)
@@ -82,6 +86,8 @@ public class RaceEngineLaunchService {
 
         LocalDateTime now = LocalDateTime.now();
         String raceEngineToken = raceEngineTokenService.generateToken();
+        // FLOW: Admin Launch Unity Race
+        // ORDER: 7/9 - Race stores IN_PROGRESS state, admin trigger audit, run timestamp, and per-launch engine token before Unity starts.
         race.setStatus(EventStatus.IN_PROGRESS);
         race.setRunTriggeredBy(admin.getUserID());
         race.setRunStartedAt(now);
@@ -100,6 +106,9 @@ public class RaceEngineLaunchService {
     }
 
     private void launchAfterCommit(Integer raceId, String raceEngineToken) {
+        // FLOW: Admin Launch Unity Race
+        // ORDER: 8/9 - After-commit hook starts Unity only after Race IN_PROGRESS/token fields are safely committed.
+        // Purpose: starts the Unity executable only after the Race IN_PROGRESS/token update commits successfully.
         if (!TransactionSynchronizationManager.isSynchronizationActive()) {
             raceEngineProcessLauncher.launch(raceId, raceEngineToken);
             log.info("raceId={} marked as launched and Unity executable process requested.", raceId);
@@ -121,6 +130,11 @@ public class RaceEngineLaunchService {
             FailRaceRunRequest request,
             String adminEmail
     ) {
+        // FLOW: Admin Fail Running Race
+        // ORDER: 6/7 - Service validates admin/reason, locks Race, cancels the failed run, and clears engine token data.
+        // Validation: ACTIVE ADMIN, nonblank reason, Race is locked, launched,
+        // IN_PROGRESS, and has no recorded official RaceResult rows.
+        // DB effect: Race becomes CANCELLED and engine token fields are cleared.
         User admin = getAdmin(adminEmail);
         String reason = request == null ? null : request.getReason();
 
@@ -162,6 +176,10 @@ public class RaceEngineLaunchService {
     }
 
     private void validateRaceRunCanBeFailed(Race race) {
+        // FLOW: Admin Fail Running Race
+        // ORDER: 7/7 - Guard blocks failure after completion/cancellation or after official RaceResult data exists.
+        // Protects result integrity: only a launched IN_PROGRESS Race can be
+        // failed, and not after official RaceResult data already exists.
         if (race.getRunStartedAt() == null) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
@@ -209,6 +227,9 @@ public class RaceEngineLaunchService {
     }
 
     private void validateRaceCanBeLaunched(Race race) {
+        // FLOW: Admin Launch Unity Race
+        // ORDER: 5A/9 - Validation allows launch only for READY Race with Referee, no active submission, and enough ASSIGNED entries.
+        // Validation: launch is allowed only for READY Race with Referee assignment, no active review submission, and enough ASSIGNED RaceEntries.
         if (EventStatus.CANCELLED.equals(race.getStatus())
                 || EventStatus.COMPLETED.equals(race.getStatus())) {
             throw new ApiException(

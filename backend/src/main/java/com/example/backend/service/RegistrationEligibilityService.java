@@ -97,6 +97,9 @@ public class RegistrationEligibilityService {
             Registration registration,
             Tournament tournament
     ) {
+        // FLOW: Admin Approve Registration
+        // ORDER: 7A/8 - Eligibility service applies business-rule checks before AdminRegistrationService saves APPROVED.
+        // Validation: Tournament review status, PAID payment, original submission window, active OWNER/Horse/Jockey, Tournament conditions, duplicate approved Horse, and approved capacity.
         if (!EventStatus.OPEN_FOR_REGISTRATION.equals(tournament.getStatus())
                 && !EventStatus.REGISTRATION_CLOSED.equals(
                 tournament.getStatus())&& !EventStatus.IN_PROGRESS.equals(tournament.getStatus())) {

@@ -27,6 +27,9 @@ public class VenueImageStorageService {
     }
 
     public String store(Integer tournamentId, MultipartFile file) {
+        // FLOW: Admin Tournament Images
+        // ORDER: 6V/7 - Storage service validates and uploads venue image to Cloudinary.
+        // Storage: validates the venue image and uploads it to Cloudinary using a stable tournament public_id.
         validate(file);
 
         try {
@@ -59,6 +62,9 @@ public class VenueImageStorageService {
     }
 
     public void delete(Integer tournamentId) {
+        // FLOW: Admin Tournament Images
+        // ORDER: 6V/7 - Storage service deletes the venue image object from Cloudinary.
+        // Storage: removes the Cloudinary venue image object for this Tournament.
         try {
             cloudinary.uploader().destroy(
                     FOLDER + "/tournament-" + tournamentId,

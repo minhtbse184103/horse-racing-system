@@ -62,6 +62,10 @@ public class RaceEntryService {
 
     @Transactional(readOnly = true)
     public List<RaceEntryCandidateResponse> getAssignmentQueue() {
+        // FLOW: Admin RaceEntry Assignment Queue Load
+        // ORDER: 6GLOBAL/7 - Service requests APPROVED + PAID candidates excluding active ASSIGNED RaceEntry rows.
+        // Validation: candidate Registration must be APPROVED and PAID, and must not have an active ASSIGNED RaceEntry.
+        // DB effect: read-only Registration query mapped to RaceEntryCandidateResponse.
         List<Registration> registrations = registrationRepository
                 .findApprovedAndUnassigned(
                         RegistrationStatus.APPROVED,
@@ -75,6 +79,10 @@ public class RaceEntryService {
     @Transactional(readOnly = true)
     public List<RaceEntryCandidateResponse>
     getAssignmentQueueByTournament(Integer tournamentId) {
+        // FLOW: Admin RaceEntry Assignment Queue Load
+        // ORDER: 6TOURNAMENT/7 - Service validates Tournament existence, then requests scoped eligible candidates.
+        // Validation: Tournament must exist; candidate Registration must be APPROVED, PAID, and not actively assigned.
+        // DB effect: read-only Tournament existence check plus scoped Registration query.
 
         if (!tournamentRepository.existsById(tournamentId)) {
             throw new ApiException(
@@ -98,6 +106,10 @@ public class RaceEntryService {
     public List<RaceEntryResponse> getEntriesByRace(
             Integer raceId
     ) {
+        // FLOW: Admin Assigned RaceEntry Load
+        // ORDER: 6A/6 - Service validates Race existence, then loads active ASSIGNED RaceEntry rows ordered by stall.
+        // Validation: Race must exist; only active ASSIGNED RaceEntry rows are returned.
+        // DB effect: read-only Race existence check plus RaceEntry lookup ordered by startingStall.
         if (!raceRepository.existsById(raceId)) {
             throw new ApiException(
                     HttpStatus.NOT_FOUND,
@@ -118,6 +130,10 @@ public class RaceEntryService {
             CreateRaceEntryRequest request,
             String adminEmail
     ) {
+        // FLOW: Admin Assign RaceEntry
+        // ORDER: 5/8 - Service locks Race, validates Admin/Race/Registration/capacity/duplicate rules, then saves ASSIGNED row.
+        // Validation: Admin must be ACTIVE ADMIN; Race must accept entries; Registration must be APPROVED + PAID; Race/Registration must share Tournament; capacity and duplicate active assignment are blocked.
+        // DB effect: creates one ASSIGNED RaceEntry row with random startingStall plus assignedAt/assignedBy audit fields.
         /*
          * Locking the Race serializes all stall draws for this Race.
          * Two Admin requests cannot read the same available stall list
@@ -191,6 +207,10 @@ public class RaceEntryService {
             CancelRaceEntryRequest request,
             String authenticatedEmail
     ) {
+        // FLOW: Admin Cancel RaceEntry
+        // ORDER: 6/6 - Service locks RaceEntry, validates ASSIGNED state/admin/race timing/reason, then writes CANCELLED audit fields.
+        // Validation: RaceEntry must exist, status must be ASSIGNED, Race must not have started, reason must be non-blank, and user must be ACTIVE ADMIN.
+        // DB effect: keeps the RaceEntry history row, changes status to CANCELLED, and writes cancelledAt/cancelledBy/cancellationReason.
         RaceEntry entry = raceEntryRepository
                 .findByIdForUpdate(raceEntryId)
                 .orElseThrow(() -> new ApiException(
@@ -222,11 +242,11 @@ public class RaceEntryService {
         }
 
         if (!now.isBefore(race.getRaceStartTime())) {
-            throw new ApiException(
-                    HttpStatus.CONFLICT,
-                    "Race entry cannot be cancelled after the race starts."
-            );
-        }
+        throw new ApiException(
+                HttpStatus.CONFLICT,
+                "Race entry cannot be cancelled after the race starts."
+        );
+    }
 
         String cancellationReason = request == null
                 || request.getCancellationReason() == null
@@ -259,6 +279,10 @@ public class RaceEntryService {
         }
     }
     private int drawAvailableStartingStall(Race race) {
+        // FLOW: Admin Assign RaceEntry
+        // ORDER: 7/8 - Helper reads occupied ASSIGNED stalls and randomly selects one available stall.
+        // Purpose: backend-owned random stall draw; frontend never sends startingStall.
+        // DB read: only active ASSIGNED RaceEntry stalls are occupied, so cancelled history does not block reuse.
         List<Integer> occupiedStalls =
                 raceEntryRepository.findOccupiedStartingStalls(
                         race.getRaceId(),
@@ -286,6 +310,9 @@ public class RaceEntryService {
     }
 
     private void validateRaceCanReceiveEntry(Race race) {
+        // FLOW: Admin Assign RaceEntry
+        // ORDER: 5A/8 - Validation helper blocks assignment after Race starts or when Race status cannot receive entries.
+        // Validation: Race status must allow assignment, Race must not have started, and maxRunners must be configured.
         if (!ASSIGNABLE_RACE_STATUSES.contains(race.getStatus())) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
@@ -313,6 +340,9 @@ public class RaceEntryService {
     private void validateRegistration(
             Registration registration
     ) {
+        // FLOW: Admin Assign RaceEntry
+        // ORDER: 5B/8 - Validation helper ensures Registration is APPROVED and PAID before it can become a RaceEntry.
+        // Validation: Registration must be APPROVED by Admin and PAID before it can become a RaceEntry.
         if (!RegistrationStatus.APPROVED.equals(
                 registration.getApprovalStatus())) {
             throw new ApiException(
@@ -334,6 +364,9 @@ public class RaceEntryService {
             Race race,
             Registration registration
     ) {
+        // FLOW: Admin Assign RaceEntry
+        // ORDER: 5C/8 - Validation helper guarantees Race and Registration belong to the same Tournament.
+        // Validation: prevents assigning a Registration from one Tournament into another Tournament's Race.
         if (!race.getTournamentId().equals(
                 registration.getTournamentId())) {
             throw new ApiException(

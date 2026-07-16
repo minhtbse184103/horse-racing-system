@@ -57,6 +57,11 @@ public class RefereeRaceResultReviewService {
     public List<RaceResultSubmissionSummaryResponse> getPendingSubmissions(
             String refereeEmail
     ) {
+        // FLOW: Referee Review Queue
+        // ORDER: 5/7 - Service verifies ACTIVE REFEREE and requests only assigned SUBMITTED submissions.
+        // Validation: authenticated user must be ACTIVE REFEREE.
+        // DB read: RaceResultSubmission joined to RefereeAssignment so each
+        // referee sees only their assigned SUBMITTED race results.
         User referee = getReferee(refereeEmail);
 
         return submissionRepository
@@ -75,6 +80,9 @@ public class RefereeRaceResultReviewService {
             Integer submissionId,
             String refereeEmail
     ) {
+        // FLOW: Referee Review Detail
+        // ORDER: 4/8 - Service validates ACTIVE REFEREE and assignment before exposing provisional result detail.
+        // Validation: ACTIVE REFEREE and assigned Race before exposing provisional result detail.
         User referee = getReferee(refereeEmail);
         RaceResultSubmission submission = getSubmission(submissionId);
         validateAssignedReferee(submission.getRaceId(), referee.getUserID());
@@ -87,6 +95,9 @@ public class RefereeRaceResultReviewService {
             RefereeRaceResultReviewRequest request,
             String refereeEmail
     ) {
+        // FLOW: Referee Confirm Result
+        // ORDER: 4/6 - Confirm service chooses REFEREE_CONFIRMED and CONFIRM action for the shared review transition.
+        // DB effect: SUBMITTED -> REFEREE_CONFIRMED and writes a CONFIRM review action.
         return reviewSubmission(
                 submissionId,
                 request,
@@ -103,6 +114,9 @@ public class RefereeRaceResultReviewService {
             RefereeRaceResultReviewRequest request,
             String refereeEmail
     ) {
+        // FLOW: Referee Flag Result
+        // ORDER: 5/6 - Flag service chooses REFEREE_FLAGGED and FLAG action, with reasonRequired enabled.
+        // DB effect: SUBMITTED -> REFEREE_FLAGGED and writes a FLAG review action with required reason.
         return reviewSubmission(
                 submissionId,
                 request,
@@ -121,6 +135,10 @@ public class RefereeRaceResultReviewService {
             String action,
             boolean reasonRequired
     ) {
+        // FLOW: Referee Result Review Decision
+        // ORDER: 5/6 - Shared decision path locks submission, validates assignment/SUBMITTED state, and writes audit action.
+        // Validation: ACTIVE REFEREE, assigned Race, locked SUBMITTED submission, required reason when flagging.
+        // DB effect: updates submission referee audit fields and inserts RaceResultReviewAction history.
         User referee = getReferee(refereeEmail);
         RaceResultSubmission submission = submissionRepository
                 .findByIdForUpdate(submissionId)
@@ -155,6 +173,8 @@ public class RefereeRaceResultReviewService {
         reviewAction.setCreatedAt(now);
         reviewActionRepository.save(reviewAction);
 
+        // FLOW: Referee Confirm Result / Referee Flag Result
+        // ORDER: 6/6 - Saving the submission makes it leave Referee pending queue and enter Admin review queue.
         RaceResultSubmission saved = submissionRepository.save(submission);
         return toDetailResponse(saved);
     }
@@ -250,6 +270,9 @@ public class RefereeRaceResultReviewService {
     private RaceResultSubmissionDetailResponse toDetailResponse(
             RaceResultSubmission submission
     ) {
+        // FLOW: Referee Review Detail
+        // ORDER: 5/8 - Detail mapper loads Race metadata, enriched finish rows, and chronological review actions.
+        // DB read: Race metadata, enriched finish entries, and review action history for display.
         Race race = getRace(submission.getRaceId());
         List<RaceResultSubmissionEntryResponse> entries = entryRepository
                 .findEntryDetailsBySubmissionId(submission.getSubmissionId())

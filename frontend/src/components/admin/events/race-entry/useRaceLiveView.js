@@ -37,6 +37,10 @@ export default function useRaceLiveView(raceId, enabled) {
       reconnectDelay: 4000,
       onConnect: () => {
         setConnectionState('connected');
+        // FLOW: Admin Live Race Data
+        // ORDER: 8/10 - Hook subscribes only to /topic/races/{raceId}, keeping each live Race stream isolated.
+        // FE listens to the race-specific topic that RaceLiveBroadcastService
+        // writes to; TICK drives the live board, RESULT moves the row to review.
         client.subscribe(`/topic/races/${raceId}`, (message) => {
           let envelope;
           try {

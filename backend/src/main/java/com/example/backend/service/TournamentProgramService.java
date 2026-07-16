@@ -65,6 +65,10 @@ public class TournamentProgramService {
             CreateTournamentProgramRequest request,
             String adminEmail
     ) {
+        // FLOW: Admin Create Tournament Program
+        // ORDER: 7/8 - Transactional service validates and writes Tournament, Conditions, Races, and RacePrizes atomically.
+        // Validation: ACTIVE ADMIN, Tournament date window, unique/valid Conditions, at least one Race, Race time/range/overlap, RacePrize rules.
+        // DB effect: creates Tournament, TournamentCondition, Race, and RacePrize rows in one transaction; rollback keeps DB clean if any Race fails.
         CreateTournamentRequest tournamentRequest = request.getTournament();
         validateTournamentDates(
                 tournamentRequest.getRegistrationOpenAt(),
@@ -108,6 +112,9 @@ public class TournamentProgramService {
             List<CreateTournamentProgramRaceRequest> requests,
             CreateTournamentRequest tournament
     ) {
+        // FLOW: Admin Create Tournament Program
+        // ORDER: 7A/8 - Service validates the submitted Race list before any Race rows are saved.
+        // Validation: Race list cannot be empty; Race names and raceOrder values are unique inside the program; same-track schedules cannot overlap.
         if (requests == null || requests.isEmpty()) {
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
@@ -197,6 +204,9 @@ public class TournamentProgramService {
             Integer tournamentId,
             List<ProgramRaceDraft> raceDrafts
     ) {
+        // FLOW: Admin Create Tournament Program
+        // ORDER: 7B/8 - Service persists each validated initial Race and its RacePrize rows.
+        // DB effect: persists each initial Race as OPEN_FOR_REGISTRATION, then persists its RacePrize rows under the saved Race.
         for (ProgramRaceDraft draft : raceDrafts) {
             CreateTournamentProgramRaceRequest request = draft.request();
 
@@ -265,6 +275,9 @@ public class TournamentProgramService {
             LocalDateTime endTime,
             CreateTournamentRequest tournament
     ) {
+        // FLOW: Admin Create Tournament Program
+        // ORDER: 7A.1/8 - Service validates each Race schedule against now and the Tournament date range.
+        // Validation: Race start must be before end, after now, and fully inside the Tournament date range.
         if (!startTime.isBefore(endTime)) {
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
@@ -294,6 +307,9 @@ public class TournamentProgramService {
     }
 
     private void validatePrizes(List<RacePrizeRequest> prizes) {
+        // FLOW: Admin Create Tournament Program
+        // ORDER: 7A.2/8 - Service validates RacePrize rules for each Race before saving the program.
+        // Validation: each Race needs at least one prize, unique rank positions, and Owner/Jockey percentages totaling 100.
         if (prizes == null || prizes.isEmpty()) {
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,

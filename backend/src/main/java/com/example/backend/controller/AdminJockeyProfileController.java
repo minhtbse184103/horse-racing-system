@@ -21,6 +21,10 @@ public class AdminJockeyProfileController {
 
     @GetMapping("/{jockeyId}/profile")
     public JockeyProfileResponse getAdminJockeyProfile(@PathVariable Integer jockeyId) {
+        // FLOW: Admin Registration Entity Detail Popup
+        // ORDER: 4JOCKEY/6 - Controller receives the Jockey detail lookup and delegates to JockeyService.
+        // API: GET /api/admin/jockeys/{jockeyId}/profile.
+        // Purpose: returns Jockey profile/licence details when Admin clicks a Jockey inside Registration review.
         return jockeyService.getAdminProfile(jockeyId);
     }
 }

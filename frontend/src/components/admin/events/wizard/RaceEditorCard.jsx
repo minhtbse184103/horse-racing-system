@@ -62,6 +62,9 @@ export default function RaceEditorCard({ race, index, draft, errors, onChange, o
           <input type="number" min="3" max="6" className={FIELD_CLASS} value={race.maxRunners} onChange={(event) => onChange({ maxRunners: Number(event.target.value) })} />
         </WizardField>
         <div className="md:col-span-2 xl:col-span-8">
+          {/* FLOW: Admin Tournament Images
+             ORDER: 1R/7 - Race editor stores track image draft state before post-save upload.
+             Purpose: Race track images reuse the same image picker, then sync through Race track-image endpoints after Race save. */}
           <VenueImageField
             file={race.trackImageFile}
             existingSrc={race.trackImageSrc}

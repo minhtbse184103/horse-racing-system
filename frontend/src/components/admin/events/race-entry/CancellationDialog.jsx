@@ -5,12 +5,19 @@ import { modalBackdrop, modalPanel } from '../../ui/motion';
 import { useLanguage } from '../../../../context/LanguageContext';
 
 export default function CancellationDialog({ entry, onClose, onConfirm }) {
+  // FLOW: Admin Cancel RaceEntry
+  // ORDER: 2A/6 - Dialog collects the required cancellation reason for the selected ASSIGNED RaceEntry.
+  // FE path: OfficialEntries cancel action -> CancellationDialog -> useRaceEntryAssignment.cancelEntry().
+  // Purpose: collect the required cancellation reason before releasing the active RaceEntry assignment.
   const { t } = useLanguage();
   const [reason, setReason] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   async function submit(event) {
+    // FLOW: Admin Cancel RaceEntry
+    // ORDER: 2B/6 - Dialog validates the trimmed reason, then calls the hook confirm/cancel action.
+    // FE validation: cancellationReason must be non-empty before the backend marks RaceEntry as CANCELLED.
     event.preventDefault();
     const trimmedReason = reason.trim();
     if (!trimmedReason) {

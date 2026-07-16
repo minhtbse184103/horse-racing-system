@@ -31,6 +31,10 @@ public class RefereeRaceResultReviewController {
     public List<RaceResultSubmissionSummaryResponse> getPendingSubmissions(
             Authentication authentication
     ) {
+        // FLOW: Referee Review Queue
+        // ORDER: 4/7 - Controller uses authenticated referee identity and delegates queue filtering to service.
+        // API: GET /api/referee/race-result-submissions/pending.
+        // Purpose: list SUBMITTED provisional results assigned to this Referee.
         return reviewService.getPendingSubmissions(authentication.getName());
     }
 
@@ -39,6 +43,9 @@ public class RefereeRaceResultReviewController {
             @PathVariable Integer submissionId,
             Authentication authentication
     ) {
+        // FLOW: Referee Review Detail
+        // ORDER: 3/8 - Controller receives detail request and keeps authenticated Referee identity attached.
+        // Detail endpoint returns provisional entries and review history for assigned Referee.
         return reviewService.getSubmissionDetail(
                 submissionId,
                 authentication.getName()
@@ -52,6 +59,9 @@ public class RefereeRaceResultReviewController {
             RefereeRaceResultReviewRequest request,
             Authentication authentication
     ) {
+        // FLOW: Referee Confirm Result
+        // ORDER: 3/6 - Controller accepts confirm request and passes authenticated Referee to service.
+        // Confirm endpoint records Referee acceptance without creating official RaceResult yet.
         return reviewService.confirmSubmission(
                 submissionId,
                 request,
@@ -65,6 +75,9 @@ public class RefereeRaceResultReviewController {
             @Valid @RequestBody RefereeRaceResultReviewRequest request,
             Authentication authentication
     ) {
+        // FLOW: Referee Flag Result
+        // ORDER: 4/6 - Controller accepts flag request and passes authenticated Referee to service.
+        // Flag endpoint requires reason and records Referee concern before Admin review.
         return reviewService.flagSubmission(
                 submissionId,
                 request,

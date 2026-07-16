@@ -6,6 +6,10 @@ import { useLanguage } from '../../../../context/LanguageContext';
 
 export default function RaceLiveView({ raceId, active, onResult }) {
   const { t } = useLanguage();
+  // FLOW: Admin Live Race Data
+  // ORDER: 9/10 - Expanded Race row owns WebSocket hook state and passes tick/result data to the reusable display.
+  // FE path: expanded IN_PROGRESS Race -> RaceLiveView -> useRaceLiveView
+  // subscribes to backend STOMP updates and renders the reusable live race panel.
   const { connectionState, error, lastTick, result } = useRaceLiveView(raceId, active);
 
   // result.status is the real backend status (RaceResultIngestResponse),

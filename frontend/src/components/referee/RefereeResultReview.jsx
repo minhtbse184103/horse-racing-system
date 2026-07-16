@@ -163,6 +163,8 @@ function ReviewDialog({
 function SubmissionDetail({ submission, onBack, onConfirm, onFlag, isLoading, error, onRetry }) {
   const { t } = useLanguage();
 
+  // FLOW: Referee Review Detail
+  // Displays the provisional finish order and review history loaded for the assigned Referee.
   if (isLoading) {
     return (
       <section className="rounded-lg border border-white/80 bg-cream-100/90 p-10 text-center shadow-[0_20px_52px_rgba(78,44,25,0.12)]">
@@ -353,6 +355,10 @@ export default function RefereeResultReview() {
   }, [query, submissions]);
 
   async function loadPendingSubmissions() {
+    // FLOW: Referee Review Queue
+    // ORDER: 2/7 - Page loader fetches pending submissions and stores adapted list rows.
+    // FE path: Referee Dashboard -> Result Review -> GET /pending.
+    // Purpose: show only SUBMITTED provisional results assigned to this referee.
     setIsLoadingList(true);
     setListError('');
 
@@ -367,6 +373,9 @@ export default function RefereeResultReview() {
   }
 
   async function loadDetail(submissionId) {
+    // FLOW: Referee Review Detail
+    // ORDER: 1/8 - Queue Review action selects a submission and starts detail loading.
+    // FE path: Result Review queue -> Review button -> GET submission detail.
     setSelectedId(submissionId);
     setDetail(null);
     setDetailError('');
@@ -426,6 +435,9 @@ export default function RefereeResultReview() {
 
     const reason = reviewComment.trim();
     if (dialogMode === 'flag' && !reason) {
+      // FLOW: Referee Flag Result
+      // ORDER: 1/6 - Frontend blocks flag submission until Referee enters a non-empty reason.
+      // FE validation: flagging a provisional result requires a non-empty reason.
       setReviewError(t('refereeResultReviewFlagRequired'));
       return;
     }
@@ -435,9 +447,15 @@ export default function RefereeResultReview() {
 
     try {
       if (dialogMode === 'flag') {
+        // FLOW: Referee Flag Result
+        // ORDER: 2/6 - Referee flag dialog submits required reason for the selected provisional result.
+        // FE action: required reason -> PUT /flag -> submission leaves Referee pending queue.
         await flagRaceResultSubmission(detail.submissionId, reason);
         returnToList(t('refereeResultReviewFlagged'));
       } else {
+        // FLOW: Referee Confirm Result
+        // ORDER: 1/6 - Referee confirm dialog submits optional comment for the selected provisional result.
+        // FE action: optional comment -> PUT /confirm -> submission leaves Referee pending queue.
         await confirmRaceResultSubmission(detail.submissionId, reason);
         returnToList(t('refereeResultReviewConfirmed'));
       }
@@ -577,6 +595,8 @@ export default function RefereeResultReview() {
       </section>
 
       <SubmissionDetailModal open={Boolean(selectedId)} onClose={closeDetailModal}>
+        {/* FLOW: Referee Review Detail */}
+        {/* ORDER: 8/8 - Modal renders provisional entries and review history after detail DTO is adapted. */}
         <SubmissionDetail
           submission={detail}
           onBack={closeDetailModal}

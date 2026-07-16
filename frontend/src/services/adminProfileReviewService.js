@@ -58,6 +58,10 @@ export async function getJockeyProfilesUnderReview() {
 }
 
 export async function getAdminJockeyProfile(jockeyId) {
+  // FLOW: Admin Registration Entity Detail Popup
+  // ORDER: 3JOCKEY/6 - Frontend service requests enriched Jockey profile/licence data for the clicked Registration row.
+  // API: GET /api/admin/jockeys/{jockeyId}/profile.
+  // Purpose: enrich a Registration row with Jockey profile/licence data shown in the detail modal.
   const profile = await httpRequest(`/api/admin/jockeys/${jockeyId}/profile`, {
     fallbackError: 'Khong the tai chi tiet Jockey.'
   });

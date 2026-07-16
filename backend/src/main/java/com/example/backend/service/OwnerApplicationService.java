@@ -205,6 +205,10 @@ public class OwnerApplicationService {
 
     @Transactional(readOnly = true)
     public OwnerProfileResponse getAdminOwnerProfile(Integer ownerId) {
+        // FLOW: Admin Registration Entity Detail Popup
+        // ORDER: 5OWNER/6 - Service validates OWNER identity/profile evidence and maps the read-only owner detail response.
+        // Validation: clicked user must exist and have OWNER role; profile/application evidence must be available.
+        // DB effect: read-only User + OwnerProfile/OwnerApplication lookup mapped to OwnerProfileResponse.
         User owner = userRepository.findById(ownerId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Owner not found."));
 

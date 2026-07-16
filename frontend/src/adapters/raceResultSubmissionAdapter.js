@@ -12,6 +12,10 @@ function normalizeStatus(value) {
 }
 
 export function adaptRaceResultSubmissionSummary(raw = {}) {
+  // FLOW: Referee Review Queue / Admin Result Review Queue
+  // ORDER: 7/7, 6/6 - Adapter normalizes backend summary DTO into the queue row view model.
+  // Converts backend RaceResultSubmission summary DTO into the list view model
+  // shared by Referee/Admin result review screens.
   const submissionId = firstDefined(raw.submissionId, raw.id);
   const raceId = firstDefined(raw.raceId, raw.raceID);
   const tournamentId = firstDefined(raw.tournamentId, raw.tournamentID);
@@ -35,6 +39,9 @@ export function adaptRaceResultSubmissionSummary(raw = {}) {
 }
 
 export function adaptRaceResultSubmissionEntry(raw = {}) {
+  // FLOW: Referee Review Detail / Admin Result Review Detail
+  // ORDER: 7/8 - Adapter maps each provisional entry projection into the detail table row model.
+  // Converts one provisional result row into the table model used by review screens.
   const raceEntryId = firstDefined(raw.raceEntryId, raw.raceEntryID);
 
   return {
@@ -51,6 +58,9 @@ export function adaptRaceResultSubmissionEntry(raw = {}) {
 }
 
 export function adaptRaceResultReviewAction(raw = {}) {
+  // FLOW: Referee Review Detail / Admin Result Review Detail
+  // ORDER: 7A/8 - Adapter maps review action history into UI-friendly audit rows.
+  // Normalizes review history rows written by Referee/Admin decisions.
   return {
     id: firstDefined(raw.reviewActionId, raw.id),
     actorUserId: raw.actorUserId,
@@ -62,6 +72,9 @@ export function adaptRaceResultReviewAction(raw = {}) {
 }
 
 export function adaptRaceResultSubmissionDetail(raw = {}) {
+  // FLOW: Referee Review Detail / Admin Result Review Detail
+  // ORDER: 7B/8 - Adapter combines summary, entries, and review history into one modal view model.
+  // Combines submission summary, provisional entries, and review action history.
   const summary = adaptRaceResultSubmissionSummary(raw);
   const entries = Array.isArray(raw.entries)
     ? raw.entries.map(adaptRaceResultSubmissionEntry)

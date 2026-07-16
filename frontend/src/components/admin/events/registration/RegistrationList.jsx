@@ -36,6 +36,11 @@ function ReviewButton({ onClick }) {
 }
 
 export default function RegistrationList({ registrations, onReview, onViewEntity }) {
+  // FLOW: Admin Registration List / Load / Filter + Registration Entity Detail Popup
+  // ORDER: 8/8 - UI renders the filtered Registration rows and entry points for review/detail actions.
+  // ORDER: 1/6 - Horse/Owner/Jockey links are the first click targets for the read-only entity detail popup flow.
+  // Purpose: render filtered Registration rows and expose review plus Horse/Owner/Jockey detail entry points.
+  // Entity detail clicks are read-only profile lookups; approve/reject logic lives in the review dialog.
   const { t } = useLanguage();
 
   if (registrations.length === 0) {

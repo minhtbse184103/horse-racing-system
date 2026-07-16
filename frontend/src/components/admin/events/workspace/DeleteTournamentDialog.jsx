@@ -5,11 +5,18 @@ import { modalBackdrop, modalPanel } from '../../ui/motion';
 import { useLanguage } from '../../../../context/LanguageContext';
 
 export default function DeleteTournamentDialog({ tournament, onCancel, onConfirm }) {
+  // FLOW: Admin Tournament Lifecycle
+  // ORDER: 1CANCEL/5 - UI asks for confirmation before the cancel Tournament request is sent.
+  // FE path: TournamentActions cancel button -> DeleteTournamentDialog -> useTournamentWorkspace.deleteTournament().
+  // Purpose: confirm Tournament cancellation before calling the backend cancel endpoint.
   const { t } = useLanguage();
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState('');
 
   async function confirmDelete() {
+    // FLOW: Admin Tournament Lifecycle
+    // ORDER: 2CANCEL/5 - Dialog submits cancel and keeps backend validation errors visible.
+    // Purpose: submit the cancel action and keep the dialog open long enough to display backend validation errors.
     setIsDeleting(true);
     setError('');
     try {

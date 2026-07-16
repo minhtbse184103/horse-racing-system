@@ -28,6 +28,9 @@ function formatDate(value) {
 }
 
 function buildEntityConfig(entity, t) {
+  // FLOW: Admin Registration Entity Detail Popup
+  // ORDER: 6A/6 - Dialog normalizes the loaded Horse/Owner/Jockey detail DTO into display sections.
+  // Purpose: merge the Registration row snapshot with the enriched Horse/Owner/Jockey profile response for display.
   if (!entity) return null;
 
   const detail = entity.detail || {};
@@ -107,6 +110,10 @@ function buildEntityConfig(entity, t) {
 }
 
 export default function RegistrationEntityDetailDialog({ entity, isLoading = false, error = '', onClose }) {
+  // FLOW: Admin Registration Entity Detail Popup
+  // ORDER: 6/6 - Modal renders the enriched entity detail, loading state, or backend lookup error.
+  // FE path: RegistrationApprovalPanel opens this read-only modal after profile data is fetched.
+  // Purpose: let Admin verify Horse/Owner/Jockey evidence while staying inside the Registration review workflow.
   const { t } = useLanguage();
   const config = buildEntityConfig(entity, t);
 

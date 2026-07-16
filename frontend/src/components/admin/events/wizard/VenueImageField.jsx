@@ -16,6 +16,10 @@ export default function VenueImageField({
   previewAlt,
   required = false
 }) {
+  // FLOW: Admin Tournament Images
+  // ORDER: 1/7 - Wizard image field stores local file/preview state before any backend upload exists.
+  // FE path: TournamentWizard image field -> draft file state -> post-save upload sync.
+  // Purpose: validate/preview local image files before the persistence service uploads them to backend image endpoints.
   const { t } = useLanguage();
   const inputId = useId();
   const [previewSrc, setPreviewSrc] = useState(existingSrc || '');
@@ -35,6 +39,9 @@ export default function VenueImageField({
   }, [existingSrc, file]);
 
   function validateAndSelect(selectedFile) {
+    // FLOW: Admin Tournament Images
+    // ORDER: 1A/7 - Frontend validates selected image type/size before attaching it to the draft.
+    // Validation: FE accepts only JPEG/PNG/WebP up to 5MB; backend repeats validation before Cloudinary upload.
     if (!selectedFile) return;
 
     if (!ALLOWED_TYPES.includes(selectedFile.type)) {

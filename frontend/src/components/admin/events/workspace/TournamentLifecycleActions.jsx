@@ -2,6 +2,10 @@ import { CheckCircle2, LoaderCircle, LockKeyhole } from 'lucide-react';
 import { useLanguage } from '../../../../context/LanguageContext';
 
 export default function TournamentLifecycleActions({ tournament, processing, onAction }) {
+  // FLOW: Admin Tournament Lifecycle
+  // ORDER: 1/5 - UI exposes close/complete actions based on current Tournament status.
+  // FE path: TournamentDetails -> TournamentLifecycleActions -> useTournamentWorkspace.transitionTournament().
+  // Purpose: expose valid lifecycle actions for Close Registration and Complete Tournament without changing local state before backend success.
   const { t } = useLanguage();
 
   if (tournament.status === 'OPEN_FOR_REGISTRATION') {

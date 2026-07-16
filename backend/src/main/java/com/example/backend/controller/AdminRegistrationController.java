@@ -26,16 +26,28 @@ public class AdminRegistrationController {
     public List<RegistrationResponse> getRegistrations(
             @RequestParam(required = false) String status
     ) {
+        // FLOW: Admin Registration List / Load / Filter
+        // ORDER: 3/8 - Backend controller receives main Registration list request and delegates status filtering to service.
+        // API: GET /api/admin/registrations?status={status}.
+        // Purpose: returns admin Registration DTOs for workspace review lists; UI scopes/filter rows by Tournament.
         return registrationService.getRegistrations(status);
     }
 
     @GetMapping("/pending")
     public List<RegistrationResponse> getPendingRegistrations() {
+        // FLOW: Admin Registration List / Load / Filter
+        // ORDER: 3ALT/8 - Backend controller receives pending-only queue request.
+        // API: GET /api/admin/registrations/pending.
+        // Purpose: returns the oldest-submitted PENDING registrations for review queue use.
         return registrationService.getPendingRegistrations();
     }
 
     @GetMapping("/history")
     public List<RegistrationResponse> getRegistrationHistory() {
+        // FLOW: Admin Registration List / Load / Filter
+        // ORDER: 3ALT/8 - Backend controller receives reviewed-history request.
+        // API: GET /api/admin/registrations/history.
+        // Purpose: returns reviewed Registration history after APPROVED/REJECTED/CANCELLED decisions.
         return registrationService.getRegistrationHistory();
     }
 
@@ -44,6 +56,10 @@ public class AdminRegistrationController {
             @PathVariable Integer registrationId,
             Authentication authentication
     ) {
+        // FLOW: Admin Approve Registration
+        // ORDER: 6/8 - Backend controller receives approve request and passes authenticated admin email to service.
+        // API: PUT /api/admin/registrations/{registrationId}/approve.
+        // Purpose: approves a PENDING Registration after service-level eligibility checks.
         return registrationService.approveRegistration(
                 registrationId,
                 authentication.getName()
@@ -56,6 +72,10 @@ public class AdminRegistrationController {
             @Valid @RequestBody RejectRegistrationRequest request,
             Authentication authentication
     ) {
+        // FLOW: Admin Reject Registration
+        // ORDER: 5/6 - Backend controller receives reject request body and delegates to AdminRegistrationService.
+        // API: PUT /api/admin/registrations/{registrationId}/reject.
+        // Purpose: rejects one PENDING Registration and stores the admin's rejection reason/audit fields.
         return registrationService.rejectRegistration(
                 registrationId,
                 request,

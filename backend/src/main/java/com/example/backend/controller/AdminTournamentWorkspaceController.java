@@ -21,6 +21,10 @@ public class AdminTournamentWorkspaceController {
 
     @GetMapping("/workspace")
     public ResponseEntity<List<AdminTournamentWorkspaceResponse>> getWorkspace() {
+        // FLOW: Admin Tournament Workspace Read
+        // ORDER: 3/7 - Backend controller receives GET /workspace and delegates aggregate building to TournamentService.
+        // API: GET /api/admin/tournaments/workspace.
+        // Purpose: return the single aggregate payload used by the Admin Tournament workspace.
         return ResponseEntity.ok(tournamentService.getAdminTournamentWorkspace());
     }
 }

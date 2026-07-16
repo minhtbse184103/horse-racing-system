@@ -8,6 +8,9 @@ import java.time.LocalDateTime;
 
 @Getter
 @Builder
+// FLOW: Prize Split Display
+// ORDER: 6A/7 - DTO carries official result fields plus owner/jockey split amounts back to the dialog.
+// Response DTO for the official result/prize dialog, including owner and jockey prize split fields.
 public class RaceResultPrizeResponse {
 
     private Integer resultId;

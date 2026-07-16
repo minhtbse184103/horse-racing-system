@@ -43,6 +43,8 @@ public class PerformanceSummaryService {
             List<RaceResult> results,
             Map<Integer, RaceEntry> entriesByRaceEntryId
     ) {
+        // FLOW: Admin Approve Result
+        // ORDER: 8A/9 - Update Horse/Jockey summary records only after results become official.
         Map<Integer, Registration> registrationsById = registrationRepository
                 .findAllById(entriesByRaceEntryId.values()
                         .stream()

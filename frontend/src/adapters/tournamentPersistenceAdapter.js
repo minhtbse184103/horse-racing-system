@@ -24,6 +24,9 @@ function toPrizeRequests(prizes) {
 }
 
 export function toTournamentRequest(tournament) {
+  // FLOW: Admin Edit Tournament Program
+  // ORDER: 2A/8 - Adapter maps Tournament-level edit fields and Conditions to the update DTO.
+  // Purpose: map editable Tournament-level fields and Conditions to the backend update DTO.
   return {
     tournamentName: tournament.name.trim(),
     description: tournament.description?.trim() || null,
@@ -52,6 +55,9 @@ function toRaceRequest(race, raceOrder) {
 }
 
 export function toCreateRaceRequest(race, tournamentId, raceOrder) {
+  // FLOW: Admin Edit Tournament Program
+  // ORDER: 2B/8 - Adapter maps a newly added Race draft to the standalone create Race DTO.
+  // Purpose: map a newly added Race in the edit wizard to the standalone Race create DTO.
   return {
     tournamentId: Number(tournamentId),
     ...toRaceRequest(race, raceOrder)
@@ -59,6 +65,9 @@ export function toCreateRaceRequest(race, tournamentId, raceOrder) {
 }
 
 export function toCreateTournamentProgramRequest(tournament) {
+  // FLOW: Admin Create Tournament Program
+  // ORDER: 3/8 - Adapter converts wizard state into the backend program-create request shape.
+  // Purpose: shape the wizard draft into the backend atomic create contract: one Tournament payload plus initial Race/RacePrize drafts.
   return {
     tournament: toTournamentRequest(tournament),
     races: tournament.races.map((race, index) =>
@@ -68,6 +77,9 @@ export function toCreateTournamentProgramRequest(tournament) {
 }
 
 export function toUpdateRaceRequest(race, raceOrder) {
+  // FLOW: Admin Edit Tournament Program
+  // ORDER: 2C/8 - Adapter maps an existing Race draft to the standalone update Race DTO.
+  // Purpose: map an existing Race edit to the standalone Race update DTO.
   return toRaceRequest(race, raceOrder);
 }
 

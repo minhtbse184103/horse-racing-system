@@ -23,6 +23,9 @@ public interface RefereeAssignmentRepository
 
     Optional<RefereeAssignment> findByRaceId(Integer raceId);
 
+    // FLOW: Admin Create Referee Assignment / Replace Referee
+    // ORDER: 6/6 - Repository query confirms the target Referee has no overlapping ASSIGNED Race window.
+    // Checks Referee schedule overlap against other ASSIGNED rows; CANCELLED races and the current Race are ignored.
     @Query("""
             select count(assignment) > 0
             from RefereeAssignment assignment

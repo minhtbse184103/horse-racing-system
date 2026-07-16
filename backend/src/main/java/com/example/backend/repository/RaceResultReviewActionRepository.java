@@ -10,6 +10,9 @@ import java.util.List;
 public interface RaceResultReviewActionRepository
         extends JpaRepository<RaceResultReviewAction, Integer> {
 
+    // FLOW: Referee Review Detail / Admin Result Review Detail
+    // ORDER: 6A/8 - Review history query preserves every Referee/Admin decision attached to the submission.
+    // Loads chronological Referee/Admin decision history for one provisional submission.
     List<RaceResultReviewAction> findBySubmissionIdOrderByCreatedAtAsc(
             Integer submissionId
     );

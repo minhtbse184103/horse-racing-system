@@ -31,6 +31,9 @@ public class AdminRaceResultReviewController {
     public List<RaceResultSubmissionSummaryResponse> getReviewQueue(
             Authentication authentication
     ) {
+        // FLOW: Admin Result Review Queue
+        // ORDER: 3/6 - Controller uses authenticated admin identity and delegates queue status filtering.
+        // Queue endpoint exposes referee-reviewed provisional results for Admin final decision.
         return reviewService.getReviewQueue(authentication.getName());
     }
 
@@ -39,6 +42,9 @@ public class AdminRaceResultReviewController {
             @PathVariable Integer submissionId,
             Authentication authentication
     ) {
+        // FLOW: Admin Result Review Detail
+        // ORDER: 3/8 - Controller receives admin detail request and forwards authenticated admin identity.
+        // Detail endpoint returns provisional entries and review history for Admin decision.
         return reviewService.getSubmissionDetail(
                 submissionId,
                 authentication.getName()
@@ -52,6 +58,9 @@ public class AdminRaceResultReviewController {
             AdminRaceResultReviewRequest request,
             Authentication authentication
     ) {
+        // FLOW: Admin Approve Result
+        // ORDER: 3/9 - Controller receives approval request and passes authenticated admin identity.
+        // Approve endpoint finalizes provisional result into official result/prize data.
         return reviewService.approveSubmission(
                 submissionId,
                 request,
@@ -65,6 +74,9 @@ public class AdminRaceResultReviewController {
             @Valid @RequestBody AdminRaceResultReviewRequest request,
             Authentication authentication
     ) {
+        // FLOW: Admin Reject Result
+        // ORDER: 4/8 - Controller receives reject request and forwards authenticated admin identity.
+        // Reject endpoint records the reason and returns the Race to READY for a new Unity run.
         return reviewService.rejectSubmission(
                 submissionId,
                 request,

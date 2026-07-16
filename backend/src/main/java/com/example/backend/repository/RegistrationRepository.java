@@ -59,6 +59,10 @@ public interface RegistrationRepository
             @Param("excludedRegistrationId") Integer excludedRegistrationId
     );
 
+    // FLOW: Admin RaceEntry Assignment Queue Load
+    // ORDER: 7GLOBAL/7 - Repository query excludes active ASSIGNED rows while allowing CANCELLED history to be reassigned.
+    // Finds APPROVED + PAID Registration rows that do not have an active ASSIGNED RaceEntry.
+    // CANCELLED RaceEntry history is intentionally ignored so a cancelled Registration can be reassigned.
     @Query("""
         select registration
         from Registration registration
@@ -77,6 +81,10 @@ public interface RegistrationRepository
             @Param("paidStatus") String paidStatus,
             @Param("activeStatus") String activeStatus
     );
+    // FLOW: Admin RaceEntry Assignment Queue Load
+    // ORDER: 7TOURNAMENT/7 - Repository query applies the same active-assignment exclusion inside one Tournament.
+    // Tournament-scoped version of the assignment queue for the expanded Admin workspace.
+    // Excludes only active ASSIGNED RaceEntry rows, not historical CANCELLED rows.
     @Query("""
         select registration
         from Registration registration
@@ -118,6 +126,9 @@ public interface RegistrationRepository
         long getApprovedRegistrationCount();
     }
 
+    // FLOW: Admin Tournament Workspace Read
+    // ORDER: 5F/7 - Repository counts all Registrations per Tournament for capacity summary.
+    // Purpose: count all Registrations by Tournament for workspace capacity and review summary cards.
     @Query("""
         select registration.tournamentId as tournamentId,
                count(registration) as registrationCount
@@ -129,6 +140,9 @@ public interface RegistrationRepository
             @Param("tournamentIds") Collection<Integer> tournamentIds
     );
 
+    // FLOW: Admin Tournament Workspace Read
+    // ORDER: 5G/7 - Repository counts approved Registrations per Tournament for review progress.
+    // Purpose: count APPROVED Registrations by Tournament for admin review progress indicators.
     @Query("""
         select registration.tournamentId as tournamentId,
                count(registration) as approvedRegistrationCount

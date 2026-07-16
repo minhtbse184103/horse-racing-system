@@ -30,6 +30,8 @@ function DetailItem({ label, value, onClick, disabled = false }) {
 }
 
 export default function RegistrationReviewDialog({ registration, onClose, onDecision, onViewEntity }) {
+  // FLOW: Admin Registration Entity Detail Popup
+  // ORDER: 1/6 - Review dialog also exposes Horse/Owner/Jockey detail click targets before approve/reject.
   const { t } = useLanguage();
   const [reason, setReason] = useState(registration.rejectionReason || '');
   const [error, setError] = useState('');
@@ -37,6 +39,9 @@ export default function RegistrationReviewDialog({ registration, onClose, onDeci
   const isPending = registration.approvalStatus === 'PENDING';
 
   async function decide(status, rejectionReason = null) {
+    // FLOW: Admin Approve Registration / Reject Registration
+    // ORDER: 1/8 - Review dialog submits the selected decision and keeps backend errors visible.
+    // Purpose: submit the chosen review decision and display backend validation errors in the dialog.
     setIsSubmitting(true);
     setError('');
     try {
@@ -49,6 +54,9 @@ export default function RegistrationReviewDialog({ registration, onClose, onDeci
   }
 
   function reject() {
+    // FLOW: Admin Reject Registration
+    // ORDER: 1/6 - Review dialog validates rejection reason before submitting REJECTED decision.
+    // FE validation: rejectionReason is required before calling the backend reject endpoint.
     if (!reason.trim()) {
       setError(t('rejectReasonRequired'));
       return;

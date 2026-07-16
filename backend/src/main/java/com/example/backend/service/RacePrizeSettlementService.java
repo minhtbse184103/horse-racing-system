@@ -44,6 +44,10 @@ public class RacePrizeSettlementService {
             List<RaceResult> results,
             Map<Integer, RaceEntry> entriesByRaceEntryId
     ) {
+        // FLOW: Admin Approve Result
+        // ORDER: 7A/9 - Settlement loads race prize rules and calculates owner/jockey split rows.
+        // Prize settlement runs only after official RaceResult rows are created by Admin approval.
+        // DB effect: creates pending PrizeDistribution rows split by RacePrize owner/jockey percentages.
         Map<Integer, RacePrize> prizesByRank = racePrizeRepository
                 .findByRaceIdOrderByRankPositionAsc(raceId)
                 .stream()
@@ -82,6 +86,8 @@ public class RacePrizeSettlementService {
                 .toList();
 
         if (!distributions.isEmpty()) {
+            // FLOW: Admin Approve Result
+            // ORDER: 7B/9 - Persist calculated PrizeDistribution rows as pending payout records.
             prizeDistributionRepository.saveAll(distributions);
         }
     }

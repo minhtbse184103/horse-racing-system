@@ -49,6 +49,10 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
   const [failingRaceId, setFailingRaceId] = useState(null);
   const [runErrors, setRunErrors] = useState({});
   const [liveRaceId, setLiveRaceId] = useState(null);
+  // FLOW: Admin RaceEntry Assignment Queue Load
+  // ORDER: 1/7 - Expanded Tournament/Race panel initializes the hook that loads assignable Registration candidates.
+  // FE path: expanded Tournament -> selected Race -> hook loads APPROVED + PAID Registration candidates for assignment.
+  // Purpose: keep the assignable Registration queue synchronized with approve/reject and assign/cancel actions.
   const assignment = useRaceEntryAssignment(
     tournament.id,
     selectedRaceId,
@@ -70,6 +74,10 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
   }
 
   async function handleReadyRace(raceId) {
+    // FLOW: Admin Mark Race READY
+    // ORDER: 2/6 - Handler calls READY API and immediately updates local Race status from backend response.
+    // FE path: RaceEntryAssignmentPanel Ready button -> PUT /api/races/{raceId}/ready.
+    // Purpose: move a Race from setup state to READY after start time and minimum assigned entries are satisfied.
     setReadyingRaceId(raceId);
     setRunErrors((current) => ({ ...current, [raceId]: '' }));
     try {
@@ -84,6 +92,10 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
   }
 
   async function handleRunRace(raceId) {
+    // FLOW: Admin Launch Unity Race
+    // ORDER: 2/9 - Handler asks backend to launch Unity, then opens live view only after backend returns IN_PROGRESS.
+    // FE path: READY Race row -> Run Race button -> POST /api/races/{raceId}/run.
+    // Purpose: ask backend to launch Unity; UI switches to live view only after backend returns IN_PROGRESS.
     setRunningRaceId(raceId);
     setRunErrors((current) => ({ ...current, [raceId]: '' }));
     try {
@@ -102,6 +114,10 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
   }
 
   async function submitFailRace(event) {
+    // FLOW: Admin Fail Running Race
+    // ORDER: 3/7 - Submit handler trims/validates the reason, calls backend fail API, then clears live UI state after success.
+    // FE path: IN_PROGRESS Race -> fail dialog -> PUT /api/races/{raceId}/run/fail.
+    // Purpose: stop showing live data locally only after backend cancels the failed run.
     event.preventDefault();
     if (!failTargetRace) return;
 
@@ -134,6 +150,8 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
   }
 
   function openFailDialog(race) {
+    // FLOW: Admin Fail Running Race
+    // ORDER: 2/7 - Opening the dialog stores the target Race and resets stale failure reason/error state.
     setFailTargetRace(race);
     setFailReason('');
     setFailReasonError('');
@@ -245,6 +263,8 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
                         <button type="button" onClick={() => toggleLiveView(race.id)} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-xs font-extrabold text-emerald-700 hover:bg-emerald-100">
                           <Radio size={15} />{liveRaceId === race.id ? t('eventRaceLiveHide') : t('eventRaceLiveShow')}
                         </button>
+                        {/* FLOW: Admin Fail Running Race */}
+                        {/* ORDER: 1/7 - Fail button appears only while Race is live/IN_PROGRESS and starts the recovery dialog. */}
                         <button type="button" disabled={failingRaceId === race.id} onClick={() => openFailDialog(race)} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-red-200 bg-red-50 px-3 text-xs font-extrabold text-red-700 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60">
                           {failingRaceId === race.id ? <LoaderCircle size={15} className="animate-spin" /> : <XCircle size={15} />}
                           {failingRaceId === race.id ? t('eventCommonProcessing') : t('eventRaceFailTitle')}
@@ -252,6 +272,8 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
                       </>
                     ) : race.status === 'READY' ? (
                       <button type="button" disabled={runningRaceId === race.id || !hasMinimumLaunchEntries} onClick={() => handleRunRace(race.id)} title={!hasMinimumLaunchEntries ? t('eventRaceLaunchMinimum', { count: MIN_RACE_ENTRIES_TO_LAUNCH }) : undefined} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-brown-700/15 bg-white px-3 text-xs font-extrabold text-brown-700 hover:bg-cream-200 disabled:cursor-not-allowed disabled:opacity-60">
+                        {/* FLOW: Admin Launch Unity Race */}
+                        {/* ORDER: 1/9 - Run Race button appears only for READY Race rows and submits launch request. */}
                         {runningRaceId === race.id ? <LoaderCircle size={15} className="animate-spin" /> : <PlayCircle size={15} />}
                         {runningRaceId === race.id ? t('eventRaceLaunching') : t('eventRaceLaunchTitle')}
                       </button>
@@ -263,6 +285,8 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
                         title={!raceStartReached ? t('eventRaceReadyTimeRequired') : !hasMinimumLaunchEntries ? t('eventRaceReadyMinimum', { count: MIN_RACE_ENTRIES_TO_LAUNCH }) : undefined}
                         className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 text-xs font-extrabold text-amber-800 hover:bg-amber-100 disabled:cursor-not-allowed disabled:opacity-60"
                       >
+                        {/* FLOW: Admin Mark Race READY */}
+                        {/* ORDER: 1/6 - Ready button is enabled only after start time and minimum assigned RaceEntries are satisfied. */}
                         {readyingRaceId === race.id ? <LoaderCircle size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
                         {readyingRaceId === race.id ? t('eventCommonProcessing') : t('eventRaceReadyTitle')}
                       </button>
@@ -270,16 +294,22 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
                   )}
                   <button type="button" onClick={() => setPrizeRuleRace(race)} className="inline-flex min-h-10 min-w-[7rem] items-center justify-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 text-xs font-extrabold text-amber-800 shadow-sm hover:bg-amber-100"><Trophy size={15} />{t('eventWorkspacePrizeRule')}</button>
                   {race.status === 'COMPLETED' && (
+                    /* FLOW: Official Result Display */
+                    /* ORDER: 1/7 - Admin opens the official result/prize dialog only after Race is COMPLETED. */
                     <button type="button" onClick={() => setResultPrizeRace(race)} className="inline-flex min-h-10 min-w-[7rem] items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-xs font-extrabold text-emerald-800 shadow-sm hover:bg-emerald-100"><Medal size={15} />{t('eventWorkspaceOfficialResult')}</button>
                   )}
                   <button type="button" disabled={!canManageRaceEntries || isFull || assignment.queueLoading} onClick={() => openAssignment(race)} title={!canManageRaceEntries ? raceEntryLockReason : undefined} className={`inline-flex min-h-10 min-w-[12.25rem] items-center justify-center gap-2 rounded-lg border px-3 text-xs font-extrabold shadow-sm ${isFull ? 'cursor-not-allowed border-red-200 bg-red-50 text-red-700' : !canManageRaceEntries ? 'cursor-not-allowed border-amber-200 bg-amber-50 text-amber-800' : 'border-brown-700/15 bg-white text-brown-700 hover:bg-cream-200 disabled:cursor-not-allowed disabled:opacity-60'}`}><UserPlus size={15} />{isFull ? t('eventRaceEntryFull') : canManageRaceEntries ? t('eventRaceEntryTitle') : t('eventRaceEntryLocked')}</button>
                   {canManageRaceEntries && (!raceStartReached || !hasMinimumLaunchEntries) && (
                     <p className="sm:col-span-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-extrabold text-amber-900">
+                      {/* FLOW: Admin Mark Race READY */}
+                      {/* ORDER: 1A/6 - UI explains which READY prerequisite is missing before Admin can submit. */}
                       {!raceStartReached ? t('eventRaceReadyTimeRequired') : t('eventRaceReadyMinimum', { count: MIN_RACE_ENTRIES_TO_LAUNCH })}
                     </p>
                   )}
                   {race.status === 'READY' && !hasMinimumLaunchEntries && (
                     <p className="sm:col-span-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-extrabold text-amber-900">
+                      {/* FLOW: Admin Launch Unity Race */}
+                      {/* ORDER: 1A/9 - UI blocks launch until the Race has enough active ASSIGNED RaceEntries. */}
                       {t('eventRaceLaunchMinimum', { count: MIN_RACE_ENTRIES_TO_LAUNCH })}
                     </p>
                   )}
@@ -304,7 +334,13 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
                         <div className="grid min-h-36 place-items-center rounded-lg border border-brown-700/10 bg-white/75 text-center"><div><LoaderCircle className="mx-auto animate-spin text-brown-500" size={23} /><p className="mt-3 text-sm font-black text-brown-900">{t('eventCommonLoading')}</p></div></div>
                       ) : assignment.entriesError ? (
                         <div className="grid min-h-36 place-items-center rounded-lg border border-red-200 bg-red-50 p-5 text-center"><div><AlertTriangle className="mx-auto text-danger" size={22} /><p className="mt-3 text-sm font-black text-brown-900">{t('eventCommonLoadError')}</p><p className="mt-1 text-xs font-semibold text-slate-500">{assignment.entriesError}</p><button type="button" onClick={assignment.retryEntries} className="mt-3 inline-flex min-h-9 items-center gap-2 rounded-lg bg-brown-700 px-3 text-xs font-extrabold text-white"><RefreshCw size={13} /> {t('eventCommonRetry')}</button></div></div>
-                      ) : <OfficialEntries race={race} entries={assignment.entries} onCancel={setCancellationEntry} canCancel={canManageRaceEntries} cancelDisabledReason={raceEntryLockReason} />}
+                      ) : (
+                        <>
+                          {/* FLOW: Admin Assigned RaceEntry Load */}
+                          {/* ORDER: 1/6 - Selected Race panel renders the loaded official ASSIGNED entries. */}
+                          <OfficialEntries race={race} entries={assignment.entries} onCancel={setCancellationEntry} canCancel={canManageRaceEntries} cancelDisabledReason={raceEntryLockReason} />
+                        </>
+                      )}
                     </div>
                   </motion.div>
                 )}
@@ -318,6 +354,9 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
 
       <AnimatePresence>
         {assignmentRace && (
+          <>
+          {/* FLOW: Admin Assign RaceEntry */}
+          {/* ORDER: 1/8 - Panel opens AssignmentDialog for the selected Race and passes the hook assign action. */}
           <AssignmentDialog
             tournament={tournament}
             race={assignmentRace}
@@ -333,6 +372,7 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
             onClose={() => setAssignmentRace(null)}
             onAssign={assignment.assignRegistration}
           />
+          </>
         )}
       </AnimatePresence>
 
@@ -347,6 +387,8 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
 
       <AnimatePresence>
         {resultPrizeRace && (
+          /* FLOW: Official Result Display */
+          /* ORDER: 1A/7 - Dialog receives selected Race context and becomes responsible for loading official rows. */
           <RaceResultPrizeDialog
             race={resultPrizeRace}
             onClose={() => setResultPrizeRace(null)}

@@ -27,6 +27,9 @@ public class RaceTrackImageStorageService {
     }
 
     public String store(Integer raceId, MultipartFile file) {
+        // FLOW: Admin Tournament Images
+        // ORDER: 6R/7 - Storage service validates and uploads Race track image to Cloudinary.
+        // Storage: validates the Race track image and uploads it to Cloudinary using a stable race public_id.
         validate(file);
 
         try {
@@ -59,6 +62,9 @@ public class RaceTrackImageStorageService {
     }
 
     public void delete(Integer raceId) {
+        // FLOW: Admin Tournament Images
+        // ORDER: 6R/7 - Storage service deletes the Race track image object from Cloudinary.
+        // Storage: removes the Cloudinary track image object for this Race.
         try {
             cloudinary.uploader().destroy(
                     FOLDER + "/race-" + raceId,

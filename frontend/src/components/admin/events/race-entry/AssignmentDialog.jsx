@@ -20,6 +20,10 @@ export default function AssignmentDialog({
   onAssign,
   onClose
 }) {
+  // FLOW: Admin Assign RaceEntry
+  // ORDER: 1A/8 - Dialog presents eligible Registration candidates and captures Admin selection.
+  // FE path: RaceEntryAssignmentPanel -> AssignmentDialog -> useRaceEntryAssignment.assignRegistration().
+  // Purpose: choose one eligible Registration candidate; backend owns final validation and random startingStall assignment.
   const { t } = useLanguage();
   const [search, setSearch] = useState('');
   const [selectedRegistrationId, setSelectedRegistrationId] = useState(null);
@@ -36,6 +40,9 @@ export default function AssignmentDialog({
   ], search)), [candidates, search]);
 
   async function confirmAssignment() {
+    // FLOW: Admin Assign RaceEntry
+    // ORDER: 1B/8 - Dialog performs lightweight UI checks, then calls the hook assignment action.
+    // FE validation: entries must be loaded, Race must not be full, and Admin must select one Registration.
     if (entryContextUnavailable) {
       setError(t('eventRaceEntryWaitForEntries'));
       return;

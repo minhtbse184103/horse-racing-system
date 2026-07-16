@@ -14,6 +14,9 @@ import com.example.backend.entity.RaceResult;
 
 @Repository
 public interface RaceResultRepository extends JpaRepository<RaceResult, Integer> {
+    // FLOW: Admin Approve Result
+    // ORDER: 4C/9 - Repository guard checks whether official RaceResult rows already exist.
+    // Guards against approving a provisional submission when official RaceResult rows already exist.
     boolean existsByRaceEntryIdIn(Collection<Integer> raceEntryIds);
 
     @Query("""
@@ -23,6 +26,8 @@ public interface RaceResultRepository extends JpaRepository<RaceResult, Integer>
         where entry.raceId = :raceId
         order by result.finishPosition asc
         """)
+    // FLOW: Official Result Display
+    // Reads official RaceResult rows for a Race after Admin approval.
     List<RaceResult> findByRaceIdOrderByFinishPositionAsc(
             @Param("raceId") Integer raceId
     );
@@ -32,6 +37,9 @@ public interface RaceResultRepository extends JpaRepository<RaceResult, Integer>
         long getResultCount();
     }
 
+    // FLOW: Admin Tournament Workspace Read
+    // ORDER: 5E/7 - Repository counts official RaceResult rows for workspace result state.
+    // Purpose: count official approved RaceResult rows by Race for result/watchdog display in the workspace aggregate.
     @Query("""
         select entry.raceId as raceId, count(result) as resultCount
         from RaceResult result
@@ -64,6 +72,8 @@ public interface RaceResultRepository extends JpaRepository<RaceResult, Integer>
         String getDistributionStatus();
     }
 
+    // FLOW: Prize Split Display
+    // ORDER: 5/7 - Repository joins official RaceResult rows with RaceEntry, Registration, Horse, Owner/Jockey names, and PrizeDistribution.
     @Query("""
         select result.resultId as resultId,
                entry.raceEntryId as raceEntryId,

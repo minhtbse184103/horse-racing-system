@@ -64,6 +64,9 @@ function adaptRace(race) {
   };
 }
 
+// FLOW: Admin Tournament Workspace Read
+// ORDER: 6/7 - Frontend adapter converts backend aggregate DTOs into the shared workspace/wizard view shape.
+// Purpose: convert the admin workspace aggregate DTO into the Tournament draft/view shape reused by cards, wizard edit, Race panels, and metrics.
 export function adaptWorkspaceTournament(tournament) {
   return adaptTournament(
     tournament,

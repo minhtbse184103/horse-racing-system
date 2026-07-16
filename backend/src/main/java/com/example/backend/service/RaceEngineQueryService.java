@@ -67,6 +67,10 @@ public class RaceEngineQueryService {
             Integer raceId,
             String raceEngineToken
     ) {
+        // FLOW: Unity Race Engine Lineup
+        // ORDER: 2/10 - Service validates Unity token, then reads RaceEntry -> Registration -> Horse/Jockey data for the lineup.
+        // DB read path: Race -> ASSIGNED RaceEntry -> Registration -> Horse/Jockey.
+        // This gives Unity exactly the runners and stalls created by Admin assignment.
         Race race = raceRepository.findById(raceId)
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
@@ -153,6 +157,8 @@ public class RaceEngineQueryService {
                 })
                 .toList();
 
+        // FLOW: Unity Race Engine Lineup
+        // ORDER: 4/10 - Lineup response gives Unity the runners/stalls it uses to simulate and then post live ticks.
         return RaceLineupResponse.builder()
                 .raceId(race.getRaceId())
                 .raceName(race.getRaceName())

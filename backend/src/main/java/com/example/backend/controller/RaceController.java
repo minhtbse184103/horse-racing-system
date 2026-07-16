@@ -49,6 +49,9 @@ public class RaceController {
     public List<RaceResultPrizeResponse> getRaceResults(
             @PathVariable Integer raceId
     ) {
+        // FLOW: Official Result Display
+        // ORDER: 3/7 - Controller receives the dialog request and delegates official result lookup.
+        // Results endpoint exposes official RaceResult rows, not provisional RaceResultSubmission rows.
         return raceService.getRaceResults(raceId);
     }
 
@@ -64,6 +67,10 @@ public class RaceController {
             @Valid @RequestBody CreateRaceRequest request,
             Authentication authentication
     ) {
+        // FLOW: Admin Edit Tournament Program
+        // ORDER: 5B/8 - Backend controller receives newly added Race create request from edit synchronization.
+        // API: POST /api/races.
+        // Purpose: creates a newly added Race under an existing Tournament during edit sync.
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(raceService.createRace(request, authentication.getName()));
@@ -75,6 +82,10 @@ public class RaceController {
             @Valid @RequestBody UpdateRaceRequest request,
             Authentication authentication
     ) {
+        // FLOW: Admin Edit Tournament Program
+        // ORDER: 5C/8 - Backend controller receives existing Race update request from edit synchronization.
+        // API: PUT /api/races/{id}.
+        // Purpose: updates a persisted Race and replaces its prize rules during edit sync.
         return raceService.updateRace(raceId, request, authentication.getName());
     }
 
@@ -84,6 +95,10 @@ public class RaceController {
             @RequestPart("file") MultipartFile file,
             Authentication authentication
     ) {
+        // FLOW: Admin Tournament Images
+        // ORDER: 4R/7 - Backend controller receives Race track multipart upload and delegates to RaceService.
+        // API: POST /api/races/{id}/track-image.
+        // Purpose: receives the Race track multipart file after Race create/update and delegates Cloudinary storage to the service layer.
         return raceService.uploadTrackImage(
                 raceId,
                 file,
@@ -96,6 +111,10 @@ public class RaceController {
             @PathVariable Integer raceId,
             Authentication authentication
     ) {
+        // FLOW: Admin Tournament Images
+        // ORDER: 4R/7 - Backend controller receives Race track image removal and delegates to RaceService.
+        // API: DELETE /api/races/{id}/track-image.
+        // Purpose: clears the Race track image URL and removes the Cloudinary object.
         return raceService.removeTrackImage(raceId, authentication.getName());
     }
 
@@ -112,6 +131,10 @@ public class RaceController {
             @PathVariable Integer raceId,
             Authentication authentication
     ) {
+        // FLOW: Admin Mark Race READY
+        // ORDER: 4/6 - Controller delegates READY transition validation and DB update to RaceService.
+        // API: PUT /api/races/{raceId}/ready.
+        // Purpose: validates Race launch prerequisites and moves the Race into READY state for Unity launch.
         return raceService.markRaceReady(raceId, authentication.getName());
     }
 
@@ -128,6 +151,10 @@ public class RaceController {
             @PathVariable Integer raceId,
             Authentication authentication
     ) {
+        // FLOW: Admin Launch Unity Race
+        // ORDER: 4/9 - Controller delegates launch validation, token creation, status update, and Unity start to service.
+        // API: POST /api/races/{raceId}/run.
+        // Purpose: launches Unity for a READY Race and returns the backend-owned race engine token/status.
         return raceEngineLaunchService.launchRace(raceId, authentication.getName());
     }
 
@@ -137,6 +164,10 @@ public class RaceController {
             @Valid @RequestBody FailRaceRunRequest request,
             Authentication authentication
     ) {
+        // FLOW: Admin Fail Running Race
+        // ORDER: 5/7 - Controller receives the fail request and delegates recovery rules to RaceEngineLaunchService.
+        // API: PUT /api/races/{raceId}/run/fail.
+        // Purpose: admin recovery endpoint when Unity/live run is stuck before result submission.
         return raceEngineLaunchService.failLaunchedRace(
                 raceId,
                 request,
@@ -149,6 +180,10 @@ public class RaceController {
             @PathVariable Integer raceId,
             Authentication authentication
     ) {
+        // FLOW: Admin Edit Tournament Program
+        // ORDER: 5D/8 - Backend controller receives Race cancellation request for a Race removed from the edit wizard.
+        // API: DELETE /api/races/{id}.
+        // Purpose: cancels a Race removed from the edit wizard; RaceEntry history blocks cancellation.
         return raceService.cancelRace(raceId, authentication.getName());
     }
 }

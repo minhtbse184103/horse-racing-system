@@ -35,6 +35,9 @@ export default function TournamentActions({ tournament, onEdit, onClone, onDelet
         whileHover={{ y: -1 }}
         whileTap={tapPress}
         type="button"
+        // FLOW: Admin Clone Tournament
+        // ORDER: 1/4 - Admin clicks clone from a Tournament card; this only opens a copied draft.
+        // Purpose: opens a copied draft only; persistence happens later through the Create Tournament Program flow.
         onClick={() => onClone(tournament)}
         className={`${baseClass} border-brown-700/15 bg-white text-brown-700 hover:border-brown-500 hover:bg-cream-200`}
         title={t('eventCommonClone')}

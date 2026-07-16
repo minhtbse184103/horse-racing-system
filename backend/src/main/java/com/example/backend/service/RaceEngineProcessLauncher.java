@@ -21,6 +21,10 @@ public class RaceEngineProcessLauncher {
     }
 
     public void launch(Integer raceId, String launchToken) {
+        // FLOW: Admin Launch Unity Race
+        // ORDER: 9/9 - Process launcher starts the configured Unity executable with raceId, token, and backend URL arguments.
+        // Purpose: starts the configured Unity executable with raceId, launch token, and backend URL arguments.
+        // Validation: executable path must be configured and point to an existing file.
         String executablePath = properties.getUnityExecutablePath();
         if (executablePath == null || executablePath.trim().isEmpty()) {
             throw new ApiException(

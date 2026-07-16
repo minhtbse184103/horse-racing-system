@@ -71,6 +71,10 @@ public class OwnerApplicationController {
     @GetMapping("/api/admin/owners/{ownerId}/profile")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<OwnerProfileResponse> getAdminOwnerProfile(@PathVariable Integer ownerId) {
+        // FLOW: Admin Registration Entity Detail Popup
+        // ORDER: 4OWNER/6 - Controller receives the Owner detail lookup and delegates to OwnerApplicationService.
+        // API: GET /api/admin/owners/{ownerId}/profile.
+        // Purpose: returns Owner profile/application details when Admin clicks an Owner inside Registration review.
         return ResponseEntity.ok(ownerApplicationService.getAdminOwnerProfile(ownerId));
     }
 
