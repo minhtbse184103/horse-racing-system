@@ -1,11 +1,12 @@
 import { useMemo, useState } from "react";
 import { CalendarDays, Clock3, Flag, MapPin, Route, Users } from "lucide-react";
 import StatusBadge from "./StatusBadge";
+import { useLanguage } from "../../context/LanguageContext";
 
 const DAYS = [
-  { offset: 0, label: "Hôm nay" },
-  { offset: 1, label: "Ngày mai" },
-  { offset: 2, label: "Ngày kế" }
+  { offset: 0, labelKey: "homeToday" },
+  { offset: 1, labelKey: "homeTomorrow" },
+  { offset: 2, labelKey: "homeNextDay" }
 ];
 
 function dateKey(value) {
@@ -24,6 +25,7 @@ const time = (value) => new Date(value).toLocaleTimeString("vi-VN", { hour: "2-d
 const date = (value) => new Date(value).toLocaleDateString("vi-VN", { weekday: "short", day: "2-digit", month: "2-digit" });
 
 export default function Racecards({ races, tournaments, isLoading, error }) {
+  const { t } = useLanguage();
   const [day, setDay] = useState(0);
   const [track, setTrack] = useState("all");
   const [showAll, setShowAll] = useState(false);
@@ -54,16 +56,16 @@ export default function Racecards({ races, tournaments, isLoading, error }) {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="overflow-hidden rounded-xl border border-brown-900/10 bg-white shadow-sm">
           <div className="bg-brown-900 px-5 py-4 text-cream-100 sm:px-6">
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-gold-400">Lịch thi đấu</p>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-gold-400">{t('homeRaceSchedule')}</p>
             <div className="mt-1 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
               <div>
-                <h2 className="text-2xl font-extrabold sm:text-3xl">Race sắp diễn ra</h2>
-                <p className="mt-2 text-sm text-cream-100/70">Dữ liệu lịch đua được cập nhật trực tiếp từ hệ thống.</p>
+                <h2 className="text-2xl font-extrabold sm:text-3xl">{t('homeUpcomingRaces')}</h2>
+                <p className="mt-2 text-sm text-cream-100/70">{t('homeRaceDataHint')}</p>
               </div>
               <div className="grid grid-cols-3 gap-1 rounded-lg bg-cream-100/10 p-1">
                 {DAYS.map((item) => (
                   <button key={item.offset} type="button" onClick={() => selectDay(item.offset)} className={`rounded-md px-3 py-2.5 text-xs font-bold transition sm:text-sm ${day === item.offset ? "bg-gold-400 text-brown-900" : "text-cream-100/75 hover:bg-cream-100/10"}`}>
-                    {item.label}
+                    {t(item.labelKey)}
                   </button>
                 ))}
               </div>
@@ -72,7 +74,7 @@ export default function Racecards({ races, tournaments, isLoading, error }) {
 
           <div className="border-b border-brown-900/10 px-5 py-4 sm:px-7">
             <div className="flex gap-2 overflow-x-auto pb-1">
-              <button type="button" onClick={() => setTrack("all")} className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold ${track === "all" ? "bg-gold-400 text-brown-900" : "border border-brown-900/15 hover:bg-cream-200"}`}>Tất cả đường đua</button>
+              <button type="button" onClick={() => setTrack("all")} className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold ${track === "all" ? "bg-gold-400 text-brown-900" : "border border-brown-900/15 hover:bg-cream-200"}`}>{t('homeAllTracks')}</button>
               {tracks.map((name) => <button key={name} type="button" onClick={() => setTrack(name)} className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold ${track === name ? "bg-gold-400 text-brown-900" : "border border-brown-900/15 hover:bg-cream-200"}`}>{name}</button>)}
             </div>
           </div>
@@ -85,8 +87,8 @@ export default function Racecards({ races, tournaments, isLoading, error }) {
             ) : displayed.length === 0 ? (
               <div className="rounded-lg border border-dashed border-brown-900/20 bg-cream-100 px-6 py-12 text-center">
                 <CalendarDays className="mx-auto h-8 w-8 text-brown-500" aria-hidden />
-                <h3 className="mt-3 font-bold text-brown-900">Chưa có cuộc đua trong ngày này</h3>
-                <p className="mt-1 text-sm text-brown-900/60">Hãy chọn ngày khác để xem lịch thi đấu.</p>
+                <h3 className="mt-3 font-bold text-brown-900">{t('homeNoRaceTitle')}</h3>
+                <p className="mt-1 text-sm text-brown-900/60">{t('homeNoRaceHint')}</p>
               </div>
             ) : (
               <div className="grid gap-4 md:grid-cols-2">
@@ -104,11 +106,11 @@ export default function Racecards({ races, tournaments, isLoading, error }) {
                         <StatusBadge status={race.status} />
                       </div>
                       <dl className="grid grid-cols-2 border-y border-brown-900/10 bg-cream-200/70 text-sm">
-                        <div className="flex items-center gap-2 px-4 py-3"><MapPin className="h-4 w-4 text-brown-500" aria-hidden /><div><dt className="text-xs text-brown-900/50">Đường đua</dt><dd className="font-semibold text-brown-900">{race.trackName}</dd></div></div>
-                        <div className="flex items-center gap-2 border-l border-brown-900/10 px-4 py-3"><Route className="h-4 w-4 text-brown-500" aria-hidden /><div><dt className="text-xs text-brown-900/50">Cự ly</dt><dd className="font-semibold text-brown-900">{Number(race.distance || 0).toLocaleString("vi-VN")} m</dd></div></div>
+                        <div className="flex items-center gap-2 px-4 py-3"><MapPin className="h-4 w-4 text-brown-500" aria-hidden /><div><dt className="text-xs text-brown-900/50">{t('homeTrack')}</dt><dd className="font-semibold text-brown-900">{race.trackName}</dd></div></div>
+                        <div className="flex items-center gap-2 border-l border-brown-900/10 px-4 py-3"><Route className="h-4 w-4 text-brown-500" aria-hidden /><div><dt className="text-xs text-brown-900/50">{t('homeDistance')}</dt><dd className="font-semibold text-brown-900">{Number(race.distance || 0).toLocaleString("vi-VN")} m</dd></div></div>
                       </dl>
                       <div className="flex items-center justify-between gap-3 px-5 py-4 text-sm">
-                        <span className="inline-flex items-center gap-2 text-brown-900/70"><Users className="h-4 w-4" aria-hidden />{race.entryCount || 0}/{race.maxRunners || 0} ngựa · còn {available} chỗ</span>
+                        <span className="inline-flex items-center gap-2 text-brown-900/70"><Users className="h-4 w-4" aria-hidden />{t('homeHorseSlots', { entries: race.entryCount || 0, max: race.maxRunners || 0, available })}</span>
                         <span className="inline-flex items-center gap-1 font-bold text-brown-500"><Flag className="h-4 w-4" aria-hidden />Race {race.raceOrder || "—"}</span>
                       </div>
                     </article>
@@ -116,7 +118,7 @@ export default function Racecards({ races, tournaments, isLoading, error }) {
                 })}
               </div>
             )}
-            {filtered.length > 6 && <button type="button" onClick={() => setShowAll((value) => !value)} className="mx-auto mt-7 block rounded-md border border-brown-900/15 px-5 py-2.5 text-sm font-bold text-brown-900 hover:bg-cream-200">{showAll ? "Thu gọn" : `Xem thêm ${filtered.length - 6} cuộc đua`}</button>}
+            {filtered.length > 6 && <button type="button" onClick={() => setShowAll((value) => !value)} className="mx-auto mt-7 block rounded-md border border-brown-900/15 px-5 py-2.5 text-sm font-bold text-brown-900 hover:bg-cream-200">{showAll ? t('homeCollapse') : t('homeShowMoreRaces', { count: filtered.length - 6 })}</button>}
           </div>
         </div>
       </div>

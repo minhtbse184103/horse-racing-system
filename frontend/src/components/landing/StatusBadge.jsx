@@ -10,12 +10,24 @@ const STYLES = {
 };
 
 export default function StatusBadge({ status }) {
+  const { t } = useLanguage();
   const key = String(status || "openforregistration").replace(/[_\s-]/g, "").toLowerCase();
   const s = STYLES[key] ?? STYLES.openforregistration;
+  const translationKeys = {
+    openforregistration: "status_OPEN_FOR_REGISTRATION",
+    registrationclosed: "status_REGISTRATION_CLOSED",
+    closedregistration: "status_REGISTRATION_CLOSED",
+    inprogress: "status_IN_PROGRESS",
+    ongoing: "status_IN_PROGRESS",
+    completed: "status_COMPLETED",
+    finished: "status_COMPLETED",
+    cancelled: "status_CANCELLED"
+  };
   return (
     <span className={`inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1 text-xs font-semibold tracking-wide ${s.cls}`}>
       <span className="h-1.5 w-1.5 rounded-full bg-current opacity-80" aria-hidden />
-      {s.label}
+      {translationKeys[key] ? t(translationKeys[key]) : s.label}
     </span>
   );
 }
+import { useLanguage } from "../../context/LanguageContext";

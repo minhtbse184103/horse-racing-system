@@ -16,8 +16,10 @@ import {
   getPublicRaces,
   getPublicRaceResults
 } from "../services/eventService";
+import { useLanguage } from "../context/LanguageContext";
 
 export default function LandingPage({ onGoLogin, onGoRegister }) {
+  const { t } = useLanguage();
   const [tournaments, setTournaments] = useState([]);
   const [conditions, setConditions] = useState([]);
   const [races, setRaces] = useState([]);
@@ -90,7 +92,7 @@ export default function LandingPage({ onGoLogin, onGoRegister }) {
   const heroStats = useMemo(
     () => [
       {
-        label: "Giải đấu đang hoạt động",
+        label: t('homeActiveTournaments'),
         value: tournaments.filter((tournament) =>
           ["OPEN_FOR_REGISTRATION", "REGISTRATION_CLOSED", "IN_PROGRESS"].includes(
             String(tournament.status).toUpperCase()
@@ -98,18 +100,18 @@ export default function LandingPage({ onGoLogin, onGoRegister }) {
         ).length
       },
       {
-        label: "Đang mở đăng ký",
+        label: t('homeOpenRegistration'),
         value: tournaments.filter(
           (tournament) => String(tournament.status).toUpperCase() === "OPEN_FOR_REGISTRATION"
         ).length
       }
     ],
-    [tournaments]
+    [tournaments, t]
   );
 
   return (
     <div className="min-h-screen bg-cream-100 text-brown-900 font-sans">
-      <div className="fixed right-4 top-4 z-50">
+      <div className="fixed right-4 top-20 z-[60]">
         <LanguageToggle />
       </div>
       <Navbar onGoLogin={onGoLogin} onGoRegister={onGoRegister} />
