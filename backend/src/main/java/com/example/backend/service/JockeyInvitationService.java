@@ -54,6 +54,7 @@ public class JockeyInvitationService {
         return JockeyInvitationResponse.builder()
                 .invitationId(invitation.getInvitationId())
                 .registrationId(invitation.getRegistrationId())
+                .registrationNo(registration != null ? registration.getRegistrationNo() : null)
                 .tournamentId(tournamentId)
                 .tournamentName(tournament != null ? tournament.getTournamentName() : null)
                 .tournamentStartDate(tournament != null ? tournament.getStartDate() : null)
@@ -70,6 +71,8 @@ public class JockeyInvitationService {
                 .expiredAt(invitation.getExpiredAt())
                 .status(invitation.getStatus())
                 .registrationStatus(registration != null ? registration.getStatus() : null)
+                .paymentStatus(registration != null ? registration.getPaymentStatus() : null)
+                .approvalStatus(registration != null ? registration.getApprovalStatus() : null)
                 .build();
     }
 }

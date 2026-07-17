@@ -90,6 +90,7 @@ public class UserService {
     @Transactional
     public UserResponse updateUserByAdmin(Integer userID, AdminUpdateUserRequest request) {
         User user = findUserById(userID);
+        // hàm để chỉ update tk admin ở trang admin
         rejectAdminAccountManagement(user);
 
         if (hasText(request.getEmail()) && !request.getEmail().equalsIgnoreCase(user.getEmail())) {

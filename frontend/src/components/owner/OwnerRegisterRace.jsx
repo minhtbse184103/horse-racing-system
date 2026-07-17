@@ -265,8 +265,38 @@ function getInvitationJockeyName(invitation) {
   return invitation.jockeyName || invitation.jockey?.fullName || invitation.jockey?.email || `Jockey ${getInvitationJockeyId(invitation) || ''}`;
 }
 
+function getInvitationPaymentStatus(invitation) {
+  const explicitStatus = firstDefined(
+    invitation?.paymentStatus,
+    invitation?.registrationPaymentStatus,
+    invitation?.payment?.status
+  );
+  if (explicitStatus) return String(explicitStatus).toUpperCase();
+
+  // Older API versions exposed only registrationStatus. Use it only when it is
+  // unmistakably a payment state; PENDING/APPROVED are approval states.
+  const legacyStatus = String(invitation?.registrationStatus || '').toUpperCase();
+  return ['PAID', 'UNPAID', 'FAILED', 'REFUNDED'].includes(legacyStatus) ? legacyStatus : '';
+}
+
+function getInvitationApprovalStatus(invitation) {
+  const explicitStatus = firstDefined(
+    invitation?.approvalStatus,
+    invitation?.registrationApprovalStatus
+  );
+  if (explicitStatus) return String(explicitStatus).toUpperCase();
+
+  const legacyStatus = String(invitation?.registrationStatus || '').toUpperCase();
+  return ['PAID', 'UNPAID', 'FAILED', 'REFUNDED'].includes(legacyStatus) ? '' : legacyStatus;
+}
+
 function hasRegistrationStatus(invitation) {
-  return Boolean(invitation.registrationStatus);
+  return Boolean(
+    invitation?.registrationId
+    || invitation?.registrationNo
+    || getInvitationPaymentStatus(invitation)
+    || getInvitationApprovalStatus(invitation)
+  );
 }
 
 function isPaidStatus(status) {
@@ -274,7 +304,15 @@ function isPaidStatus(status) {
 }
 
 function isUnpaidStatus(status) {
-  return ['UNPAID', 'PENDING'].includes(String(status || '').toUpperCase());
+  return ['UNPAID', 'FAILED'].includes(String(status || '').toUpperCase());
+}
+
+function canStartInvitationPayment(invitation) {
+  if (!hasRegistrationStatus(invitation)) return true;
+
+  const approvalStatus = getInvitationApprovalStatus(invitation);
+  return ['PENDING', 'APPROVED'].includes(approvalStatus)
+    && isUnpaidStatus(getInvitationPaymentStatus(invitation));
 }
 
 function isLockedInvitationStatus(status) {
@@ -294,7 +332,15 @@ function isAcceptedInvitation(invitation) {
 }
 
 function hasRegisteredInvitation(invitation) {
-  return isLockedRegistrationStatus(invitation?.registrationStatus);
+  return hasRegistrationStatus(invitation);
+}
+
+function isAlreadyPaidError(message) {
+  const normalized = String(message || '').toLowerCase();
+  return normalized.includes('already been paid')
+    || normalized.includes('already paid')
+    || normalized.includes('đã được thanh toán')
+    || normalized.includes('đã thanh toán');
 }
 
 function isRegistrationSummaryRow(item) {
@@ -699,18 +745,34 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
     () => [...filteredInvitations, ...registeredHorseSummaryRows],
     [filteredInvitations, registeredHorseSummaryRows]
   );
-  const payableInvitations = useMemo(() => invitations.filter((invitation) => (
-    isAcceptedInvitation(invitation) || hasRegisteredInvitation(invitation)
-  )), [invitations]);
+  const payableInvitations = useMemo(() => invitations
+    .filter((invitation) => isAcceptedInvitation(invitation) || hasRegisteredInvitation(invitation))
+    .sort((left, right) => {
+      const paidDifference = Number(isPaidStatus(getInvitationPaymentStatus(left)))
+        - Number(isPaidStatus(getInvitationPaymentStatus(right)));
+      if (paidDifference !== 0) return paidDifference;
+      return String(right.createdAt || '').localeCompare(String(left.createdAt || ''));
+    }), [invitations]);
+  const paidInvitationCount = useMemo(
+    () => payableInvitations.filter((invitation) => isPaidStatus(getInvitationPaymentStatus(invitation))).length,
+    [payableInvitations]
+  );
+  const pendingPaymentCount = useMemo(
+    () => payableInvitations.filter(canStartInvitationPayment).length,
+    [payableInvitations]
+  );
   const inviteReady = Boolean(formValues.tournamentId && formValues.horseId);
   const isInviteFlowActive = flowMode === 'invite';
   const isPaymentFlowActive = flowMode === 'payment';
   const hasAcceptedInvitation = acceptedJockeyInvitations.length > 0;
   const selectedPaymentStatus = paymentResult?.registrationPaymentStatus
     || (paymentResult?.success ? 'PAID' : '')
-    || paymentResult?.status
-    || selectedAcceptedInvitation?.registrationStatus
     || registrationResult?.paymentStatus
+    || getInvitationPaymentStatus(selectedAcceptedInvitation)
+    || '';
+  const selectedApprovalStatus = paymentResult?.registrationApprovalStatus
+    || registrationResult?.approvalStatus
+    || getInvitationApprovalStatus(selectedAcceptedInvitation)
     || '';
   const isRegistrationPaid = isPaidStatus(selectedPaymentStatus);
   const isRegistrationUnpaid = isUnpaidStatus(selectedPaymentStatus);
@@ -970,7 +1032,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
         horseId: getInvitationHorseId(createdInvitation) ?? Number(nextValues.horseId),
         jockeyId: getInvitationJockeyId(createdInvitation) ?? Number(nextValues.jockeyId),
         status: createdInvitation?.status || 'PENDING',
-        registrationStatus: createdInvitation?.registrationStatus || 'PENDING'
+        registrationStatus: createdInvitation?.registrationStatus || null
       };
       setMessage(t('ownerRaceInviteSuccess'));
       setInvitations((current) => {
@@ -1013,6 +1075,15 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
 
   async function handleRegistrationSubmit(event) {
     event.preventDefault();
+    if (isPaidStatus(getInvitationPaymentStatus(selectedAcceptedInvitation))) {
+      setRegistrationSubmitError('');
+      setMessage(t('ownerRaceAlreadyPaidNotice'));
+      return;
+    }
+    if (!canStartInvitationPayment(selectedAcceptedInvitation)) {
+      setRegistrationSubmitError(t('ownerRacePaymentUnavailable'));
+      return;
+    }
     const errors = validateRegistrationForm();
     setRegistrationErrors(errors);
     setRegistrationSubmitError('');
@@ -1044,7 +1115,14 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
       setMessage(t('ownerRaceRegistrationSubmitted'));
       await loadPageData();
     } catch (err) {
-      setRegistrationSubmitError(getErrorText(err, t('ownerRaceRegistrationSubmitError')));
+      const errorText = getErrorText(err, t('ownerRaceRegistrationSubmitError'));
+      if (isAlreadyPaidError(errorText)) {
+        await loadPageData();
+        setRegistrationSubmitError('');
+        setMessage(t('ownerRaceAlreadyPaidNotice'));
+        return;
+      }
+      setRegistrationSubmitError(errorText);
     } finally {
       setIsRegistering(false);
     }
@@ -1119,8 +1197,8 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
                   <h2>{getTournamentName(selectedTournament)}</h2>
                   <p>{getTournamentVenue(selectedTournament, t)} · {formatDateRange(selectedTournament.startDate, selectedTournament.endDate, t)}</p>
                 </div>
-                <button className="outline-button" type="button" onClick={clearTournamentSelection}>
-                  {t('ownerRaceChangeTournament')}
+                <button className="outline-button" type="button" onClick={clearTournamentSelection} disabled={isRegistering}>
+                  {t('close')}
                 </button>
               </div>
               <div className="selected-tournament-detail">
@@ -1261,7 +1339,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
                   const lockReason = selectedTournament ? getHorseTournamentLockReason(horse, getTournamentId(selectedTournament), invitations, horseLockReasons, t) : '';
                   const hasActiveInvite = hasActiveInvitationForHorse(horseId, invitations);
                   const disabled = !selectedTournament || Boolean(lockReason) || hasActiveInvite || hasParticipated;
-                  const statusText = lockReason || (hasActiveInvite ? t('ownerRaceHasInvite') : hasParticipated ? t('ownerRaceParticipated') : formatStatus(horse.status || 'ACTIVE', t));
+                  const statusText = formatStatus(horse.status || 'ACTIVE', t);
 
                   return (
                     <article className={`registration-horse-card ${selected ? 'selected' : ''} ${lockReason && !hasActiveInvite && !hasParticipated ? 'unavailable' : ''} ${hasActiveInvite ? 'has-active-invite' : ''} ${hasParticipated ? 'participated' : ''}`} key={horseId}>
@@ -1298,7 +1376,9 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
               </div>
             </div>
 
-            {submitError && <div className="admin-alert error modal-alert" role="alert">{submitError}</div>}
+            {submitError && submitError !== formErrors.horseId && submitError !== registrationErrors.horseId && (
+              <div className="admin-alert error modal-alert" role="alert">{submitError}</div>
+            )}
 
             <div className="owner-invite-context-grid wizard-step-hidden">
               <article className="owner-invite-context-card">
@@ -1499,24 +1579,26 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
             </div>
           </form>
 
-          {isPaymentFlowActive && paymentResult ? (
+          {isPaymentFlowActive && (paymentResult || isRegistrationPaid) ? (
           <section className="owner-panel owner-payment-result" role="status">
             <div className={`owner-payment-result-icon ${isRegistrationPaid ? 'success' : 'failed'}`}>
               {isRegistrationPaid ? <CheckCircle2 size={32} /> : <XCircle size={32} />}
             </div>
             <div className="owner-payment-result-copy">
-              <p className="eyebrow">{t('ownerRacePaymentResultEyebrow')}</p>
-              <h2>{isRegistrationPaid ? t('ownerRacePaymentSuccessTitle') : t('ownerRacePaymentFailedTitle')}</h2>
+              <p className="eyebrow">{paymentResult ? t('ownerRacePaymentResultEyebrow') : t('ownerRacePaymentDetailsEyebrow')}</p>
+              <h2>{isRegistrationPaid ? t('ownerRacePaymentCompletedTitle') : t('ownerRacePaymentFailedTitle')}</h2>
               <p>{isRegistrationPaid
-                ? t('ownerRacePaymentSuccessDesc')
+                ? t('ownerRacePaymentCompletedDesc')
                 : paymentResult.message || t('ownerRacePaymentFailedDesc')}</p>
             </div>
             <dl className="owner-payment-result-details">
-              <div><dt>{t('ownerRaceTransactionCode')}</dt><dd>{paymentResult.txnRef || 'N/A'}</dd></div>
-              <div><dt>{t('ownerRaceRegistrationCode')}</dt><dd>{paymentResult.registrationId ? `#${paymentResult.registrationId}` : 'N/A'}</dd></div>
-              <div><dt>{t('ownerRaceAmount')}</dt><dd>{formatCurrency(paymentResult.amount)}</dd></div>
+              <div><dt>{t('ownerRaceTournamentLabel')}</dt><dd>{selectedTournament ? getTournamentName(selectedTournament) : 'N/A'}</dd></div>
+              <div><dt>{t('ownerRaceHorseLabel')} / Jockey</dt><dd>{selectedHorse ? getHorseName(selectedHorse) : 'N/A'} / {selectedAcceptedInvitation ? getInvitationJockeyName(selectedAcceptedInvitation) : 'N/A'}</dd></div>
+              <div><dt>{t('ownerRaceRegistrationCode')}</dt><dd>{registrationResult?.registrationNo || selectedAcceptedInvitation?.registrationNo || (paymentResult?.registrationId ? `#${paymentResult.registrationId}` : 'N/A')}</dd></div>
+              <div><dt>{t('ownerRaceAmount')}</dt><dd>{formatCurrency(paymentResult?.amount ?? selectedTournament?.entryFee)}</dd></div>
               <div><dt>{t('ownerRacePayment')}</dt><dd><StatusBadge status={selectedPaymentStatus || 'FAILED'} /></dd></div>
-              <div><dt>{t('ownerRaceApproval')}</dt><dd><StatusBadge status="PENDING" /></dd></div>
+              <div><dt>{t('ownerRaceApproval')}</dt><dd><StatusBadge status={selectedApprovalStatus || 'PENDING'} /></dd></div>
+              {paymentResult?.txnRef && <div><dt>{t('ownerRaceTransactionCode')}</dt><dd>{paymentResult.txnRef}</dd></div>}
             </dl>
             <div className="owner-payment-result-actions">
               <button className="primary-button" type="button" onClick={clearTournamentSelection}>
@@ -1524,7 +1606,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
               </button>
             </div>
           </section>
-          ) : isPaymentFlowActive && hasAcceptedInvitation ? (
+          ) : isPaymentFlowActive && hasAcceptedInvitation && canStartInvitationPayment(selectedAcceptedInvitation) ? (
           <form className={`owner-panel owner-form flow-only ${wizardStep === 4 ? '' : 'wizard-step-hidden'}`} onSubmit={handleRegistrationSubmit} noValidate>
             <div className="owner-panel-header">
               <div>
@@ -1532,9 +1614,6 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
                 <h2>{t('ownerRacePaymentReviewTitle')}</h2>
                 <p>{t('ownerRacePaymentReviewDesc')}</p>
               </div>
-              <button className="outline-button compact-button" type="button" onClick={clearTournamentSelection} disabled={isRegistering}>
-                {t('close')}
-              </button>
             </div>
 
             {registrationSubmitError && <div className="admin-alert error modal-alert" role="alert">{registrationSubmitError}</div>}
@@ -1548,8 +1627,8 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
             </div>
 
             <div className="registration-default-status owner-payment-status-row">
-              <span>{t('ownerRacePayment')} <strong>{isRegistrationPaid ? formatStatus('PAID', t) : isRegistrationUnpaid ? formatStatus('UNPAID', t) : t('ownerRaceNoTransaction')}</strong></span>
-              <span>{t('ownerRaceApproval')} <strong>{t('ownerRaceAfterPayment')}</strong></span>
+              <span>{t('ownerRacePayment')} <strong>{isRegistrationPaid ? formatStatus('PAID', t) : isRegistrationUnpaid ? formatStatus(selectedPaymentStatus, t) : t('ownerRaceNoTransaction')}</strong></span>
+              <span>{t('ownerRaceApproval')} <strong>{selectedApprovalStatus ? formatStatus(selectedApprovalStatus, t) : t('ownerRaceAfterPayment')}</strong></span>
             </div>
 
             {selectedAcceptedInvitation && (
@@ -1597,7 +1676,10 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
                 <h2>{t('ownerRacePaymentReadyTitle')}</h2>
                 <p>{t('ownerRacePaymentReadyDesc')}</p>
               </div>
-              <span className="owner-count-pill">{t('ownerRaceReadyInvites', { count: payableInvitations.length })}</span>
+              <div className="owner-payment-summary" aria-label={t('ownerRacePaymentSummary')}>
+                <span className="owner-count-pill payment-pending-count">{t('ownerRacePendingPaymentCount', { count: pendingPaymentCount })}</span>
+                <span className="owner-count-pill payment-paid-count">{t('ownerRacePaidPaymentCount', { count: paidInvitationCount })}</span>
+              </div>
             </div>
 
             {isLoading ? (
@@ -1612,6 +1694,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
                       <th>Jockey</th>
                       <th>{t('ownerRaceHorseLabel')}</th>
                       <th>{t('ownerRaceTournamentColumn')}</th>
+                      <th>{t('ownerRaceRegistrationColumn')}</th>
                       <th>{t('ownerRacePaymentColumn')}</th>
                       <th>{t('ownerRaceActionColumn')}</th>
                     </tr>
@@ -1619,22 +1702,44 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
                   <tbody>
                     {payableInvitations.map((invitation) => {
                       const invitationId = getInvitationId(invitation);
-                      const registrationStatus = String(invitation.registrationStatus || '').toUpperCase();
-                      const isInvitationPaid = isPaidStatus(registrationStatus);
+                      const paymentStatus = getInvitationPaymentStatus(invitation);
+                      const approvalStatus = getInvitationApprovalStatus(invitation);
+                      const hasRegistration = hasRegistrationStatus(invitation);
+                      const isInvitationPaid = isPaidStatus(paymentStatus);
+                      const canStartPayment = canStartInvitationPayment(invitation);
 
                       return (
-                        <tr key={invitationId || `${invitation.tournamentId}-${invitation.jockeyId}`}>
+                        <tr className={isInvitationPaid ? 'payment-row-paid' : canStartPayment ? 'payment-row-pending' : ''} key={invitationId || `${invitation.tournamentId}-${invitation.jockeyId}`}>
                           <td><strong>{getInvitationJockeyName(invitation)}</strong></td>
                           <td>{invitation.horseName || invitation.horseId || 'N/A'}</td>
                           <td>
                             <strong>{invitation.tournamentName || invitation.tournamentId || 'N/A'}</strong>
                             <small className="table-subtext">{formatDateRange(invitation.tournamentStartDate, invitation.tournamentEndDate, t)}</small>
                           </td>
-                          <td><StatusBadge status={invitation.registrationStatus || t('ownerRaceNone')} /></td>
                           <td>
-                            <button type="button" className="table-button" onClick={() => fillRegistrationFromInvitation(invitation)} disabled={isInvitationPaid}>
-                              {isInvitationPaid ? t('ownerRacePaid') : hasRegistrationStatus(invitation) ? t('ownerRacePay') : t('ownerRaceCreateRegistration')}
-                            </button>
+                            {hasRegistration ? (
+                              <>
+                                <strong>{invitation.registrationNo || `#${invitation.registrationId}`}</strong>
+                                <small className="table-subtext">{t('ownerRaceApproval')}: {approvalStatus ? formatStatus(approvalStatus, t) : t('notUpdated')}</small>
+                              </>
+                            ) : <span className="readonly-note">{t('ownerRaceRegistrationNotCreated')}</span>}
+                          </td>
+                          <td>
+                            <StatusBadge status={paymentStatus || 'NOT_CREATED'} />
+                            <small className="table-subtext">{isInvitationPaid
+                              ? t('ownerRacePaymentCompletedHint')
+                              : canStartPayment ? t('ownerRacePaymentActionRequired') : t('ownerRacePaymentUnavailable')}</small>
+                          </td>
+                          <td>
+                            {isInvitationPaid ? (
+                              <button type="button" className="table-button payment-detail-button" onClick={() => fillRegistrationFromInvitation(invitation)}>
+                                <Eye size={15} /> {t('ownerRaceViewPaymentDetails')}
+                              </button>
+                            ) : canStartPayment ? (
+                              <button type="button" className="primary-button compact-primary payment-action-button" onClick={() => fillRegistrationFromInvitation(invitation)}>
+                                <ArrowRight size={15} /> {hasRegistration ? t('ownerRacePay') : t('ownerRaceCreateAndPay')}
+                              </button>
+                            ) : <span className="readonly-note">{t('ownerRacePaymentUnavailable')}</span>}
                           </td>
                         </tr>
                       );
@@ -1683,7 +1788,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
                       const invitationId = getInvitationId(invitation);
                       const isSummaryRow = isRegistrationSummaryRow(invitation);
                       const status = String(invitation.status || '').toUpperCase();
-                      const registrationStatus = String(invitation.registrationStatus || '').toUpperCase();
+                      const registrationStatus = getInvitationApprovalStatus(invitation);
                       const canCancel = status === 'PENDING';
                       const canOpenPayment = !isSummaryRow && (isAcceptedInvitation(invitation) || hasRegisteredInvitation(invitation));
 
