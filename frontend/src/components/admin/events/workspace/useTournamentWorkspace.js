@@ -296,11 +296,12 @@ export default function useTournamentWorkspace() {
     try {
       if (action === 'close') {
         await closeTournamentRegistration(tournament.id);
+        setNotice(localized('Registration của Tournament đã đóng.', 'Tournament registration closed.'));
       } else if (action === 'complete') {
         await completeTournament(tournament.id);
+        setNotice(localized('Tournament đã hoàn thành.', 'Tournament completed.'));
       }
       await loadTournaments();
-      setNotice(`Đã cập nhật Status của ${tournament.name} thành công.`);
     } catch (error) {
       setMutationError(error.message || localized('Không thể cập nhật Status của Tournament.', 'Unable to update Tournament Status.'));
     } finally {
