@@ -24,7 +24,6 @@ import com.example.backend.repository.RaceEntryRepository;
 import com.example.backend.repository.RaceRepository;
 import com.example.backend.repository.RegistrationRepository;
 import com.example.backend.repository.TournamentRepository;
-import com.example.backend.repository.UserVerificationRepository;
 import com.example.backend.repository.UserRepository;
 import com.example.backend.repository.UserVerificationRepository;
 import org.junit.jupiter.api.AfterEach;
@@ -85,7 +84,11 @@ class OwnerTournamentRegistrationServiceTest {
                 raceEntryRepository,
                 raceRepository,
                 userVerificationRepository,
-                vnpayPaymentService
+                vnpayPaymentService,
+                new RegistrationAvailabilityService(
+                        registrationRepository,
+                        jockeyInvitationRepository
+                )
         );
 
         SecurityContextHolder.getContext()

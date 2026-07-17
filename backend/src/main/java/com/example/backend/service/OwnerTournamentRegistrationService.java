@@ -66,6 +66,7 @@ public class OwnerTournamentRegistrationService {
     private final RaceRepository raceRepository;
     private final UserVerificationRepository userVerificationRepository;
     private final VnpayPaymentService vnpayPaymentService;
+    private final RegistrationAvailabilityService availabilityService;
 
     public OwnerTournamentRegistrationService(
             RegistrationRepository registrationRepository,
@@ -78,7 +79,8 @@ public class OwnerTournamentRegistrationService {
             RaceEntryRepository raceEntryRepository,
             RaceRepository raceRepository,
             UserVerificationRepository userVerificationRepository,
-            VnpayPaymentService vnpayPaymentService) {
+            VnpayPaymentService vnpayPaymentService,
+            RegistrationAvailabilityService availabilityService) {
         this.registrationRepository = registrationRepository;
         this.tournamentRepository = tournamentRepository;
         this.horseRepository = horseRepository;
@@ -90,6 +92,7 @@ public class OwnerTournamentRegistrationService {
         this.raceRepository = raceRepository;
         this.userVerificationRepository = userVerificationRepository;
         this.vnpayPaymentService = vnpayPaymentService;
+        this.availabilityService = availabilityService;
     }
 
     @Transactional
@@ -120,10 +123,12 @@ public class OwnerTournamentRegistrationService {
             );
         }
 
-        validateDuplicateHorseRegistration(tournament, horse);
-        validateDuplicateOwnerRegistration(tournament, owner);
-        validateHorseAvailability(tournament, horse);
-        validateJockeyAvailability(tournament, jockey);
+        availabilityService.validatePaidRegistrationCanBeCreated(
+                tournament,
+                horse,
+                owner,
+                jockey
+        );
 
         LocalDateTime now = LocalDateTime.now();
         Registration registration = new Registration();
@@ -346,108 +351,6 @@ public class OwnerTournamentRegistrationService {
             throw new ApiException(
                     HttpStatus.CONFLICT,
                     "An ACCEPTED jockey invitation is required before registration."
-            );
-        }
-    }
-
-    private void validateDuplicateHorseRegistration(
-            Tournament tournament,
-            Horse horse
-    ) {
-        long duplicateCount =
-                registrationRepository
-                        .countByTournamentIdAndHorseIdAndStatusInExcludingRegistration(
-                                tournament.getTournamentId(),
-                                horse.getHorseId(),
-                                ACTIVE_REGISTRATION_STATUSES,
-                                null
-                        );
-
-        if (duplicateCount > 0) {
-            throw new ApiException(
-                    HttpStatus.CONFLICT,
-                    "Horse already has an active registration in this tournament."
-            );
-        }
-    }
-
-    private void validateDuplicateOwnerRegistration(
-            Tournament tournament,
-            User owner
-    ) {
-        long duplicateCount =
-                registrationRepository
-                        .countByTournamentIdAndOwnerIdAndStatusInExcludingRegistration(
-                                tournament.getTournamentId(),
-                                owner.getUserID(),
-                                ACTIVE_REGISTRATION_STATUSES,
-                                null
-                        );
-
-        if (duplicateCount > 0) {
-            throw new ApiException(
-                    HttpStatus.CONFLICT,
-                    "Owner already has an active registration in this tournament."
-            );
-        }
-    }
-
-    private void validateJockeyAvailability(
-            Tournament tournament,
-            User jockey
-    ) {
-        long sameTournamentCount =
-                registrationRepository
-                        .countByTournamentIdAndJockeyIdAndStatusInExcludingRegistration(
-                                tournament.getTournamentId(),
-                                jockey.getUserID(),
-                                ACTIVE_REGISTRATION_STATUSES,
-                                null
-                        );
-
-        if (sameTournamentCount > 0) {
-            throw new ApiException(
-                    HttpStatus.CONFLICT,
-                    "Jockey already has an active registration in this tournament."
-            );
-        }
-
-        long overlappingCount =
-                registrationRepository
-                        .countByOverlappingTournamentAndJockeyIdAndStatusInExcludingRegistration(
-                                jockey.getUserID(),
-                                tournament.getStartDate(),
-                                tournament.getEndDate(),
-                                ACTIVE_REGISTRATION_STATUSES,
-                                null
-                        );
-
-        if (overlappingCount > 0) {
-            throw new ApiException(
-                    HttpStatus.CONFLICT,
-                    "Jockey already has an active registration in an overlapping tournament."
-            );
-        }
-    }
-
-    private void validateHorseAvailability(
-            Tournament tournament,
-            Horse horse
-    ) {
-        long overlappingCount =
-                registrationRepository
-                        .countByOverlappingTournamentAndHorseIdAndStatusInExcludingRegistration(
-                                horse.getHorseId(),
-                                tournament.getStartDate(),
-                                tournament.getEndDate(),
-                                ACTIVE_REGISTRATION_STATUSES,
-                                null
-                        );
-
-        if (overlappingCount > 0) {
-            throw new ApiException(
-                    HttpStatus.CONFLICT,
-                    "Horse already has an active registration in an overlapping tournament."
             );
         }
     }
