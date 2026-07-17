@@ -44,19 +44,23 @@ public class KycServiceImpl implements KycService {
     @Override
     @Transactional
     public KycSessionResponse createSession(String email) {
+        // Lấy user, lock user trong DB và kiểm tra chỉ spectator active được tạo KYC session.
         User user = getUser(email);
         userRepository.findByIdForUpdate(user.getUserID())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found."));
         validateEligibleUser(user);
 
+        // Nếu đã có session KYC đang xử lý thì tái sử dụng, không tạo session mới.
         List<UserVerification> active = verificationRepository.findActiveByUserId(user.getUserID(), ACTIVE_STATUSES);
         if (!active.isEmpty()) return sessionResponse(active.get(0), true);
 
+        // Nếu đã verified và chưa hết hạn thì dùng lại kết quả KYC cũ.
         UserVerification verified = verificationRepository
                 .findFirstByUserIdAndStatusOrderByAttemptNumberDesc(user.getUserID(), KycStatus.VERIFIED)
                 .orElse(null);
         if (verified != null && !isExpired(verified)) return sessionResponse(verified, true);
 
+        // Gọi Didit tạo session xác thực định danh.
         JsonNode created;
         try {
             created = diditClient.createSession("user-" + user.getUserID());
@@ -69,6 +73,7 @@ public class KycServiceImpl implements KycService {
             throw new ApiException(HttpStatus.BAD_GATEWAY, "Didit did not return a verification URL.");
         }
 
+        // Lưu session KYC mới vào DB để đối chiếu khi webhook trả về.
         UserVerification verification = UserVerification.builder()
                 .userId(user.getUserID()).provider(PROVIDER).providerSessionId(sessionId)
                 .providerSessionNumber(longValue(created, "session_number"))
@@ -84,6 +89,7 @@ public class KycServiceImpl implements KycService {
     @Override
     @Transactional(readOnly = true)
     public KycResponseDTO getMine(String email) {
+        // Lấy trạng thái KYC mới nhất của spectator hiện tại.
         User user = getUser(email);
         validateEligibleUser(user);
         return verificationRepository.findFirstByUserIdOrderByAttemptNumberDesc(user.getUserID())
@@ -120,6 +126,7 @@ public class KycServiceImpl implements KycService {
     }
 
     private void applyDecision(String sessionId, JsonNode decision) {
+        // Tìm session KYC từ DB, lock user và hồ sơ để cập nhật kết quả an toàn.
         UserVerification session = verificationRepository.findByProviderSessionId(sessionId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Unknown Didit session."));
         User user = userRepository.findByIdForUpdate(session.getUserId())
@@ -127,6 +134,7 @@ public class KycServiceImpl implements KycService {
         validateEligibleUser(user);
         UserVerification verification = verificationRepository.findByProviderSessionIdForUpdate(sessionId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Unknown Didit session."));
+        // Đối chiếu dữ liệu webhook với dữ liệu đã lưu để tránh nhận nhầm session.
         requireEqual(sessionId, requiredText(decision, "session_id"), "Didit session mismatch.");
         requireEqual(verification.getVendorData(), requiredText(decision, "vendor_data"), "Didit vendor data mismatch.");
         requireEqual(verification.getWorkflowId(), requiredText(decision, "workflow_id"), "Didit workflow mismatch.");
@@ -140,9 +148,11 @@ public class KycServiceImpl implements KycService {
             requireEqual(properties.getExpectedEnvironment(), environment, "Didit environment mismatch.");
         }
 
+        // Map trạng thái từ Didit sang trạng thái KYC nội bộ.
         String providerStatus = requiredText(decision, "status");
         KycStatus mapped = mapStatus(providerStatus);
         if (mapped != KycStatus.VERIFIED) {
+            // Nếu chưa verified hoặc bị reject thì lưu trạng thái và lý do rồi dừng.
             verification.setStatus(mapped);
             verification.setRejectionReason(mapped == KycStatus.REJECTED
                     ? truncate(firstText(decision, "decline_reason", "reason"), 500) : null);
@@ -150,6 +160,7 @@ public class KycServiceImpl implements KycService {
             return;
         }
 
+        // Khi verified, tất cả feature bắt buộc phải được Approved.
         Map<String, String> features = extractFeatures(decision);
         for (String required : properties.getRequiredFeatures()) {
             if (!"Approved".equals(features.get(required))) {
@@ -157,6 +168,7 @@ public class KycServiceImpl implements KycService {
             }
         }
 
+        // Lưu thông tin giấy tờ đã xác minh vào hồ sơ KYC.
         JsonNode document = firstArrayItem(decision, "id_verifications", "document_verifications");
         verification.setIdVerificationStatus(features.get("ID_VERIFICATION"));
         verification.setLivenessStatus(features.get("LIVENESS"));
@@ -175,16 +187,20 @@ public class KycServiceImpl implements KycService {
         verification.setVerifiedAt(LocalDateTime.now());
         verification.setRejectionReason(null);
         verificationRepository.save(verification);
+        // Sau KYC thành công, mở ví cho spectator nếu chưa có.
         openWalletIfAbsent(verification.getUserId());
         log.info("Didit KYC verified and wallet opened. userId={}, verificationId={}",
                 verification.getUserId(), verification.getVerificationId());
     }
 
     private void openWalletIfAbsent(Integer userId) {
+        // Lock user và validate role trước khi tạo wallet.
         User user = userRepository.findByIdForUpdate(userId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found."));
         validateEligibleUser(user);
+        // Nếu user đã có wallet thì không tạo trùng.
         if (walletRepository.findByUserIdForUpdate(userId).isPresent()) return;
+        // Tạo wallet mặc định VND, balance 0, trạng thái ACTIVE.
         walletRepository.save(Wallet.builder().userId(userId).balance(BigDecimal.ZERO)
                 .lockedBalance(BigDecimal.ZERO).currency("VND").status(WalletStatus.ACTIVE).build());
         walletRepository.flush();
@@ -239,6 +255,7 @@ public class KycServiceImpl implements KycService {
     }
 
     private void validateEligibleUser(User user) {
+        // KYC hiện chỉ dành cho tài khoản spectator active.
         String role = user.getRole() == null ? null : user.getRole().getRoleName();
         String accountType = user.getAccountType();
         if (!"ACTIVE".equalsIgnoreCase(user.getStatus())
@@ -252,6 +269,7 @@ public class KycServiceImpl implements KycService {
     }
 
     private User getUser(String email) {
+        // Query user theo email lấy từ JWT.
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found."));
     }

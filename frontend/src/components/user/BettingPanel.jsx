@@ -13,6 +13,7 @@ import {
 import { formatDate, formatDisplayLabel, formatNumber } from '../../lib';
 import { getMyWallet } from '../../services/walletService';
 import {
+  cancelBetTicket,
   getBettingEvent,
   getBettingEvents,
   getMyBetTickets,
@@ -21,7 +22,7 @@ import {
 import { useLanguage } from '../../context/LanguageContext';
 
 const ticketStatuses = ['ALL', 'PLACED', 'WON', 'LOST', 'REFUNDED', 'VOID'];
-const productOptions = ['ALL', 'WIN'];
+const productOptions = ['ALL', 'WIN', 'PLACE'];
 
 function money(value) {
   return `${formatNumber(Number(value || 0))} VND`;
@@ -272,7 +273,26 @@ function BetEventDetail({ event, wallet, selectedEntryId, setSelectedEntryId, st
   );
 }
 
-function MyTickets({ tickets, statusFilter, setStatusFilter, productFilter, setProductFilter }) {
+function canCancelTicket(ticket) {
+  const status = String(ticket.status || '').toUpperCase();
+  const eventStatus = String(ticket.betEventStatus || '').toUpperCase();
+  const closeAt = ticket.bettingCloseAt ? new Date(ticket.bettingCloseAt) : null;
+  return status === 'PLACED'
+    && eventStatus === 'OPEN'
+    && closeAt
+    && Number.isFinite(closeAt.getTime())
+    && Date.now() < closeAt.getTime();
+}
+
+function MyTickets({
+  tickets,
+  statusFilter,
+  setStatusFilter,
+  productFilter,
+  setProductFilter,
+  cancellingTicketId,
+  onCancelTicket
+}) {
   const { t } = useLanguage();
   const filtered = useMemo(() => tickets.filter((ticket) => {
     const status = String(ticket.status || '').toUpperCase();
@@ -300,7 +320,7 @@ function MyTickets({ tickets, statusFilter, setStatusFilter, productFilter, setP
       </div>
 
       <div className="overflow-hidden rounded-lg border border-brown-700/10 bg-white/70">
-        <div className="grid grid-cols-[5rem_minmax(0,1fr)_7rem_8rem_8rem_8rem_8rem] gap-3 border-b border-brown-700/10 px-4 py-3 text-xs font-black uppercase text-slate-500 max-xl:hidden">
+        <div className="grid grid-cols-[5rem_minmax(0,1fr)_7rem_8rem_8rem_8rem_8rem_7rem] gap-3 border-b border-brown-700/10 px-4 py-3 text-xs font-black uppercase text-slate-500 max-xl:hidden">
           <span>{t('spectatorTicketColumn')}</span>
           <span>{t('spectatorRaceHorseColumn')}</span>
           <span>{t('spectatorProductColumn')}</span>
@@ -308,12 +328,13 @@ function MyTickets({ tickets, statusFilter, setStatusFilter, productFilter, setP
           <span>{t('spectatorOddsColumn')}</span>
           <span>{t('spectatorPayoutColumn')}</span>
           <span>{t('spectatorStatusColumn')}</span>
+          <span>Thao tác</span>
         </div>
         <div className="divide-y divide-brown-700/10">
           {filtered.length === 0 ? (
             <div className="p-8 text-center font-bold text-slate-500">{t('spectatorNoTickets')}</div>
           ) : filtered.map((ticket) => (
-            <div key={ticket.betTicketId} className="grid gap-3 px-4 py-4 xl:grid-cols-[5rem_minmax(0,1fr)_7rem_8rem_8rem_8rem_8rem]">
+            <div key={ticket.betTicketId} className="grid gap-3 px-4 py-4 xl:grid-cols-[5rem_minmax(0,1fr)_7rem_8rem_8rem_8rem_8rem_7rem]">
               <strong className="text-brown-900">#{ticket.betTicketId}</strong>
               <span className="min-w-0">
                 <strong className="block truncate text-brown-900">{ticket.raceName}</strong>
@@ -324,6 +345,18 @@ function MyTickets({ tickets, statusFilter, setStatusFilter, productFilter, setP
               <strong>{ticket.finalOdds ? Number(ticket.finalOdds).toFixed(2) : ticket.estimatedOddsAtBet ? Number(ticket.estimatedOddsAtBet).toFixed(2) : '-'}</strong>
               <strong>{money(ticket.payoutAmount)}</strong>
               <StatusBadge status={ticket.status} />
+              {canCancelTicket(ticket) ? (
+                <button
+                  className="outline-button danger-action compact-button"
+                  type="button"
+                  onClick={() => onCancelTicket(ticket)}
+                  disabled={Number(cancellingTicketId) === Number(ticket.betTicketId)}
+                >
+                  {Number(cancellingTicketId) === Number(ticket.betTicketId) ? 'Đang hủy...' : 'Hủy'}
+                </button>
+              ) : (
+                <span className="text-xs font-bold text-slate-400">-</span>
+              )}
             </div>
           ))}
         </div>
@@ -348,6 +381,7 @@ export default function BettingPanel() {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [cancellingTicketId, setCancellingTicketId] = useState(null);
 
   async function loadData() {
     setIsLoading(true);
@@ -433,6 +467,34 @@ export default function BettingPanel() {
     }
   }
 
+  async function cancelTicket(ticket) {
+    if (!ticket?.betTicketId || cancellingTicketId) return;
+    const confirmed = window.confirm(`Bạn có chắc muốn hủy vé cược #${ticket.betTicketId} không? Tiền cược sẽ được mở khóa trong ví.`);
+    if (!confirmed) return;
+
+    setCancellingTicketId(ticket.betTicketId);
+    setError('');
+    setMessage('');
+    try {
+      await cancelBetTicket(ticket.betTicketId);
+      const [eventList, updatedTickets, updatedWallet, updatedEvent] = await Promise.all([
+        getBettingEvents(),
+        getMyBetTickets(),
+        getMyWallet().catch(() => wallet),
+        selectedEvent ? getBettingEvent(selectedEvent.betEventId).catch(() => selectedEvent) : Promise.resolve(null)
+      ]);
+      setEvents(eventList || []);
+      setTickets(updatedTickets || []);
+      setWallet(updatedWallet);
+      if (selectedEvent) setSelectedEvent(updatedEvent);
+      setMessage('Đã hủy vé cược. Tiền cược đã được mở khóa trong ví.');
+    } catch (err) {
+      setError(err.message || 'Không thể hủy vé cược.');
+    } finally {
+      setCancellingTicketId(null);
+    }
+  }
+
   const stats = useMemo(() => ({
     open: events.filter((event) => String(event.status).toUpperCase() === 'OPEN').length,
     tickets: tickets.length,
@@ -490,6 +552,8 @@ export default function BettingPanel() {
             setStatusFilter={setTicketStatus}
             productFilter={ticketProduct}
             setProductFilter={setTicketProduct}
+            cancellingTicketId={cancellingTicketId}
+            onCancelTicket={cancelTicket}
           />
         </>
       )}

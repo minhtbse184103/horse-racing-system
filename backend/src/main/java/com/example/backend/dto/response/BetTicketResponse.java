@@ -12,6 +12,8 @@ public class BetTicketResponse {
 
     private Integer betTicketId;
     private Integer betEventId;
+    private String betEventStatus;
+    private LocalDateTime bettingCloseAt;
     private Integer raceId;
     private String raceName;
     private String productCode;

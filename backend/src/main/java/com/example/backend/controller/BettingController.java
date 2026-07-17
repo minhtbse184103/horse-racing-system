@@ -13,6 +13,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -55,5 +56,13 @@ public class BettingController {
     @GetMapping("/my-tickets")
     public List<BetTicketResponse> getMyTickets(Authentication authentication) {
         return bettingService.getMyTickets(authentication.getName());
+    }
+
+    @PutMapping("/tickets/{ticketId}/cancel")
+    public BetTicketResponse cancelTicket(
+            @PathVariable Integer ticketId,
+            Authentication authentication
+    ) {
+        return bettingService.cancelTicket(ticketId, authentication.getName());
     }
 }

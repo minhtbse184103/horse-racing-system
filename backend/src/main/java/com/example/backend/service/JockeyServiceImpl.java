@@ -177,6 +177,7 @@ public class JockeyServiceImpl implements JockeyService {
     @Transactional(readOnly = true)
     @Override
     public List<JockeyInvitationResponse> getMyInvitations() {
+        // Lấy jockey hiện tại rồi query DB danh sách lời mời gửi cho jockey đó.
         Integer jockeyId = getCurrentJockey().getUserID();
         return jockeyInvitationRepository.findByJockeyIdOrderByCreatedAtDesc(jockeyId)
                 .stream()
@@ -188,8 +189,10 @@ public class JockeyServiceImpl implements JockeyService {
     @Transactional(readOnly = true)
     @Override
     public JockeyInvitationDetailResponse getMyInvitationDetail(Integer invitationId) {
+        // Chỉ cho jockey xem chi tiết lời mời thuộc về chính mình.
         User jockey = getCurrentJockey();
         JockeyInvitation invitation = getOwnedInvitation(invitationId, jockey.getUserID());
+        // Lấy thêm ngựa và tournament để hiển thị đủ thông tin lời mời.
         Horse horse = horseRepository.findById(invitation.getHorseId())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Ngựa không tồn tại."));
         TournamentDetailResponse tournament = tournamentService.getTournamentById(invitation.getTournamentId());
@@ -205,12 +208,15 @@ public class JockeyServiceImpl implements JockeyService {
     @Transactional
     @Override
     public JockeyInvitationResponse acceptInvitation(Integer invitationId) {
+        // Jockey phải có profile hợp lệ và lời mời phải thuộc về jockey đang đăng nhập.
         User jockey = getCurrentJockeyWithActiveProfile();
         JockeyInvitation invitation = getOwnedInvitation(invitationId, jockey.getUserID());
 
+        // Validate lời mời còn PENDING/chưa hết hạn và ngựa thuộc đúng owner.
         validateInvitationNotExpired(invitation);
         Horse horse = validateOwnerHorseForInvitation(invitation);
         Tournament tournament = getTournament(invitation.getTournamentId());
+        // Kiểm tra điều kiện giải đấu và tránh tạo registration trùng/không hợp lệ.
         eligibilityService.validateNewSubmission(
                 tournament,
                 horse.getHorseId(),
@@ -224,6 +230,7 @@ public class JockeyServiceImpl implements JockeyService {
                 tournament,
                 invitation.getInvitationId());
 
+        // Khi chấp nhận, tạo registration chờ owner thanh toán và cập nhật invitation.
         Registration registration = createPendingRegistration(invitation);
         invitation.setStatus(INVITATION_ACCEPTED);
         invitation.setRegistrationId(registration.getRegistrationId());
@@ -236,11 +243,14 @@ public class JockeyServiceImpl implements JockeyService {
     @Transactional
     @Override
     public JockeyInvitationResponse rejectInvitation(Integer invitationId) {
+        // Chỉ jockey nhận lời mời mới được từ chối lời mời đó.
         User jockey = getCurrentJockey();
         JockeyInvitation invitation = getOwnedInvitation(invitationId, jockey.getUserID());
 
+        // Chỉ lời mời còn PENDING/chưa hết hạn mới được phản hồi.
         validateInvitationNotExpired(invitation);
 
+        // Cập nhật trạng thái từ chối và thời điểm phản hồi.
         invitation.setStatus(INVITATION_REJECTED);
         invitation.setRespondedAt(LocalDateTime.now());
 
@@ -249,6 +259,7 @@ public class JockeyServiceImpl implements JockeyService {
 
     // Lấy user jockey từ JWT.
     private User getCurrentJockey() {
+        // Lấy user từ JWT và validate role phải là JOCKEY.
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || authentication.getName() == null) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "Người dùng chưa được xác thực.");
@@ -266,6 +277,7 @@ public class JockeyServiceImpl implements JockeyService {
 
     // Kiểm tra tài khoản nài ngựa đang hoạt động.
     private User getCurrentJockeyWithActiveProfile() {
+        // Ngoài role JOCKEY, tài khoản phải có profile và đang ACTIVE mới được accept invitation.
         User jockey = getCurrentJockey();
         if (!jockeyProfileRepository.existsById(jockey.getUserID())) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Hồ sơ nài ngựa không tồn tại.");
@@ -280,12 +292,14 @@ public class JockeyServiceImpl implements JockeyService {
 
     // Lấy lời mời.
     private JockeyInvitation getOwnedInvitation(Integer invitationId, Integer jockeyId) {
+        // Query theo cả invitationId và jockeyId để tránh truy cập lời mời của jockey khác.
         return jockeyInvitationRepository.findByInvitationIdAndJockeyId(invitationId, jockeyId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Lời mời không tồn tại."));
     }
 
     // Kiểm tra invitation còn PENDING.
     private void validatePendingInvitation(JockeyInvitation invitation) {
+        // Jockey chỉ được phản hồi lời mời đang ở trạng thái PENDING.
         if (!INVITATION_PENDING.equals(invitation.getStatus())) {
             throw new ApiException(HttpStatus.CONFLICT, "Chỉ có thể phản hồi lời mời đang ở trạng thái PENDING.");
         }
@@ -293,8 +307,10 @@ public class JockeyServiceImpl implements JockeyService {
 
     // Kiểm tra hết hạn.
     private void validateInvitationNotExpired(JockeyInvitation invitation) {
+        // Kiểm tra lời mời còn PENDING trước khi xét hết hạn.
         validatePendingInvitation(invitation);
         if (invitation.getExpiredAt() != null && invitation.getExpiredAt().isBefore(LocalDateTime.now())) {
+            // Nếu đã hết hạn, cập nhật DB sang EXPIRED rồi chặn thao tác.
             invitation.setStatus(INVITATION_EXPIRED);
             invitation.setRespondedAt(LocalDateTime.now());
             jockeyInvitationRepository.save(invitation);
@@ -303,6 +319,7 @@ public class JockeyServiceImpl implements JockeyService {
     }
 
     private Horse validateOwnerHorseForInvitation(JockeyInvitation invitation) {
+        // Lấy ngựa trong DB và đảm bảo ngựa đúng là của owner gửi lời mời.
         Horse horse = horseRepository.findById(invitation.getHorseId())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Ngựa không tồn tại."));
         if (!Objects.equals(horse.getOwnerId(), invitation.getOwnerId())) {
@@ -315,6 +332,7 @@ public class JockeyServiceImpl implements JockeyService {
     }
 
     private Registration createPendingRegistration(JockeyInvitation invitation) {
+        // Tạo registration nháp sau khi jockey accept, owner sẽ thanh toán sau.
         Registration registration = new Registration();
         registration.setTournamentId(invitation.getTournamentId());
         registration.setHorseId(invitation.getHorseId());

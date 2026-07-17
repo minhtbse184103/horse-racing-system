@@ -621,7 +621,7 @@ CREATE TABLE `BetProduct` (
   `createdAt` datetime,
   `updatedAt` datetime,
   CONSTRAINT `chk_bet_product_code`
-    CHECK (`code` IN ('WIN')),
+    CHECK (`code` IN ('WIN', 'PLACE')),
   CONSTRAINT `chk_bet_product_stake`
     CHECK (`minStake` >= 10000.00 AND `maxDailyStake` >= `minStake`),
   CONSTRAINT `chk_bet_product_fee`

@@ -43,9 +43,11 @@ public class WalletService {
 
     @Transactional
     public WalletResponse getMyWallet(String email) {
+        // Lấy user hiện tại và kiểm tra quyền dùng ví.
         User user = getUserByEmail(email);
         validateWalletAllowedRole(user);
 
+        // Query wallet của user; nếu chưa có thì yêu cầu hoàn tất KYC để mở ví.
         Wallet wallet = walletRepository.findByUserId(user.getUserID())
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
@@ -60,15 +62,18 @@ public class WalletService {
             WalletDepositRequest request,
             String clientIp
     ) {
+        // Kiểm tra user, role và KYC trước khi cho tạo payment nạp tiền.
         User user = getUserByEmail(email);
         validateWalletAllowedRole(user);
         validateVerifiedKyc(user);
         BigDecimal amount = normalizeAmount(request.getAmount());
 
+        // Lock wallet để tránh tạo trùng hoặc cập nhật sai khi có nhiều request.
         Wallet wallet = walletRepository.findByUserIdForUpdate(user.getUserID())
                 .orElseGet(() -> walletRepository.save(newWallet(user.getUserID())));
         ensureWalletActive(wallet);
 
+        // Tạo giao dịch thanh toán VNPAY cho lần nạp ví này.
         PaymentTransaction paymentTransaction =
                 vnpayPaymentService.createWalletDepositPayment(wallet, amount, clientIp);
 
@@ -89,6 +94,7 @@ public class WalletService {
 
     @Transactional
     public WalletResponse applySuccessfulDeposit(PaymentTransaction paymentTransaction) {
+        // Lock wallet theo payment callback để cộng tiền an toàn.
         Wallet wallet = walletRepository
                 .findByWalletIdForUpdate(paymentTransaction.getWalletId())
                 .orElseThrow(() -> new ApiException(
@@ -100,9 +106,11 @@ public class WalletService {
                         HttpStatus.NOT_FOUND,
                         "Người dùng không tồn tại."
                 ));
+        // Kiểm tra lại quyền và trạng thái ví trước khi cộng tiền.
         validateWalletAllowedRole(user);
         ensureWalletActive(wallet);
 
+        // Cộng balance và lưu wallet transaction để có lịch sử nạp tiền.
         BigDecimal balanceBefore = valueOrZero(wallet.getBalance());
         BigDecimal lockedBefore = valueOrZero(wallet.getLockedBalance());
         BigDecimal balanceAfter = balanceBefore.add(paymentTransaction.getAmount());
@@ -136,6 +144,7 @@ public class WalletService {
     }
 
     private User getUserByEmail(String email) {
+        // Query user theo email lấy từ JWT.
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
@@ -144,6 +153,7 @@ public class WalletService {
     }
 
     private void validateWalletAllowedRole(User user) {
+        // Hiện tại ví chỉ cho spectator active; mở cho owner/jockey thì sửa điều kiện này.
         String roleName = user.getRole() != null
                 ? user.getRole().getRoleName()
                 : null;
@@ -161,6 +171,7 @@ public class WalletService {
     }
 
     private void ensureWalletActive(Wallet wallet) {
+        // Ví phải ACTIVE mới được xem, nạp tiền hoặc dùng cho betting.
         if (!WalletStatus.ACTIVE.equals(wallet.getStatus())) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
@@ -170,6 +181,7 @@ public class WalletService {
     }
 
     private void validateVerifiedKyc(User user) {
+        // Nạp tiền yêu cầu KYC VERIFIED và chưa hết hạn.
         var verification = userVerificationRepository
                 .findFirstByUserIdAndStatusOrderByAttemptNumberDesc(user.getUserID(), KycStatus.VERIFIED)
                 .orElseThrow(() -> new ApiException(
@@ -202,6 +214,7 @@ public class WalletService {
     }
 
     private Wallet newWallet(Integer userId) {
+        // Tạo ví mặc định lần đầu với số dư 0 và tiền tệ VND.
         Wallet wallet = new Wallet();
         wallet.setUserId(userId);
         wallet.setBalance(BigDecimal.ZERO);
