@@ -25,6 +25,19 @@ public interface BetEventRepository extends JpaRepository<BetEvent, Integer> {
     @Query("""
             select event
             from BetEvent event
+            where event.raceId = :raceId
+              and event.status in :statuses
+            order by event.openAt asc
+            """)
+    List<BetEvent> findByRaceIdAndStatusInForUpdate(
+            @Param("raceId") Integer raceId,
+            @Param("statuses") Collection<String> statuses
+    );
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            select event
+            from BetEvent event
             where event.betEventId = :betEventId
             """)
     Optional<BetEvent> findByIdForUpdate(@Param("betEventId") Integer betEventId);

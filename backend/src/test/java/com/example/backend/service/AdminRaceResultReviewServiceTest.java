@@ -71,6 +71,8 @@ class AdminRaceResultReviewServiceTest {
     private RacePrizeSettlementService prizeSettlementService;
     @Mock
     private PerformanceSummaryService performanceSummaryService;
+    @Mock
+    private BettingService bettingService;
 
     private AdminRaceResultReviewService service;
 
@@ -85,7 +87,8 @@ class AdminRaceResultReviewServiceTest {
                 raceRepository,
                 userRepository,
                 prizeSettlementService,
-                performanceSummaryService
+                performanceSummaryService,
+                bettingService
         );
     }
 
@@ -145,6 +148,7 @@ class AdminRaceResultReviewServiceTest {
                 eq(savedResults),
                 any()
         );
+        verify(bettingService).settleRaceEvents(RACE_ID, ADMIN_ID);
 
         ArgumentCaptor<Race> raceCaptor = ArgumentCaptor.forClass(Race.class);
         verify(raceRepository).save(raceCaptor.capture());
