@@ -19,21 +19,22 @@ import {
 } from '../../services/jockeyService';
 
 import { formatDate, formatDisplayLabel, getUserRole } from '../../lib';
+import { useLanguage } from '../../context/LanguageContext';
 
 const jockeyNavItems = [
-  { key: 'overview', label: 'Tổng quan', icon: '📊' },
-  { key: 'profile', label: 'Hồ sơ', icon: '🧑‍✈️' },
-  { key: 'invitations', label: 'Lời mời', icon: '✉️' },
+  { key: 'overview', labelKey: 'jockeyNavOverview', icon: '📊' },
+  { key: 'profile', labelKey: 'jockeyNavProfile', icon: '🧑‍✈️' },
+  { key: 'invitations', labelKey: 'jockeyNavInvitations', icon: '✉️' },
   { key: 'wallet', labelKey: 'wallet', icon: Wallet }
 ];
 
 const INVITATION_TABS = [
-  { key: 'ALL', label: 'Tất cả' },
-  { key: 'PENDING', label: 'Pending' },
-  { key: 'ACCEPTED', label: 'Accepted' },
-  { key: 'REJECTED', label: 'Declined' },
-  { key: 'EXPIRED', label: 'Expired' },
-  { key: 'CANCELLED', label: 'Cancelled' }
+  { key: 'ALL', labelKey: 'jockeyFilterAll' },
+  { key: 'PENDING', labelKey: 'jockeyFilterPending' },
+  { key: 'ACCEPTED', labelKey: 'jockeyFilterAccepted' },
+  { key: 'REJECTED', labelKey: 'jockeyFilterRejected' },
+  { key: 'EXPIRED', labelKey: 'jockeyFilterExpired' },
+  { key: 'CANCELLED', labelKey: 'jockeyFilterCancelled' }
 ];
 
 
@@ -471,6 +472,7 @@ export default function JockeyDashboard(props) {
 }
 
 function ApprovedJockeyDashboard({ currentUser, onLogout, onUserUpdated }) {
+  const { t } = useLanguage();
   const [activeSection, setActiveSection] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.has('vnp_TxnRef') || params.has('vnp_SecureHash')) return 'wallet';
@@ -526,24 +528,24 @@ function ApprovedJockeyDashboard({ currentUser, onLogout, onUserUpdated }) {
   );
   const jockeyStats = [
     {
-      label: 'Races',
+      label: t('jockeyStatRaces'),
       value: profile?.totalRaces ?? 0,
-      detail: 'Total starts'
+      detail: t('jockeyStatTotalStarts')
     },
     {
-      label: 'Wins',
+      label: t('jockeyStatWins'),
       value: profile?.totalWins ?? 0,
-      detail: `${getWinRate(profile)} win rate`
+      detail: t('jockeyStatWinRate', { rate: getWinRate(profile) })
     },
     {
-      label: 'Profile',
-      value: profile ? formatDisplayLabel(profile.status) : 'Missing',
-      detail: profile ? `Licence: ${profile.licenseNo || 'Not set'}` : 'Create profile'
+      label: t('jockeyStatProfile'),
+      value: profile ? formatDisplayLabel(profile.status) : t('jockeyStatMissing'),
+      detail: profile ? t('jockeyStatLicence', { licence: profile.licenseNo || t('notUpdated') }) : t('jockeyStatCreateProfile')
     },
     {
-      label: 'Pending',
+      label: t('jockeyStatPending'),
       value: pendingInvitationCount,
-      detail: `${acceptedInvitationCount} accepted`
+      detail: t('jockeyStatAccepted', { count: acceptedInvitationCount })
     }
   ];
 
@@ -1190,8 +1192,8 @@ function ApprovedJockeyDashboard({ currentUser, onLogout, onUserUpdated }) {
   function renderInvitationList(limit) {
     const items = typeof limit === 'number' ? latestInvitations.slice(0, limit) : filteredInvitations;
 
-    if (isLoadingInvitations) return <p className="table-empty">Đang tải lời mời...</p>;
-    if (items.length === 0) return <p className="table-empty">Không có lời mời phù hợp với bộ lọc hiện tại.</p>;
+    if (isLoadingInvitations) return <p className="table-empty">{t('jockeyLoadingInvitations')}</p>;
+    if (items.length === 0) return <p className="table-empty">{t('jockeyNoMatchingInvitations')}</p>;
 
     return (
       <div className="jockey-invitation-list">
@@ -1274,8 +1276,8 @@ function ApprovedJockeyDashboard({ currentUser, onLogout, onUserUpdated }) {
   return (
     <AppShell
       variant="jockey"
-      title={`Hello, ${jockeyName}`}
-      subtitle="Theo dõi và phản hồi lời mời thi đấu từ Owner."
+      title={t('jockeyDashboardTitle', { name: jockeyName })}
+      subtitle={t('jockeyDashboardSubtitle')}
       profileName={jockeyName}
       profileRole={String(currentUser?.role || currentUser?.roleName || 'JOCKEY')}
       activeSection={activeSection}
@@ -1284,7 +1286,7 @@ function ApprovedJockeyDashboard({ currentUser, onLogout, onUserUpdated }) {
       onLogout={onLogout}
       headerAction={(
         <button className="refresh-button" type="button" onClick={reloadData} disabled={isLoading}>
-          {isLoading ? 'Đang tải...' : 'Làm mới'}
+          {isLoading ? t('jockeyRefreshing') : t('jockeyRefresh')}
         </button>
       )}
     >
@@ -1296,15 +1298,15 @@ function ApprovedJockeyDashboard({ currentUser, onLogout, onUserUpdated }) {
         <section className="jockey-dashboard">
           <section className="jockey-hero-panel">
             <div className="jockey-hero-copy">
-              <p className="eyebrow">Bảng điều khiển jockey</p>
-              <h2>Quản lý lời mời thi đấu</h2>
-              <p>Hồ sơ Jockey đã được Admin xác minh. Theo dõi và phản hồi các lời mời thi đấu từ Owner.</p>
+              <p className="eyebrow">{t('jockeyDashboardEyebrow')}</p>
+              <h2>{t('jockeyHeroTitle')}</h2>
+              <p>{t('jockeyHeroDescription')}</p>
               <div className="owner-shortcut-actions">
                 <button className="primary-button owner-hero-action" type="button" onClick={() => setActiveSection('invitations')}>
-                  Xem lời mời
+                  {t('jockeyViewInvitations')}
                 </button>
                 <button className="outline-button owner-hero-action" type="button" onClick={() => setActiveSection('profile')}>
-                  Mở hồ sơ
+                  {t('jockeyOpenProfile')}
                 </button>
               </div>
             </div>
@@ -1324,17 +1326,17 @@ function ApprovedJockeyDashboard({ currentUser, onLogout, onUserUpdated }) {
             <div className="owner-panel jockey-inbox-panel">
               <div className="owner-panel-header">
                 <div>
-                  <p className="eyebrow">Inbox</p>
-                  <h2>Lời mời mới nhất</h2>
-                  <p>Hiển thị tối đa năm lời mời gần nhất để phản hồi nhanh.</p>
+                  <p className="eyebrow">{t('jockeyInbox')}</p>
+                  <h2>{t('jockeyLatestInvitations')}</h2>
+                  <p>{t('jockeyLatestInvitationsDesc')}</p>
                 </div>
                 <button className="outline-button compact-button" type="button" onClick={() => setActiveSection('invitations')}>
-                  Xem tất cả
+                  {t('jockeyViewAll')}
                 </button>
               </div>
               <div className="jockey-invitation-preview-list">
                 {latestInvitations.length === 0 ? (
-                  <p className="table-empty">Chưa có lời mời.</p>
+                  <p className="table-empty">{t('jockeyNoInvitations')}</p>
                 ) : latestInvitations.map((invitation) => (
                   <article className="jockey-invitation-preview" key={invitation.invitationId || `${invitation.tournamentId}-${invitation.horseId}`}>
                     <div>
@@ -1352,22 +1354,22 @@ function ApprovedJockeyDashboard({ currentUser, onLogout, onUserUpdated }) {
             <div className="owner-panel jockey-checklist-panel">
               <div className="owner-panel-header">
                 <div>
-                  <p className="eyebrow">Next steps</p>
-                  <h2>Việc cần ưu tiên</h2>
+                  <p className="eyebrow">{t('jockeyNextSteps')}</p>
+                  <h2>{t('jockeyPriorityTasks')}</h2>
                 </div>
               </div>
               <div className="jockey-checklist">
                 <div>
                   <span>✓</span>
-                  <p>Hồ sơ nghề nghiệp đã được Admin xác minh.</p>
+                  <p>{t('jockeyProfileVerified')}</p>
                 </div>
                 <div>
                   <span>{pendingInvitationCount > 0 ? '!' : '✓'}</span>
-                  <p>Kiểm tra {pendingInvitationCount} lời mời đang chờ phản hồi.</p>
+                  <p>{t('jockeyCheckPending', { count: pendingInvitationCount })}</p>
                 </div>
                 <div>
                   <span>3</span>
-                  <p>Theo dõi ví và KYC độc lập trong mục Ví.</p>
+                  <p>{t('jockeyWalletKycHint')}</p>
                 </div>
               </div>
             </div>
@@ -1392,12 +1394,12 @@ function ApprovedJockeyDashboard({ currentUser, onLogout, onUserUpdated }) {
           <section className="owner-panel jockey-invitations-panel">
             <div className="owner-panel-header">
               <div>
-                <p className="eyebrow">Lời mời</p>
-                <h2>Lời mời đã nhận</h2>
-                <p>Jockey có thể xem thông tin ngựa, deadline đăng ký, rồi chấp nhận hoặc từ chối lời mời PENDING.</p>
+                <p className="eyebrow">{t('jockeyInvitationsEyebrow')}</p>
+                <h2>{t('jockeyReceivedInvitations')}</h2>
+                <p>{t('jockeyReceivedInvitationsDesc')}</p>
               </div>
               <div className="jockey-invitation-filter">
-                <label htmlFor="invitationStatusFilter">Trạng thái</label>
+                <label htmlFor="invitationStatusFilter">{t('jockeyInvitationStatus')}</label>
                 <select
                   id="invitationStatusFilter"
                   value={statusFilter}
@@ -1405,7 +1407,7 @@ function ApprovedJockeyDashboard({ currentUser, onLogout, onUserUpdated }) {
                 >
                   {INVITATION_TABS.map((option) => (
                     <option key={option.key} value={option.key}>
-                      {option.label} ({option.key === 'ALL' ? invitations.length : countByStatus(invitations, option.key)})
+                      {t(option.labelKey)} ({option.key === 'ALL' ? invitations.length : countByStatus(invitations, option.key)})
                     </option>
                   ))}
                 </select>

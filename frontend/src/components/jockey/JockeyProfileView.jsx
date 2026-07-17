@@ -3,6 +3,7 @@ import { formatDate, formatDisplayLabel } from '../../lib';
 import { updateMyAccount, updateStoredUser } from '../../services/authService';
 import { getMyKyc } from '../../services/kycService';
 import { getMyWallet } from '../../services/walletService';
+import { useLanguage } from '../../context/LanguageContext';
 
 const inputClass = 'w-full rounded-lg border border-brown-700/15 bg-white px-4 py-3 text-sm font-bold text-brown-900 outline-none transition placeholder:text-slate-500/65 focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20 disabled:cursor-not-allowed disabled:bg-cream-200 disabled:text-slate-500';
 
@@ -15,11 +16,11 @@ function getAccountValues(user) {
   };
 }
 
-function ProfileField({ label, value }) {
+function ProfileField({ label, value, fallback }) {
   return (
     <div className="rounded-lg border border-brown-700/10 bg-white/70 p-4">
       <span className="block text-xs font-extrabold uppercase text-slate-500">{label}</span>
-      <strong className="mt-1 block break-words text-brown-900">{value || 'Not updated'}</strong>
+      <strong className="mt-1 block break-words text-brown-900">{value || fallback}</strong>
     </div>
   );
 }
@@ -33,9 +34,10 @@ function EditableField({ label, name, value, disabled, onChange, type = 'text' }
   );
 }
 
-function StatusBadge({ status }) {
+function StatusBadge({ status, t }) {
   const normalized = String(status || 'NOT_SUBMITTED').toUpperCase();
-  return <span className={`status-badge ${normalized.toLowerCase()}`}>{formatDisplayLabel(normalized)}</span>;
+  const translated = t(`status_${normalized}`);
+  return <span className={`status-badge ${normalized.toLowerCase()}`}>{translated === `status_${normalized}` ? formatDisplayLabel(normalized) : translated}</span>;
 }
 
 function money(value, currency = 'VND') {
@@ -43,6 +45,7 @@ function money(value, currency = 'VND') {
 }
 
 export default function JockeyProfileView({ user, profile, isLoading, onReload, onUserUpdated }) {
+  const { t } = useLanguage();
   const [accountUser, setAccountUser] = useState(user);
   const [account, setAccount] = useState(() => getAccountValues(user));
   const [isEditing, setIsEditing] = useState(false);
@@ -86,7 +89,7 @@ export default function JockeyProfileView({ user, profile, isLoading, onReload, 
     const email = account.email.trim();
     const phone = account.phone.trim();
     if (!username || !email) {
-      setError('Username and email are required.');
+      setError(t('jockeyAccountRequired'));
       return;
     }
 
@@ -104,18 +107,18 @@ export default function JockeyProfileView({ user, profile, isLoading, onReload, 
       setAccountUser(updated);
       setAccount(getAccountValues(updated));
       setIsEditing(false);
-      setMessage('Account information updated.');
+      setMessage(t('jockeyAccountUpdated'));
       setError('');
       onUserUpdated?.(updated);
     } catch (saveError) {
-      setError(saveError?.message || 'Unable to update account information.');
+      setError(saveError?.message || t('jockeyAccountUpdateError'));
     } finally {
       setIsSaving(false);
     }
   }
 
-  if (isLoading) return <div className="admin-alert success" role="status">Loading Jockey profile...</div>;
-  if (!profile) return <div className="admin-alert error" role="alert">No approved Jockey profile was found.</div>;
+  if (isLoading) return <div className="admin-alert success" role="status">{t('jockeyProfileLoading')}</div>;
+  if (!profile) return <div className="admin-alert error" role="alert">{t('jockeyProfileNotFound')}</div>;
 
   return (
     <section className="owner-stack">
@@ -125,19 +128,19 @@ export default function JockeyProfileView({ user, profile, isLoading, onReload, 
       <section className="owner-panel">
         <form onSubmit={saveAccount} noValidate>
           <div className="owner-panel-header">
-            <div><p className="eyebrow">Account Information</p><h2>Login and contact details</h2><p>Username, email, and phone number can be updated here.</p></div>
-            {!isEditing && <button className="primary-button compact-button" type="button" onClick={() => setIsEditing(true)}>Edit Account</button>}
+            <div><p className="eyebrow">{t('jockeyAccountInfo')}</p><h2>{t('jockeyLoginContact')}</h2><p>{t('jockeyAccountHelp')}</p></div>
+            {!isEditing && <button className="primary-button compact-button" type="button" onClick={() => setIsEditing(true)}>{t('jockeyEditAccount')}</button>}
           </div>
           <div className="grid gap-4 md:grid-cols-2">
-            <EditableField label="Username" name="username" value={account.username} disabled={!isEditing || isSaving} onChange={handleChange} />
-            <EditableField label="Email" name="email" type="email" value={account.email} disabled={!isEditing || isSaving} onChange={handleChange} />
-            <EditableField label="Phone Number" name="phone" value={account.phone} disabled={!isEditing || isSaving} onChange={handleChange} />
-            <EditableField label="Role" name="role" value={formatDisplayLabel(account.role)} disabled onChange={handleChange} />
+            <EditableField label={t('jockeyUsername')} name="username" value={account.username} disabled={!isEditing || isSaving} onChange={handleChange} />
+            <EditableField label={t('jockeyEmail')} name="email" type="email" value={account.email} disabled={!isEditing || isSaving} onChange={handleChange} />
+            <EditableField label={t('jockeyPhoneNumber')} name="phone" value={account.phone} disabled={!isEditing || isSaving} onChange={handleChange} />
+            <EditableField label={t('jockeyRole')} name="role" value={formatDisplayLabel(account.role)} disabled onChange={handleChange} />
           </div>
           {isEditing && (
             <div className="mt-5 flex flex-col-reverse gap-3 border-t border-brown-700/10 pt-5 sm:flex-row sm:justify-end">
-              <button className="outline-button" type="button" onClick={cancelEdit} disabled={isSaving}>Cancel</button>
-              <button className="primary-button sm:w-auto" type="submit" disabled={isSaving}>{isSaving ? 'Saving...' : 'Save Changes'}</button>
+              <button className="outline-button" type="button" onClick={cancelEdit} disabled={isSaving}>{t('jockeyCancel')}</button>
+              <button className="primary-button sm:w-auto" type="submit" disabled={isSaving}>{isSaving ? t('jockeySaving') : t('jockeySaveChanges')}</button>
             </div>
           )}
         </form>
@@ -145,58 +148,58 @@ export default function JockeyProfileView({ user, profile, isLoading, onReload, 
 
       <section className="owner-panel">
         <div className="owner-panel-header">
-          <div><p className="eyebrow">Verified Jockey Information</p><h2>Professional profile</h2><p>This information was approved by an administrator and cannot be edited directly.</p></div>
-          <StatusBadge status={profile.verificationStatus || profile.status || 'APPROVED'} />
+          <div><p className="eyebrow">{t('jockeyVerifiedInfo')}</p><h2>{t('jockeyProfessionalProfile')}</h2><p>{t('jockeyProfessionalProfileHelp')}</p></div>
+          <StatusBadge status={profile.verificationStatus || profile.status || 'APPROVED'} t={t} />
         </div>
         <div className="owner-profile-window">
           <div className="owner-profile-avatar">{(accountUser?.username || 'J').charAt(0).toUpperCase()}</div>
-          <div><h3>{accountUser?.username || accountUser?.email}</h3><p>Approved Jockey since {formatDate(profile.reviewedAt)}</p></div>
+          <div><h3>{accountUser?.username || accountUser?.email}</h3><p>{t('jockeyApprovedSince', { date: formatDate(profile.reviewedAt) })}</p></div>
         </div>
         <div className="mt-5 grid gap-4 md:grid-cols-2">
-          <ProfileField label="Weight" value={profile.weight != null ? `${profile.weight} kg` : null} />
-          <ProfileField label="Licence Type" value={formatDisplayLabel(profile.licenceType)} />
-          <ProfileField label="Licence Expiry Date" value={formatDate(profile.expiryDate)} />
-          <ProfileField label="Issuing Authority" value={profile.issuingAuthority} />
-          <ProfileField label="Trainer Name" value={profile.trainerName} />
-          <ProfileField label="Trainer Email" value={profile.trainerEmail} />
-          <ProfileField label="Academy / Stable Address" value={profile.academyStableAddress} />
-          <ProfileField label="Racing Record" value={`${profile.totalWins || 0} wins / ${profile.totalRaces || 0} races`} />
-          <ProfileField label="Biography" value={profile.biography} />
-          <ProfileField label="Reviewed At" value={formatDate(profile.reviewedAt)} />
+          <ProfileField label={t('jockeyWeight')} value={profile.weight != null ? `${profile.weight} kg` : null} fallback={t('jockeyNotUpdated')} />
+          <ProfileField label={t('jockeyLicenceType')} value={formatDisplayLabel(profile.licenceType)} fallback={t('jockeyNotUpdated')} />
+          <ProfileField label={t('jockeyLicenceExpiry')} value={formatDate(profile.expiryDate)} fallback={t('jockeyNotUpdated')} />
+          <ProfileField label={t('jockeyIssuingAuthority')} value={profile.issuingAuthority} fallback={t('jockeyNotUpdated')} />
+          <ProfileField label={t('jockeyTrainerName')} value={profile.trainerName} fallback={t('jockeyNotUpdated')} />
+          <ProfileField label={t('jockeyTrainerEmail')} value={profile.trainerEmail} fallback={t('jockeyNotUpdated')} />
+          <ProfileField label={t('jockeyAcademyAddress')} value={profile.academyStableAddress} fallback={t('jockeyNotUpdated')} />
+          <ProfileField label={t('jockeyRacingRecord')} value={t('jockeyRacingRecordValue', { wins: profile.totalWins || 0, races: profile.totalRaces || 0 })} fallback={t('jockeyNotUpdated')} />
+          <ProfileField label={t('jockeyBiography')} value={profile.biography} fallback={t('jockeyNotUpdated')} />
+          <ProfileField label={t('jockeyReviewedAt')} value={formatDate(profile.reviewedAt)} fallback={t('jockeyNotUpdated')} />
         </div>
         <div className="mt-5 flex flex-wrap gap-3">
-          {profile.verificationLink && <a className="outline-button compact-button inline-flex" href={profile.verificationLink.split(/\r?\n/)[0]} target="_blank" rel="noreferrer">Open Verification Link</a>}
-          {licenceFiles.map((file, index) => <a className="outline-button compact-button inline-flex" href={file.fileUrl} target="_blank" rel="noreferrer" key={file.fileId || file.fileUrl || index}>View Licence Document {index + 1}</a>)}
-          <button className="outline-button compact-button" type="button" onClick={() => onReload?.()}>Refresh Profile</button>
+          {profile.verificationLink && <a className="outline-button compact-button inline-flex" href={profile.verificationLink.split(/\r?\n/)[0]} target="_blank" rel="noreferrer">{t('jockeyOpenVerification')}</a>}
+          {licenceFiles.map((file, index) => <a className="outline-button compact-button inline-flex" href={file.fileUrl} target="_blank" rel="noreferrer" key={file.fileId || file.fileUrl || index}>{t('jockeyViewLicence', { number: index + 1 })}</a>)}
+          <button className="outline-button compact-button" type="button" onClick={() => onReload?.()}>{t('jockeyRefreshProfile')}</button>
         </div>
       </section>
 
       <section className="owner-panel">
         <div className="owner-panel-header">
-          <div><p className="eyebrow">Identity Verification</p><h2>Didit KYC information</h2><p>KYC is separate from Jockey approval and is used for wallet access.</p></div>
-          <StatusBadge status={kyc?.status} />
+          <div><p className="eyebrow">{t('jockeyIdentityVerification')}</p><h2>{t('jockeyDiditInfo')}</h2><p>{t('jockeyKycHelp')}</p></div>
+          <StatusBadge status={kyc?.status} t={t} />
         </div>
         {kyc?.status === 'VERIFIED' ? (
           <div className="grid gap-4 md:grid-cols-2">
-            <ProfileField label="Verified Full Name" value={kyc.verifiedFullName} />
-            <ProfileField label="Date of Birth" value={formatDate(kyc.verifiedDateOfBirth)} />
-            <ProfileField label="Identity Document" value={`${kyc.documentType || 'Identity document'}${kyc.documentLastFour ? ` **** ${kyc.documentLastFour}` : ''}`} />
-            <ProfileField label="Document Expiry Date" value={kyc.documentExpiryDate ? formatDate(kyc.documentExpiryDate) : 'No expiry provided'} />
-            <ProfileField label="Verified By" value={kyc.provider || 'DIDIT'} />
-            <ProfileField label="Verified At" value={formatDate(kyc.verifiedAt)} />
+            <ProfileField label={t('jockeyVerifiedFullName')} value={kyc.verifiedFullName} fallback={t('jockeyNotUpdated')} />
+            <ProfileField label={t('jockeyDateOfBirth')} value={formatDate(kyc.verifiedDateOfBirth)} fallback={t('jockeyNotUpdated')} />
+            <ProfileField label={t('jockeyIdentityDocument')} value={`${kyc.documentType || t('jockeyIdentityDocument')}${kyc.documentLastFour ? ` **** ${kyc.documentLastFour}` : ''}`} fallback={t('jockeyNotUpdated')} />
+            <ProfileField label={t('jockeyDocumentExpiry')} value={kyc.documentExpiryDate ? formatDate(kyc.documentExpiryDate) : t('jockeyNoDocumentExpiry')} fallback={t('jockeyNotUpdated')} />
+            <ProfileField label={t('jockeyVerifiedBy')} value={kyc.provider || 'DIDIT'} fallback={t('jockeyNotUpdated')} />
+            <ProfileField label={t('jockeyVerifiedAt')} value={formatDate(kyc.verifiedAt)} fallback={t('jockeyNotUpdated')} />
           </div>
-        ) : <div className="admin-alert success" role="status">Identity information appears here after KYC is verified.</div>}
+        ) : <div className="admin-alert success" role="status">{t('jockeyIdentityPending')}</div>}
       </section>
 
       <section className="owner-panel">
         <div className="owner-panel-header">
-          <div><p className="eyebrow">Wallet Summary</p><h2>Wallet access</h2><p>The wallet is managed independently from the professional Jockey profile.</p></div>
-          <StatusBadge status={wallet?.status || 'NOT_OPENED'} />
+          <div><p className="eyebrow">{t('jockeyWalletSummary')}</p><h2>{t('jockeyWalletAccess')}</h2><p>{t('jockeyWalletHelp')}</p></div>
+          <StatusBadge status={wallet?.status || 'NOT_OPENED'} t={t} />
         </div>
         <div className="grid gap-4 md:grid-cols-3">
-          <ProfileField label="Currency" value={wallet?.currency || 'VND'} />
-          <ProfileField label="Available Balance" value={wallet ? money(wallet.availableBalance, wallet.currency) : 'Wallet not opened'} />
-          <ProfileField label="Locked Balance" value={wallet ? money(wallet.lockedBalance, wallet.currency) : 'Wallet not opened'} />
+          <ProfileField label={t('jockeyCurrency')} value={wallet?.currency || 'VND'} fallback={t('jockeyNotUpdated')} />
+          <ProfileField label={t('jockeyAvailableBalance')} value={wallet ? money(wallet.availableBalance, wallet.currency) : t('jockeyWalletNotOpened')} fallback={t('jockeyNotUpdated')} />
+          <ProfileField label={t('jockeyLockedBalance')} value={wallet ? money(wallet.lockedBalance, wallet.currency) : t('jockeyWalletNotOpened')} fallback={t('jockeyNotUpdated')} />
         </div>
       </section>
     </section>
