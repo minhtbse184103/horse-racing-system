@@ -88,7 +88,7 @@ VALUES
   (4, 5, 0.00, 0.00, 'VND', 'ACTIVE', DATE_SUB(@seed_now, INTERVAL 198 DAY), DATE_SUB(@seed_now, INTERVAL 198 DAY)),
   (5, 6, 0.00, 0.00, 'VND', 'ACTIVE', DATE_SUB(@seed_now, INTERVAL 188 DAY), DATE_SUB(@seed_now, INTERVAL 188 DAY)),
   (6, 7, 0.00, 0.00, 'VND', 'ACTIVE', DATE_SUB(@seed_now, INTERVAL 28 DAY),  DATE_SUB(@seed_now, INTERVAL 28 DAY)),
-  (7, 14, 5000000.00, 600000.00, 'VND', 'ACTIVE', DATE_SUB(@seed_now, INTERVAL 2 DAY), @seed_now);
+  (7, 14, 5000000.00, 350000.00, 'VND', 'ACTIVE', DATE_SUB(@seed_now, INTERVAL 2 DAY), @seed_now);
 
 INSERT INTO `Horse`
   (`horseID`, `ownerID`, `horseName`, `age`, `dayOfBirth`, `weight`, `colour`, `sex`, `breeding`, `trainer`, `healthCertExpiry`, `healthCertificateUrl`, `officialHorseProfileUrl`, `status`, `rejectionReason`, `createdAt`, `updatedAt`)
@@ -247,29 +247,25 @@ VALUES
 INSERT INTO `BetProduct`
   (`betProductID`, `code`, `name`, `description`, `minStake`, `maxDailyStake`, `operatorFeeRate`, `active`, `createdAt`, `updatedAt`)
 VALUES
-  (1, 'WIN', 'Win', 'Pick the horse that finishes first.', 10000.00, 1000000.00, 0.1000, true, @seed_now, @seed_now),
-  (2, 'PLACE', 'Place', 'Pick a horse that finishes in the top three.', 10000.00, 1000000.00, 0.1000, true, @seed_now, @seed_now);
+  (1, 'WIN', 'Win', 'Pick the horse that finishes first.', 10000.00, 1000000.00, 0.1000, true, @seed_now, @seed_now);
 
 INSERT INTO `BetEvent`
   (`betEventID`, `raceID`, `betProductID`, `status`, `openAt`, `closeAt`, `operatorFeeRate`, `createdBy`, `settledBy`, `settledAt`, `createdAt`, `updatedAt`)
 VALUES
-  (1, 7, 1, 'OPEN', DATE_SUB(@seed_now, INTERVAL 1 HOUR), DATE_ADD(@seed_now, INTERVAL 1 DAY), 0.1000, 1, NULL, NULL, @seed_now, @seed_now),
-  (2, 7, 2, 'OPEN', DATE_SUB(@seed_now, INTERVAL 1 HOUR), DATE_ADD(@seed_now, INTERVAL 1 DAY), 0.1000, 1, NULL, NULL, @seed_now, @seed_now);
+  (1, 7, 1, 'OPEN', DATE_SUB(@seed_now, INTERVAL 1 HOUR), DATE_ADD(@seed_now, INTERVAL 1 DAY), 0.1000, 1, NULL, NULL, @seed_now, @seed_now);
 
 INSERT INTO `BetTicket`
   (`betTicketID`, `betEventID`, `userID`, `walletID`, `raceID`, `raceEntryID`, `stake`, `estimatedOddsAtBet`, `finalOdds`, `payoutAmount`, `status`, `placedAt`, `settledAt`, `createdAt`, `updatedAt`)
 VALUES
   (1, 1, 14, 7, 7, 10, 200000.00, 1.0000, NULL, NULL, 'PLACED', DATE_SUB(@seed_now, INTERVAL 30 MINUTE), NULL, DATE_SUB(@seed_now, INTERVAL 30 MINUTE), DATE_SUB(@seed_now, INTERVAL 30 MINUTE)),
-  (2, 1, 14, 7, 7, 11, 150000.00, 2.2000, NULL, NULL, 'PLACED', DATE_SUB(@seed_now, INTERVAL 20 MINUTE), NULL, DATE_SUB(@seed_now, INTERVAL 20 MINUTE), DATE_SUB(@seed_now, INTERVAL 20 MINUTE)),
-  (3, 2, 14, 7, 7, 12, 250000.00, 1.0000, NULL, NULL, 'PLACED', DATE_SUB(@seed_now, INTERVAL 10 MINUTE), NULL, DATE_SUB(@seed_now, INTERVAL 10 MINUTE), DATE_SUB(@seed_now, INTERVAL 10 MINUTE));
+  (2, 1, 14, 7, 7, 11, 150000.00, 2.2000, NULL, NULL, 'PLACED', DATE_SUB(@seed_now, INTERVAL 20 MINUTE), NULL, DATE_SUB(@seed_now, INTERVAL 20 MINUTE), DATE_SUB(@seed_now, INTERVAL 20 MINUTE));
 
 INSERT INTO `WalletTransaction`
   (`walletTransactionID`, `walletID`, `userID`, `type`, `amount`, `balanceBefore`, `balanceAfter`, `lockedBefore`, `lockedAfter`, `referenceType`, `referenceID`, `description`, `createdAt`)
 VALUES
   (1, 7, 14, 'DEPOSIT',  5000000.00,       0.00, 5000000.00,      0.00,      0.00, 'PAYMENT_TRANSACTION', 17, 'Seed wallet deposit', DATE_SUB(@seed_now, INTERVAL 2 DAY)),
   (2, 7, 14, 'BET_LOCK',  200000.00, 5000000.00, 5000000.00,      0.00, 200000.00, 'BET_TICKET', 1, 'Lock stake for betting ticket', DATE_SUB(@seed_now, INTERVAL 30 MINUTE)),
-  (3, 7, 14, 'BET_LOCK',  150000.00, 5000000.00, 5000000.00, 200000.00, 350000.00, 'BET_TICKET', 2, 'Lock stake for betting ticket', DATE_SUB(@seed_now, INTERVAL 20 MINUTE)),
-  (4, 7, 14, 'BET_LOCK',  250000.00, 5000000.00, 5000000.00, 350000.00, 600000.00, 'BET_TICKET', 3, 'Lock stake for betting ticket', DATE_SUB(@seed_now, INTERVAL 10 MINUTE));
+  (3, 7, 14, 'BET_LOCK',  150000.00, 5000000.00, 5000000.00, 200000.00, 350000.00, 'BET_TICKET', 2, 'Lock stake for betting ticket', DATE_SUB(@seed_now, INTERVAL 20 MINUTE));
 
 INSERT INTO `RaceResult`
   (`resultID`, `raceEntryID`, `finishPosition`, `finishTime`, `prizeMoney`, `recordedAt`, `recordedBy`)

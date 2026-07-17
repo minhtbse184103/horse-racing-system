@@ -51,6 +51,7 @@ public class AdminRaceResultReviewService {
     private final UserRepository userRepository;
     private final RacePrizeSettlementService prizeSettlementService;
     private final PerformanceSummaryService performanceSummaryService;
+    private final BettingService bettingService;
 
     public AdminRaceResultReviewService(
             RaceResultSubmissionRepository submissionRepository,
@@ -61,7 +62,8 @@ public class AdminRaceResultReviewService {
             RaceRepository raceRepository,
             UserRepository userRepository,
             RacePrizeSettlementService prizeSettlementService,
-            PerformanceSummaryService performanceSummaryService
+            PerformanceSummaryService performanceSummaryService,
+            BettingService bettingService
     ) {
         this.submissionRepository = submissionRepository;
         this.entryRepository = entryRepository;
@@ -72,6 +74,7 @@ public class AdminRaceResultReviewService {
         this.userRepository = userRepository;
         this.prizeSettlementService = prizeSettlementService;
         this.performanceSummaryService = performanceSummaryService;
+        this.bettingService = bettingService;
     }
 
     @Transactional(readOnly = true)
@@ -178,6 +181,7 @@ public class AdminRaceResultReviewService {
                 savedResults,
                 entriesByRaceEntryId
         );
+        bettingService.settleRaceEvents(race.getRaceId(), admin.getUserID());
 
         // FLOW: Admin Approve Result
         // ORDER: 9/9 - Mark Race COMPLETED, mark submission ADMIN_APPROVED, and write review action history.

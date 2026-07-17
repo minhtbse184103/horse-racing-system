@@ -21,7 +21,7 @@ import {
 import { useLanguage } from '../../context/LanguageContext';
 
 const ticketStatuses = ['ALL', 'PLACED', 'WON', 'LOST', 'REFUNDED', 'VOID'];
-const productOptions = ['ALL', 'WIN', 'PLACE'];
+const productOptions = ['ALL', 'WIN'];
 
 function money(value) {
   return `${formatNumber(Number(value || 0))} VND`;
@@ -251,7 +251,7 @@ function BetEventDetail({ event, wallet, selectedEntryId, setSelectedEntryId, st
               </div>
               <div className="flex gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs font-bold text-amber-800">
                 <AlertTriangle size={16} />
-                <span>Odds chỉ là ước tính. Payout cuối cùng được tính khi admin settle kết quả.</span>
+                <span>Odds chỉ là ước tính. Payout cuối cùng được tính tự động khi Admin công bố kết quả.</span>
               </div>
               <button
                 className="primary-button owner-hero-action"

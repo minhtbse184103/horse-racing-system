@@ -287,10 +287,34 @@ public class BettingService {
         User admin = getAdmin(adminEmail);
         BetEvent event = betEventRepository.findByIdForUpdate(eventId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Bet event does not exist."));
+        return settleEventForAdmin(event, admin.getUserID(), false);
+    }
+
+    @Transactional
+    public List<BetSettlementResponse> settleRaceEvents(Integer raceId, Integer settledByUserId) {
+        List<BetEvent> events = betEventRepository.findByRaceIdAndStatusInForUpdate(
+                raceId,
+                List.of(BetEventStatus.OPEN, BetEventStatus.CLOSED)
+        );
+        return events.stream()
+                .filter(this::isReadyForAutoSettlement)
+                .map(event -> settleEventForAdmin(event, settledByUserId, true))
+                .toList();
+    }
+
+    private BetSettlementResponse settleEventForAdmin(
+            BetEvent event,
+            Integer settledByUserId,
+            boolean closeAutomatically
+    ) {
+        Integer eventId = event.getBetEventId();
         if (BetEventStatus.SETTLED.equals(event.getStatus())) {
             return betSettlementRepository.findByBetEventId(eventId)
                     .map(this::toSettlementResponse)
                     .orElseThrow(() -> new ApiException(HttpStatus.CONFLICT, "Settlement data is missing."));
+        }
+        if (closeAutomatically && BetEventStatus.OPEN.equals(event.getStatus())) {
+            event.setStatus(BetEventStatus.CLOSED);
         }
         if (!BetEventStatus.CLOSED.equals(event.getStatus())) {
             throw new ApiException(HttpStatus.CONFLICT, "Betting event must be closed before settlement.");
@@ -334,17 +358,26 @@ public class BettingService {
         settlement.setLosingStake(losingStake.setScale(2, RoundingMode.HALF_UP));
         settlement.setOperatorFee(operatorFee);
         settlement.setPayoutPool(payoutPool.setScale(2, RoundingMode.HALF_UP));
-        settlement.setSettledBy(admin.getUserID());
+        settlement.setSettledBy(settledByUserId);
         settlement.setSettledAt(LocalDateTime.now());
         BetSettlement savedSettlement = betSettlementRepository.save(settlement);
         fundAccountingService.recordBettingOperatorFee(savedSettlement);
 
         event.setStatus(BetEventStatus.SETTLED);
-        event.setSettledBy(admin.getUserID());
+        event.setSettledBy(settledByUserId);
         event.setSettledAt(savedSettlement.getSettledAt());
         betEventRepository.save(event);
 
         return toSettlementResponse(savedSettlement);
+    }
+
+    private boolean isReadyForAutoSettlement(BetEvent event) {
+        if (BetEventStatus.CLOSED.equals(event.getStatus())) {
+            return true;
+        }
+        return BetEventStatus.OPEN.equals(event.getStatus())
+                && event.getCloseAt() != null
+                && !event.getCloseAt().isAfter(LocalDateTime.now());
     }
 
     private void settleTicket(
@@ -404,12 +437,6 @@ public class BettingService {
 
     private Set<Integer> getWinningEntryIds(String productCode, List<RaceResult> results) {
         String normalized = productCode != null ? productCode.toUpperCase() : "";
-        if (BetProductCode.PLACE.equals(normalized)) {
-            return results.stream()
-                    .filter(result -> result.getFinishPosition() != null && result.getFinishPosition() <= 3)
-                    .map(RaceResult::getRaceEntryId)
-                    .collect(Collectors.toSet());
-        }
         if (!BetProductCode.WIN.equals(normalized)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Unsupported bet product.");
         }
