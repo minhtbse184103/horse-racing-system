@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import { Copy, Pencil, Trash2 } from 'lucide-react';
 import { tapPress } from '../../ui/motion';
 import { useLanguage } from '../../../../context/LanguageContext';
+import { formatDisplayLabel } from '../../../../lib';
 
 export default function TournamentActions({ tournament, onEdit, onClone, onDelete, compact = false }) {
   const { t } = useLanguage();
@@ -10,7 +11,7 @@ export default function TournamentActions({ tournament, onEdit, onClone, onDelet
   const canModify = !hasRegistrations && !lockedStatus;
   const disabledReason = hasRegistrations
     ? `${t('eventCommonActionError')} ${t('eventDomainRegistration')}`
-    : `${t('eventCommonActionError')} Status ${tournament.status}`;
+    : `${t('eventCommonActionError')} Status ${formatDisplayLabel(tournament.status)}`;
   const baseClass = compact
     ? 'inline-flex min-h-10 flex-1 items-center justify-center gap-2 rounded-lg border px-3 text-xs font-extrabold transition'
     : 'grid size-9 place-items-center rounded-lg border transition';

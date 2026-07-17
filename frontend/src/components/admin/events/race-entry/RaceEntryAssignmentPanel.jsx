@@ -6,7 +6,7 @@ import CancellationDialog from './CancellationDialog';
 import OfficialEntries from './OfficialEntries';
 import PrizeRuleDialog from './PrizeRuleDialog';
 import RaceResultPrizeDialog from './RaceResultPrizeDialog';
-import RaceLiveView from './RaceLiveView';
+import RaceLiveView from '../../../shared/live/RaceLiveView';
 import useRaceEntryAssignment from './useRaceEntryAssignment';
 import ImagePreviewDialog from '../ImagePreviewDialog';
 import TournamentStatusBadge from '../TournamentStatusBadge';

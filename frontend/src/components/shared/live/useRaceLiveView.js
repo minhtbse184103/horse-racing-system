@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
-import API_BASE_URL from '../../../../configs/apiConfig';
+import API_BASE_URL from '../../../configs/apiConfig';
 
 /**
  * Subscribes to /topic/races/{raceId} (see backend RaceLiveBroadcastService)
@@ -37,7 +37,7 @@ export default function useRaceLiveView(raceId, enabled) {
       reconnectDelay: 4000,
       onConnect: () => {
         setConnectionState('connected');
-        // FLOW: Admin Live Race Data
+        // FLOW: Shared Live Race Data
         // ORDER: 8/10 - Hook subscribes only to /topic/races/{raceId}, keeping each live Race stream isolated.
         // FE listens to the race-specific topic that RaceLiveBroadcastService
         // writes to; TICK drives the live board, RESULT moves the row to review.

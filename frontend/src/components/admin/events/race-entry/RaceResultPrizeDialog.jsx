@@ -5,6 +5,27 @@ import { getRaceResults } from '../../../../services/eventService';
 import { formatVndCurrency } from '../../../../lib/eventFormatters';
 import { useLanguage } from '../../../../context/LanguageContext';
 
+const RESULT_GRID_COLUMNS =
+  'grid-cols-[3.75rem_minmax(10rem,1.15fr)_minmax(7rem,0.75fr)_minmax(8rem,0.85fr)_5rem_6.75rem_6.75rem_6.75rem_6.5rem]';
+
+const DISTRIBUTION_STATUS_STYLES = {
+  PENDING: 'bg-amber-50 text-amber-800',
+  PAID: 'bg-emerald-50 text-emerald-800',
+  FAILED: 'bg-red-50 text-red-700',
+  NO_PRIZE: 'bg-stone-100 text-stone-700'
+};
+
+function formatDistributionStatus(status) {
+  const normalized = String(status || 'NO_PRIZE').toUpperCase();
+  const labels = {
+    PENDING: 'Pending',
+    PAID: 'Paid',
+    FAILED: 'Failed',
+    NO_PRIZE: 'No Prize'
+  };
+  return labels[normalized] || String(status || 'No Prize').replace(/_/g, ' ');
+}
+
 export default function RaceResultPrizeDialog({ race, onClose }) {
   const { t } = useLanguage();
   const [results, setResults] = useState([]);
@@ -54,7 +75,7 @@ export default function RaceResultPrizeDialog({ race, onClose }) {
         animate={{ y: 0, scale: 1 }}
         exit={{ y: 12, scale: 0.98 }}
         transition={{ duration: 0.2 }}
-        className="max-h-[88vh] w-full max-w-5xl overflow-hidden rounded-lg border border-white/80 bg-cream-100 shadow-[0_32px_90px_rgba(43,23,16,0.34)]"
+        className="max-h-[88vh] w-full max-w-6xl overflow-hidden rounded-lg border border-white/80 bg-cream-100 shadow-[0_32px_90px_rgba(43,23,16,0.34)]"
       >
         <header className="flex items-start justify-between gap-4 border-b border-brown-700/10 bg-[linear-gradient(135deg,rgba(255,255,255,0.92),rgba(247,234,216,0.56))] px-5 py-4">
           <div>
@@ -110,17 +131,17 @@ export default function RaceResultPrizeDialog({ race, onClose }) {
           ) : (
             // FLOW: Official Result Display
             // Renders only official approved RaceResult rows; provisional submissions are reviewed elsewhere.
-            <div className="overflow-x-auto rounded-lg border border-brown-700/10 bg-white/85 shadow-[0_10px_28px_rgba(78,44,25,0.06)]">
-              <div className="grid grid-cols-[4.5rem_minmax(12rem,1fr)_minmax(9rem,0.7fr)_minmax(9rem,0.7fr)_7rem_8rem_8rem_8rem_7rem] gap-3 border-b border-brown-700/10 bg-cream-200/70 px-4 py-3 text-xs font-black uppercase text-brown-700">
+            <div className="overflow-hidden rounded-lg border border-brown-700/10 bg-white/85 shadow-[0_10px_28px_rgba(78,44,25,0.06)]">
+              <div className={`grid ${RESULT_GRID_COLUMNS} gap-2 border-b border-brown-700/10 bg-cream-200/70 px-4 py-3 text-[0.68rem] font-black uppercase text-brown-700`}>
                 <span>{t('eventCommonRank')}</span>
-                <span>Horse</span>
-                <span>Owner</span>
-                <span>Jockey</span>
-                <span>Time</span>
-                <span>Prize</span>
-                <span>Owner</span>
-                <span>Jockey</span>
-                <span>Status</span>
+                <span>{t('eventDomainHorse')}</span>
+                <span>{t('eventDomainOwner')}</span>
+                <span>{t('eventDomainJockey')}</span>
+                <span>{t('eventResultPrizeTime')}</span>
+                <span>{t('eventResultPrizePrizeMoney')}</span>
+                <span>{t('eventResultPrizeOwnerShare')}</span>
+                <span>{t('eventResultPrizeJockeyShare')}</span>
+                <span>{t('eventResultPrizePayoutStatus')}</span>
               </div>
               <div className="divide-y divide-brown-700/10">
                 {/* FLOW: Official Result Display */}
@@ -128,8 +149,11 @@ export default function RaceResultPrizeDialog({ race, onClose }) {
                 {/* FLOW: Prize Split Display
                    ORDER: 7B/7 - Row cells display ownerAmount, jockeyAmount, and distributionStatus from PrizeDistribution.
                    Shows official prize money plus owner/jockey split amounts calculated during Admin approval. */}
-                {results.map((result) => (
-                  <article key={result.resultId} className="grid grid-cols-[4.5rem_minmax(12rem,1fr)_minmax(9rem,0.7fr)_minmax(9rem,0.7fr)_7rem_8rem_8rem_8rem_7rem] items-center gap-3 px-4 py-3 text-sm">
+                {results.map((result) => {
+                  const distributionStatus = String(result.distributionStatus || 'NO_PRIZE').toUpperCase();
+
+                  return (
+                  <article key={result.resultId} className={`grid ${RESULT_GRID_COLUMNS} items-center gap-2 px-4 py-3 text-sm`}>
                     <span className="inline-flex size-10 items-center justify-center rounded-lg bg-amber-50 text-sm font-black text-amber-800">
                       #{result.finishPosition}
                     </span>
@@ -140,14 +164,15 @@ export default function RaceResultPrizeDialog({ race, onClose }) {
                     <span className="truncate font-bold text-brown-900">{result.ownerName || 'N/A'}</span>
                     <span className="truncate font-bold text-brown-900">{result.jockeyName || 'N/A'}</span>
                     <span className="font-mono text-xs font-black text-slate-600">{result.finishTime || '-'}</span>
-                    <span className="font-black text-brown-900">{formatVndCurrency(result.prizeMoney || 0)}</span>
-                    <span className="font-bold text-emerald-700">{formatVndCurrency(result.ownerAmount || 0)}</span>
-                    <span className="font-bold text-sky-700">{formatVndCurrency(result.jockeyAmount || 0)}</span>
-                    <span className="inline-flex w-fit rounded-full bg-cream-200 px-2.5 py-1 text-[0.68rem] font-black text-brown-700">
-                      {result.distributionStatus || 'NO_PRIZE'}
+                    <span className="truncate font-black text-brown-900">{formatVndCurrency(result.prizeMoney || 0)}</span>
+                    <span className="truncate font-bold text-emerald-700">{formatVndCurrency(result.ownerAmount || 0)}</span>
+                    <span className="truncate font-bold text-sky-700">{formatVndCurrency(result.jockeyAmount || 0)}</span>
+                    <span className={`inline-flex w-fit rounded-full px-2.5 py-1 text-[0.68rem] font-black ${DISTRIBUTION_STATUS_STYLES[distributionStatus] || DISTRIBUTION_STATUS_STYLES.NO_PRIZE}`}>
+                      {formatDistributionStatus(distributionStatus)}
                     </span>
                   </article>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}

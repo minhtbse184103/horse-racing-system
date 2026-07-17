@@ -1,21 +1,21 @@
 export const PAYMENT_STATUS_LABELS = {
-  PAID: 'PAID',
-  UNPAID: 'UNPAID',
-  PENDING: 'PENDING',
-  REFUNDED: 'REFUNDED'
+  PAID: 'Paid',
+  UNPAID: 'Unpaid',
+  PENDING: 'Pending',
+  REFUNDED: 'Refunded'
 };
 
 export const APPROVAL_STATUS_LABELS = {
-  PENDING: 'PENDING',
-  APPROVED: 'APPROVED',
-  REJECTED: 'REJECTED',
-  CANCELLED: 'CANCELLED'
+  PENDING: 'Pending',
+  APPROVED: 'Approved',
+  REJECTED: 'Rejected',
+  CANCELLED: 'Cancelled'
 };
 
 export const RACE_ENTRY_STATUS_LABELS = {
-  ASSIGNED: 'ASSIGNED',
-  CONFIRMED: 'CONFIRMED',
-  CANCELLED: 'CANCELLED'
+  ASSIGNED: 'Assigned',
+  CONFIRMED: 'Confirmed',
+  CANCELLED: 'Cancelled'
 };
 
 export const STATUS_BADGE_STYLES = {

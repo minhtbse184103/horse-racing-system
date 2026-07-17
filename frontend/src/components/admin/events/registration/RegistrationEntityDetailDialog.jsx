@@ -8,6 +8,10 @@ function valueOrDash(value) {
   return value === null || value === undefined || value === '' ? '-' : value;
 }
 
+function hasDetailValue(value) {
+  return value !== null && value !== undefined && value !== '';
+}
+
 function InfoItem({ icon: Icon, label, value, children }) {
   return (
     <div className="rounded-lg border border-brown-700/10 bg-white/75 p-4">
@@ -116,6 +120,7 @@ export default function RegistrationEntityDetailDialog({ entity, isLoading = fal
   // Purpose: let Admin verify Horse/Owner/Jockey evidence while staying inside the Registration review workflow.
   const { t } = useLanguage();
   const config = buildEntityConfig(entity, t);
+  const visibleItems = config?.items.filter((item) => item.status || hasDetailValue(item.value)) || [];
 
   if (!config) return null;
 
@@ -160,7 +165,7 @@ export default function RegistrationEntityDetailDialog({ entity, isLoading = fal
           )}
 
           <div className="grid gap-3 sm:grid-cols-2">
-            {config.items.map((item) => (
+            {visibleItems.map((item) => (
               <InfoItem key={item.label} icon={item.icon} label={item.label} value={item.value}>
                 {item.status ? <OperationStatusBadge status={item.status} /> : null}
               </InfoItem>

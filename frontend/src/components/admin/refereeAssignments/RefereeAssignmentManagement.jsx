@@ -12,6 +12,7 @@ import {
   Users
 } from 'lucide-react';
 import { useLanguage } from '../../../context/LanguageContext';
+import { formatDisplayLabel } from '../../../lib';
 import {
   createRefereeAssignment,
   getActiveReferees,
@@ -43,7 +44,7 @@ function formatTime(value, locale = 'vi-VN', fallback = 'Not scheduled') {
 }
 
 function formatStatus(status) {
-  return normalizeStatus(status);
+  return formatDisplayLabel(status);
 }
 
 function refereeId(referee) {
