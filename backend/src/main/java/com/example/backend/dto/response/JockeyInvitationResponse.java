@@ -11,6 +11,7 @@ import lombok.Getter;
 public class JockeyInvitationResponse {
     private Integer invitationId;
     private Integer registrationId;
+    private String registrationNo;
     private Integer tournamentId;
     private String tournamentName;
     private LocalDate tournamentStartDate;
@@ -27,4 +28,6 @@ public class JockeyInvitationResponse {
     private LocalDateTime expiredAt;
     private String status;
     private String registrationStatus;
+    private String paymentStatus;
+    private String approvalStatus;
 }

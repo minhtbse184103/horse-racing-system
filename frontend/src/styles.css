@@ -3858,6 +3858,57 @@ select {
   border-style: dashed;
 }
 
+.owner-payment-summary {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.owner-count-pill.payment-pending-count {
+  background: rgba(217, 164, 65, 0.18);
+  color: #8a5a12;
+}
+
+.owner-count-pill.payment-paid-count {
+  background: rgba(46, 125, 50, 0.13);
+  color: #276a2b;
+}
+
+.status-badge.paid {
+  background: rgba(46, 125, 50, 0.14);
+  color: #276a2b;
+}
+
+.status-badge.unpaid {
+  background: rgba(217, 164, 65, 0.18);
+  color: #8a5a12;
+}
+
+.status-badge.failed {
+  background: rgba(198, 53, 43, 0.12);
+  color: #a12c24;
+}
+
+.status-badge.refunded,
+.status-badge.notcreated {
+  background: rgba(101, 112, 131, 0.12);
+  color: var(--slate-500);
+}
+
+.owner-invitation-table .payment-row-paid {
+  background: rgba(46, 125, 50, 0.035);
+}
+
+.owner-invitation-table .payment-row-pending {
+  background: rgba(217, 164, 65, 0.025);
+}
+
+.owner-invitation-table .payment-action-button,
+.owner-invitation-table .payment-detail-button {
+  white-space: nowrap;
+}
+
 .owner-payment-result {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
