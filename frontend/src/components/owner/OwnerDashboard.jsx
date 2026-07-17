@@ -13,12 +13,13 @@ import { emptyHorseForm, formatDisplayLabel, getHorseId, getHorseName, getUserRo
 import { validateHorseForm } from '../../utils/validators';
 import { getOwnerHorseById } from '../../services/ownerService';
 import OwnerPendingDashboard from './OwnerPendingDashboard';
+import { useLanguage } from '../../context/LanguageContext';
 
 const ownerNavItems = [
-  { key: 'overview', label: 'Tổng quan', icon: '📊' },
-  { key: 'horses', label: 'Ngựa của tôi', icon: '🐎' },
-  { key: 'register', label: 'Đăng ký thi đấu', icon: '📝' },
-  { key: 'profile', label: 'Profile', icon: '👤' }
+  { key: 'overview', labelKey: 'ownerNavOverview', icon: '📊' },
+  { key: 'horses', labelKey: 'ownerNavHorses', icon: '🐎' },
+  { key: 'register', labelKey: 'ownerNavRegister', icon: '📝' },
+  { key: 'profile', labelKey: 'ownerNavProfile', icon: '👤' }
   ,
   { key: 'wallet', labelKey: 'wallet', icon: Wallet },
 ];
@@ -41,11 +42,11 @@ function hasRegistrationPaymentReturn(params) {
   }
 }
 
-function readImageFile(file) {
+function readImageFile(file, t) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result);
-    reader.onerror = () => reject(new Error('Khong the doc file.'));
+    reader.onerror = () => reject(new Error(t('ownerHorseReadFileError')));
     reader.readAsDataURL(file);
   });
 }
@@ -81,6 +82,7 @@ export default function OwnerDashboard(props) {
 }
 
 function ApprovedOwnerDashboard({ currentUser, onLogout, onUserUpdated }) {
+  const { t } = useLanguage();
   const [activeSection, setActiveSection] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     if (hasRegistrationPaymentReturn(params)) return 'register';
@@ -113,7 +115,7 @@ function ApprovedOwnerDashboard({ currentUser, onLogout, onUserUpdated }) {
     try {
       await Promise.all([loadDashboard(), loadHorses()]);
     } catch (err) {
-      setPageError(getErrorText(err, 'Không thể tải bảng điều khiển owner.'));
+      setPageError(getErrorText(err, t('ownerDashboardLoadError')));
     }
   }
 
@@ -156,7 +158,7 @@ function ApprovedOwnerDashboard({ currentUser, onLogout, onUserUpdated }) {
     const horseId = getHorseId(horse);
 
     if (!horseId) {
-      setHorseDetailError('Không tìm thấy mã ngựa.');
+      setHorseDetailError(t('ownerHorseMissingId'));
       return;
     }
 
@@ -170,7 +172,7 @@ function ApprovedOwnerDashboard({ currentUser, onLogout, onUserUpdated }) {
       const detail = await getOwnerHorseById(horseId);
       setSelectedHorse(detail);
     } catch (err) {
-      setHorseDetailError(getErrorText(err, 'Không thể tải chi tiết ngựa.'));
+      setHorseDetailError(getErrorText(err, t('ownerHorseDetailLoadError')));
     } finally {
       setIsLoadingHorseDetail(false);
     }
@@ -227,7 +229,7 @@ function ApprovedOwnerDashboard({ currentUser, onLogout, onUserUpdated }) {
     if (invalidFile) {
       setFormErrors((current) => ({
         ...current,
-        [fieldName]: 'File chi ho tro PDF, JPG hoac PNG.'
+        [fieldName]: t('ownerHorseInvalidFile')
       }));
       return;
     }
@@ -235,7 +237,7 @@ function ApprovedOwnerDashboard({ currentUser, onLogout, onUserUpdated }) {
     if (files.length > 1) {
       setFormErrors((current) => ({
         ...current,
-        [fieldName]: 'Upload one Health Certificate file only.'
+        [fieldName]: t('ownerHorseSingleFileOnly')
       }));
       return;
     }
@@ -243,7 +245,7 @@ function ApprovedOwnerDashboard({ currentUser, onLogout, onUserUpdated }) {
     try {
       const images = await Promise.all(
         files.map(async (file) => {
-          const dataUrl = await readImageFile(file);
+          const dataUrl = await readImageFile(file, t);
           return {
             name: file.name,
             size: file.size,
@@ -267,7 +269,7 @@ function ApprovedOwnerDashboard({ currentUser, onLogout, onUserUpdated }) {
     } catch (err) {
       setFormErrors((current) => ({
         ...current,
-        [fieldName]: getErrorText(err, 'Khong the doc file.')
+        [fieldName]: getErrorText(err, t('ownerHorseReadFileError'))
       }));
     }
   }
@@ -307,8 +309,8 @@ function ApprovedOwnerDashboard({ currentUser, onLogout, onUserUpdated }) {
 
       setMessage(
         editingHorse
-          ? 'Đã cập nhật hồ sơ ngựa và gửi ở trạng thái PENDING để admin phê duyệt.'
-          : 'Đã gửi hồ sơ ngựa ở trạng thái PENDING để admin phê duyệt.'
+          ? t('ownerHorseSaveSuccessUpdate')
+          : t('ownerHorseSaveSuccessCreate')
       );
 
       setEditingHorse(null);
@@ -318,7 +320,7 @@ function ApprovedOwnerDashboard({ currentUser, onLogout, onUserUpdated }) {
 
       await reloadOwnerData();
     } catch (err) {
-      setHorseFormError(getErrorText(err, 'Không thể lưu hồ sơ ngựa. Vui lòng kiểm tra thông tin và thử lại.'));
+      setHorseFormError(getErrorText(err, t('ownerHorseSaveError')));
     } finally {
       setIsSaving(false);
     }
@@ -326,10 +328,10 @@ function ApprovedOwnerDashboard({ currentUser, onLogout, onUserUpdated }) {
 
   async function handleDeleteHorse(horse) {
     const horseId = getHorseId(horse);
-    const horseName = getHorseName(horse) || String(horseId || 'ngựa này');
+    const horseName = getHorseName(horse) || String(horseId || 'Horse');
 
     const confirmDelete = window.confirm(
-      `Are you sure you want to delete the horse profile "${horseName}"?\nProfiles with race history or race results cannot be deleted.`
+      t('ownerHorseDeleteConfirm', { name: horseName })
     );
 
     if (!confirmDelete) {
@@ -342,7 +344,7 @@ function ApprovedOwnerDashboard({ currentUser, onLogout, onUserUpdated }) {
 
     try {
       await removeHorse(horse);
-      setMessage('Đã xóa hồ sơ ngựa thành công.');
+      setMessage(t('ownerHorseDeleteSuccess'));
 
       if (editingHorse && getHorseId(editingHorse) === horseId) {
         handleCancelHorseEdit();
@@ -354,15 +356,15 @@ function ApprovedOwnerDashboard({ currentUser, onLogout, onUserUpdated }) {
 
       await reloadOwnerData();
     } catch (err) {
-      setPageError(getErrorText(err, 'Không thể xóa hồ sơ ngựa.'));
+      setPageError(getErrorText(err, t('ownerHorseDeleteError')));
     }
   }
 
   return (
     <AppShell
       variant="owner"
-      title={`Xin chào, ${ownerName}`}
-      subtitle="Quản lý hồ sơ ngựa và theo dõi trạng thái đăng ký thi đấu."
+      title={t('ownerDashboardTitle', { name: ownerName })}
+      subtitle={t('ownerDashboardSubtitle')}
       profileName={ownerName}
       profileRole={String(currentUser?.role || currentUser?.roleName || 'OWNER')}
       activeSection={activeSection}
@@ -371,7 +373,7 @@ function ApprovedOwnerDashboard({ currentUser, onLogout, onUserUpdated }) {
       onLogout={onLogout}
       headerAction={
         <button className="refresh-button" type="button" onClick={reloadOwnerData} disabled={isLoading}>
-          {isLoading ? 'Đang tải...' : 'Làm mới'}
+          {isLoading ? `${t('loading')}...` : t('refresh')}
         </button>
       }
     >
@@ -392,11 +394,11 @@ function ApprovedOwnerDashboard({ currentUser, onLogout, onUserUpdated }) {
         <section className="owner-stack">
           <div className="owner-section-toolbar">
             <div>
-              <p className="eyebrow">Hồ sơ ngựa</p>
-              <h2>Quản lý ngựa của tôi</h2>
+              <p className="eyebrow">{t('ownerHorseSectionEyebrow')}</p>
+              <h2>{t('ownerHorseSectionTitle')}</h2>
             </div>
             <button className="primary-button compact-button" type="button" onClick={handleStartCreateHorse}>
-              + Add New Horse
+              + {t('ownerHorseAddNew')}
             </button>
           </div>
 
@@ -421,12 +423,12 @@ function ApprovedOwnerDashboard({ currentUser, onLogout, onUserUpdated }) {
             <section className="owner-panel horse-detail-panel">
               <div className="owner-panel-header">
                 <div>
-                  <p className="eyebrow">Chi tiết ngựa</p>
-                  <h2>{getHorseName(selectedHorse) || 'Chi tiết ngựa'}</h2>
-                  <p>{isLoadingHorseDetail ? 'Đang tải chi tiết mới nhất...' : 'Đã tải chi tiết hồ sơ ngựa.'}</p>
+                  <p className="eyebrow">{t('ownerHorseDetailEyebrow')}</p>
+                  <h2>{getHorseName(selectedHorse) || t('ownerHorseDetailEyebrow')}</h2>
+                  <p>{isLoadingHorseDetail ? t('ownerHorseDetailLoading') : t('ownerHorseDetailLoaded')}</p>
                 </div>
                 <button className="outline-button compact-button" type="button" onClick={() => setSelectedHorse(null)}>
-                  Đóng
+                  {t('close')}
                 </button>
               </div>
 
@@ -434,33 +436,39 @@ function ApprovedOwnerDashboard({ currentUser, onLogout, onUserUpdated }) {
                 <span>ID</span>
                 <strong>{getHorseId(selectedHorse) || 'N/A'}</strong>
 
-                <span>Giống ngựa</span>
-                <strong>{selectedHorse.breeding || 'Chưa cập nhật'}</strong>
+                <span>{t('ownerHorseBreeding')}</span>
+                <strong>{selectedHorse.breeding || t('notUpdated')}</strong>
 
-                <span>Giới tính</span>
-                <strong>{formatDisplayLabel(selectedHorse.sex, 'Chưa cập nhật')}</strong>
+                <span>{t('ownerHorseSex')}</span>
+                <strong>
+                  {selectedHorse.sex === 'MALE'
+                    ? t('ownerHorseSexMale')
+                    : selectedHorse.sex === 'FEMALE'
+                      ? t('ownerHorseSexFemale')
+                      : formatDisplayLabel(selectedHorse.sex, t('notUpdated'))}
+                </strong>
 
-                <span>Màu lông</span>
-                <strong>{selectedHorse.colour || 'Chưa cập nhật'}</strong>
+                <span>{t('ownerHorseColour')}</span>
+                <strong>{selectedHorse.colour || t('notUpdated')}</strong>
 
-                <span>Age</span>
-                <strong>{selectedHorse.age || 'Chưa cập nhật'}</strong>
+                <span>{t('ownerHorseAge')}</span>
+                <strong>{selectedHorse.age || t('notUpdated')}</strong>
 
-                <span>Day of Birth</span>
-                <strong>{selectedHorse.dayOfBirth || 'Chua cap nhat'}</strong>
+                <span>{t('ownerHorseDayOfBirth')}</span>
+                <strong>{selectedHorse.dayOfBirth || t('notUpdated')}</strong>
 
-                <span>Weight</span>
-                <strong>{selectedHorse.weight ? `${selectedHorse.weight} kg` : 'Chua cap nhat'}</strong>
+                <span>{t('ownerHorseWeight')}</span>
+                <strong>{selectedHorse.weight ? `${selectedHorse.weight} kg` : t('notUpdated')}</strong>
 
-                <span>Trainer</span>
-                <strong>{selectedHorse.trainer || 'Chua cap nhat'}</strong>
+                <span>{t('ownerHorseTrainer')}</span>
+                <strong>{selectedHorse.trainer || t('notUpdated')}</strong>
 
-                <span>Official Horse Profile URL</span>
-                <strong>{selectedHorse.officialHorseProfileUrl || 'Chưa cập nhật'}</strong>
+                <span>{t('ownerHorseOfficialProfileUrl')}</span>
+                <strong>{selectedHorse.officialHorseProfileUrl || t('notUpdated')}</strong>
 
                 {selectedHorse.officialHorseProfileUrl && (
                   <>
-                    <span>Official Website</span>
+                    <span>{t('ownerHorseOfficialWebsite')}</span>
                     <strong>
                       <a
                         className="table-button"
@@ -468,31 +476,31 @@ function ApprovedOwnerDashboard({ currentUser, onLogout, onUserUpdated }) {
                         target="_blank"
                         rel="noreferrer"
                       >
-                        Mở website
+                        {t('ownerHorseOpenWebsite')}
                       </a>
                     </strong>
                   </>
                 )}
 
-                <span>Health Certificate Expiry Date</span>
-                <strong>{selectedHorse.healthCertificateExpiryDate || 'Chưa cập nhật'}</strong>
+                <span>{t('ownerHorseHealthExpiry')}</span>
+                <strong>{selectedHorse.healthCertificateExpiryDate || t('notUpdated')}</strong>
 
-                <span>Trạng thái</span>
+                <span>{t('status')}</span>
                 <strong>
                   <span className={`status-badge ${String(selectedHorse.status || '').toLowerCase()}`}>
-                    {formatDisplayLabel(selectedHorse.status)}
+                    {selectedHorse.status ? t(`status_${String(selectedHorse.status).toUpperCase()}`) : t('notUpdated')}
                   </span>
                 </strong>
 
-                <span>Đăng ký</span>
+                <span>{t('ownerHorseRegistrationCount')}</span>
                 <strong>{selectedHorse.registrationCount ?? 0}</strong>
 
-                <span>Đã thi đấu</span>
-                <strong>{selectedHorse.participated ? 'Có' : 'Không'}</strong>
+                <span>{t('ownerHorseParticipated')}</span>
+                <strong>{selectedHorse.participated ? t('ownerHorseYes') : t('ownerHorseNo')}</strong>
 
                 {selectedHorse.rejectionReason && (
                   <>
-                    <span>Lý do từ chối</span>
+                    <span>{t('ownerHorseRejectedReason')}</span>
                     <strong>{selectedHorse.rejectionReason}</strong>
                   </>
                 )}
@@ -500,7 +508,7 @@ function ApprovedOwnerDashboard({ currentUser, onLogout, onUserUpdated }) {
 
               <div className="horse-detail-document-grid">
                 {[
-                  ['Health Certificate', selectedHorse.horseCertificateImages],
+                  [t('ownerHorseHealthCertificate'), selectedHorse.horseCertificateImages],
                 ].map(([label, images]) => (
                   <div className="horse-detail-document-card" key={label}>
                     <h3>{label}</h3>
@@ -513,7 +521,7 @@ function ApprovedOwnerDashboard({ currentUser, onLogout, onUserUpdated }) {
                           return (
                             <article className="horse-detail-document-item" key={`${label}-${documentName}-${index}`}>
                               {isPreviewableHorseImage(image) && documentUrl ? (
-                                <a href={documentUrl} target="_blank" rel="noreferrer" title="Mở ảnh trong tab mới">
+                                <a href={documentUrl} target="_blank" rel="noreferrer" title={t('ownerHorseOpenImage')}>
                                   <img
                                     src={documentUrl}
                                     alt={`${label} ${index + 1}`}
@@ -526,10 +534,10 @@ function ApprovedOwnerDashboard({ currentUser, onLogout, onUserUpdated }) {
                                 <strong>{documentName}</strong>
                                 {documentUrl ? (
                                   <a className="table-button" href={documentUrl} target="_blank" rel="noreferrer">
-                                    Xem file
+                                    {t('ownerHorseViewFile')}
                                   </a>
                                 ) : (
-                                  <p>Không tìm thấy đường dẫn file.</p>
+                                  <p>{t('ownerHorseMissingFileUrl')}</p>
                                 )}
                               </div>
                             </article>
@@ -537,7 +545,7 @@ function ApprovedOwnerDashboard({ currentUser, onLogout, onUserUpdated }) {
                         })}
                       </div>
                     ) : (
-                      <p>Chưa import file.</p>
+                      <p>{t('ownerHorseNoFile')}</p>
                     )}
                   </div>
                 ))}

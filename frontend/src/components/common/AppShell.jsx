@@ -33,13 +33,13 @@ export default function AppShell({
         <div className={brandClass}>
           <div className={logoClass}>🏇</div>
           <div>
-            <strong>Đường đua chiến thắng</strong>
+            <strong>{variant === 'admin' ? 'Horse Racing' : t('ownerPortalBrand')}</strong>
             <span>
               {variant === 'owner'
-                ? 'Cổng thông tin owner'
+                ? t('ownerPortalSubtitle')
                 : variant === 'jockey'
-                  ? 'Cổng thông tin jockey'
-                  : 'Bảng điều khiển quản trị'}
+                  ? t('jockeyPortalSubtitle')
+                  : t('adminCenter')}
             </span>
           </div>
         </div>
@@ -65,7 +65,7 @@ export default function AppShell({
         </nav>
 
         <div className={profileClass}>
-          <span>Đăng nhập với tài khoản</span>
+          <span>{t('signedInAs')}</span>
           <strong>{profileName}</strong>
           <small>{profileRole}</small>
         </div>
@@ -80,9 +80,9 @@ export default function AppShell({
           <div>
             <p className="eyebrow">
               {variant === 'owner'
-                ? 'Bảng điều khiển owner'
+                ? t('ownerDashboardEyebrow')
                 : variant === 'jockey'
-                  ? 'Bảng điều khiển jockey'
+                  ? t('jockeyDashboardEyebrow')
                   : 'Admin'}
             </p>
             <h1>{title}</h1>

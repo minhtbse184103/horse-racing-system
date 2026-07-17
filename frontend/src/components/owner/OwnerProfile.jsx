@@ -4,6 +4,7 @@ import { updateMyAccount, updateStoredUser } from '../../services/authService';
 import { getMyOwnerProfile } from '../../services/ownerApplicationService';
 import { getMyKyc } from '../../services/kycService';
 import { getMyWallet } from '../../services/walletService';
+import { useLanguage } from '../../context/LanguageContext';
 
 const inputClass = 'w-full rounded-lg border border-brown-700/15 bg-white px-4 py-3 text-sm font-bold text-brown-900 outline-none transition placeholder:text-slate-500/65 focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20 disabled:cursor-not-allowed disabled:bg-cream-200 disabled:text-slate-500';
 
@@ -16,11 +17,11 @@ function getAccountValues(user) {
   };
 }
 
-function ProfileField({ label, value, children }) {
+function ProfileField({ label, value, children, fallback = 'Not updated' }) {
   return (
     <div className="rounded-lg border border-brown-700/10 bg-white/70 p-4">
       <span className="block text-xs font-extrabold uppercase text-slate-500">{label}</span>
-      <strong className="mt-1 block break-words text-brown-900">{children || value || 'Not updated'}</strong>
+      <strong className="mt-1 block break-words text-brown-900">{children || value || fallback}</strong>
     </div>
   );
 }
@@ -52,6 +53,7 @@ function money(value, currency = 'VND') {
 }
 
 export default function OwnerProfile({ user, onUserUpdated }) {
+  const { t } = useLanguage();
   const [profile, setProfile] = useState(null);
   const [kyc, setKyc] = useState(null);
   const [wallet, setWallet] = useState(null);
@@ -78,14 +80,14 @@ export default function OwnerProfile({ user, onUserUpdated }) {
 
       if (ownerResult.status === 'rejected') throw ownerResult.reason;
       if (!ownerResult.value || ownerResult.value.status !== 'APPROVED') {
-        throw new Error('No approved Owner profile was found for this account.');
+        throw new Error(t('ownerProfileNoApproved'));
       }
 
       setProfile(ownerResult.value);
       setKyc(kycResult.status === 'fulfilled' ? kycResult.value : null);
       setWallet(walletResult.status === 'fulfilled' ? walletResult.value : null);
     } catch (err) {
-      setError(err?.message || 'Unable to load the Owner profile.');
+      setError(err?.message || t('ownerProfileLoadError'));
     } finally {
       setIsLoading(false);
     }
@@ -122,12 +124,12 @@ export default function OwnerProfile({ user, onUserUpdated }) {
     const nextPhone = accountValues.phone.trim();
 
     if (!nextUsername) {
-      setError('Username is required.');
+      setError(t('usernameRequired'));
       return;
     }
 
     if (!nextEmail) {
-      setError('Email is required.');
+      setError(t('emailRequired'));
       return;
     }
 
@@ -144,16 +146,16 @@ export default function OwnerProfile({ user, onUserUpdated }) {
       setAccountUser(updatedUser);
       setAccountValues(getAccountValues(updatedUser));
       setIsEditingAccount(false);
-      setMessage('Account information updated.');
+      setMessage(t('ownerProfileUpdated'));
       setError('');
       onUserUpdated?.(updatedUser);
     } catch (err) {
-      setError(err?.message || 'Unable to update account information.');
+      setError(err?.message || t('ownerProfileUpdateError'));
     }
   }
 
   if (isLoading) {
-    return <div className="admin-alert success" role="status">Loading Owner profile...</div>;
+    return <div className="admin-alert success" role="status">{t('ownerProfileLoading')}</div>;
   }
 
   return (
@@ -165,26 +167,26 @@ export default function OwnerProfile({ user, onUserUpdated }) {
         <form onSubmit={handleSaveAccount} noValidate>
           <div className="owner-panel-header">
             <div>
-              <p className="eyebrow">Account Information</p>
-              <h2>Login and contact details</h2>
-              <p>Email and phone number can be updated here.</p>
+              <p className="eyebrow">{t('ownerProfileAccountInfo')}</p>
+              <h2>{t('ownerProfileLoginContact')}</h2>
+              <p>{t('ownerProfileContactEditable')}</p>
             </div>
             {!isEditingAccount && (
-              <button className="primary-button compact-button" type="button" onClick={() => setIsEditingAccount(true)}>Edit Account</button>
+              <button className="primary-button compact-button" type="button" onClick={() => setIsEditingAccount(true)}>{t('ownerProfileEditAccount')}</button>
             )}
           </div>
 
           <div className="grid gap-4 md:grid-cols-2">
-            <EditableField label="Username" name="username" value={accountValues.username} disabled={!isEditingAccount} onChange={handleAccountChange} />
-            <EditableField label="Email" name="email" type="email" value={accountValues.email} disabled={!isEditingAccount} onChange={handleAccountChange} />
-            <EditableField label="Phone Number" name="phone" value={accountValues.phone} disabled={!isEditingAccount} onChange={handleAccountChange} />
-            <EditableField label="Role" name="role" value={formatDisplayLabel(accountValues.role)} disabled onChange={handleAccountChange} />
+            <EditableField label={t('username')} name="username" value={accountValues.username} disabled={!isEditingAccount} onChange={handleAccountChange} />
+            <EditableField label={t('email')} name="email" type="email" value={accountValues.email} disabled={!isEditingAccount} onChange={handleAccountChange} />
+            <EditableField label={t('phone')} name="phone" value={accountValues.phone} disabled={!isEditingAccount} onChange={handleAccountChange} />
+            <EditableField label={t('role')} name="role" value={formatDisplayLabel(accountValues.role)} disabled onChange={handleAccountChange} />
           </div>
 
           {isEditingAccount && (
             <div className="mt-5 flex flex-col-reverse gap-3 border-t border-brown-700/10 pt-5 sm:flex-row sm:justify-end">
-              <button className="outline-button" type="button" onClick={handleCancelAccount}>Cancel</button>
-              <button className="primary-button sm:w-auto" type="submit">Save Changes</button>
+              <button className="outline-button" type="button" onClick={handleCancelAccount}>{t('cancel')}</button>
+              <button className="primary-button sm:w-auto" type="submit">{t('ownerProfileSaveChanges')}</button>
             </div>
           )}
         </form>
@@ -194,33 +196,33 @@ export default function OwnerProfile({ user, onUserUpdated }) {
         <section className="owner-panel">
           <div className="owner-panel-header">
             <div>
-              <p className="eyebrow">Owner Professional Profile</p>
-              <h2>Stable and ownership information</h2>
-              <p>This application was approved by an administrator and cannot be edited directly.</p>
+              <p className="eyebrow">{t('ownerProfileProfessional')}</p>
+              <h2>{t('ownerProfileStableInfo')}</h2>
+              <p>{t('ownerProfileReadonly')}</p>
             </div>
-            <span className="status-badge approved">Owner Approved</span>
+            <span className="status-badge approved">{t('ownerProfileApproved')}</span>
           </div>
 
           <div className="owner-profile-window">
             <div className="owner-profile-avatar">{(profile.stableName || accountUser?.username || 'O').charAt(0).toUpperCase()}</div>
             <div>
               <h3>{profile.stableName}</h3>
-              <p>{formatDisplayLabel(profile.status)} - Owner since {formatDate(profile.ownerSince)}</p>
+              <p>{formatDisplayLabel(profile.status)} - {t('ownerProfileOwnerSince', { date: formatDate(profile.ownerSince) })}</p>
             </div>
           </div>
 
           <div className="mt-5 grid gap-4 md:grid-cols-2">
-            <ProfileField label="Stable Name" value={profile.stableName} />
-            <ProfileField label="Stable Address" value={profile.stableAddress} />
-            <ProfileField label="Total Horses Owned" value={profile.totalHorsesOwned} />
-            <ProfileField label="Application Submitted" value={formatDate(profile.submittedAt)} />
-            <ProfileField label="Application Reviewed" value={formatDate(profile.reviewedAt)} />
-            <ProfileField label="Owner Since" value={formatDate(profile.ownerSince)} />
+            <ProfileField label={t('ownerProfileStableName')} value={profile.stableName} fallback={t('notUpdated')} />
+            <ProfileField label={t('ownerProfileStableAddress')} value={profile.stableAddress} fallback={t('notUpdated')} />
+            <ProfileField label={t('ownerProfileTotalHorses')} value={profile.totalHorsesOwned} fallback={t('notUpdated')} />
+            <ProfileField label={t('ownerProfileSubmittedAt')} value={formatDate(profile.submittedAt)} fallback={t('notUpdated')} />
+            <ProfileField label={t('ownerProfileReviewedAt')} value={formatDate(profile.reviewedAt)} fallback={t('notUpdated')} />
+            <ProfileField label={t('ownerProfileOwnerSinceLabel')} value={formatDate(profile.ownerSince)} fallback={t('notUpdated')} />
           </div>
 
           <div className="mt-5 grid gap-4 md:grid-cols-2">
-            {profile.stableCertificateUrl && <a className="outline-button compact-button inline-flex" href={profile.stableCertificateUrl} target="_blank" rel="noreferrer">View Stable Certificate</a>}
-            {profile.horseOwnershipProofUrl && <a className="outline-button compact-button inline-flex" href={profile.horseOwnershipProofUrl} target="_blank" rel="noreferrer">View Horse Ownership Proof</a>}
+            {profile.stableCertificateUrl && <a className="outline-button compact-button inline-flex" href={profile.stableCertificateUrl} target="_blank" rel="noreferrer">{t('ownerProfileViewStableCertificate')}</a>}
+            {profile.horseOwnershipProofUrl && <a className="outline-button compact-button inline-flex" href={profile.horseOwnershipProofUrl} target="_blank" rel="noreferrer">{t('ownerProfileViewOwnershipProof')}</a>}
           </div>
         </section>
       )}
@@ -228,40 +230,40 @@ export default function OwnerProfile({ user, onUserUpdated }) {
       <section className="owner-panel">
         <div className="owner-panel-header">
           <div>
-            <p className="eyebrow">Identity Verification</p>
-            <h2>Didit KYC information</h2>
-            <p>KYC verifies the account holder for wallet access. It is separate from Owner approval.</p>
+            <p className="eyebrow">{t('ownerProfileIdentity')}</p>
+            <h2>{t('ownerProfileKycInfo')}</h2>
+            <p>{t('ownerProfileKycDesc')}</p>
           </div>
           <StatusBadge status={kyc?.status} />
         </div>
 
         {kyc?.status === 'VERIFIED' ? (
           <div className="grid gap-4 md:grid-cols-2">
-            <ProfileField label="Verified Full Name" value={kyc.verifiedFullName} />
-            <ProfileField label="Date of Birth" value={formatDate(kyc.verifiedDateOfBirth)} />
-            <ProfileField label="Identity Document" value={`${kyc.documentType || 'Identity document'}${kyc.documentLastFour ? ` **** ${kyc.documentLastFour}` : ''}`} />
-            <ProfileField label="Document Expiry Date" value={kyc.documentExpiryDate ? formatDate(kyc.documentExpiryDate) : 'No expiry provided'} />
-            <ProfileField label="Verified By" value={kyc.provider || 'DIDIT'} />
-            <ProfileField label="Verified At" value={formatDate(kyc.verifiedAt)} />
+            <ProfileField label={t('ownerProfileVerifiedFullName')} value={kyc.verifiedFullName} fallback={t('notUpdated')} />
+            <ProfileField label={t('dateOfBirth')} value={formatDate(kyc.verifiedDateOfBirth)} fallback={t('notUpdated')} />
+            <ProfileField label={t('ownerProfileIdentityDocument')} value={`${kyc.documentType || t('ownerProfileIdentityDocument')}${kyc.documentLastFour ? ` **** ${kyc.documentLastFour}` : ''}`} fallback={t('notUpdated')} />
+            <ProfileField label={t('ownerProfileDocumentExpiry')} value={kyc.documentExpiryDate ? formatDate(kyc.documentExpiryDate) : t('ownerProfileNoExpiry')} fallback={t('notUpdated')} />
+            <ProfileField label={t('ownerProfileVerifiedBy')} value={kyc.provider || 'DIDIT'} fallback={t('notUpdated')} />
+            <ProfileField label={t('ownerProfileVerifiedAt')} value={formatDate(kyc.verifiedAt)} fallback={t('notUpdated')} />
           </div>
         ) : (
-          <div className="admin-alert success" role="status">Identity information appears here after Didit returns a VERIFIED decision.</div>
+          <div className="admin-alert success" role="status">{t('ownerProfileKycPending')}</div>
         )}
       </section>
 
       <section className="owner-panel">
         <div className="owner-panel-header">
           <div>
-            <p className="eyebrow">Wallet Summary</p>
-            <h2>Wallet access</h2>
-            <p>The backend opens the wallet only after successful KYC verification.</p>
+            <p className="eyebrow">{t('ownerProfileWalletSummary')}</p>
+            <h2>{t('ownerProfileWalletAccess')}</h2>
+            <p>{t('ownerProfileWalletDesc')}</p>
           </div>
           <StatusBadge status={wallet?.status || 'NOT_OPENED'} />
         </div>
         <div className="grid gap-4 md:grid-cols-3">
-          <ProfileField label="Currency" value={wallet?.currency || 'VND'} />
-          <ProfileField label="Available Balance" value={wallet ? money(wallet.availableBalance, wallet.currency) : 'Wallet not opened'} />
-          <ProfileField label="Locked Balance" value={wallet ? money(wallet.lockedBalance, wallet.currency) : 'Wallet not opened'} />
+          <ProfileField label={t('ownerProfileCurrency')} value={wallet?.currency || 'VND'} fallback={t('notUpdated')} />
+          <ProfileField label={t('ownerProfileAvailableBalance')} value={wallet ? money(wallet.availableBalance, wallet.currency) : t('ownerProfileWalletNotOpened')} fallback={t('notUpdated')} />
+          <ProfileField label={t('ownerProfileLockedBalance')} value={wallet ? money(wallet.lockedBalance, wallet.currency) : t('ownerProfileWalletNotOpened')} fallback={t('notUpdated')} />
         </div>
       </section>
     </section>

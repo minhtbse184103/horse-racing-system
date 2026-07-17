@@ -1,9 +1,12 @@
+import { useLanguage } from '../../context/LanguageContext';
+
 function isPreviewableImage(image) {
   const source = image?.dataUrl || image?.url || '';
   return String(image?.type || '').startsWith('image/') || String(source).startsWith('data:image/');
 }
 
 function HealthCertificateUpload({ values, errors, isSaving, onFilesChange, onRemoveImage }) {
+  const { t } = useLanguage();
   const images = values.horseCertificateImages || [];
 
   return (
@@ -11,13 +14,13 @@ function HealthCertificateUpload({ values, errors, isSaving, onFilesChange, onRe
       <div className="horse-upload-header">
         <div>
           <label className="field-label" htmlFor="horseCertificateImages">
-            Health Certificate <span className="required">*</span>
+            {t('ownerHorseHealthCertificate')} <span className="required">*</span>
           </label>
-          <p>Upload one file only. Accepted formats: PDF, JPG, JPEG, PNG.</p>
+          <p>{t('ownerHorseUploadHint')}</p>
         </div>
 
         <label className="outline-button compact-button cursor-pointer">
-          Import Image
+          {t('ownerHorseImportImage')}
           <input
             id="horseCertificateImages"
             className="sr-only"
@@ -36,26 +39,26 @@ function HealthCertificateUpload({ values, errors, isSaving, onFilesChange, onRe
           {images.map((image, index) => (
             <article className="horse-upload-preview-card" key={`health-certificate-${image.name}-${index}`}>
               {isPreviewableImage(image) ? (
-                <img src={image.dataUrl || image.url} alt={`Health Certificate ${index + 1}`} />
+                <img src={image.dataUrl || image.url} alt={`${t('ownerHorseHealthCertificate')} ${index + 1}`} />
               ) : (
                 <div className="horse-upload-empty">PDF</div>
               )}
               <div>
-                <strong>{image.name || `Health Certificate ${index + 1}`}</strong>
+                <strong>{image.name || `${t('ownerHorseHealthCertificate')} ${index + 1}`}</strong>
                 <button
                   className="danger-action"
                   type="button"
                   onClick={() => onRemoveImage('horseCertificateImages', index)}
                   disabled={isSaving}
                 >
-                  Remove
+                  {t('ownerHorseRemove')}
                 </button>
               </div>
             </article>
           ))}
         </div>
       ) : (
-        <div className="horse-upload-empty">Chua import file.</div>
+        <div className="horse-upload-empty">{t('ownerHorseNoFile')}</div>
       )}
     </div>
   );
@@ -73,18 +76,20 @@ export default function OwnerHorseForm({
   onFilesChange,
   onRemoveImage
 }) {
+  const { t } = useLanguage();
+
   return (
     <div className="horse-form-overlay" role="presentation" onClick={onCancelEdit}>
       <section className="horse-form-modal" role="dialog" aria-modal="true" onClick={(event) => event.stopPropagation()}>
         <div className="owner-panel-header horse-modal-header">
           <div>
-            <p className="eyebrow">Register New Horse</p>
-            <h2>{editingHorse ? 'Cap nhat ho so ngua' : 'Them ngua moi'}</h2>
-            <p>Owner enters horse information manually. Admin verifies it using the official horse profile URL.</p>
+            <p className="eyebrow">{t('ownerHorseFormEyebrow')}</p>
+            <h2>{editingHorse ? t('ownerHorseFormEditTitle') : t('ownerHorseFormCreateTitle')}</h2>
+            <p>{t('ownerHorseFormDesc')}</p>
           </div>
 
           <button className="outline-button compact-button" type="button" onClick={onCancelEdit} disabled={isSaving}>
-            Dong
+            {t('close')}
           </button>
         </div>
 
@@ -96,14 +101,14 @@ export default function OwnerHorseForm({
           )}
 
           <label className="field-label" htmlFor="horseName">
-            Horse Name <span className="required">*</span>
+            {t('ownerHorseName')} <span className="required">*</span>
           </label>
           <input
             className={errors.horseName ? 'input has-error' : 'input'}
             id="horseName"
             name="horseName"
             type="text"
-            placeholder="Vi du: Thunder Bolt"
+            placeholder={t('ownerHorseExampleName')}
             value={formValues.horseName}
             onChange={onChange}
             disabled={isSaving}
@@ -114,7 +119,7 @@ export default function OwnerHorseForm({
           <div className="owner-form-row">
             <div>
               <label className="field-label" htmlFor="horseAge">
-                Day of Birth <span className="required">*</span>
+                {t('ownerHorseDayOfBirth')} <span className="required">*</span>
               </label>
               <input
                 className={errors.dayOfBirth ? 'input has-error' : 'input'}
@@ -130,7 +135,7 @@ export default function OwnerHorseForm({
 
             <div>
               <label className="field-label" htmlFor="horseWeight">
-                Weight (kg) <span className="required">*</span>
+                {t('ownerHorseWeight')} (kg) <span className="required">*</span>
               </label>
               <input
                 className={errors.weight ? 'input has-error' : 'input'}
@@ -150,14 +155,14 @@ export default function OwnerHorseForm({
           <div className="owner-form-row">
             <div>
               <label className="field-label" htmlFor="horseColour">
-                Colour <span className="required">*</span>
+                {t('ownerHorseColour')} <span className="required">*</span>
               </label>
               <input
                 className={errors.colour ? 'input has-error' : 'input'}
                 id="horseColour"
                 name="colour"
                 type="text"
-                placeholder="Bay, chestnut, grey..."
+                placeholder={t('ownerHorseColourPlaceholder')}
                 value={formValues.colour}
                 onChange={onChange}
                 disabled={isSaving}
@@ -169,7 +174,7 @@ export default function OwnerHorseForm({
           <div className="owner-form-row">
             <div>
               <label className="field-label" htmlFor="horseSex">
-                Sex <span className="required">*</span>
+                {t('ownerHorseSex')} <span className="required">*</span>
               </label>
               <select
                 className={errors.sex ? 'input has-error' : 'input'}
@@ -179,22 +184,22 @@ export default function OwnerHorseForm({
                 onChange={onChange}
                 disabled={isSaving}
               >
-                <option value="MALE">Male</option>
-                <option value="FEMALE">Female</option>
+                <option value="MALE">{t('ownerHorseSexMale')}</option>
+                <option value="FEMALE">{t('ownerHorseSexFemale')}</option>
               </select>
               {errors.sex && <p className="field-error">{errors.sex}</p>}
             </div>
 
             <div>
               <label className="field-label" htmlFor="horseBreeding">
-                Breeding <span className="required">*</span>
+                {t('ownerHorseBreeding')} <span className="required">*</span>
               </label>
               <input
                 className={errors.breeding ? 'input has-error' : 'input'}
                 id="horseBreeding"
                 name="breeding"
                 type="text"
-                placeholder="Thoroughbred..."
+                placeholder={t('ownerHorseBreedingPlaceholder')}
                 value={formValues.breeding}
                 onChange={onChange}
                 disabled={isSaving}
@@ -204,7 +209,7 @@ export default function OwnerHorseForm({
           </div>
 
           <label className="field-label" htmlFor="horseTrainer">
-            Trainer <span className="required">*</span>
+            {t('ownerHorseTrainer')} <span className="required">*</span>
           </label>
           <input
             className={errors.trainer ? 'input has-error' : 'input'}
@@ -220,7 +225,7 @@ export default function OwnerHorseForm({
           <div className="owner-form-row">
             <div>
               <label className="field-label" htmlFor="healthCertificateExpiryDate">
-                Health Certificate Expiry Date <span className="required">*</span>
+                {t('ownerHorseHealthExpiry')} <span className="required">*</span>
               </label>
               <input
                 className={errors.healthCertificateExpiryDate ? 'input has-error' : 'input'}
@@ -236,7 +241,7 @@ export default function OwnerHorseForm({
 
             <div>
               <label className="field-label" htmlFor="officialHorseProfileUrl">
-                Official Horse Profile URL <span className="required">*</span>
+                {t('ownerHorseOfficialProfileUrl')} <span className="required">*</span>
               </label>
               <input
                 className={errors.officialHorseProfileUrl ? 'input has-error' : 'input'}
@@ -249,7 +254,7 @@ export default function OwnerHorseForm({
                 disabled={isSaving}
               />
               <p className="field-help">
-                Paste the official horse profile URL from Racing & Sports, Racing Post, Equibase, HKJC, or another trusted racing website.
+                {t('ownerHorseProfileHelp')}
               </p>
               {errors.officialHorseProfileUrl && <p className="field-error">{errors.officialHorseProfileUrl}</p>}
             </div>
@@ -265,11 +270,11 @@ export default function OwnerHorseForm({
 
           <div className="admin-form-actions sticky-modal-actions">
             <button className="primary-button" type="submit" disabled={isSaving}>
-              {isSaving ? 'Dang gui...' : editingHorse ? 'Cap nhat ho so' : 'Submit Horse'}
+              {isSaving ? t('ownerHorseSubmitting') : editingHorse ? t('ownerHorseUpdate') : t('ownerHorseSubmit')}
             </button>
 
             <button className="outline-button" type="button" onClick={onCancelEdit} disabled={isSaving}>
-              {editingHorse ? 'Huy chinh sua' : 'Cancel'}
+              {editingHorse ? t('ownerHorseCancelEdit') : t('cancel')}
             </button>
           </div>
         </form>

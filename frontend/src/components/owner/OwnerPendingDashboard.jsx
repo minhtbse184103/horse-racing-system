@@ -17,6 +17,7 @@ import { getMyOwnerApplication, submitOwnerApplication } from '../../services/ow
 import { getMyKyc } from '../../services/kycService';
 import { getMyWallet } from '../../services/walletService';
 import { formatDate, formatDisplayLabel } from '../../lib';
+import { useLanguage } from '../../context/LanguageContext';
 
 function applicationStatus(application) {
   return String(application?.status || 'NOT_SUBMITTED').toUpperCase();
@@ -35,20 +36,21 @@ function StatusBadge({ status }) {
   return <span className={`status-badge ${normalized}`}>{formatDisplayLabel(status || 'NOT_SUBMITTED')}</span>;
 }
 
-function Detail({ label, value }) {
+function Detail({ label, value, fallback = 'Not updated' }) {
   return (
     <div className="rounded-lg border border-brown-700/10 bg-white/70 p-4">
       <span className="block text-xs font-extrabold uppercase text-slate-500">{label}</span>
-      <strong className="mt-1 block break-words text-brown-900">{value || 'Not updated'}</strong>
+      <strong className="mt-1 block break-words text-brown-900">{value || fallback}</strong>
     </div>
   );
 }
 
-function DocumentLink({ label, url }) {
+function DocumentLink({ label, url, t }) {
   return (
     <Detail
       label={label}
-      value={url ? <a className="table-button" href={url} target="_blank" rel="noreferrer">View document</a> : 'Not uploaded'}
+      value={url ? <a className="table-button" href={url} target="_blank" rel="noreferrer">{t('ownerPendingViewDocument')}</a> : t('ownerPendingNotUploaded')}
+      fallback={t('notUpdated')}
     />
   );
 }
@@ -69,6 +71,7 @@ function ActivationStep({ complete, current, title, description }) {
 }
 
 export default function OwnerPendingDashboard({ currentUser, onLogout }) {
+  const { t } = useLanguage();
   const [activeSection, setActiveSection] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.has('vnp_TxnRef') || params.has('vnp_SecureHash')) return 'wallet';
@@ -89,40 +92,40 @@ export default function OwnerPendingDashboard({ currentUser, onLogout }) {
   const identityStatus = kycStatus(kyc);
   const currentWalletStatus = walletStatus(walletData);
   const profileName = currentUser?.fullName || currentUser?.username || currentUser?.email || 'Owner';
-  const lockedReason = 'Available after the Owner application is approved by an administrator.';
+  const lockedReason = t('ownerPendingLockedReason');
   const navItems = useMemo(() => [
-    { key: 'overview', label: 'Overview', icon: Gauge },
-    { key: 'horses', label: 'My Horses', icon: List, disabled: true, disabledReason: lockedReason },
-    { key: 'register', label: 'Competitions', icon: Trophy, disabled: true, disabledReason: lockedReason },
-    { key: 'application', label: 'Owner Application', icon: FileCheck2 },
-    { key: 'profile', label: 'Profile', icon: UserRound },
+    { key: 'overview', labelKey: 'ownerNavOverview', icon: Gauge },
+    { key: 'horses', labelKey: 'ownerNavHorses', icon: List, disabled: true, disabledReason: lockedReason },
+    { key: 'register', labelKey: 'ownerPendingCompetitions', icon: Trophy, disabled: true, disabledReason: lockedReason },
+    { key: 'application', labelKey: 'ownerPendingApplication', icon: FileCheck2 },
+    { key: 'profile', labelKey: 'ownerNavProfile', icon: UserRound },
     { key: 'wallet', labelKey: 'wallet', icon: Wallet }
-  ], []);
+  ], [lockedReason]);
 
   const applicationCopy = {
     NOT_SUBMITTED: {
-      eyebrow: 'Owner onboarding',
-      title: 'Complete your Owner application',
-      description: 'Provide stable information and horse ownership evidence for administrator review.',
-      action: 'Submit Owner Application'
+      eyebrow: t('ownerPendingOnboarding'),
+      title: t('ownerPendingCompleteApplication'),
+      description: t('ownerPendingCompleteDesc'),
+      action: t('ownerPendingSubmitApplication')
     },
     PENDING: {
-      eyebrow: 'Application under review',
-      title: 'Your documents are being reviewed',
-      description: 'Your application has been submitted. Profile, KYC, and wallet features remain available while you wait.',
-      action: 'View Submitted Application'
+      eyebrow: t('ownerPendingUnderReview'),
+      title: t('ownerPendingDocumentsReview'),
+      description: t('ownerPendingReviewDesc'),
+      action: t('ownerPendingViewApplication')
     },
     REJECTED: {
-      eyebrow: 'Changes required',
-      title: 'Update and resubmit your application',
-      description: application?.rejectReason || 'Review the administrator feedback before submitting again.',
-      action: 'Update Application'
+      eyebrow: t('ownerPendingChangesRequired'),
+      title: t('ownerPendingUpdateApplication'),
+      description: application?.rejectReason || t('ownerPendingReviewFeedback'),
+      action: t('ownerPendingUpdateApplication')
     },
     APPROVED: {
-      eyebrow: 'Application approved',
-      title: 'Your Owner access is ready',
-      description: 'Sign in again to refresh your access token and unlock horse management and competitions.',
-      action: 'Sign Out and Sign In Again'
+      eyebrow: t('ownerPendingApprovedEyebrow'),
+      title: t('ownerPendingApprovedTitle'),
+      description: t('ownerPendingApprovedDesc'),
+      action: t('ownerPendingSignOutAgain')
     }
   }[status] || null;
 
@@ -141,7 +144,7 @@ export default function OwnerPendingDashboard({ currentUser, onLogout }) {
     } else if (applicationResult.reason?.status === 404) {
       setApplication(null);
     } else if (applicationResult.reason?.status !== 404) {
-      setError(applicationResult.reason?.message || 'Unable to load the Owner application.');
+      setError(applicationResult.reason?.message || t('ownerPendingLoadError'));
     }
 
     setKyc(kycResult.status === 'fulfilled' ? kycResult.value : null);
@@ -162,9 +165,9 @@ export default function OwnerPendingDashboard({ currentUser, onLogout }) {
       setApplication(submitted);
       setIsFormOpen(false);
       setActiveSection('application');
-      setMessage('Owner application submitted. Please wait for administrator review.');
+      setMessage(t('ownerPendingSubmitSuccess'));
     } catch (err) {
-      setFormError(err?.message || 'Unable to submit the Owner application.');
+      setFormError(err?.message || t('ownerPendingSubmitError'));
     } finally {
       setIsSubmitting(false);
     }
@@ -183,13 +186,13 @@ export default function OwnerPendingDashboard({ currentUser, onLogout }) {
   }
 
   function renderApplication() {
-    if (isLoading) return <div className="admin-alert success" role="status">Loading Owner application...</div>;
+    if (isLoading) return <div className="admin-alert success" role="status">{t('ownerPendingLoadingApplication')}</div>;
 
     return (
       <section className="owner-panel">
         <div className="owner-panel-header">
           <div>
-            <p className="eyebrow">Owner application</p>
+            <p className="eyebrow">{t('ownerPendingApplication')}</p>
             <h2>{applicationCopy?.title}</h2>
             <p>{applicationCopy?.description}</p>
           </div>
@@ -198,14 +201,14 @@ export default function OwnerPendingDashboard({ currentUser, onLogout }) {
 
         {application && (
           <div className="grid gap-3 md:grid-cols-2">
-            <Detail label="Stable Name" value={application.stableName} />
-            <Detail label="Stable Address" value={application.stableAddress} />
-            <Detail label="Total Horses Owned" value={application.totalHorsesOwned} />
-            <Detail label="Submitted At" value={formatDate(application.submittedAt)} />
-            <DocumentLink label="Stable Certificate" url={application.stableCertificateUrl} />
-            <DocumentLink label="Horse Ownership Proof" url={application.horseOwnershipProofUrl} />
-            {application.reviewedAt && <Detail label="Reviewed At" value={formatDate(application.reviewedAt)} />}
-            {application.rejectReason && <Detail label="Rejection Reason" value={application.rejectReason} />}
+            <Detail label={t('ownerProfileStableName')} value={application.stableName} fallback={t('notUpdated')} />
+            <Detail label={t('ownerProfileStableAddress')} value={application.stableAddress} fallback={t('notUpdated')} />
+            <Detail label={t('ownerProfileTotalHorses')} value={application.totalHorsesOwned} fallback={t('notUpdated')} />
+            <Detail label={t('ownerPendingSubmittedAt')} value={formatDate(application.submittedAt)} fallback={t('notUpdated')} />
+            <DocumentLink label={t('ownerPendingStableCertificate')} url={application.stableCertificateUrl} t={t} />
+            <DocumentLink label={t('ownerPendingOwnershipProof')} url={application.horseOwnershipProofUrl} t={t} />
+            {application.reviewedAt && <Detail label={t('ownerPendingReviewedAt')} value={formatDate(application.reviewedAt)} fallback={t('notUpdated')} />}
+            {application.rejectReason && <Detail label={t('ownerPendingRejectionReason')} value={application.rejectReason} fallback={t('notUpdated')} />}
           </div>
         )}
 
@@ -235,45 +238,45 @@ export default function OwnerPendingDashboard({ currentUser, onLogout }) {
           </div>
         </section>
 
-        <section className="owner-stats-grid" aria-label="Account status summary">
+        <section className="owner-stats-grid" aria-label={t('ownerPendingStatusSummary')}>
           <div className="owner-stat-card highlight">
-            <span>Owner Application</span>
+            <span>{t('ownerPendingApplication')}</span>
             <strong className="text-2xl"><StatusBadge status={status} /></strong>
-            <small>{application?.submittedAt ? `Submitted ${formatDate(application.submittedAt)}` : 'Stable and ownership documents required'}</small>
+            <small>{application?.submittedAt ? t('ownerPendingApplicationSubmitted', { date: formatDate(application.submittedAt) }) : t('ownerPendingDocumentsRequired')}</small>
           </div>
           <div className="owner-stat-card">
-            <span>Identity Verification</span>
+            <span>{t('ownerProfileIdentity')}</span>
             <strong className="text-2xl"><StatusBadge status={identityStatus} /></strong>
-            <small>KYC is used only to open the wallet</small>
+            <small>{t('ownerPendingKycWallet')}</small>
           </div>
           <div className="owner-stat-card">
-            <span>Wallet</span>
+            <span>{t('wallet')}</span>
             <strong className="text-2xl"><StatusBadge status={currentWalletStatus} /></strong>
-            <small>{walletData ? 'Wallet information is available' : 'Complete KYC to open your wallet'}</small>
+            <small>{walletData ? t('ownerPendingWalletAvailable') : t('ownerPendingWalletNeedKyc')}</small>
           </div>
         </section>
 
         <section className="owner-overview-grid">
           <section className="owner-panel">
             <div className="owner-panel-header">
-              <div><p className="eyebrow">Activation progress</p><h2>Unlock Owner features</h2><p>Professional access and wallet access are reviewed independently.</p></div>
+              <div><p className="eyebrow">{t('ownerPendingActivationProgress')}</p><h2>{t('ownerPendingUnlockFeatures')}</h2><p>{t('ownerPendingIndependentReview')}</p></div>
             </div>
             <ol className="m-0 list-none p-0">
-              <ActivationStep complete title="Owner account created" description="You can sign in and access the Owner portal." />
-              <ActivationStep complete={submitted} current={!submitted} title="Owner application submitted" description="Stable information and horse ownership evidence are required." />
-              <ActivationStep complete={approved} current={status === 'PENDING'} title="Administrator approval" description="An administrator reviews the professional documents." />
-              <ActivationStep complete={false} current={approved} title="Owner features unlocked" description="Sign in again after approval to refresh your access token." />
+              <ActivationStep complete title={t('ownerPendingAccountCreated')} description={t('ownerPendingAccountCreatedDesc')} />
+              <ActivationStep complete={submitted} current={!submitted} title={t('ownerPendingApplicationSubmittedStep')} description={t('ownerPendingApplicationSubmittedDesc')} />
+              <ActivationStep complete={approved} current={status === 'PENDING'} title={t('ownerPendingAdminApproval')} description={t('ownerPendingAdminApprovalDesc')} />
+              <ActivationStep complete={false} current={approved} title={t('ownerPendingFeaturesUnlocked')} description={t('ownerPendingFeaturesUnlockedDesc')} />
             </ol>
           </section>
 
           <section className="owner-panel compact-panel">
             <div className="owner-panel-header">
-              <div><p className="eyebrow">After approval</p><h2>Available Owner tools</h2><p>These tools stay locked until professional approval.</p></div>
+              <div><p className="eyebrow">{t('ownerPendingAfterApproval')}</p><h2>{t('ownerPendingAvailableTools')}</h2><p>{t('ownerPendingToolsLocked')}</p></div>
             </div>
             <div className="owner-mini-list">
-              <div><span>Manage horse profiles</span><LockKeyhole size={18} aria-hidden="true" /></div>
-              <div><span>Register for competitions</span><LockKeyhole size={18} aria-hidden="true" /></div>
-              <div><span>Manage Jockey invitations</span><LockKeyhole size={18} aria-hidden="true" /></div>
+              <div><span>{t('ownerPendingManageHorseProfiles')}</span><LockKeyhole size={18} aria-hidden="true" /></div>
+              <div><span>{t('ownerPendingRegisterCompetitions')}</span><LockKeyhole size={18} aria-hidden="true" /></div>
+              <div><span>{t('ownerPendingManageInvitations')}</span><LockKeyhole size={18} aria-hidden="true" /></div>
             </div>
           </section>
         </section>
@@ -289,16 +292,16 @@ export default function OwnerPendingDashboard({ currentUser, onLogout }) {
         <section className="owner-stack">
           <section className="owner-panel">
             <div className="owner-panel-header">
-              <div><p className="eyebrow">Account information</p><h2>{profileName}</h2><p>Your account remains active while professional access is reviewed.</p></div>
+              <div><p className="eyebrow">{t('ownerProfileAccountInfo')}</p><h2>{profileName}</h2><p>{t('ownerPendingProfileDesc')}</p></div>
               <StatusBadge status={status} />
             </div>
             <div className="grid gap-3 md:grid-cols-2">
-              <Detail label="Username" value={currentUser?.username || currentUser?.fullName} />
-              <Detail label="Email" value={currentUser?.email} />
-              <Detail label="Phone Number" value={currentUser?.phone} />
-              <Detail label="Account Type" value="Owner" />
-              <Detail label="Owner Access" value={formatDisplayLabel(status)} />
-              <Detail label="KYC Status" value={formatDisplayLabel(identityStatus)} />
+              <Detail label={t('username')} value={currentUser?.username || currentUser?.fullName} fallback={t('notUpdated')} />
+              <Detail label={t('email')} value={currentUser?.email} fallback={t('notUpdated')} />
+              <Detail label={t('phone')} value={currentUser?.phone} fallback={t('notUpdated')} />
+              <Detail label={t('ownerPendingAccountType')} value="Owner" fallback={t('notUpdated')} />
+              <Detail label={t('ownerPendingOwnerAccess')} value={formatDisplayLabel(status)} fallback={t('notUpdated')} />
+              <Detail label={t('ownerPendingKycStatus')} value={formatDisplayLabel(identityStatus)} fallback={t('notUpdated')} />
             </div>
           </section>
           {application && renderApplication()}
@@ -311,15 +314,15 @@ export default function OwnerPendingDashboard({ currentUser, onLogout }) {
   return (
     <AppShell
       variant="owner"
-      title={`Welcome, ${profileName}`}
-      subtitle="Owner account and professional access status."
+      title={t('ownerPendingWelcome', { name: profileName })}
+      subtitle={t('ownerPendingSubtitle')}
       profileName={profileName}
-      profileRole={`Owner access: ${formatDisplayLabel(status)}`}
+      profileRole={t('ownerPendingProfileRole', { status: formatDisplayLabel(status) })}
       activeSection={activeSection}
       navItems={navItems}
       onNavigate={setActiveSection}
       onLogout={onLogout}
-      headerAction={<button className="refresh-button" type="button" onClick={loadOverview} disabled={isLoading}>{isLoading ? 'Loading...' : 'Refresh status'}</button>}
+      headerAction={<button className="refresh-button" type="button" onClick={loadOverview} disabled={isLoading}>{isLoading ? t('loading') : t('ownerPendingRefreshStatus')}</button>}
     >
       {error && <div className="admin-alert error" role="alert">{error}</div>}
       {message && <div className="admin-alert success" role="status">{message}</div>}
