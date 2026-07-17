@@ -1,15 +1,11 @@
 package com.example.backend.service;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Locale;
 import java.util.Objects;
 import java.util.UUID;
 
-import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.http.HttpStatus;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -30,6 +26,7 @@ import com.example.backend.entity.JockeyProfile;
 import com.example.backend.entity.JockeyVerification;
 import com.example.backend.entity.JockeyVerificationFile;
 import com.example.backend.entity.Registration;
+import com.example.backend.entity.Tournament;
 import com.example.backend.entity.User;
 import com.example.backend.exception.ApiException;
 import com.example.backend.repository.HorseRepository;
@@ -38,6 +35,7 @@ import com.example.backend.repository.JockeyProfileRepository;
 import com.example.backend.repository.JockeyVerificationFileRepository;
 import com.example.backend.repository.JockeyVerificationRepository;
 import com.example.backend.repository.RegistrationRepository;
+import com.example.backend.repository.TournamentRepository;
 import com.example.backend.repository.UserRepository;
 
 @Service
@@ -57,8 +55,10 @@ public class JockeyServiceImpl implements JockeyService {
     private final RegistrationRepository registrationRepository;
     private final HorseRepository horseRepository;
     private final UserRepository userRepository;
+    private final TournamentRepository tournamentRepository;
     private final TournamentService tournamentService;
-    private final JdbcTemplate jdbcTemplate;
+    private final RegistrationAvailabilityService availabilityService;
+    private final JockeyInvitationService jockeyInvitationService;
 
     public JockeyServiceImpl(
             JockeyProfileRepository jockeyProfileRepository,
@@ -68,8 +68,10 @@ public class JockeyServiceImpl implements JockeyService {
             RegistrationRepository registrationRepository,
             HorseRepository horseRepository,
             UserRepository userRepository,
+            TournamentRepository tournamentRepository,
             TournamentService tournamentService,
-            JdbcTemplate jdbcTemplate) {
+            RegistrationAvailabilityService availabilityService,
+            JockeyInvitationService jockeyInvitationService) {
         this.jockeyProfileRepository = jockeyProfileRepository;
         this.jockeyInvitationRepository = jockeyInvitationRepository;
         this.jockeyVerificationRepository = jockeyVerificationRepository;
@@ -77,8 +79,10 @@ public class JockeyServiceImpl implements JockeyService {
         this.registrationRepository = registrationRepository;
         this.horseRepository = horseRepository;
         this.userRepository = userRepository;
+        this.tournamentRepository = tournamentRepository;
         this.tournamentService = tournamentService;
-        this.jdbcTemplate = jdbcTemplate;
+        this.availabilityService = availabilityService;
+        this.jockeyInvitationService = jockeyInvitationService;
     }
 
     // Lấy hồ sơ jockey của tài khoản đang đăng nhập.
@@ -173,7 +177,7 @@ public class JockeyServiceImpl implements JockeyService {
         Integer jockeyId = getCurrentJockey().getUserID();
         return jockeyInvitationRepository.findByJockeyIdOrderByCreatedAtDesc(jockeyId)
                 .stream()
-                .map(this::mapInvitationToResponse)
+                .map(jockeyInvitationService::toResponse)
                 .toList();
     }
 
@@ -188,7 +192,7 @@ public class JockeyServiceImpl implements JockeyService {
         TournamentDetailResponse tournament = tournamentService.getTournamentById(invitation.getTournamentId());
 
         return JockeyInvitationDetailResponse.builder()
-                .invitation(mapInvitationToResponse(invitation))
+                .invitation(jockeyInvitationService.toResponse(invitation))
                 .tournament(tournament)
                 .horse(mapHorseToResponse(horse))
                 .build();
@@ -203,24 +207,12 @@ public class JockeyServiceImpl implements JockeyService {
 
         validateInvitationNotExpired(invitation);
         Horse horse = validateOwnerHorseForInvitation(invitation);
-        TournamentSnapshot tournament = getTournamentSnapshot(invitation.getTournamentId());
-        validateOwnerCanRegisterForTournament(
+        Tournament tournament = getTournament(invitation.getTournamentId());
+        availabilityService.validateAcceptedInvitationCanCreateRegistration(
                 invitation.getOwnerId(),
-                tournament.tournamentId(),
-                invitation.getInvitationId());
-        validateHorseActiveRegistrationForTournament(
                 horse.getHorseId(),
-                tournament.tournamentId(),
-                null);
-        validateHorseAvailableForOverlappingTournament(
-                horse.getHorseId(),
-                tournament,
-                null,
-                invitation.getInvitationId());
-        validateJockeyAvailableForTournament(
-                tournament,
                 jockey.getUserID(),
-                null,
+                tournament,
                 invitation.getInvitationId());
 
         Registration registration = createPendingRegistration(invitation);
@@ -228,7 +220,7 @@ public class JockeyServiceImpl implements JockeyService {
         invitation.setRegistrationId(registration.getRegistrationId());
         invitation.setRespondedAt(LocalDateTime.now());
 
-        return mapInvitationToResponse(jockeyInvitationRepository.save(invitation));
+        return jockeyInvitationService.toResponse(jockeyInvitationRepository.save(invitation));
     }
 
     // Jockey từ chối lời mời.
@@ -243,7 +235,7 @@ public class JockeyServiceImpl implements JockeyService {
         invitation.setStatus(INVITATION_REJECTED);
         invitation.setRespondedAt(LocalDateTime.now());
 
-        return mapInvitationToResponse(jockeyInvitationRepository.save(invitation));
+        return jockeyInvitationService.toResponse(jockeyInvitationRepository.save(invitation));
     }
 
     // Lấy user jockey từ JWT.
@@ -298,92 +290,6 @@ public class JockeyServiceImpl implements JockeyService {
             invitation.setRespondedAt(LocalDateTime.now());
             jockeyInvitationRepository.save(invitation);
             throw new ApiException(HttpStatus.BAD_REQUEST, "Lời mời đã hết hạn.");
-        }
-    }
-
-    // Các hàm validate khác giữ nguyên logic...
-    private void validateOwnerCanRegisterForTournament(Integer ownerId, Integer tournamentId, Integer excludedInvitationId) {
-        long activeRegistrations = registrationRepository.countByTournamentIdAndOwnerIdAndStatusInExcludingRegistration(
-                tournamentId, ownerId, List.of(RegistrationStatus.PENDING, RegistrationStatus.APPROVED), null);
-        if (activeRegistrations > 0) {
-            throw new ApiException(HttpStatus.CONFLICT, "Chủ ngựa đã có một đơn đăng ký đang hoạt động trong giải đấu này.");
-        }
-        if (jockeyInvitationRepository.existsPendingInvitationForTournamentAndOwner(
-                tournamentId,
-                ownerId,
-                INVITATION_PENDING,
-                LocalDateTime.now(),
-                excludedInvitationId)) {
-            throw new ApiException(HttpStatus.CONFLICT, "Chủ ngựa đã có một lời mời đang chờ xử lý trong giải đấu này.");
-        }
-    }
-
-    private void validateHorseActiveRegistrationForTournament(Integer horseId, Integer tournamentId, Integer excludedRegistrationId) {
-        long activeRegistrations = registrationRepository.countByTournamentIdAndHorseIdAndStatusInExcludingRegistration(
-                tournamentId, horseId, List.of(RegistrationStatus.PENDING, RegistrationStatus.APPROVED), excludedRegistrationId);
-        if (activeRegistrations > 0) {
-            throw new ApiException(HttpStatus.CONFLICT, "Ngựa này đã có đơn đăng ký đang hoạt động trong giải đấu.");
-        }
-    }
-
-    private void validateHorseAvailableForOverlappingTournament(
-            Integer horseId,
-            TournamentSnapshot tournament,
-            Integer excludedRegistrationId,
-            Integer excludedInvitationId) {
-        long overlappingRegistrations = registrationRepository.countByOverlappingTournamentAndHorseIdAndStatusInExcludingRegistration(
-                horseId, tournament.startDate(), tournament.endDate(), List.of(RegistrationStatus.PENDING, RegistrationStatus.APPROVED), excludedRegistrationId);
-        if (overlappingRegistrations > 0) {
-            throw new ApiException(HttpStatus.CONFLICT, "Ngựa này đã có đơn đăng ký ở giải đấu trùng thời gian.");
-        }
-        if (jockeyInvitationRepository.existsPendingOverlappingInvitationForHorse(
-                horseId,
-                tournament.startDate(),
-                tournament.endDate(),
-                INVITATION_PENDING,
-                LocalDateTime.now(),
-                excludedInvitationId)) {
-            throw new ApiException(HttpStatus.CONFLICT, "Ngựa này đã có lời mời đang chờ xử lý ở giải đấu trùng thời gian.");
-        }
-    }
-
-    private void validateJockeyAvailableForTournament(TournamentSnapshot tournament, Integer jockeyId, Integer excludedRegistrationId, Integer excludedInvitationId) {
-        long sameTournamentRegistrations = registrationRepository.countByTournamentIdAndJockeyIdAndStatusInExcludingRegistration(
-                tournament.tournamentId(), jockeyId, List.of(RegistrationStatus.PENDING, RegistrationStatus.APPROVED), excludedRegistrationId);
-        if (sameTournamentRegistrations > 0) {
-            throw new ApiException(HttpStatus.CONFLICT, "Nài ngựa này đã có đơn đăng ký đang hoạt động trong giải đấu.");
-        }
-        long overlappingRegistrations = registrationRepository.countByOverlappingTournamentAndJockeyIdAndStatusInExcludingRegistration(
-                        jockeyId, tournament.startDate(), tournament.endDate(), List.of(RegistrationStatus.PENDING, RegistrationStatus.APPROVED), excludedRegistrationId);
-        if (overlappingRegistrations > 0) {
-            throw new ApiException(HttpStatus.CONFLICT, "Nài ngựa này đã có đơn đăng ký ở giải đấu trùng thời gian.");
-        }
-        if (jockeyInvitationRepository.existsPendingOverlappingInvitationForJockey(
-                jockeyId,
-                tournament.startDate(),
-                tournament.endDate(),
-                INVITATION_PENDING,
-                LocalDateTime.now(),
-                excludedInvitationId)) {
-            throw new ApiException(HttpStatus.CONFLICT, "Nài ngựa này đã có lời mời đang chờ xử lý ở giải đấu trùng thời gian.");
-        }
-    }
-
-    private void validateHorseJockeyPairAvailableForOverlappingTournament(Integer horseId, Integer jockeyId, TournamentSnapshot tournament, Integer excludedRegistrationId, Integer excludedInvitationId) {
-        long overlappingRegistrations = registrationRepository.countByOverlappingTournamentAndHorseIdAndJockeyIdAndStatusInExcludingRegistration(
-                        horseId, jockeyId, tournament.startDate(), tournament.endDate(), List.of(RegistrationStatus.PENDING, RegistrationStatus.APPROVED), excludedRegistrationId);
-        if (overlappingRegistrations > 0) {
-            throw new ApiException(HttpStatus.CONFLICT, "Cặp ngựa và nài ngựa này đã được đăng ký ở giải đấu trùng thời gian.");
-        }
-        if (jockeyInvitationRepository.existsPendingOverlappingInvitationForHorseAndJockey(
-                horseId,
-                jockeyId,
-                tournament.startDate(),
-                tournament.endDate(),
-                INVITATION_PENDING,
-                LocalDateTime.now(),
-                excludedInvitationId)) {
-            throw new ApiException(HttpStatus.CONFLICT, "Cặp ngựa và nài ngựa này đã có lời mời ở giải đấu trùng thời gian.");
         }
     }
 
@@ -499,57 +405,12 @@ public class JockeyServiceImpl implements JockeyService {
                 .build();
     }
 
-    // Chuyển entity invitation sang DTO.
-    private JockeyInvitationResponse mapInvitationToResponse(JockeyInvitation invitation) {
-        Registration registration = invitation.getRegistrationId() != null
-                ? registrationRepository.findById(invitation.getRegistrationId()).orElse(null)
-                : null;
-        Integer tournamentId = invitation.getTournamentId() != null ? invitation.getTournamentId() : (registration != null ? registration.getTournamentId() : null);
-        Integer horseId = invitation.getHorseId() != null ? invitation.getHorseId() : (registration != null ? registration.getHorseId() : null);
-        TournamentSnapshot tournament = tournamentId != null ? getTournamentSnapshotOrNull(tournamentId) : null;
-        Horse horse = horseId != null ? horseRepository.findById(horseId).orElse(null) : null;
-        User owner = userRepository.findById(invitation.getOwnerId()).orElse(null);
-        User jockey = userRepository.findById(invitation.getJockeyId()).orElse(null);
-
-        return JockeyInvitationResponse.builder()
-                .invitationId(invitation.getInvitationId())
-                .registrationId(invitation.getRegistrationId())
-                .tournamentId(tournamentId)
-                .tournamentName(tournament != null ? tournament.tournamentName() : null)
-                .tournamentStartDate(tournament != null ? tournament.startDate() : null)
-                .tournamentEndDate(tournament != null ? tournament.endDate() : null)
-                .horseId(horseId)
-                .horseName(horse != null ? horse.getHorseName() : null)
-                .ownerId(invitation.getOwnerId())
-                .ownerName(owner != null ? owner.getUsername() : null)
-                .jockeyId(invitation.getJockeyId())
-                .jockeyName(jockey != null ? jockey.getUsername() : null)
-                .message(invitation.getMessage())
-                .createdAt(invitation.getCreatedAt())
-                .respondedAt(invitation.getRespondedAt())
-                .expiredAt(invitation.getExpiredAt())
-                .status(invitation.getStatus())
-                .registrationStatus(registration != null ? registration.getStatus() : null)
-                .build();
+    private Tournament getTournament(Integer tournamentId) {
+        return tournamentRepository.findById(tournamentId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Giải đấu không tồn tại."));
     }
-
-    private TournamentSnapshot getTournamentSnapshot(Integer tournamentId) {
-        TournamentSnapshot tournament = getTournamentSnapshotOrNull(tournamentId);
-        if (tournament == null) throw new ApiException(HttpStatus.NOT_FOUND, "Giải đấu không tồn tại.");
-        return tournament;
-    }
-
-    private TournamentSnapshot getTournamentSnapshotOrNull(Integer tournamentId) {
-        try {
-            return jdbcTemplate.queryForObject("SELECT tournamentID, tournamentName, startDate, endDate FROM Tournament WHERE tournamentID = ?",
-                    (rs, rowNum) -> new TournamentSnapshot(rs.getInt("tournamentID"), rs.getString("tournamentName"), rs.getDate("startDate") != null ? rs.getDate("startDate").toLocalDate() : null, rs.getDate("endDate") != null ? rs.getDate("endDate").toLocalDate() : null), tournamentId);
-        } catch (EmptyResultDataAccessException ex) { return null; }
-    }
-
-    private record TournamentSnapshot(Integer tournamentId, String tournamentName, LocalDate startDate, LocalDate endDate) {}
 
     private String normalizeText(String value) { return value == null ? null : value.trim(); }
-    private String normalizeUppercase(String value) { String normalizedValue = normalizeText(value); return normalizedValue == null ? null : normalizedValue.toUpperCase(Locale.ROOT); }
 
     private void updatePhoneNumber(User jockey, String phoneNumber) {
         String normalizedPhone = normalizeText(phoneNumber);

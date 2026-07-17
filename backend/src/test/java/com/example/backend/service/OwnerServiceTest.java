@@ -3,17 +3,10 @@ package com.example.backend.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import java.math.BigDecimal;
-import java.sql.ResultSet;
-import java.sql.Date;
-import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.Optional;
 
@@ -24,14 +17,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
-import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.jdbc.core.RowMapper;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.example.backend.dto.request.InviteJockeyRequest;
 import com.example.backend.entity.Horse;
 import com.example.backend.entity.Role;
+import com.example.backend.entity.Tournament;
 import com.example.backend.entity.User;
 import com.example.backend.exception.ApiException;
 import com.example.backend.repository.HorseRepository;
@@ -39,6 +31,7 @@ import com.example.backend.repository.JockeyInvitationRepository;
 import com.example.backend.repository.JockeyProfileRepository;
 import com.example.backend.repository.OwnerProfileRepository;
 import com.example.backend.repository.RegistrationRepository;
+import com.example.backend.repository.TournamentRepository;
 import com.example.backend.repository.UserRepository;
 
 @ExtendWith(MockitoExtension.class)
@@ -57,7 +50,7 @@ class OwnerServiceTest {
     @Mock
     private UserRepository userRepository;
     @Mock
-    private JdbcTemplate jdbcTemplate;
+    private TournamentRepository tournamentRepository;
     @Mock
     private FileUploadService fileUploadService;
 
@@ -72,8 +65,14 @@ class OwnerServiceTest {
                 jockeyProfileRepository,
                 ownerProfileRepository,
                 userRepository,
-                jdbcTemplate,
-                fileUploadService);
+                tournamentRepository,
+                fileUploadService,
+                new RegistrationAvailabilityService(registrationRepository, jockeyInvitationRepository),
+                new JockeyInvitationService(
+                        registrationRepository,
+                        tournamentRepository,
+                        horseRepository,
+                        userRepository));
 
         SecurityContextHolder.getContext()
                 .setAuthentication(new UsernamePasswordAuthenticationToken("owner@example.com", null));
@@ -121,23 +120,16 @@ class OwnerServiceTest {
         return request;
     }
 
-    private void mockTournamentSnapshot(LocalDateTime registrationDeadline) throws Exception {
-        when(jdbcTemplate.queryForObject(anyString(), any(RowMapper.class), eq(1)))
-                .thenAnswer(invocation -> {
-                    RowMapper<?> rowMapper = invocation.getArgument(1);
-                    ResultSet resultSet = mock(ResultSet.class);
-                    when(resultSet.getInt("tournamentID")).thenReturn(1);
-                    when(resultSet.getString("tournamentName")).thenReturn("Summer Cup");
-                    when(resultSet.getDate("startDate"))
-                            .thenReturn(Date.valueOf(registrationDeadline.toLocalDate().plusDays(1)));
-                    when(resultSet.getDate("endDate"))
-                            .thenReturn(Date.valueOf(registrationDeadline.toLocalDate().plusDays(2)));
-                    when(resultSet.getTimestamp("registrationCloseAt"))
-                            .thenReturn(Timestamp.valueOf(registrationDeadline));
-                    when(resultSet.getObject("maxRegistrations")).thenReturn(null);
-                    when(resultSet.getString("status")).thenReturn("OPEN_FOR_REGISTRATION");
-                    return rowMapper.mapRow(resultSet, 0);
-                });
+    private void mockTournamentSnapshot(LocalDateTime registrationDeadline) {
+        Tournament tournament = new Tournament();
+        tournament.setTournamentId(1);
+        tournament.setTournamentName("Summer Cup");
+        tournament.setStartDate(registrationDeadline.toLocalDate().plusDays(1));
+        tournament.setEndDate(registrationDeadline.toLocalDate().plusDays(2));
+        tournament.setRegistrationCloseAt(registrationDeadline);
+        tournament.setMaxRegistrations(null);
+        tournament.setStatus("OPEN_FOR_REGISTRATION");
+        when(tournamentRepository.findById(1)).thenReturn(Optional.of(tournament));
     }
 
     private User user(Integer userId, String email, String roleName) {
