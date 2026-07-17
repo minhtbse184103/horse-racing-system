@@ -1,20 +1,22 @@
 import { useState } from "react";
 import { ArrowRight } from "lucide-react";
 import TournamentPreview from "./TournamentPreview";
+import { useLanguage } from "../../context/LanguageContext";
 
 export default function Tournaments({ tournaments, isLoading, error }) {
+  const { t } = useLanguage();
   const [showAll, setShowAll] = useState(false);
   const displayedTournaments = showAll ? tournaments : tournaments.slice(0, 3);
 
   return (
-    <section id="tournaments" className="bg-cream-100 py-20 sm:py-24">
+    <section id="tournaments" className="bg-cream-100 py-10 sm:py-12">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="max-w-2xl">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brown-500">Khám phá giải đấu</p>
-            <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-brown-900 sm:text-4xl">Giải đấu sắp diễn ra</h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brown-500">{t('homeDiscoverTournaments')}</p>
+            <h2 className="mt-1 text-2xl font-extrabold tracking-tight text-brown-900 sm:text-3xl">{t('homeUpcomingTournaments')}</h2>
             <p className="mt-3 text-base text-brown-900/70">
-              A curated look at the racing calendar. Sign in to register a horse or accept a jockey invitation.
+              {t('homeTournamentHint')}
             </p>
           </div>
           {tournaments.length > 3 && (
@@ -23,7 +25,7 @@ export default function Tournaments({ tournaments, isLoading, error }) {
               onClick={() => setShowAll((current) => !current)}
               className="inline-flex items-center gap-2 self-start rounded-md border border-brown-900/15 bg-white px-4 py-2.5 text-sm font-semibold text-brown-900 shadow-sm transition hover:bg-cream-200 sm:self-auto"
             >
-              {showAll ? "Hiện giải nổi bật" : "Xem tất cả giải đấu"}
+              {showAll ? t('homeFeaturedTournaments') : t('homeAllTournaments')}
               <ArrowRight className="h-4 w-4" aria-hidden />
             </button>
           )}
@@ -31,7 +33,7 @@ export default function Tournaments({ tournaments, isLoading, error }) {
 
         {isLoading ? (
           <p className="mt-10 rounded-lg border border-brown-900/10 bg-white px-6 py-10 text-brown-900/65">
-            Loading tournaments...
+            {t('homeLoadingTournaments')}
           </p>
         ) : error ? (
           <p className="mt-10 rounded-lg border border-danger/20 bg-danger/5 px-6 py-4 font-semibold text-danger">
@@ -39,10 +41,10 @@ export default function Tournaments({ tournaments, isLoading, error }) {
           </p>
         ) : displayedTournaments.length === 0 ? (
           <p className="mt-10 rounded-lg border border-brown-900/10 bg-white px-6 py-10 text-brown-900/65">
-            No upcoming tournaments are available.
+            {t('homeNoTournaments')}
           </p>
         ) : (
-          <div className="mt-10 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-6 grid gap-5 md:grid-cols-2 lg:grid-cols-3">
             {displayedTournaments.map((tournament) => (
               <TournamentPreview
                 key={tournament.tournamentId}
