@@ -3,6 +3,7 @@ import { Menu, X, Trophy } from "lucide-react";
 
 const NAV = [
   { href: "#home", label: "Trang chủ" },
+  { href: "#racecards", label: "Lịch đua" },
   { href: "#tournaments", label: "Giải đấu" },
   { href: "#how-it-works", label: "Quy trình hoạt động" },
   { href: "#roles", label: "Role" },

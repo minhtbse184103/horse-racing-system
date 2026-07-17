@@ -10,15 +10,15 @@ const LIFECYCLE_STAGES = [
 
 export default function Lifecycle() {
   return (
-    <section className="bg-cream-200 py-20 sm:py-24">
+    <section className="bg-cream-200 py-10 sm:py-12">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brown-500">Vòng đời giải đấu</p>
-          <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-brown-900 sm:text-4xl">Từ mở đăng ký đến vạch đích</h2>
+          <h2 className="mt-1 text-2xl font-extrabold tracking-tight text-brown-900 sm:text-3xl">Từ mở đăng ký đến vạch đích</h2>
           <p className="mt-3 text-base text-brown-900/70">Mỗi giải đấu tiến triển qua các giai đoạn rõ ràng, có thể kiểm tra.</p>
         </div>
 
-        <div className="mt-10 flex flex-wrap items-stretch gap-3">
+        <div className="mt-7 flex flex-wrap items-stretch gap-3">
           {LIFECYCLE_STAGES.map((s, i) => (
             <div key={s.key} className="flex items-stretch gap-3">
               <div className="flex w-64 flex-col rounded-lg border border-brown-900/10 bg-white p-4 shadow-sm">

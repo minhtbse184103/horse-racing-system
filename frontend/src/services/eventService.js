@@ -28,6 +28,14 @@ export function getPublicTournamentConditions() {
   return httpRequest('/api/tournament-conditions', { auth: false });
 }
 
+export function getPublicRaces() {
+  return httpRequest('/api/races', { auth: false });
+}
+
+export function getPublicRaceResults(raceId) {
+  return httpRequest(`/api/races/${raceId}/results`, { auth: false });
+}
+
 export function createTournamentProgram(payload) {
   // FLOW: Admin Create Tournament Program
   // ORDER: 5/8 - Frontend API service sends POST /api/tournaments/program.

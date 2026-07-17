@@ -11,17 +11,17 @@ const STEPS = [
 
 export default function HowItWorks() {
   return (
-    <section id="how-it-works" className="bg-cream-200 py-20 sm:py-24">
+    <section id="how-it-works" className="bg-cream-200 py-10 sm:py-12">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brown-500">Quy trình</p>
-          <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-brown-900 sm:text-4xl">Quy trình hoạt động</h2>
+          <h2 className="mt-1 text-2xl font-extrabold tracking-tight text-brown-900 sm:text-3xl">Quy trình hoạt động</h2>
           <p className="mt-3 text-base text-brown-900/70">
             From discovery to the winner's circle — every stage is tracked in one place.
           </p>
         </div>
 
-        <ol className="relative mt-14 hidden lg:grid lg:grid-cols-6 lg:gap-6">
+        <ol className="relative mt-8 hidden lg:grid lg:grid-cols-6 lg:gap-5">
           <div className="pointer-events-none absolute left-0 right-0 top-6 h-px bg-brown-900/15" aria-hidden />
           {STEPS.map((s, i) => (
             <li key={s.title} className="relative flex flex-col items-start">
@@ -37,7 +37,7 @@ export default function HowItWorks() {
           ))}
         </ol>
 
-        <ol className="relative mt-12 space-y-7 lg:hidden">
+        <ol className="relative mt-8 space-y-6 lg:hidden">
           <div className="absolute left-6 top-3 bottom-3 w-px bg-brown-900/15" aria-hidden />
           {STEPS.map((s, i) => (
             <li key={s.title} className="relative flex gap-5">

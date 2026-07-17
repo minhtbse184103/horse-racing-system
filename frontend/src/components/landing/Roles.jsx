@@ -9,19 +9,19 @@ const ROLES = [
 
 export default function Roles() {
   return (
-    <section id="roles" className="bg-cream-100 py-20 sm:py-24">
+    <section id="roles" className="bg-cream-100 py-10 sm:py-12">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="max-w-2xl">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-brown-500">User roles</p>
-          <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-brown-900 sm:text-4xl">
+          <h2 className="mt-1 text-2xl font-extrabold tracking-tight text-brown-900 sm:text-3xl">
             Built for every role in the paddock
           </h2>
           <p className="mt-3 text-base text-brown-900/70">Bốn không gian làm việc chuyên biệt trên cùng một tiến trình giải đấu.</p>
         </div>
 
-        <div className="mt-12 grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {ROLES.map((r) => (
-            <div key={r.title} className="rounded-lg border border-brown-900/10 bg-white p-6 shadow-sm transition hover:border-gold-400 hover:shadow-md">
+            <div key={r.title} className="rounded-lg border border-brown-900/10 bg-white p-5 shadow-sm transition hover:border-gold-400 hover:shadow-md">
               <div className="grid h-11 w-11 place-items-center rounded-md bg-brown-900 text-gold-400">
                 <r.icon className="h-5 w-5" aria-hidden />
               </div>
