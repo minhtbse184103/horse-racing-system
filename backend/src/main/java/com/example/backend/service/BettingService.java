@@ -320,8 +320,8 @@ public class BettingService {
                 .map(BetTicket::getStake)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
         BigDecimal losingStake = totalStake.subtract(winningStake);
-        BigDecimal operatorFee = losingStake.multiply(event.getOperatorFeeRate()).setScale(2, RoundingMode.HALF_UP);
-        BigDecimal payoutPool = losingStake.subtract(operatorFee);
+        BigDecimal operatorFee = totalStake.multiply(event.getOperatorFeeRate()).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal payoutPool = totalStake.subtract(operatorFee);
 
         for (BetTicket ticket : tickets) {
             settleTicket(ticket, winningEntryIds.contains(ticket.getRaceEntryId()), winningStake, payoutPool);
@@ -378,14 +378,13 @@ public class BettingService {
             return;
         }
 
-        BigDecimal bonus = BigDecimal.ZERO;
+        BigDecimal payout = BigDecimal.ZERO;
         if (winningStake.compareTo(BigDecimal.ZERO) > 0) {
-            bonus = stake.divide(winningStake, 8, RoundingMode.HALF_UP)
+            payout = stake.divide(winningStake, 8, RoundingMode.HALF_UP)
                     .multiply(payoutPool)
                     .setScale(2, RoundingMode.HALF_UP);
         }
-        BigDecimal payout = stake.add(bonus).setScale(2, RoundingMode.HALF_UP);
-        BigDecimal balanceAfter = balanceBefore.add(bonus);
+        BigDecimal balanceAfter = balanceBefore.add(payout.subtract(stake));
         BigDecimal odds = payout.divide(stake, 4, RoundingMode.HALF_UP);
 
         wallet.setBalance(balanceAfter);
@@ -662,10 +661,8 @@ public class BettingService {
         if (selectedStake.compareTo(BigDecimal.ZERO) <= 0) {
             return null;
         }
-        BigDecimal losingStake = totalStake.subtract(selectedStake);
-        BigDecimal payoutPool = losingStake.subtract(losingStake.multiply(event.getOperatorFeeRate()));
-        BigDecimal payout = selectedStake.add(payoutPool);
-        return payout.divide(selectedStake, 4, RoundingMode.HALF_UP);
+        BigDecimal payoutPool = totalStake.subtract(totalStake.multiply(event.getOperatorFeeRate()));
+        return payoutPool.divide(selectedStake, 4, RoundingMode.HALF_UP);
     }
 
     private void saveWalletTransaction(
