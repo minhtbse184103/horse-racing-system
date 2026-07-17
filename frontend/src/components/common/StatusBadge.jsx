@@ -1,4 +1,5 @@
 import { cn } from '../../lib/classNames.js';
+import { formatDisplayLabel } from '../../lib/formatters.js';
 
 const statusClasses = {
   APPROVED: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
@@ -19,6 +20,8 @@ const statusClasses = {
 };
 
 export default function StatusBadge({ status, className = '' }) {
+  const label = formatDisplayLabel(status, status || '');
+
   return (
     <span
       className={cn(
@@ -27,7 +30,7 @@ export default function StatusBadge({ status, className = '' }) {
         className
       )}
     >
-      {status}
+      {label}
     </span>
   );
 }

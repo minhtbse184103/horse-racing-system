@@ -2,9 +2,9 @@ export const tournamentStatusLabels = {
   OPEN_FOR_REGISTRATION: 'Open Registration',
   REGISTRATION_CLOSED: 'Registration Closed',
   READY: 'Ready',
-  IN_PROGRESS: 'Ongoing',
-  PENDING_REVIEW: 'Pending result review',
-  COMPLETED: 'COMPLETED',
+  IN_PROGRESS: 'In Progress',
+  PENDING_REVIEW: 'Pending Result Review',
+  COMPLETED: 'Completed',
   CANCELLED: 'Cancelled'
 };
 

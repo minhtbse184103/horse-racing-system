@@ -1,12 +1,12 @@
 import { useEffect } from 'react';
 import { Radio, WifiOff } from 'lucide-react';
-import LiveRaceDisplay from '../live/LiveRaceDisplay';
+import LiveRaceDisplay from './LiveRaceDisplay';
 import useRaceLiveView from './useRaceLiveView';
-import { useLanguage } from '../../../../context/LanguageContext';
+import { useLanguage } from '../../../context/LanguageContext';
 
 export default function RaceLiveView({ raceId, active, onResult }) {
   const { t } = useLanguage();
-  // FLOW: Admin Live Race Data
+  // FLOW: Shared Live Race Data
   // ORDER: 9/10 - Expanded Race row owns WebSocket hook state and passes tick/result data to the reusable display.
   // FE path: expanded IN_PROGRESS Race -> RaceLiveView -> useRaceLiveView
   // subscribes to backend STOMP updates and renders the reusable live race panel.

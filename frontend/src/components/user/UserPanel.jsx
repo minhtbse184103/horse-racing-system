@@ -6,6 +6,7 @@ import {
   Gauge,
   Home,
   Medal,
+  Radio,
   ShieldCheck,
   Trophy,
   UserRound,
@@ -17,6 +18,7 @@ import WalletTransferPanel from '../payment/WalletTransferPanel';
 import BettingPanel from './BettingPanel';
 import StatCard from '../common/StatCard';
 import LanguageToggle from '../common/LanguageToggle';
+import RaceLiveView from '../shared/live/RaceLiveView';
 import { useLanguage } from '../../context/LanguageContext';
 import { formatDate, formatDisplayLabel, getUserRole } from '../../lib';
 import { getMyOwnerApplication, submitOwnerApplication } from '../../services/ownerApplicationService';
@@ -71,6 +73,10 @@ function raceDateTime(race) {
   return date ? date.toLocaleString('vi-VN', {
     hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric'
   }) : 'Chua cap nhat';
+}
+
+function canViewLiveRace(race) {
+  return String(race?.status || '').toUpperCase() === 'IN_PROGRESS';
 }
 
 function DashboardHome({ accountType, onGoProfile, races, bettingEvents, isLoading, error }) {
@@ -170,9 +176,15 @@ function PlaceholderSection({ title, message, icon }) {
 }
 
 function RaceListSection({ title, races, isLoading, resultsOnly = false }) {
+  const { t } = useLanguage();
+  const [liveRaceId, setLiveRaceId] = useState(null);
   const visibleRaces = resultsOnly
     ? races.filter((race) => String(race?.status || '').toUpperCase() === 'COMPLETED')
     : races;
+
+  function toggleLiveRace(raceId) {
+    setLiveRaceId((current) => (current === raceId ? null : raceId));
+  }
 
   return (
     <section className="owner-panel">
@@ -200,6 +212,18 @@ function RaceListSection({ title, races, isLoading, resultsOnly = false }) {
                 </div>
                 <StatusBadge status={race.status} />
               </div>
+              {canViewLiveRace(race) && (
+                <button
+                  className="outline-button compact-button mt-4 inline-flex items-center gap-2"
+                  type="button"
+                  aria-expanded={liveRaceId === race.raceId}
+                  onClick={() => toggleLiveRace(race.raceId)}
+                >
+                  <Radio size={15} />
+                  {liveRaceId === race.raceId ? t('eventRaceLiveHide') : t('eventRaceLiveShow')}
+                </button>
+              )}
+              <RaceLiveView raceId={race.raceId} active={liveRaceId === race.raceId} />
             </article>
           ))}
         </div>

@@ -1,5 +1,5 @@
 import { Activity, CircleDot, Clock3, Flag, Trophy } from 'lucide-react';
-import { useLanguage } from '../../../../context/LanguageContext';
+import { useLanguage } from '../../../context/LanguageContext';
 
 function formatElapsedTime(value) {
   const seconds = Number(value || 0);
@@ -38,7 +38,7 @@ function buildLeaderboard(horses) {
 
 export default function LiveRaceDisplay({ tick, result }) {
   const { t } = useLanguage();
-  // FLOW: Admin Live Race Data
+  // FLOW: Shared Live Race Data
   // ORDER: 10/10 - Display converts latest Unity tick into readable live leaderboard UI; it does not create official results.
   // Converts Unity tick payload into a readable leaderboard without owning any
   // official result logic; official results are created later by Admin review.
