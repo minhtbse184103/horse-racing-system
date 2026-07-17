@@ -18,6 +18,7 @@ import {
   getMyBetTickets,
   placeBet
 } from '../../services/bettingService';
+import { useLanguage } from '../../context/LanguageContext';
 
 const ticketStatuses = ['ALL', 'PLACED', 'WON', 'LOST', 'REFUNDED', 'VOID'];
 const productOptions = ['ALL', 'WIN', 'PLACE'];
@@ -66,6 +67,7 @@ function FieldError({ children }) {
 }
 
 function BettingEventList({ events, selectedProduct, setSelectedProduct, onSelect }) {
+  const { t } = useLanguage();
   const filtered = useMemo(() => {
     if (selectedProduct === 'ALL') return events;
     return events.filter((event) => String(event.productCode).toUpperCase() === selectedProduct);
@@ -76,8 +78,8 @@ function BettingEventList({ events, selectedProduct, setSelectedProduct, onSelec
       <div className="owner-panel-header">
         <div>
           <p className="eyebrow">Betting</p>
-          <h2>Cuộc đua đang mở cược</h2>
-          <p>Chọn race và sản phẩm cược. Odds đang hiển thị là ước tính theo pool hiện tại.</p>
+          <h2>{t('spectatorBettingTitle')}</h2>
+          <p>{t('spectatorBettingDesc')}</p>
         </div>
         <select
           className="rounded-lg border border-brown-700/15 bg-white px-4 py-3 text-sm font-extrabold text-brown-900 outline-none"
@@ -91,8 +93,8 @@ function BettingEventList({ events, selectedProduct, setSelectedProduct, onSelec
       {filtered.length === 0 ? (
         <div className="rounded-lg border border-dashed border-brown-700/20 bg-white/60 p-8 text-center">
           <CircleDollarSign className="mx-auto text-brown-500" size={30} />
-          <h3 className="mt-3 text-xl font-black text-brown-900">Chưa có event cược phù hợp</h3>
-          <p className="mt-2 font-medium text-slate-500">Khi admin mở betting event, danh sách sẽ xuất hiện ở đây.</p>
+          <h3 className="mt-3 text-xl font-black text-brown-900">{t('spectatorNoBetEvents')}</h3>
+          <p className="mt-2 font-medium text-slate-500">{t('spectatorNoBetEventsDesc')}</p>
         </div>
       ) : (
         <div className="grid gap-4 lg:grid-cols-2">
@@ -116,19 +118,19 @@ function BettingEventList({ events, selectedProduct, setSelectedProduct, onSelec
 
                 <div className="mt-4 grid gap-3 sm:grid-cols-2">
                   <div className="rounded-lg bg-cream-200/60 p-3">
-                    <span className="text-xs font-extrabold uppercase text-slate-500">Race start</span>
+                    <span className="text-xs font-extrabold uppercase text-slate-500">{t('spectatorRaceStart')}</span>
                     <strong className="mt-1 block text-sm text-brown-900">{dateTime(event.raceStartTime)}</strong>
                   </div>
                   <div className="rounded-lg bg-cream-200/60 p-3">
-                    <span className="text-xs font-extrabold uppercase text-slate-500">Đóng cược</span>
+                    <span className="text-xs font-extrabold uppercase text-slate-500">{t('spectatorBetClose')}</span>
                     <strong className="mt-1 block text-sm text-brown-900">{dateTime(event.closeAt)}</strong>
                   </div>
                   <div className="rounded-lg bg-cream-200/60 p-3">
-                    <span className="text-xs font-extrabold uppercase text-slate-500">Total pool</span>
+                    <span className="text-xs font-extrabold uppercase text-slate-500">{t('spectatorTotalPool')}</span>
                     <strong className="mt-1 block text-sm text-brown-900">{money(event.totalStake)}</strong>
                   </div>
                   <div className="rounded-lg bg-cream-200/60 p-3">
-                    <span className="text-xs font-extrabold uppercase text-slate-500">Daily max</span>
+                    <span className="text-xs font-extrabold uppercase text-slate-500">{t('spectatorDailyMax')}</span>
                     <strong className="mt-1 block text-sm text-brown-900">{money(event.maxDailyStake)}</strong>
                   </div>
                 </div>
@@ -139,7 +141,7 @@ function BettingEventList({ events, selectedProduct, setSelectedProduct, onSelec
                   onClick={() => onSelect(event.betEventId)}
                   disabled={!isOpen}
                 >
-                  {isOpen ? 'Xem cược' : 'Đã đóng cược'}
+                  {isOpen ? t('spectatorViewBet') : t('spectatorBetClosed')}
                 </button>
               </article>
             );
@@ -326,6 +328,7 @@ function MyTickets({ tickets, statusFilter, setStatusFilter, productFilter, setP
 }
 
 export default function BettingPanel() {
+  const { t } = useLanguage();
   const [events, setEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
   const [tickets, setTickets] = useState([]);
@@ -354,7 +357,7 @@ export default function BettingPanel() {
       setTickets(ticketList || []);
       setWallet(walletData);
     } catch (err) {
-      setError(err.message || 'Không thể tải dữ liệu betting.');
+      setError(err.message || t('spectatorBetLoadError'));
     } finally {
       setIsLoading(false);
     }
@@ -374,7 +377,7 @@ export default function BettingPanel() {
     try {
       setSelectedEvent(await getBettingEvent(eventId));
     } catch (err) {
-      setError(err.message || 'Không thể tải chi tiết betting event.');
+      setError(err.message || t('spectatorBetDetailError'));
     } finally {
       setIsLoading(false);
     }
@@ -417,9 +420,9 @@ export default function BettingPanel() {
       setWallet(updatedWallet);
       setSelectedEntryId('');
       setStake('');
-      setMessage('Đặt cược thành công. Tiền cược đã được khóa trong ví.');
+      setMessage(t('spectatorBetSuccess'));
     } catch (err) {
-      setFormError(err.message || 'Không thể đặt cược.');
+      setFormError(err.message || t('spectatorBetError'));
     } finally {
       setIsSubmitting(false);
     }
@@ -435,25 +438,25 @@ export default function BettingPanel() {
   return (
     <section className="owner-stack">
       <section className="owner-stats-grid">
-        <PanelStat label="Event đang mở" value={stats.open} icon={Clock} />
-        <PanelStat label="Vé của tôi" value={stats.tickets} icon={ReceiptText} />
-        <PanelStat label="Đang chờ settle" value={stats.placed} icon={Ticket} />
-        <PanelStat label="Ví khả dụng" value={money(stats.balance)} icon={Wallet} />
+        <PanelStat label={t('spectatorOpenEvents')} value={stats.open} icon={Clock} />
+        <PanelStat label={t('spectatorMyTickets')} value={stats.tickets} icon={ReceiptText} />
+        <PanelStat label={t('spectatorPendingSettle')} value={stats.placed} icon={Ticket} />
+        <PanelStat label={t('spectatorAvailableWallet')} value={money(stats.balance)} icon={Wallet} />
       </section>
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap gap-2">
-          <button className={selectedEvent ? 'outline-button' : 'primary-button'} type="button" onClick={() => setSelectedEvent(null)}>Events</button>
-          <button className="outline-button" type="button" onClick={() => setSelectedEvent(null)}>My Tickets</button>
+          <button className={selectedEvent ? 'outline-button' : 'primary-button'} type="button" onClick={() => setSelectedEvent(null)}>{t('spectatorEvents')}</button>
+          <button className="outline-button" type="button" onClick={() => setSelectedEvent(null)}>{t('spectatorMyTickets')}</button>
         </div>
         <button className="refresh-button" type="button" onClick={loadData} disabled={isLoading}>
-          <RefreshCw size={17} /> Refresh
+          <RefreshCw size={17} /> {t('spectatorRefresh')}
         </button>
       </div>
 
       {error && <div className="admin-alert error" role="alert">{error}</div>}
       {message && <div className="admin-alert success" role="status">{message}</div>}
-      {isLoading && <div className="admin-alert success" role="status">Đang tải betting...</div>}
+      {isLoading && <div className="admin-alert success" role="status">{t('spectatorLoadingBetting')}</div>}
 
       {selectedEvent ? (
         <BetEventDetail
