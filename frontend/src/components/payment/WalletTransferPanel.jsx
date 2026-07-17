@@ -237,18 +237,18 @@ export default function WalletTransferPanel({ currentUser, role: roleOverride })
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <span className="flex items-center gap-2 text-xs font-black uppercase text-slate-500">
-                  <ShieldCheck size={15} /> Identity verification
+                  <ShieldCheck size={15} /> {t('walletIdentityVerification')}
                 </span>
                 <strong className="mt-2 block text-lg font-black text-brown-900">
-                  {kyc?.status === 'VERIFIED' ? 'Opening your wallet' : 'Verify identity to open wallet'}
+                  {kyc?.status === 'VERIFIED' ? t('walletOpeningAfterKyc') : t('walletVerifyToOpen')}
                 </strong>
                 <p className="mt-1 text-sm font-semibold text-slate-600">
-                  Status: {String(kyc?.status || 'NOT_SUBMITTED').replaceAll('_', ' ')}
+                  {t('walletKycStatus', { status: t(`status_${String(kyc?.status || 'NOT_SUBMITTED').toUpperCase()}`) })}
                 </p>
               </div>
               {kyc?.status !== 'VERIFIED' && (
                 <button className="primary-button compact-button inline-flex items-center justify-center gap-2" type="button" onClick={handleStartKyc} disabled={startingKyc}>
-                  {startingKyc ? 'Starting...' : 'Verify with Didit'} <ExternalLink size={16} />
+                  {startingKyc ? t('walletStartingKyc') : t('walletVerifyWithDidit')} <ExternalLink size={16} />
                 </button>
               )}
             </div>

@@ -77,7 +77,7 @@ function BettingEventList({ events, selectedProduct, setSelectedProduct, onSelec
     <section className="owner-panel">
       <div className="owner-panel-header">
         <div>
-          <p className="eyebrow">Betting</p>
+          <p className="eyebrow">{t('spectatorBettingEyebrow')}</p>
           <h2>{t('spectatorBettingTitle')}</h2>
           <p>{t('spectatorBettingDesc')}</p>
         </div>
@@ -86,7 +86,11 @@ function BettingEventList({ events, selectedProduct, setSelectedProduct, onSelec
           value={selectedProduct}
           onChange={(event) => setSelectedProduct(event.target.value)}
         >
-          {productOptions.map((option) => <option key={option} value={option}>{option}</option>)}
+          {productOptions.map((option) => (
+            <option key={option} value={option}>
+              {option === 'ALL' ? t('spectatorFilterAll') : option}
+            </option>
+          ))}
         </select>
       </div>
 
@@ -269,6 +273,7 @@ function BetEventDetail({ event, wallet, selectedEntryId, setSelectedEntryId, st
 }
 
 function MyTickets({ tickets, statusFilter, setStatusFilter, productFilter, setProductFilter }) {
+  const { t } = useLanguage();
   const filtered = useMemo(() => tickets.filter((ticket) => {
     const status = String(ticket.status || '').toUpperCase();
     const product = String(ticket.productCode || '').toUpperCase();
@@ -280,33 +285,33 @@ function MyTickets({ tickets, statusFilter, setStatusFilter, productFilter, setP
     <section className="owner-panel">
       <div className="owner-panel-header">
         <div>
-          <p className="eyebrow">My Tickets</p>
-          <h2>Vé cược của tôi</h2>
-          <p>Theo dõi trạng thái vé, final odds và payout sau khi settle.</p>
+          <p className="eyebrow">{t('spectatorTicketsEyebrow')}</p>
+          <h2>{t('spectatorTicketsTitle')}</h2>
+          <p>{t('spectatorTicketsDesc')}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           <select className="rounded-lg border border-brown-700/15 bg-white px-4 py-3 text-sm font-extrabold text-brown-900" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
-            {ticketStatuses.map((status) => <option key={status} value={status}>{status}</option>)}
+            {ticketStatuses.map((status) => <option key={status} value={status}>{status === 'ALL' ? t('spectatorFilterAll') : formatDisplayLabel(status)}</option>)}
           </select>
           <select className="rounded-lg border border-brown-700/15 bg-white px-4 py-3 text-sm font-extrabold text-brown-900" value={productFilter} onChange={(event) => setProductFilter(event.target.value)}>
-            {productOptions.map((product) => <option key={product} value={product}>{product}</option>)}
+            {productOptions.map((product) => <option key={product} value={product}>{product === 'ALL' ? t('spectatorFilterAll') : product}</option>)}
           </select>
         </div>
       </div>
 
       <div className="overflow-hidden rounded-lg border border-brown-700/10 bg-white/70">
         <div className="grid grid-cols-[5rem_minmax(0,1fr)_7rem_8rem_8rem_8rem_8rem] gap-3 border-b border-brown-700/10 px-4 py-3 text-xs font-black uppercase text-slate-500 max-xl:hidden">
-          <span>Ticket</span>
-          <span>Race / Horse</span>
-          <span>Product</span>
-          <span>Stake</span>
-          <span>Odds</span>
-          <span>Payout</span>
-          <span>Status</span>
+          <span>{t('spectatorTicketColumn')}</span>
+          <span>{t('spectatorRaceHorseColumn')}</span>
+          <span>{t('spectatorProductColumn')}</span>
+          <span>{t('spectatorStakeColumn')}</span>
+          <span>{t('spectatorOddsColumn')}</span>
+          <span>{t('spectatorPayoutColumn')}</span>
+          <span>{t('spectatorStatusColumn')}</span>
         </div>
         <div className="divide-y divide-brown-700/10">
           {filtered.length === 0 ? (
-            <div className="p-8 text-center font-bold text-slate-500">Chưa có vé cược phù hợp.</div>
+            <div className="p-8 text-center font-bold text-slate-500">{t('spectatorNoTickets')}</div>
           ) : filtered.map((ticket) => (
             <div key={ticket.betTicketId} className="grid gap-3 px-4 py-4 xl:grid-cols-[5rem_minmax(0,1fr)_7rem_8rem_8rem_8rem_8rem]">
               <strong className="text-brown-900">#{ticket.betTicketId}</strong>
