@@ -19,6 +19,9 @@ public class RaceResponse {
 
     private LocalDateTime raceStartTime;
     private LocalDateTime raceEndTime;
+    private LocalDateTime entryFinalizationScheduledAt;
+    private LocalDateTime entryFinalizedAt;
+    private Integer entryFinalizedBy;
 
     private Integer distance;
     private Integer maxRunners;

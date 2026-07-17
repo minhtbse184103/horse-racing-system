@@ -10,7 +10,7 @@ import RaceLiveView from '../../../shared/live/RaceLiveView';
 import useRaceEntryAssignment from './useRaceEntryAssignment';
 import ImagePreviewDialog from '../ImagePreviewDialog';
 import TournamentStatusBadge from '../TournamentStatusBadge';
-import { failRaceRun, readyRace, runRace } from '../../../../services/eventService';
+import { failRaceRun, finalizeRaceEntries, readyRace, runRace } from '../../../../services/eventService';
 import { formatRaceSchedule } from '../../../../lib/eventFormatters';
 import { useLanguage } from '../../../../context/LanguageContext';
 
@@ -20,6 +20,7 @@ const MIN_RACE_ENTRIES_TO_LAUNCH = 3;
 function getRaceEntryLockReason(status, t) {
   const messageKeys = {
     READY: 'eventRaceEntryReadyLock',
+    ENTRIES_FINALIZED: 'eventRaceEntryFinalizedLock',
     IN_PROGRESS: 'eventRaceEntryInProgressLock',
     PENDING_REVIEW: 'eventRaceEntryPendingReviewLock',
     COMPLETED: 'eventRaceEntryCompletedLock',
@@ -44,6 +45,7 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
   // Live controls follow race.status === 'IN_PROGRESS' so a race that moved
   // to PENDING_REVIEW after Unity result submission no longer appears live.
   const [launchedRaceIds, setLaunchedRaceIds] = useState(() => new Set());
+  const [finalizingRaceId, setFinalizingRaceId] = useState(null);
   const [readyingRaceId, setReadyingRaceId] = useState(null);
   const [runningRaceId, setRunningRaceId] = useState(null);
   const [failingRaceId, setFailingRaceId] = useState(null);
@@ -88,6 +90,24 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
       setRunErrors((current) => ({ ...current, [raceId]: error.message || t('eventRaceReadyError') }));
     } finally {
       setReadyingRaceId(null);
+    }
+  }
+
+  async function handleFinalizeRaceEntries(raceId) {
+    // FLOW: Admin Finalize RaceEntry
+    // ORDER: 1/6 - Handler calls finalization API and updates local Race status from backend response.
+    // FE path: setup Race row -> Tổng kết RaceEntry button -> PUT /api/races/{raceId}/finalize-entries.
+    // Purpose: lock the RaceEntry list once minimum assigned entries are satisfied.
+    setFinalizingRaceId(raceId);
+    setRunErrors((current) => ({ ...current, [raceId]: '' }));
+    try {
+      const response = await finalizeRaceEntries(raceId);
+      onRaceStatusChange?.(raceId, response?.status || 'ENTRIES_FINALIZED');
+      setSelectedRaceId(raceId);
+    } catch (error) {
+      setRunErrors((current) => ({ ...current, [raceId]: error.message || t('eventRaceEntryFinalizeError') }));
+    } finally {
+      setFinalizingRaceId(null);
     }
   }
 
@@ -197,6 +217,7 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
             : Number(race.entries || 0);
           const isFull = runnerCount >= race.maxRunners;
           const isLive = race.status === 'IN_PROGRESS';
+          const isEntriesFinalized = race.status === 'ENTRIES_FINALIZED';
           const isPendingReview = race.status === 'PENDING_REVIEW';
           const canManageRaceEntries = RACE_ENTRY_EDITABLE_STATUSES.has(race.status);
           const raceEntryLockReason = canManageRaceEntries ? '' : getRaceEntryLockReason(race.status, t);
@@ -257,7 +278,7 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
                   </div>
                 </div>
                 <div className="grid gap-2 sm:grid-cols-2 lg:justify-self-end">
-                  {(canManageRaceEntries || race.status === 'READY' || isLive) && (
+                  {(canManageRaceEntries || isEntriesFinalized || race.status === 'READY' || isLive) && (
                     isLive ? (
                       <>
                         <button type="button" onClick={() => toggleLiveView(race.id)} className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-xs font-extrabold text-emerald-700 hover:bg-emerald-100">
@@ -277,7 +298,7 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
                         {runningRaceId === race.id ? <LoaderCircle size={15} className="animate-spin" /> : <PlayCircle size={15} />}
                         {runningRaceId === race.id ? t('eventRaceLaunching') : t('eventRaceLaunchTitle')}
                       </button>
-                    ) : (
+                    ) : isEntriesFinalized ? (
                       <button
                         type="button"
                         disabled={readyingRaceId === race.id || !hasMinimumLaunchEntries || !raceStartReached}
@@ -290,6 +311,19 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
                         {readyingRaceId === race.id ? <LoaderCircle size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
                         {readyingRaceId === race.id ? t('eventCommonProcessing') : t('eventRaceReadyTitle')}
                       </button>
+                    ) : (
+                      <button
+                        type="button"
+                        disabled={finalizingRaceId === race.id || !hasMinimumLaunchEntries}
+                        onClick={() => handleFinalizeRaceEntries(race.id)}
+                        title={!hasMinimumLaunchEntries ? t('eventRaceEntryFinalizeMinimum', { count: MIN_RACE_ENTRIES_TO_LAUNCH }) : undefined}
+                        className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-orange-200 bg-orange-50 px-3 text-xs font-extrabold text-orange-800 hover:bg-orange-100 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        {/* FLOW: Admin Finalize RaceEntry */}
+                        {/* ORDER: 1A/6 - Finalize button is enabled only after minimum assigned RaceEntries are satisfied. */}
+                        {finalizingRaceId === race.id ? <LoaderCircle size={15} className="animate-spin" /> : <CheckCircle2 size={15} />}
+                        {finalizingRaceId === race.id ? t('eventCommonProcessing') : t('eventRaceEntryFinalizeTitle')}
+                      </button>
                     )
                   )}
                   <button type="button" onClick={() => setPrizeRuleRace(race)} className="inline-flex min-h-10 min-w-[7rem] items-center justify-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 text-xs font-extrabold text-amber-800 shadow-sm hover:bg-amber-100"><Trophy size={15} />{t('eventWorkspacePrizeRule')}</button>
@@ -299,10 +333,17 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
                     <button type="button" onClick={() => setResultPrizeRace(race)} className="inline-flex min-h-10 min-w-[7rem] items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 text-xs font-extrabold text-emerald-800 shadow-sm hover:bg-emerald-100"><Medal size={15} />{t('eventWorkspaceOfficialResult')}</button>
                   )}
                   <button type="button" disabled={!canManageRaceEntries || isFull || assignment.queueLoading} onClick={() => openAssignment(race)} title={!canManageRaceEntries ? raceEntryLockReason : undefined} className={`inline-flex min-h-10 min-w-[12.25rem] items-center justify-center gap-2 rounded-lg border px-3 text-xs font-extrabold shadow-sm ${isFull ? 'cursor-not-allowed border-red-200 bg-red-50 text-red-700' : !canManageRaceEntries ? 'cursor-not-allowed border-amber-200 bg-amber-50 text-amber-800' : 'border-brown-700/15 bg-white text-brown-700 hover:bg-cream-200 disabled:cursor-not-allowed disabled:opacity-60'}`}><UserPlus size={15} />{isFull ? t('eventRaceEntryFull') : canManageRaceEntries ? t('eventRaceEntryTitle') : t('eventRaceEntryLocked')}</button>
-                  {canManageRaceEntries && (!raceStartReached || !hasMinimumLaunchEntries) && (
+                  {canManageRaceEntries && !hasMinimumLaunchEntries && (
+                    <p className="sm:col-span-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-extrabold text-amber-900">
+                      {/* FLOW: Admin Finalize RaceEntry */}
+                      {/* ORDER: 1B/6 - UI explains that finalization requires minimum assigned RaceEntries. */}
+                      {t('eventRaceEntryFinalizeMinimum', { count: MIN_RACE_ENTRIES_TO_LAUNCH })}
+                    </p>
+                  )}
+                  {isEntriesFinalized && (!raceStartReached || !hasMinimumLaunchEntries) && (
                     <p className="sm:col-span-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-extrabold text-amber-900">
                       {/* FLOW: Admin Mark Race READY */}
-                      {/* ORDER: 1A/6 - UI explains which READY prerequisite is missing before Admin can submit. */}
+                      {/* ORDER: 1A/6 - UI explains which READY prerequisite is missing after RaceEntry has been finalized. */}
                       {!raceStartReached ? t('eventRaceReadyTimeRequired') : t('eventRaceReadyMinimum', { count: MIN_RACE_ENTRIES_TO_LAUNCH })}
                     </p>
                   )}

@@ -47,6 +47,15 @@ public class Race {
     @Column(name = "raceEndTime")
     private LocalDateTime raceEndTime;
 
+    @Column(name = "entryFinalizationScheduledAt")
+    private LocalDateTime entryFinalizationScheduledAt;
+
+    @Column(name = "entryFinalizedAt")
+    private LocalDateTime entryFinalizedAt;
+
+    @Column(name = "entryFinalizedBy")
+    private Integer entryFinalizedBy;
+
     @Column(name = "distance", nullable = false)
     private Integer distance;
 

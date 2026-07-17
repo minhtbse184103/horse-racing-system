@@ -126,6 +126,21 @@ public class RaceController {
         return raceService.closeRegistration(raceId, authentication.getName());
     }
 
+    @PutMapping("/{raceId}/finalize-entries")
+    public RaceResponse finalizeRaceEntries(
+            @PathVariable Integer raceId,
+            Authentication authentication
+    ) {
+        // FLOW: Admin Finalize RaceEntry
+        // ORDER: 3/6 - Controller delegates RaceEntry finalization validation and DB update to RaceService.
+        // API: PUT /api/races/{raceId}/finalize-entries.
+        // Purpose: locks the official RaceEntry list before the Race can later be marked READY.
+        return raceService.finalizeRaceEntries(
+                raceId,
+                authentication.getName()
+        );
+    }
+
     @PutMapping("/{raceId}/ready")
     public RaceResponse markRaceReady(
             @PathVariable Integer raceId,

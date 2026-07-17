@@ -133,6 +133,10 @@ public class TournamentProgramService {
                     request.getRaceEndTime(),
                     tournament
             );
+            validateEntryFinalizationSchedule(
+                    request.getEntryFinalizationScheduledAt(),
+                    request.getRaceStartTime()
+            );
             validatePrizes(request.getPrizes());
 
             String raceName = request.getRaceName().trim();
@@ -216,6 +220,9 @@ public class TournamentProgramService {
             race.setTrackName(draft.trackName());
             race.setRaceStartTime(request.getRaceStartTime());
             race.setRaceEndTime(request.getRaceEndTime());
+            race.setEntryFinalizationScheduledAt(
+                    request.getEntryFinalizationScheduledAt()
+            );
             race.setDistance(request.getDistance());
             race.setMaxRunners(request.getMaxRunners());
             race.setRaceOrder(draft.raceOrder());
@@ -302,6 +309,22 @@ public class TournamentProgramService {
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
                     "Race schedule must be inside the tournament date range."
+            );
+        }
+    }
+
+    private void validateEntryFinalizationSchedule(
+            LocalDateTime entryFinalizationScheduledAt,
+            LocalDateTime raceStartTime
+    ) {
+        if (entryFinalizationScheduledAt == null) {
+            return;
+        }
+
+        if (entryFinalizationScheduledAt.isAfter(raceStartTime.minusDays(2))) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "RaceEntry finalization time must be at least 2 days before race start time."
             );
         }
     }

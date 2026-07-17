@@ -29,6 +29,7 @@ const DISPLAY_LABELS = {
     REGISTRATION_CLOSED: 'Registration Closed',
     CLOSED_REGISTRATION: 'Registration Closed',
     CLOSEDREGISTRATION: 'Registration Closed',
+    ENTRIES_FINALIZED: 'Entries Finalized',
     READY: 'Ready',
     IN_PROGRESS: 'In Progress',
     ONGOING: 'Ongoing',

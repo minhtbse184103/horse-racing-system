@@ -47,6 +47,7 @@ function toRaceRequest(race, raceOrder) {
     trackName: race.track.trim(),
     raceStartTime: race.raceStartTime,
     raceEndTime: race.raceEndTime,
+    entryFinalizationScheduledAt: race.entryFinalizationScheduledAt || null,
     distance: Number(race.distance),
     maxRunners: Number(race.maxRunners),
     raceOrder,

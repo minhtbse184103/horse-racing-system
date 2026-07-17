@@ -408,6 +408,7 @@ class RaceServiceTest {
     @Test
     void markRaceReadyRejectsBeforeScheduledStartTime() {
         Race race = race();
+        race.setStatus(EventStatus.ENTRIES_FINALIZED);
 
         stubAdmin();
         when(raceRepository.findByIdForUpdate(8)).thenReturn(Optional.of(race));
@@ -429,6 +430,7 @@ class RaceServiceTest {
     @Test
     void markRaceReadyRejectsWhenAssignedEntriesAreLessThanThree() {
         Race race = race();
+        race.setStatus(EventStatus.ENTRIES_FINALIZED);
         race.setRaceStartTime(LocalDateTime.now().minusMinutes(5));
         race.setRaceEndTime(LocalDateTime.now().plusMinutes(55));
 
@@ -453,6 +455,7 @@ class RaceServiceTest {
     @Test
     void markRaceReadySetsRaceReadyAndMovesTournamentInProgress() {
         Race race = race();
+        race.setStatus(EventStatus.ENTRIES_FINALIZED);
         race.setRaceStartTime(LocalDateTime.now().minusMinutes(5));
         race.setRaceEndTime(LocalDateTime.now().plusMinutes(55));
         Tournament tournament = tournament();
@@ -473,6 +476,96 @@ class RaceServiceTest {
         assertEquals(EventStatus.IN_PROGRESS, tournament.getStatus());
         verify(raceRepository).save(race);
         verify(tournamentRepository).save(tournament);
+    }
+
+    @Test
+    void markRaceReadyRejectsRaceBeforeEntriesFinalized() {
+        Race race = race();
+        race.setStatus(EventStatus.REGISTRATION_CLOSED);
+        race.setRaceStartTime(LocalDateTime.now().minusMinutes(5));
+        race.setRaceEndTime(LocalDateTime.now().plusMinutes(55));
+
+        stubAdmin();
+        when(raceRepository.findByIdForUpdate(8)).thenReturn(Optional.of(race));
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.markRaceReady(8, "admin@example.com")
+        );
+
+        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
+        assertEquals(
+                "Only a race with finalized RaceEntry can be marked ready.",
+                exception.getMessage()
+        );
+        verify(raceEntryRepository, never()).countByRaceIdAndStatus(any(), any());
+        verify(raceRepository, never()).save(any());
+    }
+
+    @Test
+    void finalizeRaceEntriesSetsEntriesFinalizedAndAuditFields() {
+        Race race = race();
+        race.setStatus(EventStatus.REGISTRATION_CLOSED);
+
+        stubAdmin();
+        when(raceRepository.findByIdForUpdate(8)).thenReturn(Optional.of(race));
+        when(raceEntryRepository.countByRaceIdAndStatus(8, RaceEntryStatus.ASSIGNED))
+                .thenReturn(3L);
+        when(raceRepository.save(race)).thenReturn(race);
+        when(raceResultRepository.countResultsByRaceIds(List.of(8))).thenReturn(List.of());
+        when(racePrizeRepository.findByRaceIdOrderByRankPositionAsc(8)).thenReturn(List.of());
+
+        RaceResponse response = service.finalizeRaceEntries(8, "admin@example.com");
+
+        assertEquals(EventStatus.ENTRIES_FINALIZED, response.getStatus());
+        assertEquals(EventStatus.ENTRIES_FINALIZED, race.getStatus());
+        assertEquals(99, race.getEntryFinalizedBy());
+        assertEquals(99, response.getEntryFinalizedBy());
+        verify(raceRepository).save(race);
+    }
+
+    @Test
+    void finalizeRaceEntriesRejectsTooFewAssignedEntries() {
+        Race race = race();
+
+        stubAdmin();
+        when(raceRepository.findByIdForUpdate(8)).thenReturn(Optional.of(race));
+        when(raceEntryRepository.countByRaceIdAndStatus(8, RaceEntryStatus.ASSIGNED))
+                .thenReturn(2L);
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.finalizeRaceEntries(8, "admin@example.com")
+        );
+
+        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
+        assertEquals(
+                "Race needs at least 3 assigned entries before RaceEntry can be finalized.",
+                exception.getMessage()
+        );
+        verify(raceRepository, never()).save(any());
+    }
+
+    @Test
+    void finalizeRaceEntriesRejectsRaceOutsideSetupStatus() {
+        Race race = race();
+        race.setStatus(EventStatus.READY);
+
+        stubAdmin();
+        when(raceRepository.findByIdForUpdate(8)).thenReturn(Optional.of(race));
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.finalizeRaceEntries(8, "admin@example.com")
+        );
+
+        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
+        assertEquals(
+                "Only a race waiting for entry setup can be finalized.",
+                exception.getMessage()
+        );
+        verify(raceEntryRepository, never()).countByRaceIdAndStatus(any(), any());
+        verify(raceRepository, never()).save(any());
     }
 
     @Test

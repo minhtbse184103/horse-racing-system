@@ -229,6 +229,34 @@ class RaceEntryServiceTest {
     }
 
     @Test
+    void assignRegistrationRejectsEntriesFinalizedRace() {
+        Race race = futureRace();
+        race.setStatus(EventStatus.ENTRIES_FINALIZED);
+        Registration registration = approvedPaidRegistration();
+        when(raceRepository.findByIdForUpdate(RACE_ID))
+                .thenReturn(Optional.of(race));
+        when(registrationRepository.findByIdForUpdate(REGISTRATION_ID))
+                .thenReturn(Optional.of(registration));
+        when(userRepository.findByEmail(ADMIN_EMAIL))
+                .thenReturn(Optional.of(admin()));
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> raceEntryService.assignRegistration(
+                        createRequest(),
+                        ADMIN_EMAIL
+                )
+        );
+
+        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
+        assertEquals(
+                "Race is not available for entry assignment.",
+                exception.getMessage()
+        );
+        verify(raceEntryRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
     void assignRegistrationRejectsFullRace() {
         Race race = futureRace();
         Registration registration = approvedPaidRegistration();
@@ -374,6 +402,30 @@ class RaceEntryServiceTest {
         );
 
         assertEquals(HttpStatus.CONFLICT, exception.getStatus());
+        verify(raceEntryRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void cancelEntryRejectsEntriesFinalizedRace() {
+        Race race = futureRace();
+        race.setStatus(EventStatus.ENTRIES_FINALIZED);
+        RaceEntry entry = assignedEntry();
+        stubCancellationTarget(entry, race);
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> raceEntryService.cancelEntry(
+                        RACE_ENTRY_ID,
+                        cancelRequest("List finalized"),
+                        ADMIN_EMAIL
+                )
+        );
+
+        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
+        assertEquals(
+                "Race entry cannot be cancelled after RaceEntry is finalized.",
+                exception.getMessage()
+        );
         verify(raceEntryRepository, never()).saveAndFlush(any());
     }
 

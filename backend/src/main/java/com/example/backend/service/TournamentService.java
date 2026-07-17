@@ -1026,6 +1026,11 @@ public class TournamentService {
                 .trackImageUrl(race.getTrackImageUrl())
                 .raceStartTime(race.getRaceStartTime())
                 .raceEndTime(race.getRaceEndTime())
+                .entryFinalizationScheduledAt(
+                        race.getEntryFinalizationScheduledAt()
+                )
+                .entryFinalizedAt(race.getEntryFinalizedAt())
+                .entryFinalizedBy(race.getEntryFinalizedBy())
                 .distance(race.getDistance())
                 .maxRunners(race.getMaxRunners())
                 .raceOrder(race.getRaceOrder())

@@ -184,6 +184,16 @@ export function readyRace(raceId) {
   });
 }
 
+export function finalizeRaceEntries(raceId) {
+  // FLOW: Admin Finalize RaceEntry
+  // ORDER: 2/6 - API service sends Race ID to backend RaceEntry finalization endpoint.
+  // API: PUT /api/races/{raceId}/finalize-entries.
+  // Purpose: backend validates minimum assigned entries and locks the RaceEntry list before READY.
+  return httpRequest(`/api/races/${raceId}/finalize-entries`, {
+    method: 'PUT'
+  });
+}
+
 export function failRaceRun(raceId, reason) {
   // FLOW: Admin Fail Running Race
   // ORDER: 4/7 - API wrapper sends only the admin reason; backend owns validation, cancellation, and token cleanup.
