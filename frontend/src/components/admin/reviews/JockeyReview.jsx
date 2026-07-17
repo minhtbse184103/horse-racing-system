@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, BadgeCheck, Eye, RefreshCw, Search, XCircle } from 'lucide-react';
+import { BadgeCheck, Eye, FileText, Image, Link2, RefreshCw, Search, X, XCircle } from 'lucide-react';
 import UrlImagePreview from '../../common/UrlImagePreview';
 import {
   approveJockeyProfile,
@@ -64,7 +64,7 @@ function StatusBadge({ status }) {
 
 function InfoCard({ label, value, children }) {
   return (
-    <div className="rounded-2xl border border-brown-700/10 bg-white/70 p-4">
+    <div className="rounded-lg border border-brown-700/10 bg-white/80 p-4 shadow-[0_8px_20px_rgba(78,44,25,0.05)]">
       <span className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">{label}</span>
       <strong className="mt-1 block break-words text-brown-900">
         {children || displayValue(value)}
@@ -75,7 +75,7 @@ function InfoCard({ label, value, children }) {
 
 function DocumentCard({ label, url }) {
   return (
-    <div className="rounded-2xl border border-brown-700/10 bg-white/70 p-4">
+    <div className="rounded-lg border border-brown-700/10 bg-white/80 p-4 shadow-[0_8px_20px_rgba(78,44,25,0.05)]">
       <span className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">{label}</span>
       {url ? (
         <a className="outline-button compact-button mt-3 inline-flex max-w-full break-all" href={url} target="_blank" rel="noreferrer">
@@ -90,8 +90,8 @@ function DocumentCard({ label, url }) {
 
 function EmptyState() {
   return (
-    <div className="rounded-[24px] border border-dashed border-brown-700/20 bg-white/60 p-8 text-center">
-      <div className="mx-auto grid size-12 place-items-center rounded-2xl bg-cream-200 text-xl font-black text-brown-700">JR</div>
+    <div className="rounded-lg border border-dashed border-brown-700/20 bg-white/70 p-8 text-center">
+      <div className="mx-auto grid size-12 place-items-center rounded-lg bg-cream-200 text-brown-700"><FileText size={22} /></div>
       <h3 className="mt-4 text-xl font-black text-brown-900">No jockey profiles</h3>
       <p className="mx-auto mt-2 max-w-xl font-medium text-slate-500">No jockey review records match the current search and status filter.</p>
     </div>
@@ -261,154 +261,9 @@ export default function JockeyReview() {
     }
   }
 
-  if (selectedProfile) {
-    const licenseUrls = getValidImageUrls(selectedProfile);
-    const verificationLinks = getVerificationLinks(selectedProfile);
-    const isPending = canReview(selectedProfile);
-
-    return (
-      <section className="space-y-6 text-brown-900">
-        <header className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div>
-            <p className="text-sm font-extrabold uppercase tracking-widest text-brown-500">Jockey profile detail</p>
-            <h1 className="mt-2 text-4xl font-black md:text-5xl">Jockey #{displayValue(selectedProfile.jockeyId)}</h1>
-            <p className="mt-3 max-w-2xl font-medium text-slate-500">Review license, contact information, and proof documents.</p>
-          </div>
-          <button className="inline-flex items-center gap-2 rounded-lg border border-brown-700/15 bg-white px-4 py-3 font-extrabold text-brown-700 shadow-sm transition hover:bg-cream-100" type="button" onClick={() => setSelectedProfile(null)}>
-            <ArrowLeft size={17} />
-            Back to list
-          </button>
-        </header>
-
-        {error && <div className="admin-alert error" role="alert">{error}</div>}
-        {message && <div className="admin-alert success" role="status">{message}</div>}
-
-        <section className="rounded-lg border border-brown-700/10 bg-cream-100 p-5 shadow-[0_18px_45px_rgba(78,44,25,0.1)]">
-          <div className="flex flex-col gap-3 border-b border-brown-700/10 pb-4 md:flex-row md:items-start md:justify-between">
-            <div>
-              <span className="text-xs font-extrabold uppercase text-brown-500">Profile information</span>
-              <h2 className="mt-1 text-2xl font-black">{displayValue(selectedProfile.fullName)}</h2>
-              <p className="mt-2 font-medium text-slate-500">Submitted at {formatDate(selectedProfile.submittedAt)}</p>
-            </div>
-            <StatusBadge status={selectedProfile.status} />
-          </div>
-
-          <div className="mt-5 grid gap-4 md:grid-cols-2">
-            <InfoCard label="Full name" value={selectedProfile.fullName} />
-            <InfoCard label="Email" value={selectedProfile.email} />
-            <InfoCard label="Jockey ID" value={selectedProfile.jockeyId} />
-            <InfoCard label="Review ID" value={selectedProfile.reviewId} />
-            <InfoCard label="License type" value={getLicenceTypeLabel(selectedProfile.licenceType || selectedProfile.licenseNo)} />
-            <InfoCard label="Expiry date" value={formatDate(selectedProfile.expiryDate)} />
-            <InfoCard label="Issuing authority" value={selectedProfile.issuingAuthority} />
-            <InfoCard label="Weight" value={selectedProfile.weight ? `${selectedProfile.weight} kg` : ''} />
-            <InfoCard label="Trainer name" value={selectedProfile.trainerName} />
-            <InfoCard label="Trainer email" value={selectedProfile.trainerEmail} />
-            <InfoCard label="Academy / stable address" value={selectedProfile.academyStableAddress} />
-            <InfoCard label="Biography" value={selectedProfile.biography} />
-          </div>
-
-          <div className="mt-6">
-            <h3 className="text-xl font-black text-brown-900">Verification links</h3>
-            <div className="mt-3 grid gap-4 md:grid-cols-2">
-              {verificationLinks.length > 0 ? (
-                verificationLinks.map((link, index) => <DocumentCard label={`Verification link ${index + 1}`} url={link} key={`${link}-${index}`} />)
-              ) : (
-                <InfoCard label="Verification links" value="" />
-              )}
-            </div>
-          </div>
-
-          <div className="mt-6">
-            <h3 className="text-xl font-black text-brown-900">Jockey license images</h3>
-            <div className="mt-3 grid gap-4 md:grid-cols-2">
-              {licenseUrls.length > 0 ? (
-                licenseUrls.map((url, index) => (
-                  <div className="rounded-2xl border border-brown-700/10 bg-white/70 p-4" key={url}>
-                    <span className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">License image {index + 1}</span>
-                    <UrlImagePreview
-                      url={url}
-                      alt={`${selectedProfile.fullName} license ${index + 1}`}
-                      className="mt-3 max-h-[320px] w-full rounded-lg object-contain"
-                    />
-                    <a className="outline-button compact-button mt-3 inline-flex max-w-full break-all" href={url} target="_blank" rel="noreferrer">
-                      Open image
-                    </a>
-                  </div>
-                ))
-              ) : (
-                <div className="rounded-2xl border border-danger/20 bg-danger-bg p-4 font-bold text-danger md:col-span-2">
-                  No valid license image URL was submitted.
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="mt-6">
-            <h3 className="text-xl font-black text-brown-900">Review information</h3>
-            <div className="mt-3 grid gap-4 md:grid-cols-2">
-              <InfoCard label="Status" value={getStatusLabel(selectedProfile.status)} />
-              <InfoCard label="Submitted at" value={formatDate(selectedProfile.submittedAt)} />
-              <InfoCard label="Reviewed at" value={formatDate(selectedProfile.reviewedAt)} />
-              <InfoCard label="Reviewed by" value={selectedProfile.reviewedByName || selectedProfile.reviewedBy} />
-            </div>
-          </div>
-
-          {selectedProfile.feedback && (
-            <div className="mt-5 rounded-2xl border border-danger/20 bg-danger-bg p-4 font-bold text-danger">
-              Feedback: {selectedProfile.feedback}
-            </div>
-          )}
-
-          {isPending ? (
-            <div className="mt-6 flex flex-wrap gap-3 border-t border-brown-700/10 pt-5">
-              <button
-                className="inline-flex items-center gap-2 rounded-lg bg-green-700 px-5 py-3 font-extrabold text-white shadow-sm transition hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50"
-                type="button"
-                onClick={() => setApproveTarget(selectedProfile)}
-                disabled={isProcessing || !canApprove(selectedProfile)}
-                title={!canApprove(selectedProfile) ? 'A valid license image is required before approval.' : 'Approve jockey application'}
-              >
-                <BadgeCheck size={18} />
-                Approve
-              </button>
-              <button className="outline-button danger-action inline-flex items-center gap-2" type="button" onClick={() => setRejectTarget(selectedProfile)} disabled={isProcessing}>
-                <XCircle size={18} />
-                Reject
-              </button>
-            </div>
-          ) : (
-            <div className="mt-6 border-t border-brown-700/10 pt-5">
-              <StatusBadge status={selectedProfile.status} />
-            </div>
-          )}
-        </section>
-
-        {approveTarget && (
-          <ConfirmModal
-            title="Approve jockey profile"
-            message={`Approve ${approveTarget.fullName} and mark this jockey profile as verified?`}
-            confirmLabel="Approve"
-            isLoading={isProcessing}
-            onCancel={() => setApproveTarget(null)}
-            onConfirm={handleApprove}
-          />
-        )}
-
-        <RejectModal
-          profile={rejectTarget}
-          reason={rejectReason}
-          setReason={setRejectReason}
-          isLoading={isProcessing}
-          onCancel={() => {
-            setRejectTarget(null);
-            setRejectReason('');
-          }}
-          onConfirm={handleReject}
-        />
-      </section>
-    );
-  }
+  const selectedLicenseUrls = selectedProfile ? getValidImageUrls(selectedProfile) : [];
+  const selectedVerificationLinks = selectedProfile ? getVerificationLinks(selectedProfile) : [];
+  const selectedIsPending = selectedProfile ? canReview(selectedProfile) : false;
 
   return (
     <section className="space-y-6 text-brown-900">
@@ -514,6 +369,158 @@ export default function JockeyReview() {
           </div>
         </div>
       </section>
+
+      {selectedProfile && (
+        <div className="fixed inset-0 z-[80] grid place-items-center bg-brown-900/60 p-4 backdrop-blur-sm" role="presentation" onMouseDown={() => setSelectedProfile(null)}>
+          <section
+            className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-lg border border-white/70 bg-cream-100 shadow-[0_32px_90px_rgba(43,23,16,0.46)]"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="jockey-review-detail-title"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <header className="flex shrink-0 flex-col gap-4 border-b border-brown-700/10 bg-[linear-gradient(135deg,rgba(255,248,238,0.96),rgba(247,234,216,0.82))] px-5 py-5 md:flex-row md:items-start md:justify-between">
+              <div className="min-w-0">
+                <p className="text-xs font-extrabold uppercase tracking-widest text-brown-500">Jockey profile detail</p>
+                <h1 id="jockey-review-detail-title" className="mt-2 truncate text-3xl font-black md:text-4xl">Jockey #{displayValue(selectedProfile.jockeyId)}</h1>
+                <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-slate-500">Review license, contact information, and proof documents.</p>
+              </div>
+              <button className="grid size-10 shrink-0 place-items-center rounded-lg border border-brown-700/10 bg-white text-brown-700 shadow-sm transition hover:bg-cream-200" type="button" onClick={() => setSelectedProfile(null)} aria-label="Close">
+                <X size={18} />
+              </button>
+            </header>
+
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
+              {error && <div className="admin-alert error" role="alert">{error}</div>}
+              {message && <div className="admin-alert success" role="status">{message}</div>}
+
+              <section className="overflow-hidden rounded-lg border border-white/80 bg-white/70 shadow-[0_18px_45px_rgba(78,44,25,0.1)]">
+                <div className="flex flex-col gap-3 border-b border-brown-700/10 md:flex-row md:items-start md:justify-between">
+                  <div className="px-5 py-5">
+                    <span className="text-xs font-extrabold uppercase text-brown-500">Profile information</span>
+                    <h2 className="mt-1 text-2xl font-black">{displayValue(selectedProfile.fullName)}</h2>
+                    <p className="mt-2 font-medium text-slate-500">Submitted at {formatDate(selectedProfile.submittedAt)}</p>
+                  </div>
+                  <div className="px-5 py-5"><StatusBadge status={selectedProfile.status} /></div>
+                </div>
+
+                <div className="grid gap-4 px-5 py-5 md:grid-cols-2">
+                  <InfoCard label="Full name" value={selectedProfile.fullName} />
+                  <InfoCard label="Email" value={selectedProfile.email} />
+                  <InfoCard label="Jockey ID" value={selectedProfile.jockeyId} />
+                  <InfoCard label="Review ID" value={selectedProfile.reviewId} />
+                  <InfoCard label="License type" value={getLicenceTypeLabel(selectedProfile.licenceType || selectedProfile.licenseNo)} />
+                  <InfoCard label="Expiry date" value={formatDate(selectedProfile.expiryDate)} />
+                  <InfoCard label="Issuing authority" value={selectedProfile.issuingAuthority} />
+                  <InfoCard label="Weight" value={selectedProfile.weight ? `${selectedProfile.weight} kg` : ''} />
+                  <InfoCard label="Trainer name" value={selectedProfile.trainerName} />
+                  <InfoCard label="Trainer email" value={selectedProfile.trainerEmail} />
+                  <InfoCard label="Academy / stable address" value={selectedProfile.academyStableAddress} />
+                  <InfoCard label="Biography" value={selectedProfile.biography} />
+                </div>
+
+                <div className="border-t border-brown-700/10 px-5 py-5">
+                  <h3 className="flex items-center gap-2 text-xl font-black text-brown-900"><Link2 size={19} /> Verification links</h3>
+                  <div className="mt-3 grid gap-4 md:grid-cols-2">
+                    {selectedVerificationLinks.length > 0 ? (
+                      selectedVerificationLinks.map((link, index) => <DocumentCard label={`Verification link ${index + 1}`} url={link} key={`${link}-${index}`} />)
+                    ) : (
+                      <InfoCard label="Verification links" value="" />
+                    )}
+                  </div>
+                </div>
+
+                <div className="border-t border-brown-700/10 px-5 py-5">
+                  <h3 className="flex items-center gap-2 text-xl font-black text-brown-900"><Image size={19} /> Jockey license images</h3>
+                  <div className="mt-3 grid gap-4 md:grid-cols-2">
+                    {selectedLicenseUrls.length > 0 ? (
+                      selectedLicenseUrls.map((url, index) => (
+                        <div className="rounded-lg border border-brown-700/10 bg-white/80 p-4 shadow-[0_8px_20px_rgba(78,44,25,0.05)]" key={url}>
+                          <span className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">License image {index + 1}</span>
+                          <UrlImagePreview
+                            url={url}
+                            alt={`${selectedProfile.fullName} license ${index + 1}`}
+                            className="mt-3 max-h-[320px] w-full rounded-lg object-contain"
+                          />
+                          <a className="outline-button compact-button mt-3 inline-flex max-w-full break-all" href={url} target="_blank" rel="noreferrer">
+                            Open image
+                          </a>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="rounded-lg border border-danger/20 bg-danger-bg p-4 font-bold text-danger md:col-span-2">
+                        No valid license image URL was submitted.
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="border-t border-brown-700/10 px-5 py-5">
+                  <h3 className="flex items-center gap-2 text-xl font-black text-brown-900"><FileText size={19} /> Review information</h3>
+                  <div className="mt-3 grid gap-4 md:grid-cols-2">
+                    <InfoCard label="Status" value={getStatusLabel(selectedProfile.status)} />
+                    <InfoCard label="Submitted at" value={formatDate(selectedProfile.submittedAt)} />
+                    <InfoCard label="Reviewed at" value={formatDate(selectedProfile.reviewedAt)} />
+                    <InfoCard label="Reviewed by" value={selectedProfile.reviewedByName || selectedProfile.reviewedBy} />
+                  </div>
+                </div>
+
+                {selectedProfile.feedback && (
+                  <div className="mx-5 mb-5 rounded-lg border border-danger/20 bg-danger-bg p-4 font-bold text-danger">
+                    Feedback: {selectedProfile.feedback}
+                  </div>
+                )}
+
+                {selectedIsPending ? (
+                  <div className="flex flex-wrap gap-3 border-t border-brown-700/10 bg-white/70 px-5 py-4">
+                    <button
+                      className="inline-flex items-center gap-2 rounded-lg bg-green-700 px-5 py-3 font-extrabold text-white shadow-sm transition hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50"
+                      type="button"
+                      onClick={() => setApproveTarget(selectedProfile)}
+                      disabled={isProcessing || !canApprove(selectedProfile)}
+                      title={!canApprove(selectedProfile) ? 'A valid license image is required before approval.' : 'Approve jockey application'}
+                    >
+                      <BadgeCheck size={18} />
+                      Approve
+                    </button>
+                    <button className="outline-button danger-action inline-flex items-center gap-2" type="button" onClick={() => setRejectTarget(selectedProfile)} disabled={isProcessing}>
+                      <XCircle size={18} />
+                      Reject
+                    </button>
+                  </div>
+                ) : (
+                  <div className="border-t border-brown-700/10 bg-white/70 px-5 py-4">
+                    <StatusBadge status={selectedProfile.status} />
+                  </div>
+                )}
+              </section>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {approveTarget && (
+        <ConfirmModal
+          title="Approve jockey profile"
+          message={`Approve ${approveTarget.fullName} and mark this jockey profile as verified?`}
+          confirmLabel="Approve"
+          isLoading={isProcessing}
+          onCancel={() => setApproveTarget(null)}
+          onConfirm={handleApprove}
+        />
+      )}
+
+      <RejectModal
+        profile={rejectTarget}
+        reason={rejectReason}
+        setReason={setRejectReason}
+        isLoading={isProcessing}
+        onCancel={() => {
+          setRejectTarget(null);
+          setRejectReason('');
+        }}
+        onConfirm={handleReject}
+      />
     </section>
   );
 }
