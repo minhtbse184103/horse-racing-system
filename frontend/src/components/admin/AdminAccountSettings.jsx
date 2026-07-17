@@ -3,6 +3,7 @@ import { Languages, Mail, Phone, RefreshCw, Save, UserRound } from 'lucide-react
 
 import { updateMyAccount, updateStoredUser } from '../../services/authService';
 import LanguageToggle from '../common/LanguageToggle';
+import { useLanguage } from '../../context/LanguageContext';
 
 function getInitialValues(user) {
   return {
@@ -13,6 +14,7 @@ function getInitialValues(user) {
 }
 
 export default function AdminSettings({ currentUser, onUserUpdated }) {
+  const { t } = useLanguage();
   const [values, setValues] = useState(() => getInitialValues(currentUser));
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -30,13 +32,13 @@ export default function AdminSettings({ currentUser, onUserUpdated }) {
   }
 
   function validate() {
-    if (!values.fullName.trim()) return 'Tên không được để trống.';
-    if (!values.email.trim()) return 'Email không được để trống.';
+    if (!values.fullName.trim()) return t('adminSettingsNameRequired');
+    if (!values.email.trim()) return t('emailRequired');
     if (!/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$/.test(values.email.trim())) {
-      return 'Email không đúng định dạng.';
+      return t('invalidEmail');
     }
     if (!/^\+?[0-9]{9,15}$/.test(values.phone.trim())) {
-      return 'Số điện thoại phải gồm 9-15 chữ số và có thể bắt đầu bằng +.';
+      return t('invalidPhone');
     }
     return '';
   }
@@ -71,9 +73,9 @@ export default function AdminSettings({ currentUser, onUserUpdated }) {
       updateStoredUser(updatedUser);
       onUserUpdated?.(updatedUser);
       setValues(getInitialValues(updatedUser));
-      setMessage('Đã cập nhật tài khoản admin.');
+      setMessage(t('adminSettingsUpdateSuccess'));
     } catch (err) {
-      setError(err.message || 'Không thể cập nhật tài khoản admin.');
+      setError(err.message || t('adminSettingsUpdateError'));
     } finally {
       setIsSaving(false);
     }
@@ -90,13 +92,13 @@ export default function AdminSettings({ currentUser, onUserUpdated }) {
       <header className="flex flex-col gap-4 border-b border-brown-700/10 pb-5 xl:flex-row xl:items-end xl:justify-between">
         <div>
           <div className="flex items-center gap-2 text-xs font-black uppercase text-brown-500">
-            <span className="h-px w-7 bg-brown-500" /> Quản trị
+            <span className="h-px w-7 bg-brown-500" /> {t('admin')}
           </div>
           <h1 className="mt-2 text-3xl font-black leading-none text-brown-900 md:text-4xl">
-            Cài đặt
+            {t('settings')}
           </h1>
           <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-slate-500">
-            Cập nhật tài khoản admin và tùy chỉnh trải nghiệm quản trị.
+            {t('adminSettingsPageSubtitle')}
           </p>
         </div>
       </header>
@@ -117,18 +119,18 @@ export default function AdminSettings({ currentUser, onUserUpdated }) {
         onSubmit={handleSubmit}
       >
         <div className="border-b border-brown-700/10 px-5 py-4">
-          <h2 className="text-xl font-black text-brown-900">Tài khoản admin</h2>
+          <h2 className="text-xl font-black text-brown-900">{t('adminAccount')}</h2>
           <p className="mt-1 text-sm font-semibold text-slate-500">
-            Chỉ cập nhật tên, email và số điện thoại. Vai trò và trạng thái là thông tin chỉ đọc.
+            {t('adminSettingsAccountHint')}
           </p>
         </div>
         <div className="grid gap-4 border-b border-brown-700/10 bg-[linear-gradient(135deg,rgba(255,248,238,0.96),rgba(247,234,216,0.78))] px-5 py-5 sm:grid-cols-3">
           <div className="rounded-lg border border-brown-700/10 bg-white/80 p-4">
-            <span className="text-xs font-extrabold uppercase text-slate-500">Vai trò</span>
-            <strong className="mt-2 block text-brown-900">Quản trị viên</strong>
+            <span className="text-xs font-extrabold uppercase text-slate-500">{t('role')}</span>
+            <strong className="mt-2 block text-brown-900">{t('role_ADMIN')}</strong>
           </div>
           <div className="rounded-lg border border-brown-700/10 bg-white/80 p-4">
-            <span className="text-xs font-extrabold uppercase text-slate-500">Trạng thái</span>
+            <span className="text-xs font-extrabold uppercase text-slate-500">{t('status')}</span>
             <strong className="mt-2 block text-brown-900">{currentUser?.status || 'ACTIVE'}</strong>
           </div>
           <div className="rounded-lg border border-brown-700/10 bg-white/80 p-4">
@@ -139,7 +141,7 @@ export default function AdminSettings({ currentUser, onUserUpdated }) {
 
         <div className="grid gap-4 px-5 py-5 lg:grid-cols-3">
           <label className="grid gap-2 text-sm font-extrabold">
-            <span>Tên</span>
+            <span>{t('fullName')}</span>
             <span className="relative">
               <UserRound className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={17} />
               <input
@@ -151,7 +153,7 @@ export default function AdminSettings({ currentUser, onUserUpdated }) {
             </span>
           </label>
           <label className="grid gap-2 text-sm font-extrabold">
-            <span>Email</span>
+            <span>{t('email')}</span>
             <span className="relative">
               <Mail className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={17} />
               <input
@@ -164,7 +166,7 @@ export default function AdminSettings({ currentUser, onUserUpdated }) {
             </span>
           </label>
           <label className="grid gap-2 text-sm font-extrabold">
-            <span>Số điện thoại</span>
+            <span>{t('phone')}</span>
             <span className="relative">
               <Phone className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={17} />
               <input
@@ -186,7 +188,7 @@ export default function AdminSettings({ currentUser, onUserUpdated }) {
             disabled={isSaving}
           >
             <RefreshCw size={17} />
-            Đặt lại
+            {t('reset')}
           </button>
           <button
             className="inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-brown-700 px-5 text-sm font-extrabold text-white shadow-[0_12px_28px_rgba(108,63,36,0.22)] transition hover:-translate-y-0.5 hover:bg-brown-900 disabled:translate-y-0 disabled:opacity-50"
@@ -194,7 +196,7 @@ export default function AdminSettings({ currentUser, onUserUpdated }) {
             disabled={isSaving}
           >
             <Save size={17} />
-            {isSaving ? 'Đang lưu...' : 'Lưu thay đổi'}
+            {isSaving ? t('saving') : t('saveChanges')}
           </button>
         </footer>
       </form>
@@ -206,9 +208,9 @@ export default function AdminSettings({ currentUser, onUserUpdated }) {
               <Languages size={20} />
             </span>
             <div>
-              <h2 className="text-xl font-black text-brown-900">Ngôn ngữ</h2>
+              <h2 className="text-xl font-black text-brown-900">{t('languageLabel')}</h2>
               <p className="mt-1 text-sm font-semibold text-slate-500">
-                Chọn ngôn ngữ hiển thị cho khu vực quản trị.
+                {t('adminSettingsLanguageHint')}
               </p>
             </div>
           </div>

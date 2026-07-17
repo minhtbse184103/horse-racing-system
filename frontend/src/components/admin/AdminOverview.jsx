@@ -203,7 +203,7 @@ export default function AdminOverview({ onNavigate }) {
           : []
       });
     } catch (err) {
-      setError(err.message || 'Không thể tải dữ liệu tổng quan.');
+      setError(err.message || t('overviewLoadError'));
     } finally {
       setIsLoading(false);
     }
@@ -353,7 +353,7 @@ export default function AdminOverview({ onNavigate }) {
             <span>
               {error}
               <small className="mt-1 block font-extrabold">
-                Dữ liệu tổng quan bên dưới có thể chưa được cập nhật.
+                {t('overviewStaleData')}
               </small>
             </span>
           </span>

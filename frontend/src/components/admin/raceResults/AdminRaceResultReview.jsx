@@ -224,7 +224,7 @@ function SubmissionDetail({ submission, isLoading, error, onBack, onRetry, onApp
 
         <div className="grid gap-4 p-5 lg:grid-cols-4">
           <div className="rounded-lg border border-white/80 bg-white p-4 shadow-[0_10px_24px_rgba(78,44,25,0.06)]">
-            <span className="text-xs font-black uppercase tracking-wide text-slate-500">Status Submission</span>
+            <span className="text-xs font-black uppercase tracking-wide text-slate-500">{t('adminResultReviewSubmissionStatus')}</span>
             <div className="mt-2"><ReviewStatusBadge status={submission.status} /></div>
           </div>
           <div className="rounded-lg border border-white/80 bg-white p-4 shadow-[0_10px_24px_rgba(78,44,25,0.06)]">
@@ -592,7 +592,7 @@ export default function AdminRaceResultReview() {
                   <th className="px-5 py-3">Race</th>
                   <th className="px-5 py-3">{t('resultReviewTrack')}</th>
                   <th className="px-5 py-3">{t('resultReviewSubmissionTime')}</th>
-                  <th className="px-5 py-3">Status Referee</th>
+                  <th className="px-5 py-3">{t('adminResultReviewRefereeStatus')}</th>
                   <th className="px-5 py-3 text-center">{t('resultReviewHorseCount')}</th>
                   <th className="px-5 py-3 text-right">{t('eventCommonActions')}</th>
                 </tr>
