@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   ArrowRight,
   BarChart3,
@@ -38,6 +38,17 @@ import ConfirmModal from '../common/ConfirmModal';
 const INVITATION_STATUS_OPTIONS = ['ALL', 'PENDING', 'ACCEPTED', 'APPROVED', 'REJECTED', 'CANCELLED', 'EXPIRED'];
 const OWNER_CANCELLED_INVITATION_STORAGE_KEY = 'owner_cancelled_jockey_invitations';
 const OWNER_REGISTRATION_PAYMENT_PENDING_KEY = 'owner_registration_payment_pending';
+
+function isRegistrationPaymentReturn(params) {
+  if (!params.has('vnp_TxnRef') && !params.has('vnp_SecureHash')) return false;
+  if (String(params.get('vnp_TxnRef') || '').toUpperCase().startsWith('REG-')) return true;
+
+  try {
+    return window.localStorage.getItem(OWNER_REGISTRATION_PAYMENT_PENDING_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
 
 const vndFormatter = new Intl.NumberFormat('vi-VN', {
   maximumFractionDigits: 0
@@ -573,6 +584,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
   const [detailHorse, setDetailHorse] = useState(null);
   const [cancelInvitationTarget, setCancelInvitationTarget] = useState(null);
   const [horseLockReasons, setHorseLockReasons] = useState({});
+  const paymentReturnHandledRef = useRef(false);
 
   const activeHorses = useMemo(
     () => (ownerHorses.length > 0 ? ownerHorses : horses).filter((horse) => isActiveHorse(horse) || hasParticipatedHorse(horse) || hasRegisteredHorse(horse)),
@@ -703,6 +715,8 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
   const isPaymentFlowActive = flowMode === 'payment';
   const hasAcceptedInvitation = acceptedJockeyInvitations.length > 0;
   const selectedPaymentStatus = paymentResult?.registrationPaymentStatus
+    || (paymentResult?.success ? 'PAID' : '')
+    || paymentResult?.status
     || selectedAcceptedInvitation?.registrationStatus
     || registrationResult?.paymentStatus
     || '';
@@ -736,19 +750,14 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const hasVnpayReturn = params.has('vnp_TxnRef') || params.has('vnp_SecureHash');
-    let isRegistrationPayment = false;
-    try {
-      isRegistrationPayment = window.localStorage.getItem(OWNER_REGISTRATION_PAYMENT_PENDING_KEY) === 'true';
-    } catch {
-      isRegistrationPayment = false;
-    }
-
-    if (!hasVnpayReturn || !isRegistrationPayment) return;
+    if (!isRegistrationPaymentReturn(params) || paymentReturnHandledRef.current) return;
+    paymentReturnHandledRef.current = true;
 
     async function confirmRegistrationPayment() {
+      let confirmationCompleted = false;
       try {
         const result = await confirmVnpayReturn(window.location.search);
+        confirmationCompleted = true;
         setPaymentResult(result);
         setRegistrationResult((current) => ({
           ...(current || {}),
@@ -760,15 +769,18 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
         setMessage(result?.success ? 'Thanh toán thành công. Đơn đăng ký đã được ghi nhận Đã thanh toán.' : 'Thanh toán chưa thành công. Vui lòng thử lại hoặc kiểm tra trạng thái giao dịch.');
         await loadPageData();
       } catch (err) {
+        paymentReturnHandledRef.current = false;
         setRegistrationSubmitError(getErrorText(err, 'Không thể xác nhận kết quả thanh toán VNPAY.'));
       } finally {
-        try {
-          window.localStorage.removeItem(OWNER_REGISTRATION_PAYMENT_PENDING_KEY);
-        } catch {
-          // Ignore storage cleanup failures.
+        if (confirmationCompleted) {
+          try {
+            window.localStorage.removeItem(OWNER_REGISTRATION_PAYMENT_PENDING_KEY);
+          } catch {
+            // Ignore storage cleanup failures.
+          }
+          const cleanUrl = `${window.location.pathname}?section=register${window.location.hash || ''}`;
+          window.history.replaceState(null, '', cleanUrl);
         }
-        const cleanUrl = `${window.location.pathname}${window.location.hash || ''}`;
-        window.history.replaceState(null, '', cleanUrl);
       }
     }
 
@@ -806,6 +818,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
     setSubmitError('');
     setRegistrationSubmitError('');
     setRegistrationResult(null);
+    setPaymentResult(null);
     setMessage('');
   }
 
@@ -880,13 +893,6 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
     const { name, value } = event.target;
     setFormValues((current) => ({ ...current, [name]: value }));
     setFormErrors((current) => ({ ...current, [name]: '' }));
-    resetFeedback();
-  }
-
-  function handleRegistrationJockeyChange(event) {
-    const { value } = event.target;
-    setRegistrationValues((current) => ({ ...current, jockeyId: value }));
-    setRegistrationErrors((current) => ({ ...current, jockeyId: '' }));
     resetFeedback();
   }
 
@@ -1501,56 +1507,57 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
             </div>
           </form>
 
-          {isPaymentFlowActive && hasAcceptedInvitation ? (
+          {isPaymentFlowActive && paymentResult ? (
+          <section className="owner-panel owner-payment-result" role="status">
+            <div className={`owner-payment-result-icon ${isRegistrationPaid ? 'success' : 'failed'}`}>
+              {isRegistrationPaid ? <CheckCircle2 size={32} /> : <XCircle size={32} />}
+            </div>
+            <div className="owner-payment-result-copy">
+              <p className="eyebrow">Kết quả thanh toán VNPAY</p>
+              <h2>{isRegistrationPaid ? 'Thanh toán thành công' : 'Thanh toán chưa thành công'}</h2>
+              <p>{isRegistrationPaid
+                ? 'Lệ phí đã được ghi nhận. Đơn đăng ký hiện đang chờ Admin xét duyệt.'
+                : paymentResult.message || 'Giao dịch chưa hoàn tất. Bạn có thể đóng thông báo và thử thanh toán lại.'}</p>
+            </div>
+            <dl className="owner-payment-result-details">
+              <div><dt>Mã giao dịch</dt><dd>{paymentResult.txnRef || 'N/A'}</dd></div>
+              <div><dt>Mã đơn đăng ký</dt><dd>{paymentResult.registrationId ? `#${paymentResult.registrationId}` : 'N/A'}</dd></div>
+              <div><dt>Số tiền</dt><dd>{formatCurrency(paymentResult.amount)}</dd></div>
+              <div><dt>Thanh toán</dt><dd><StatusBadge status={selectedPaymentStatus || 'FAILED'} /></dd></div>
+              <div><dt>Xét duyệt đơn</dt><dd><StatusBadge status="PENDING" /></dd></div>
+            </dl>
+            <div className="owner-payment-result-actions">
+              <button className="primary-button" type="button" onClick={clearTournamentSelection}>
+                Hoàn tất
+              </button>
+            </div>
+          </section>
+          ) : isPaymentFlowActive && hasAcceptedInvitation ? (
           <form className={`owner-panel owner-form flow-only ${wizardStep === 4 ? '' : 'wizard-step-hidden'}`} onSubmit={handleRegistrationSubmit} noValidate>
             <div className="owner-panel-header">
               <div>
                 <p className="eyebrow">Thanh toán phí tham gia</p>
-                <h2>Đăng ký và thanh toán</h2>
-                <p>Jockey đã chấp nhận lời mời. Bạn có thể tiếp tục đăng ký và thanh toán phí tham gia tại đây.</p>
+                <h2>Kiểm tra đơn trước khi thanh toán</h2>
+                <p>Xác nhận đúng giải đấu, ngựa và Jockey trước khi chuyển sang cổng VNPAY.</p>
               </div>
+              <button className="outline-button compact-button" type="button" onClick={clearTournamentSelection} disabled={isRegistering}>
+                Đóng
+              </button>
             </div>
-
-            {isPaymentFlowActive && (
-              <div className="admin-form-actions tournament-modal-actions">
-                <button className="outline-button" type="button" onClick={clearTournamentSelection} disabled={isRegistering}>
-                  Dong
-                </button>
-              </div>
-            )}
 
             {registrationSubmitError && <div className="admin-alert error modal-alert" role="alert">{registrationSubmitError}</div>}
             {registrationErrors.jockeyId && <div className="admin-alert error modal-alert" role="alert">{registrationErrors.jockeyId}</div>}
 
-            <div className="owner-form-row">
-              <div>
-                <label className="field-label" htmlFor="registrationJockeyId">Lời mời đã chấp nhận <span className="required">*</span></label>
-                <select
-                  className={registrationErrors.jockeyId ? 'input has-error' : 'input'}
-                  id="registrationJockeyId"
-                  name="jockeyId"
-                  value={registrationValues.jockeyId}
-                  onChange={handleRegistrationJockeyChange}
-                  disabled={isLoading || isRegistering || !registrationValues.tournamentId || !registrationValues.horseId}
-                >
-                  <option value="">Chọn jockey đã chấp nhận lời mời</option>
-                  {acceptedJockeyInvitations.map((invitation) => {
-                    const jockeyId = getInvitationJockeyId(invitation);
-                    return <option key={invitation.invitationId || jockeyId} value={jockeyId}>{getInvitationJockeyName(invitation)}</option>;
-                  })}
-                </select>
-                {registrationValues.tournamentId && registrationValues.horseId && acceptedJockeyInvitations.length === 0 && (
-                  <p className="field-hint warning-text">Chưa có lời mời đã duyệt cho giải và ngựa đã chọn.</p>
-                )}
-              </div>
+            <div className="owner-payment-order-summary">
+              <div><span>Giải đấu</span><strong>{selectedTournament ? getTournamentName(selectedTournament) : 'Chưa cập nhật'}</strong></div>
+              <div><span>Ngựa tham gia</span><strong>{selectedHorse ? getHorseName(selectedHorse) : 'Chưa cập nhật'}</strong></div>
+              <div><span>Jockey</span><strong>{selectedAcceptedInvitation ? getInvitationJockeyName(selectedAcceptedInvitation) : 'Chưa cập nhật'}</strong></div>
+              <div><span>Lệ phí</span><strong>{selectedTournament ? formatCurrency(selectedTournament.entryFee) : '0 VND'}</strong></div>
+            </div>
 
-              <div>
-                <span className="field-label">Trạng thái thanh toán</span>
-                <div className="registration-default-status">
-                  <span>Thanh toán <strong>{isRegistrationPaid ? 'Đã thanh toán' : isRegistrationUnpaid ? 'Chưa thanh toán' : 'Chưa tạo thanh toán'}</strong></span>
-                  <span>Duyệt đơn <strong>Chờ Admin duyệt</strong></span>
-                </div>
-              </div>
+            <div className="registration-default-status owner-payment-status-row">
+              <span>Thanh toán <strong>{isRegistrationPaid ? 'Đã thanh toán' : isRegistrationUnpaid ? 'Chưa thanh toán' : 'Chưa tạo giao dịch'}</strong></span>
+              <span>Xét duyệt đơn <strong>Thực hiện sau khi thanh toán</strong></span>
             </div>
 
             {selectedAcceptedInvitation && (
@@ -1569,7 +1576,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
 
             <div className="admin-form-actions tournament-modal-actions">
               <button className="primary-button" type="submit" disabled={isRegistrationPaid || isRegistering || isLoading || !canSubmitRegistration}>
-                <ArrowRight size={16} /> {isRegistrationPaid ? 'Đã thanh toán' : isRegistering ? 'Đang tạo đơn...' : 'Đăng ký và thanh toán'}
+                <ArrowRight size={16} /> {isRegistrationPaid ? 'Đã thanh toán' : isRegistering ? 'Đang tạo giao dịch...' : `Thanh toán ${selectedTournament ? formatCurrency(selectedTournament.entryFee) : ''} qua VNPAY`}
               </button>
             </div>
           </form>

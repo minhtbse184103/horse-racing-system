@@ -3819,6 +3819,150 @@ select {
   border-style: dashed;
 }
 
+.owner-payment-result {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 18px 20px;
+  width: min(760px, 100%);
+  padding: 30px;
+}
+
+.owner-payment-result-icon {
+  width: 58px;
+  height: 58px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+}
+
+.owner-payment-result-icon.success {
+  background: rgba(46, 125, 50, 0.12);
+  color: #2e7d32;
+}
+
+.owner-payment-result-icon.failed {
+  background: rgba(198, 53, 43, 0.1);
+  color: #c6352b;
+}
+
+.owner-payment-result-copy {
+  min-width: 0;
+}
+
+.owner-payment-result-copy h2 {
+  margin: 4px 0 8px;
+}
+
+.owner-payment-result-copy p:last-child {
+  margin: 0;
+  color: var(--slate-500);
+}
+
+.owner-payment-result-details {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.owner-payment-result-details > div,
+.jockey-invitation-confirm-summary > div {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  border: 1px solid rgba(108, 63, 36, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.64);
+  padding: 13px;
+}
+
+.owner-payment-result-details dt,
+.jockey-invitation-confirm-summary dt {
+  color: var(--slate-500);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.owner-payment-result-details dd,
+.jockey-invitation-confirm-summary dd {
+  margin: 0;
+  color: var(--brown-900);
+  font-weight: 800;
+  overflow-wrap: anywhere;
+}
+
+.owner-payment-result-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 4px;
+}
+
+.owner-payment-order-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.owner-payment-order-summary > div {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  border: 1px solid rgba(108, 63, 36, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.64);
+  padding: 14px;
+}
+
+.owner-payment-order-summary span {
+  color: var(--slate-500);
+  font-size: 0.75rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.owner-payment-order-summary strong {
+  color: var(--brown-900);
+  overflow-wrap: anywhere;
+}
+
+.owner-payment-status-row {
+  margin-top: 2px;
+}
+
+.jockey-invitation-confirm-summary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+@media (max-width: 680px) {
+  .owner-payment-result {
+    grid-template-columns: 1fr;
+    padding: 22px;
+  }
+
+  .owner-payment-result-details,
+  .owner-payment-order-summary,
+  .jockey-invitation-confirm-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .owner-payment-result-icon,
+  .owner-payment-result-copy,
+  .owner-payment-result-details,
+  .owner-payment-result-actions {
+    grid-column: 1;
+  }
+
+  .owner-payment-result-actions .primary-button {
+    width: 100%;
+  }
+}
+
 .wizard-step-hidden {
   display: none !important;
 }
@@ -4886,12 +5030,21 @@ select {
 
 .jockey-invitation-card {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(250px, 320px);
-  gap: 18px;
+  gap: 16px;
   border: 1px solid rgba(108, 63, 36, 0.1);
-  border-radius: 22px;
+  border-radius: 8px;
   background: rgba(255, 255, 255, 0.62);
-  padding: 18px;
+  padding: 20px;
+}
+
+.jockey-invitation-card-header,
+.jockey-invitation-detail-header,
+.jockey-invitation-card-footer,
+.jockey-invitation-detail-footer {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
 }
 
 .jockey-invitation-title {
@@ -4922,23 +5075,27 @@ select {
   line-height: 1.45;
 }
 
-.jockey-invitation-meta {
+.jockey-invitation-summary-grid,
+.jockey-detail-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 10px;
-  margin-top: 18px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 24px;
+  margin: 0;
 }
 
-.jockey-invitation-meta div,
-.jockey-horse-pill {
-  border-radius: 16px;
-  background: rgba(255, 248, 238, 0.78);
-  padding: 12px;
+.jockey-invitation-summary-grid div,
+.jockey-detail-grid div {
+  min-width: 0;
+  border-bottom: 1px solid rgba(108, 63, 36, 0.09);
+  padding: 0 0 10px;
 }
 
-.jockey-invitation-meta span,
-.jockey-horse-pill span {
-  display: block;
+.jockey-detail-grid .wide {
+  grid-column: 1 / -1;
+}
+
+.jockey-invitation-summary-grid dt,
+.jockey-detail-grid dt {
   color: var(--slate-500);
   font-size: 0.74rem;
   font-weight: 900;
@@ -4946,23 +5103,38 @@ select {
   letter-spacing: 0.06em;
 }
 
-.jockey-invitation-meta strong,
-.jockey-horse-pill strong {
-  display: block;
+.jockey-invitation-summary-grid dd,
+.jockey-detail-grid dd {
   margin-top: 5px;
+  margin-left: 0;
   color: var(--brown-900);
+  font-weight: 800;
+  line-height: 1.45;
   overflow-wrap: anywhere;
 }
 
-.jockey-invitation-side {
+.jockey-invitation-message {
   display: grid;
-  gap: 12px;
-  align-content: start;
+  gap: 5px;
+  border-left: 3px solid var(--gold-400);
+  background: rgba(255, 248, 238, 0.72);
+  padding: 12px 14px;
 }
 
-.jockey-horse-pill .table-button {
-  width: fit-content;
-  margin-top: 10px;
+.jockey-invitation-message span {
+  color: var(--slate-500);
+  font-size: 0.74rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.jockey-invitation-message strong {
+  color: var(--brown-900);
+  line-height: 1.5;
+}
+
+.jockey-invitation-message.compact {
+  padding-block: 10px;
 }
 
 .jockey-status-pair,
@@ -4979,47 +5151,44 @@ select {
   margin: 0;
 }
 
+.jockey-invitation-card-footer {
+  align-items: center;
+  border-top: 1px solid rgba(108, 63, 36, 0.09);
+  padding-top: 14px;
+}
+
+.jockey-invitation-card-footer > .outline-button {
+  width: auto;
+  margin: 0;
+}
+
 .jockey-invitation-detail-modal {
   max-height: min(92vh, 860px);
   overflow-y: auto;
   scrollbar-gutter: stable;
 }
 
-.jockey-invitation-tabs {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  justify-content: flex-end;
+.jockey-invitation-filter {
+  display: grid;
+  gap: 6px;
+  min-width: 210px;
 }
 
-.jockey-invitation-tabs button {
-  display: inline-flex;
-  min-height: 38px;
-  align-items: center;
-  gap: 8px;
+.jockey-invitation-filter label {
+  color: var(--slate-500);
+  font-size: 0.74rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.jockey-invitation-filter select {
+  min-height: 42px;
   border: 1px solid rgba(108, 63, 36, 0.12);
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.72);
-  padding: 8px 11px;
+  padding: 8px 34px 8px 11px;
   color: var(--brown-700);
-  font-size: 0.82rem;
-  font-weight: 900;
-}
-
-.jockey-invitation-tabs button.active {
-  border-color: rgba(0, 84, 75, 0.38);
-  background: rgba(232, 253, 244, 0.78);
-  color: #00544b;
-}
-
-.jockey-invitation-tabs span {
-  display: grid;
-  min-width: 22px;
-  height: 22px;
-  place-items: center;
-  border-radius: 999px;
-  background: rgba(108, 63, 36, 0.1);
-  font-size: 0.72rem;
+  font-weight: 800;
 }
 
 .jockey-invitation-detail-sections {
@@ -5041,6 +5210,65 @@ select {
   margin: 0;
   color: var(--brown-900);
   font-size: 1rem;
+}
+
+.jockey-invitation-detail-heading-actions,
+.jockey-detail-section-heading,
+.jockey-detail-section-heading > div {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.jockey-invitation-detail-heading-actions .outline-button {
+  margin: 0;
+}
+
+.jockey-detail-section-heading {
+  justify-content: space-between;
+}
+
+.jockey-detail-section-icon {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 6px;
+  background: rgba(217, 164, 65, 0.18);
+  color: var(--brown-700);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.jockey-certificate-link {
+  width: fit-content;
+  margin: 0;
+}
+
+.jockey-invitation-detail-footer {
+  position: sticky;
+  bottom: -24px;
+  align-items: center;
+  border-top: 1px solid rgba(108, 63, 36, 0.12);
+  background: var(--cream-100);
+  padding: 16px 0 4px;
+}
+
+.jockey-invitation-detail-footer p {
+  margin: 0;
+  color: var(--slate-500);
+}
+
+.jockey-invitation-detail-footer > div {
+  display: flex;
+  gap: 10px;
+}
+
+.jockey-invitation-detail-footer .primary-button,
+.jockey-invitation-detail-footer .outline-button {
+  width: auto;
+  min-width: 112px;
+  margin: 0;
 }
 
 .jockey-recent-race-list {
@@ -5089,7 +5317,8 @@ select {
     grid-template-columns: 1fr;
   }
 
-  .jockey-invitation-meta {
+  .jockey-invitation-summary-grid,
+  .jockey-detail-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
@@ -5106,9 +5335,14 @@ select {
   }
 
   .jockey-stat-grid,
-  .jockey-invitation-meta,
+  .jockey-invitation-summary-grid,
+  .jockey-detail-grid,
   .jockey-profile-summary {
     grid-template-columns: 1fr;
+  }
+
+  .jockey-detail-grid .wide {
+    grid-column: auto;
   }
 
   .jockey-invitation-list {
@@ -5127,6 +5361,10 @@ select {
   }
 
   .jockey-invitation-preview,
+  .jockey-invitation-card-header,
+  .jockey-invitation-card-footer,
+  .jockey-invitation-detail-header,
+  .jockey-invitation-detail-footer,
   .jockey-invitation-title,
   .jockey-status-pair,
   .jockey-invitation-actions {
@@ -5136,6 +5374,21 @@ select {
 
   .jockey-invitation-actions .primary-button,
   .jockey-invitation-actions .outline-button {
+    width: 100%;
+  }
+
+  .jockey-invitation-filter {
+    width: 100%;
+  }
+
+  .jockey-invitation-detail-heading-actions,
+  .jockey-invitation-detail-footer > div {
+    width: 100%;
+  }
+
+  .jockey-invitation-detail-footer .primary-button,
+  .jockey-invitation-detail-footer .outline-button,
+  .jockey-invitation-card-footer > .outline-button {
     width: 100%;
   }
 }
