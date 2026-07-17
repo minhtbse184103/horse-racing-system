@@ -98,23 +98,6 @@ function EmptyState() {
   );
 }
 
-function ConfirmModal({ title, message, confirmLabel, confirmTone = 'primary', isLoading, onCancel, onConfirm }) {
-  return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-brown-900/45 px-4 backdrop-blur-sm">
-      <section className="w-full max-w-md rounded-[28px] border border-brown-700/10 bg-cream-100 p-6 shadow-[0_28px_80px_rgba(43,23,16,0.3)]">
-        <h2 className="text-2xl font-black text-brown-900">{title}</h2>
-        <p className="mt-3 font-medium leading-7 text-slate-500">{message}</p>
-        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-          <button className="outline-button" type="button" onClick={onCancel} disabled={isLoading}>Cancel</button>
-          <button className={confirmTone === 'danger' ? 'outline-button danger-action' : 'primary-button sm:w-auto'} type="button" onClick={onConfirm} disabled={isLoading}>
-            {isLoading ? 'Processing...' : confirmLabel}
-          </button>
-        </div>
-      </section>
-    </div>
-  );
-}
-
 function RejectModal({ profile, reason, setReason, isLoading, onCancel, onConfirm }) {
   if (!profile) return null;
 
@@ -158,7 +141,6 @@ export default function JockeyReview() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
-  const [approveTarget, setApproveTarget] = useState(null);
   const [rejectTarget, setRejectTarget] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
 
@@ -220,18 +202,22 @@ export default function JockeyReview() {
       && getValidImageUrls(profile).length > 0;
   }
 
-  async function handleApprove() {
-    if (!approveTarget) return;
+  async function handleApprove(profile) {
+    if (!profile || isProcessing) return;
 
     setIsProcessing(true);
     setError('');
     setMessage('');
 
     try {
-      await approveJockeyProfile(approveTarget.reviewId);
-      setApproveTarget(null);
-      setSelectedProfile((current) => current ? { ...current, status: 'APPROVED' } : null);
-      setMessage(`${approveTarget.fullName} was approved.`);
+      await approveJockeyProfile(profile.reviewId);
+      setProfiles((current) => current.map((item) => (
+        String(item.reviewId) === String(profile.reviewId)
+          ? { ...item, status: 'APPROVED' }
+          : item
+      )));
+      setSelectedProfile(null);
+      setMessage(`${profile.fullName} was approved.`);
       await loadProfiles();
     } catch (err) {
       setError(err.message || 'Cannot approve jockey profile.');
@@ -476,7 +462,7 @@ export default function JockeyReview() {
                     <button
                       className="inline-flex items-center gap-2 rounded-lg bg-green-700 px-5 py-3 font-extrabold text-white shadow-sm transition hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50"
                       type="button"
-                      onClick={() => setApproveTarget(selectedProfile)}
+                      onClick={() => handleApprove(selectedProfile)}
                       disabled={isProcessing || !canApprove(selectedProfile)}
                       title={!canApprove(selectedProfile) ? 'A valid license image is required before approval.' : 'Approve jockey application'}
                     >
@@ -497,17 +483,6 @@ export default function JockeyReview() {
             </div>
           </section>
         </div>
-      )}
-
-      {approveTarget && (
-        <ConfirmModal
-          title="Approve jockey profile"
-          message={`Approve ${approveTarget.fullName} and mark this jockey profile as verified?`}
-          confirmLabel="Approve"
-          isLoading={isProcessing}
-          onCancel={() => setApproveTarget(null)}
-          onConfirm={handleApprove}
-        />
       )}
 
       <RejectModal

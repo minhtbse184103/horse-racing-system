@@ -295,6 +295,8 @@ const MESSAGE_TRANSLATIONS = {
   'Jockey account is not active.': 'Tài khoản Jockey không ở trạng thái ACTIVE.',
   'Tournament contains an unsupported condition.': 'Tournament có điều kiện tham gia chưa được hỗ trợ.',
   'Horse date of birth is invalid.': 'Ngày sinh của Horse không hợp lệ.',
+  'Horse does not satisfy the tournament age condition.': 'Ngựa không đáp ứng điều kiện độ tuổi của Tournament.',
+  'Horse does not satisfy the tournament weight condition.': 'Ngựa không đáp ứng điều kiện cân nặng của Tournament.',
   'Gender condition has an invalid operator.': 'Điều kiện giới tính có toán tử không hợp lệ.',
   'Horse does not satisfy the tournament gender condition.': 'Horse không đáp ứng điều kiện giới tính của Tournament.',
   'Tournament condition has an invalid operator.': 'Điều kiện Tournament có toán tử không hợp lệ.',

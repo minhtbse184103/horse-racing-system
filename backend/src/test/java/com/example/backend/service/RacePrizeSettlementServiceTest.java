@@ -37,9 +37,6 @@ class RacePrizeSettlementServiceTest {
     private RegistrationRepository registrationRepository;
     @Mock
     private PrizeDistributionRepository prizeDistributionRepository;
-    @Mock
-    private PrizePayoutService prizePayoutService;
-
     private RacePrizeSettlementService service;
 
     @BeforeEach
@@ -47,8 +44,7 @@ class RacePrizeSettlementServiceTest {
         service = new RacePrizeSettlementService(
                 racePrizeRepository,
                 registrationRepository,
-                prizeDistributionRepository,
-                prizePayoutService
+                prizeDistributionRepository
         );
     }
 

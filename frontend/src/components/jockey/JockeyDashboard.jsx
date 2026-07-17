@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Wallet } from 'lucide-react';
 import defaultJockeyAvatar from '../../assets/default-jockey-avatar.svg';
 import AppShell from '../common/AppShell';
 import ConfirmModal from '../common/ConfirmModal';
-import WalletTransferPanel from '../payment/WalletTransferPanel';
 import JockeyPendingDashboard from './JockeyPendingDashboard';
 import JockeyProfileView from './JockeyProfileView';
 import {
@@ -24,8 +22,7 @@ import { useLanguage } from '../../context/LanguageContext';
 const jockeyNavItems = [
   { key: 'overview', labelKey: 'jockeyNavOverview', icon: '📊' },
   { key: 'profile', labelKey: 'jockeyNavProfile', icon: '🧑‍✈️' },
-  { key: 'invitations', labelKey: 'jockeyNavInvitations', icon: '✉️' },
-  { key: 'wallet', labelKey: 'wallet', icon: Wallet }
+  { key: 'invitations', labelKey: 'jockeyNavInvitations', icon: '✉️' }
 ];
 
 const INVITATION_TABS = [
@@ -63,7 +60,7 @@ function getErrorText(error, fallback) {
 }
 
 function isJockeySection(section) {
-  return section === 'overview' || section === 'profile' || section === 'invitations' || section === 'wallet';
+  return section === 'overview' || section === 'profile' || section === 'invitations';
 }
 
 function isMissingProfileError(error) {
@@ -475,7 +472,6 @@ function ApprovedJockeyDashboard({ currentUser, onLogout, onUserUpdated }) {
   const { t } = useLanguage();
   const [activeSection, setActiveSection] = useState(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.has('vnp_TxnRef') || params.has('vnp_SecureHash')) return 'wallet';
     const section = params.get('section');
     return isJockeySection(section) ? section : 'overview';
   });
@@ -1367,10 +1363,6 @@ function ApprovedJockeyDashboard({ currentUser, onLogout, onUserUpdated }) {
                   <span>{pendingInvitationCount > 0 ? '!' : '✓'}</span>
                   <p>{t('jockeyCheckPending', { count: pendingInvitationCount })}</p>
                 </div>
-                <div>
-                  <span>3</span>
-                  <p>{t('jockeyWalletKycHint')}</p>
-                </div>
               </div>
             </div>
           </section>
@@ -1416,10 +1408,6 @@ function ApprovedJockeyDashboard({ currentUser, onLogout, onUserUpdated }) {
             {renderInvitationList()}
           </section>
         </section>
-      )}
-
-      {activeSection === 'wallet' && (
-        <WalletTransferPanel currentUser={currentUser} role="JOCKEY" />
       )}
 
       <InvitationDetailModal

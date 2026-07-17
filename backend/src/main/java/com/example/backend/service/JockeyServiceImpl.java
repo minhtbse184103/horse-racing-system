@@ -58,6 +58,7 @@ public class JockeyServiceImpl implements JockeyService {
     private final TournamentRepository tournamentRepository;
     private final TournamentService tournamentService;
     private final RegistrationAvailabilityService availabilityService;
+    private final RegistrationEligibilityService eligibilityService;
     private final JockeyInvitationService jockeyInvitationService;
 
     public JockeyServiceImpl(
@@ -71,6 +72,7 @@ public class JockeyServiceImpl implements JockeyService {
             TournamentRepository tournamentRepository,
             TournamentService tournamentService,
             RegistrationAvailabilityService availabilityService,
+            RegistrationEligibilityService eligibilityService,
             JockeyInvitationService jockeyInvitationService) {
         this.jockeyProfileRepository = jockeyProfileRepository;
         this.jockeyInvitationRepository = jockeyInvitationRepository;
@@ -82,6 +84,7 @@ public class JockeyServiceImpl implements JockeyService {
         this.tournamentRepository = tournamentRepository;
         this.tournamentService = tournamentService;
         this.availabilityService = availabilityService;
+        this.eligibilityService = eligibilityService;
         this.jockeyInvitationService = jockeyInvitationService;
     }
 
@@ -208,6 +211,12 @@ public class JockeyServiceImpl implements JockeyService {
         validateInvitationNotExpired(invitation);
         Horse horse = validateOwnerHorseForInvitation(invitation);
         Tournament tournament = getTournament(invitation.getTournamentId());
+        eligibilityService.validateNewSubmission(
+                tournament,
+                horse.getHorseId(),
+                invitation.getOwnerId(),
+                jockey.getUserID()
+        );
         availabilityService.validateAcceptedInvitationCanCreateRegistration(
                 invitation.getOwnerId(),
                 horse.getHorseId(),

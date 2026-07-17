@@ -6,27 +6,19 @@ import {
   Gauge,
   List,
   LockKeyhole,
-  UserRound,
-  Wallet
+  UserRound
 } from 'lucide-react';
 import AppShell from '../common/AppShell';
 import JockeyApplicationForm from '../profile/JockeyApplicationForm';
-import WalletTransferPanel from '../payment/WalletTransferPanel';
 import {
   getMyJockeyVerification,
   resubmitJockeyVerification,
   submitJockeyVerification
 } from '../../services/jockeyVerificationService';
-import { getMyKyc } from '../../services/kycService';
-import { getMyWallet } from '../../services/walletService';
 import { formatDate, formatDisplayLabel } from '../../lib';
 
 function verificationStatus(application) {
   return String(application?.verificationStatus || 'NOT_SUBMITTED').toUpperCase();
-}
-
-function resourceStatus(resource, fallback) {
-  return String(resource?.status || fallback).toUpperCase();
 }
 
 function StatusBadge({ status }) {
@@ -61,13 +53,10 @@ function ActivationStep({ complete, current, title, description }) {
 export default function JockeyPendingDashboard({ currentUser, onLogout }) {
   const [activeSection, setActiveSection] = useState(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.has('vnp_TxnRef') || params.has('vnp_SecureHash')) return 'wallet';
     const section = params.get('section');
-    return ['overview', 'application', 'account', 'wallet'].includes(section) ? section : 'overview';
+    return ['overview', 'application', 'account'].includes(section) ? section : 'overview';
   });
   const [application, setApplication] = useState(null);
-  const [kyc, setKyc] = useState(null);
-  const [wallet, setWallet] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -76,8 +65,6 @@ export default function JockeyPendingDashboard({ currentUser, onLogout }) {
   const [formError, setFormError] = useState('');
 
   const status = verificationStatus(application);
-  const kycStatus = resourceStatus(kyc, 'NOT_SUBMITTED');
-  const walletStatus = resourceStatus(wallet, 'NOT_OPENED');
   const profileName = currentUser?.fullName || currentUser?.username || currentUser?.email || 'Jockey';
   const lockedReason = 'Available after the Jockey application is approved by an administrator.';
   const navItems = useMemo(() => [
@@ -85,8 +72,7 @@ export default function JockeyPendingDashboard({ currentUser, onLogout }) {
     { key: 'professional-profile', label: 'Professional Profile', icon: UserRound, disabled: true, disabledReason: lockedReason },
     { key: 'invitations', label: 'Race Invitations', icon: List, disabled: true, disabledReason: lockedReason },
     { key: 'application', label: 'Jockey Application', icon: FileCheck2 },
-    { key: 'account', label: 'Account', icon: UserRound },
-    { key: 'wallet', labelKey: 'wallet', icon: Wallet }
+    { key: 'account', label: 'Account', icon: UserRound }
   ], []);
 
   const copy = {
@@ -124,11 +110,7 @@ export default function JockeyPendingDashboard({ currentUser, onLogout }) {
   async function loadStatus() {
     setIsLoading(true);
     setError('');
-    const [applicationResult, kycResult, walletResult] = await Promise.allSettled([
-      getMyJockeyVerification(),
-      getMyKyc(),
-      getMyWallet()
-    ]);
+    const [applicationResult] = await Promise.allSettled([getMyJockeyVerification()]);
 
     if (applicationResult.status === 'fulfilled') {
       setApplication(applicationResult.value);
@@ -137,8 +119,6 @@ export default function JockeyPendingDashboard({ currentUser, onLogout }) {
     } else {
       setError(applicationResult.reason?.message || 'Unable to load the Jockey application.');
     }
-    setKyc(kycResult.status === 'fulfilled' ? kycResult.value : null);
-    setWallet(walletResult.status === 'fulfilled' ? walletResult.value : null);
     setIsLoading(false);
   }
 
@@ -223,12 +203,10 @@ export default function JockeyPendingDashboard({ currentUser, onLogout }) {
         </section>
         <section className="owner-stats-grid" aria-label="Jockey account status">
           <div className="owner-stat-card highlight"><span>Jockey Application</span><strong><StatusBadge status={status} /></strong><small>Professional licence review</small></div>
-          <div className="owner-stat-card"><span>Identity Verification</span><strong><StatusBadge status={kycStatus} /></strong><small>KYC is used only to open the wallet</small></div>
-          <div className="owner-stat-card"><span>Wallet</span><strong><StatusBadge status={walletStatus} /></strong><small>{wallet ? 'Wallet information is available' : 'Complete KYC to open your wallet'}</small></div>
         </section>
         <section className="owner-overview-grid">
           <section className="owner-panel">
-            <div className="owner-panel-header"><div><p className="eyebrow">Activation progress</p><h2>Unlock Jockey features</h2><p>Professional approval and wallet verification are independent.</p></div></div>
+            <div className="owner-panel-header"><div><p className="eyebrow">Activation progress</p><h2>Unlock Jockey features</h2><p>Professional features become available after administrator approval.</p></div></div>
             <ol className="m-0 list-none p-0">
               <ActivationStep complete title="Jockey account created" description="You can sign in and access the Jockey portal." />
               <ActivationStep complete={submitted} current={!submitted} title="Jockey application submitted" description="Licence and trainer information are required." />
@@ -250,7 +228,6 @@ export default function JockeyPendingDashboard({ currentUser, onLogout }) {
   }
 
   function renderContent() {
-    if (activeSection === 'wallet') return <WalletTransferPanel currentUser={currentUser} role="JOCKEY" />;
     if (activeSection === 'application') return renderApplication();
     if (activeSection === 'account') {
       return (
@@ -262,7 +239,6 @@ export default function JockeyPendingDashboard({ currentUser, onLogout }) {
             <Detail label="Phone Number" value={currentUser?.phone} />
             <Detail label="Account Type" value="Jockey" />
             <Detail label="Jockey Access" value={formatDisplayLabel(status)} />
-            <Detail label="KYC Status" value={formatDisplayLabel(kycStatus)} />
           </div>
         </section>
       );

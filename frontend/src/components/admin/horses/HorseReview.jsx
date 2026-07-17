@@ -110,26 +110,6 @@ function RejectModal({ horse, reason, setReason, isLoading, onCancel, onConfirm 
   );
 }
 
-function ConfirmModal({ horse, isLoading, onCancel, onConfirm }) {
-  if (!horse) return null;
-  const horseName = getHorseName(horse) || `Horse ${getHorseId(horse)}`;
-
-  return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-brown-900/45 px-4 backdrop-blur-sm">
-      <section className="w-full max-w-md rounded-[28px] border border-brown-700/10 bg-cream-100 p-6 shadow-[0_28px_80px_rgba(43,23,16,0.3)]">
-        <h2 className="text-2xl font-black text-brown-900">Approve horse</h2>
-        <p className="mt-3 font-medium leading-7 text-slate-500">Approve {horseName} and mark this horse profile as ACTIVE?</p>
-        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-          <button className="outline-button" type="button" onClick={onCancel} disabled={isLoading}>Cancel</button>
-          <button className="primary-button sm:w-auto" type="button" onClick={onConfirm} disabled={isLoading}>
-            {isLoading ? 'Processing...' : 'Approve'}
-          </button>
-        </div>
-      </section>
-    </div>
-  );
-}
-
 function EmptyState() {
   return (
     <div className="rounded-lg border border-dashed border-brown-700/20 bg-white/70 p-8 text-center">
@@ -152,7 +132,6 @@ export default function HorseReview() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
-  const [approveTarget, setApproveTarget] = useState(null);
   const [rejectTarget, setRejectTarget] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
 
@@ -201,20 +180,23 @@ export default function HorseReview() {
   const currentPage = Math.min(page, totalPages);
   const visibleHorses = filteredHorses.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
 
-  function syncUpdatedHorse(updated) {
-    setHorses((current) => current.map((horse) => (getHorseId(horse) === getHorseId(updated) ? updated : horse)));
-    setSelectedHorse(updated);
+  function syncUpdatedHorse(updated, closeDetail = false) {
+    setHorses((current) => current.map((horse) => (
+      String(getHorseId(horse)) === String(getHorseId(updated))
+        ? { ...horse, ...updated }
+        : horse
+    )));
+    setSelectedHorse(closeDetail ? null : updated);
   }
 
-  async function handleApprove() {
-    if (!approveTarget) return;
+  async function handleApprove(horse) {
+    if (!horse || isProcessing) return;
     setIsProcessing(true);
     setError('');
     setMessage('');
     try {
-      const updated = await approveHorse(getHorseId(approveTarget));
-      syncUpdatedHorse(updated);
-      setApproveTarget(null);
+      const updated = await approveHorse(getHorseId(horse));
+      syncUpdatedHorse(updated, true);
       setMessage(`${getHorseName(updated) || 'Horse'} was approved.`);
       await loadHorses(statusFilter);
     } catch (err) {
@@ -231,7 +213,7 @@ export default function HorseReview() {
     setMessage('');
     try {
       const updated = await rejectHorse(getHorseId(rejectTarget), rejectReason);
-      syncUpdatedHorse(updated);
+      syncUpdatedHorse(updated, true);
       setRejectTarget(null);
       setRejectReason('');
       setMessage(`${getHorseName(updated) || 'Horse'} was rejected.`);
@@ -441,9 +423,9 @@ export default function HorseReview() {
 
                 {selectedPending ? (
                   <div className="flex flex-wrap gap-3 border-t border-brown-700/10 bg-white/70 px-5 py-4">
-                    <button className="inline-flex items-center gap-2 rounded-lg bg-green-700 px-5 py-3 font-extrabold text-white shadow-sm transition hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50" type="button" onClick={() => setApproveTarget(selectedHorse)} disabled={isProcessing}>
+                    <button className="inline-flex items-center gap-2 rounded-lg bg-green-700 px-5 py-3 font-extrabold text-white shadow-sm transition hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50" type="button" onClick={() => handleApprove(selectedHorse)} disabled={isProcessing}>
                       <BadgeCheck size={18} />
-                      Approve
+                      {isProcessing ? 'Processing...' : 'Approve'}
                     </button>
                     <button className="outline-button danger-action inline-flex items-center gap-2" type="button" onClick={() => setRejectTarget(selectedHorse)} disabled={isProcessing}>
                       <XCircle size={18} />
@@ -461,7 +443,6 @@ export default function HorseReview() {
         </div>
       )}
 
-      <ConfirmModal horse={approveTarget} isLoading={isProcessing} onCancel={() => setApproveTarget(null)} onConfirm={handleApprove} />
       <RejectModal
         horse={rejectTarget}
         reason={rejectReason}

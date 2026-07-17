@@ -14,6 +14,7 @@ import com.example.backend.entity.PaymentTransaction;
 import com.example.backend.entity.Registration;
 import com.example.backend.entity.Role;
 import com.example.backend.entity.Tournament;
+import com.example.backend.entity.TournamentCondition;
 import com.example.backend.entity.User;
 import com.example.backend.exception.ApiException;
 import com.example.backend.repository.HorseRepository;
@@ -24,6 +25,7 @@ import com.example.backend.repository.RaceEntryRepository;
 import com.example.backend.repository.RaceRepository;
 import com.example.backend.repository.RegistrationRepository;
 import com.example.backend.repository.TournamentRepository;
+import com.example.backend.repository.TournamentConditionRepository;
 import com.example.backend.repository.UserRepository;
 import com.example.backend.repository.UserVerificationRepository;
 import org.junit.jupiter.api.AfterEach;
@@ -59,6 +61,7 @@ class OwnerTournamentRegistrationServiceTest {
 
     @Mock private RegistrationRepository registrationRepository;
     @Mock private TournamentRepository tournamentRepository;
+    @Mock private TournamentConditionRepository tournamentConditionRepository;
     @Mock private HorseRepository horseRepository;
     @Mock private UserRepository userRepository;
     @Mock private JockeyProfileRepository jockeyProfileRepository;
@@ -68,6 +71,7 @@ class OwnerTournamentRegistrationServiceTest {
     @Mock private RaceRepository raceRepository;
     @Mock private UserVerificationRepository userVerificationRepository;
     @Mock private VnpayPaymentService vnpayPaymentService;
+    @Mock private RegistrationEligibilityService eligibilityService;
 
     private OwnerTournamentRegistrationService service;
 
@@ -76,6 +80,7 @@ class OwnerTournamentRegistrationServiceTest {
         service = new OwnerTournamentRegistrationService(
                 registrationRepository,
                 tournamentRepository,
+                tournamentConditionRepository,
                 horseRepository,
                 userRepository,
                 jockeyProfileRepository,
@@ -88,7 +93,8 @@ class OwnerTournamentRegistrationServiceTest {
                 new RegistrationAvailabilityService(
                         registrationRepository,
                         jockeyInvitationRepository
-                )
+                ),
+                eligibilityService
         );
 
         SecurityContextHolder.getContext()
@@ -164,6 +170,72 @@ class OwnerTournamentRegistrationServiceTest {
         assertEquals(RegistrationStatus.PENDING, registrationResponse.getApprovalStatus());
         assertEquals(PaymentStatus.UNPAID, registrationResponse.getPaymentStatus());
         assertEquals("https://sandbox.test/pay", response.getPaymentUrl());
+        verify(eligibilityService).validateNewSubmission(
+                tournament,
+                horse.getHorseId(),
+                owner.getUserID(),
+                jockey.getUserID()
+        );
+    }
+
+    @Test
+    void submitExistingUnpaidRegistrationRevalidatesCandidateWithoutSelfDuplicateCheck() {
+        OwnerTournamentRegistrationRequest request = request();
+        User owner = user(30, "owner@example.com", "OWNER");
+        User jockey = user(40, "jockey@example.com", "JOCKEY");
+        Tournament tournament = openTournament();
+        Horse horse = activeHorse();
+        Registration existing = new Registration();
+        existing.setRegistrationId(77);
+        existing.setTournamentId(10);
+        existing.setHorseId(20);
+        existing.setOwnerId(30);
+        existing.setJockeyId(40);
+        existing.setRegistrationNo("REG-T10-EXISTING");
+        existing.setPaymentStatus(PaymentStatus.UNPAID);
+        existing.setApprovalStatus(RegistrationStatus.PENDING);
+
+        stubBaseLookups(owner, jockey, tournament, horse);
+        when(jockeyInvitationRepository.existsByTournamentIdAndHorseIdAndOwnerIdAndJockeyIdAndStatus(
+                10, 20, 30, 40, "ACCEPTED"
+        )).thenReturn(true);
+        when(registrationRepository.findActiveByTournamentHorseOwnerAndJockey(
+                eq(10), eq(20), eq(30), eq(40), any(Collection.class)
+        )).thenReturn(List.of(existing));
+        when(tournamentRepository.findById(10)).thenReturn(Optional.of(tournament));
+        when(horseRepository.findById(20)).thenReturn(Optional.of(horse));
+        when(userRepository.findById(30)).thenReturn(Optional.of(owner));
+        when(userRepository.findById(40)).thenReturn(Optional.of(jockey));
+        when(raceEntryRepository.findByRegistrationIdAndStatus(
+                77, RaceEntryStatus.ASSIGNED
+        )).thenReturn(Optional.empty());
+
+        PaymentTransaction paymentTransaction = paymentTransaction();
+        when(vnpayPaymentService.createRegistrationFeePayment(
+                existing,
+                tournament,
+                "127.0.0.1"
+        )).thenReturn(paymentTransaction);
+        when(vnpayPaymentService.toResponse(paymentTransaction))
+                .thenReturn(PaymentTransactionResponse.builder()
+                        .paymentTransactionId(501)
+                        .registrationId(77)
+                        .status("PENDING")
+                        .txnRef("REG-77-TEST")
+                        .build());
+
+        OwnerRegistrationPaymentResponse response =
+                service.submitRegistration(request, "127.0.0.1");
+
+        assertEquals("https://sandbox.test/pay", response.getPaymentUrl());
+        verify(eligibilityService).validateParticipationRequirements(
+                tournament,
+                horse.getHorseId(),
+                owner.getUserID(),
+                jockey.getUserID()
+        );
+        verify(eligibilityService, never()).validateNewSubmission(any(), any(), any(), any());
+        verify(registrationRepository, never()).save(any());
     }
 
     @Test
@@ -309,6 +381,14 @@ class OwnerTournamentRegistrationServiceTest {
                 eq(EventStatus.OPEN_FOR_REGISTRATION),
                 any(LocalDateTime.class)
         )).thenReturn(List.of(tournament));
+        TournamentCondition condition = new TournamentCondition();
+        condition.setConditionId(7);
+        condition.setTournamentId(10);
+        condition.setConditionType("GENDER");
+        condition.setOperator("EQ");
+        condition.setValue("ANY");
+        when(tournamentConditionRepository.findByTournamentIds(List.of(10)))
+                .thenReturn(List.of(condition));
         when(raceRepository.countByTournamentId(10)).thenReturn(3L);
         when(registrationRepository.countByTournamentId(10)).thenReturn(5L);
         when(registrationRepository.countByTournamentIdAndApprovalStatusIn(
@@ -326,6 +406,8 @@ class OwnerTournamentRegistrationServiceTest {
         assertEquals(3L, result.getFirst().getRaceCount());
         assertEquals(5L, result.getFirst().getRegistrationCount());
         assertEquals(2L, result.getFirst().getApprovedRegistrationCount());
+        assertEquals(1, result.getFirst().getConditions().size());
+        assertEquals("ANY", result.getFirst().getConditions().getFirst().getValue());
     }
 
     @Test

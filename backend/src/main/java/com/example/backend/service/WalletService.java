@@ -24,8 +24,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.Set;
 import java.time.LocalDateTime;
+import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
@@ -33,8 +33,7 @@ import java.time.LocalDateTime;
 public class WalletService {
 
     private static final String VND = "VND";
-    private static final Set<String> WALLET_ALLOWED_ROLES =
-            Set.of("OWNER", "SPECTATOR", "JOCKEY");
+    private static final String SPECTATOR = "SPECTATOR";
 
     private final UserRepository userRepository;
     private final WalletRepository walletRepository;
@@ -96,6 +95,12 @@ public class WalletService {
                         HttpStatus.NOT_FOUND,
                         "Wallet does not exist."
                 ));
+        User user = userRepository.findById(wallet.getUserId())
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "Người dùng không tồn tại."
+                ));
+        validateWalletAllowedRole(user);
         ensureWalletActive(wallet);
 
         BigDecimal balanceBefore = valueOrZero(wallet.getBalance());
@@ -142,10 +147,15 @@ public class WalletService {
         String roleName = user.getRole() != null
                 ? user.getRole().getRoleName()
                 : null;
-        if (roleName == null || !WALLET_ALLOWED_ROLES.contains(roleName.toUpperCase())) {
+        String accountType = user.getAccountType();
+        if (!"ACTIVE".equalsIgnoreCase(user.getStatus())
+                || roleName == null
+                || accountType == null
+                || !SPECTATOR.equals(roleName.trim().toUpperCase(Locale.ROOT))
+                || !SPECTATOR.equals(accountType.trim().toUpperCase(Locale.ROOT))) {
             throw new ApiException(
                     HttpStatus.FORBIDDEN,
-                    "Vai trò không được phép sử dụng ví."
+                    "Chỉ tài khoản Spectator được phép sử dụng ví."
             );
         }
     }

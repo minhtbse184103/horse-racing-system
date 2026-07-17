@@ -65,6 +65,7 @@ public class OwnerServiceImpl implements OwnerService {
     private final TournamentRepository tournamentRepository;
     private final FileUploadService fileUploadService;
     private final RegistrationAvailabilityService availabilityService;
+    private final RegistrationEligibilityService eligibilityService;
     private final JockeyInvitationService jockeyInvitationService;
 
     public OwnerServiceImpl(
@@ -77,6 +78,7 @@ public class OwnerServiceImpl implements OwnerService {
             TournamentRepository tournamentRepository,
             FileUploadService fileUploadService,
             RegistrationAvailabilityService availabilityService,
+            RegistrationEligibilityService eligibilityService,
             JockeyInvitationService jockeyInvitationService) {
         this.horseRepository = horseRepository;
         this.registrationRepository = registrationRepository;
@@ -87,6 +89,7 @@ public class OwnerServiceImpl implements OwnerService {
         this.tournamentRepository = tournamentRepository;
         this.fileUploadService = fileUploadService;
         this.availabilityService = availabilityService;
+        this.eligibilityService = eligibilityService;
         this.jockeyInvitationService = jockeyInvitationService;
     }
 
@@ -232,6 +235,12 @@ public class OwnerServiceImpl implements OwnerService {
         validateInvitationExpiry(request.getExpiredAt(), tournament);
 
         User jockey = getJockey(request.getJockeyId());
+        eligibilityService.validateParticipationRequirements(
+                tournament,
+                horse.getHorseId(),
+                owner.getUserID(),
+                jockey.getUserID()
+        );
         availabilityService.validateInvitationCanBeCreated(
                 owner.getUserID(),
                 horse.getHorseId(),

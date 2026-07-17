@@ -2,8 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { formatDate, formatDisplayLabel } from '../../lib';
 import { updateMyAccount, updateStoredUser } from '../../services/authService';
 import { getMyOwnerProfile } from '../../services/ownerApplicationService';
-import { getMyKyc } from '../../services/kycService';
-import { getMyWallet } from '../../services/walletService';
 import { useLanguage } from '../../context/LanguageContext';
 
 const inputClass = 'w-full rounded-lg border border-brown-700/15 bg-white px-4 py-3 text-sm font-bold text-brown-900 outline-none transition placeholder:text-slate-500/65 focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20 disabled:cursor-not-allowed disabled:bg-cream-200 disabled:text-slate-500';
@@ -43,20 +41,9 @@ function EditableField({ label, name, value, disabled, onChange, type = 'text' }
   );
 }
 
-function StatusBadge({ status }) {
-  const normalized = String(status || 'NOT_SUBMITTED').toLowerCase();
-  return <span className={`status-badge ${normalized}`}>{formatDisplayLabel(status || 'NOT_SUBMITTED')}</span>;
-}
-
-function money(value, currency = 'VND') {
-  return `${Number(value || 0).toLocaleString('vi-VN')} ${currency}`;
-}
-
 export default function OwnerProfile({ user, onUserUpdated }) {
   const { t } = useLanguage();
   const [profile, setProfile] = useState(null);
-  const [kyc, setKyc] = useState(null);
-  const [wallet, setWallet] = useState(null);
   const [accountUser, setAccountUser] = useState(user);
   const [accountValues, setAccountValues] = useState(() => getAccountValues(user));
   const [isLoading, setIsLoading] = useState(true);
@@ -72,20 +59,12 @@ export default function OwnerProfile({ user, onUserUpdated }) {
     setMessage('');
 
     try {
-      const [ownerResult, kycResult, walletResult] = await Promise.allSettled([
-        getMyOwnerProfile(),
-        getMyKyc(),
-        getMyWallet()
-      ]);
-
-      if (ownerResult.status === 'rejected') throw ownerResult.reason;
-      if (!ownerResult.value || ownerResult.value.status !== 'APPROVED') {
+      const ownerProfile = await getMyOwnerProfile();
+      if (!ownerProfile || ownerProfile.status !== 'APPROVED') {
         throw new Error(t('ownerProfileNoApproved'));
       }
 
-      setProfile(ownerResult.value);
-      setKyc(kycResult.status === 'fulfilled' ? kycResult.value : null);
-      setWallet(walletResult.status === 'fulfilled' ? walletResult.value : null);
+      setProfile(ownerProfile);
     } catch (err) {
       setError(err?.message || t('ownerProfileLoadError'));
     } finally {
@@ -226,46 +205,6 @@ export default function OwnerProfile({ user, onUserUpdated }) {
           </div>
         </section>
       )}
-
-      <section className="owner-panel">
-        <div className="owner-panel-header">
-          <div>
-            <p className="eyebrow">{t('ownerProfileIdentity')}</p>
-            <h2>{t('ownerProfileKycInfo')}</h2>
-            <p>{t('ownerProfileKycDesc')}</p>
-          </div>
-          <StatusBadge status={kyc?.status} />
-        </div>
-
-        {kyc?.status === 'VERIFIED' ? (
-          <div className="grid gap-4 md:grid-cols-2">
-            <ProfileField label={t('ownerProfileVerifiedFullName')} value={kyc.verifiedFullName} fallback={t('notUpdated')} />
-            <ProfileField label={t('dateOfBirth')} value={formatDate(kyc.verifiedDateOfBirth)} fallback={t('notUpdated')} />
-            <ProfileField label={t('ownerProfileIdentityDocument')} value={`${kyc.documentType || t('ownerProfileIdentityDocument')}${kyc.documentLastFour ? ` **** ${kyc.documentLastFour}` : ''}`} fallback={t('notUpdated')} />
-            <ProfileField label={t('ownerProfileDocumentExpiry')} value={kyc.documentExpiryDate ? formatDate(kyc.documentExpiryDate) : t('ownerProfileNoExpiry')} fallback={t('notUpdated')} />
-            <ProfileField label={t('ownerProfileVerifiedBy')} value={kyc.provider || 'DIDIT'} fallback={t('notUpdated')} />
-            <ProfileField label={t('ownerProfileVerifiedAt')} value={formatDate(kyc.verifiedAt)} fallback={t('notUpdated')} />
-          </div>
-        ) : (
-          <div className="admin-alert success" role="status">{t('ownerProfileKycPending')}</div>
-        )}
-      </section>
-
-      <section className="owner-panel">
-        <div className="owner-panel-header">
-          <div>
-            <p className="eyebrow">{t('ownerProfileWalletSummary')}</p>
-            <h2>{t('ownerProfileWalletAccess')}</h2>
-            <p>{t('ownerProfileWalletDesc')}</p>
-          </div>
-          <StatusBadge status={wallet?.status || 'NOT_OPENED'} />
-        </div>
-        <div className="grid gap-4 md:grid-cols-3">
-          <ProfileField label={t('ownerProfileCurrency')} value={wallet?.currency || 'VND'} fallback={t('notUpdated')} />
-          <ProfileField label={t('ownerProfileAvailableBalance')} value={wallet ? money(wallet.availableBalance, wallet.currency) : t('ownerProfileWalletNotOpened')} fallback={t('notUpdated')} />
-          <ProfileField label={t('ownerProfileLockedBalance')} value={wallet ? money(wallet.lockedBalance, wallet.currency) : t('ownerProfileWalletNotOpened')} fallback={t('notUpdated')} />
-        </div>
-      </section>
     </section>
   );
 }

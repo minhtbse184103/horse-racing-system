@@ -28,7 +28,7 @@ import java.util.*;
 @Slf4j
 public class KycServiceImpl implements KycService {
     private static final String PROVIDER = "DIDIT";
-    private static final Set<String> ALLOWED_ROLES = Set.of("SPECTATOR", "OWNER", "JOCKEY");
+    private static final String SPECTATOR = "SPECTATOR";
     private static final Set<KycStatus> ACTIVE_STATUSES = EnumSet.of(
             KycStatus.NOT_STARTED, KycStatus.IN_PROGRESS, KycStatus.AWAITING_USER,
             KycStatus.IN_REVIEW, KycStatus.RESUBMITTED);
@@ -40,7 +40,6 @@ public class KycServiceImpl implements KycService {
     private final DiditClient diditClient;
     private final DiditProperties properties;
     private final DiditWebhookVerifier webhookVerifier;
-    private final PrizePayoutService prizePayoutService;
 
     @Override
     @Transactional
@@ -86,6 +85,7 @@ public class KycServiceImpl implements KycService {
     @Transactional(readOnly = true)
     public KycResponseDTO getMine(String email) {
         User user = getUser(email);
+        validateEligibleUser(user);
         return verificationRepository.findFirstByUserIdOrderByAttemptNumberDesc(user.getUserID())
                 .map(this::response)
                 .orElseGet(() -> KycResponseDTO.builder().provider(PROVIDER)
@@ -120,6 +120,11 @@ public class KycServiceImpl implements KycService {
     }
 
     private void applyDecision(String sessionId, JsonNode decision) {
+        UserVerification session = verificationRepository.findByProviderSessionId(sessionId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Unknown Didit session."));
+        User user = userRepository.findByIdForUpdate(session.getUserId())
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found."));
+        validateEligibleUser(user);
         UserVerification verification = verificationRepository.findByProviderSessionIdForUpdate(sessionId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Unknown Didit session."));
         requireEqual(sessionId, requiredText(decision, "session_id"), "Didit session mismatch.");
@@ -176,11 +181,13 @@ public class KycServiceImpl implements KycService {
     }
 
     private void openWalletIfAbsent(Integer userId) {
+        User user = userRepository.findByIdForUpdate(userId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found."));
+        validateEligibleUser(user);
         if (walletRepository.findByUserIdForUpdate(userId).isPresent()) return;
         walletRepository.save(Wallet.builder().userId(userId).balance(BigDecimal.ZERO)
                 .lockedBalance(BigDecimal.ZERO).currency("VND").status(WalletStatus.ACTIVE).build());
         walletRepository.flush();
-        prizePayoutService.payPendingForUser(userId);
     }
 
     private Map<String, String> extractFeatures(JsonNode decision) {
@@ -233,8 +240,14 @@ public class KycServiceImpl implements KycService {
 
     private void validateEligibleUser(User user) {
         String role = user.getRole() == null ? null : user.getRole().getRoleName();
-        if (!"ACTIVE".equalsIgnoreCase(user.getStatus()) || role == null || !ALLOWED_ROLES.contains(role.toUpperCase(Locale.ROOT))) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "This account cannot start KYC.");
+        String accountType = user.getAccountType();
+        if (!"ACTIVE".equalsIgnoreCase(user.getStatus())
+                || role == null
+                || accountType == null
+                || !SPECTATOR.equals(role.trim().toUpperCase(Locale.ROOT))
+                || !SPECTATOR.equals(accountType.trim().toUpperCase(Locale.ROOT))) {
+            throw new ApiException(HttpStatus.FORBIDDEN,
+                    "Only active Spectator accounts may use KYC.");
         }
     }
 

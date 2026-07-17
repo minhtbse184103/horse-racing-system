@@ -147,6 +147,12 @@ export function getOpenOwnerTournaments() {
   });
 }
 
+export function getOwnerTournamentDetail(tournamentId) {
+  return httpRequest(`/api/tournaments/${tournamentId}`, {
+    fallbackError: 'Khong the tai dieu kien va chuong trinh Race cua Tournament.'
+  });
+}
+
 export function inviteJockey(payload) {
   return httpRequest('/api/owner/invitations', {
     method: 'POST',

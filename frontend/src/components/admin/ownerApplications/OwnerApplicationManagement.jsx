@@ -13,23 +13,6 @@ function StatusBadge({ status, t }) {
   return <span className={`status-badge ${String(status || '').toLowerCase()}`}>{t(`status_${String(status || '').toUpperCase()}`)}</span>;
 }
 
-function ConfirmModal({ title, message, confirmLabel, confirmTone = 'primary', isLoading, onCancel, onConfirm, t }) {
-  return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-brown-900/45 px-4 backdrop-blur-sm">
-      <section className="w-full max-w-md rounded-[28px] border border-brown-700/10 bg-cream-100 p-6 shadow-[0_28px_80px_rgba(43,23,16,0.3)]">
-        <h2 className="text-2xl font-black text-brown-900">{title}</h2>
-        <p className="mt-3 font-medium leading-7 text-slate-500">{message}</p>
-        <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-          <button className="outline-button" type="button" onClick={onCancel} disabled={isLoading}>{t('cancel')}</button>
-          <button className={confirmTone === 'danger' ? 'outline-button danger-action' : 'primary-button sm:w-auto'} type="button" onClick={onConfirm} disabled={isLoading}>
-            {isLoading ? t('processing') : confirmLabel}
-          </button>
-        </div>
-      </section>
-    </div>
-  );
-}
-
 function RejectModal({ reason, setReason, isLoading, onCancel, onConfirm, t }) {
   return (
     <div className="fixed inset-0 z-50 grid place-items-center bg-brown-900/45 px-4 backdrop-blur-sm">
@@ -102,7 +85,6 @@ export default function OwnerApplicationManagement() {
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
-  const [approveTarget, setApproveTarget] = useState(null);
   const [rejectTarget, setRejectTarget] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
 
@@ -169,18 +151,21 @@ export default function OwnerApplicationManagement() {
     }
   }
 
-  async function handleApprove() {
-    if (!approveTarget) return;
+  async function handleApprove(application) {
+    if (!application || isActionLoading) return;
 
     setIsActionLoading(true);
     setError('');
     setMessage('');
 
     try {
-      const updated = await approveOwnerApplication(approveTarget.applicationID);
-      setApplications((current) => current.map((item) => (item.applicationID === updated.applicationID ? updated : item)));
-      setSelectedApplication(updated);
-      setApproveTarget(null);
+      const updated = await approveOwnerApplication(application.applicationID);
+      setApplications((current) => current.map((item) => (
+        String(item.applicationID) === String(updated.applicationID)
+          ? { ...item, ...updated }
+          : item
+      )));
+      setSelectedApplication(null);
       setMessage(t('ownerApplicationApproved'));
     } catch (err) {
       setError(err.message || t('ownerApplicationApproveError'));
@@ -198,9 +183,13 @@ export default function OwnerApplicationManagement() {
 
     try {
       const updated = await rejectOwnerApplication(rejectTarget.applicationID, rejectReason);
-      setApplications((current) => current.map((item) => (item.applicationID === updated.applicationID ? updated : item)));
-      setSelectedApplication(updated);
+      setApplications((current) => current.map((item) => (
+        String(item.applicationID) === String(updated.applicationID)
+          ? { ...item, ...updated }
+          : item
+      )));
       setRejectTarget(null);
+      setSelectedApplication(null);
       setRejectReason('');
       setMessage(t('ownerApplicationRejected'));
     } catch (err) {
@@ -364,12 +353,12 @@ export default function OwnerApplicationManagement() {
                     <button
                       className="inline-flex items-center gap-2 rounded-lg bg-green-700 px-5 py-3 font-extrabold text-white shadow-sm transition hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50"
                       type="button"
-                      onClick={() => setApproveTarget(selectedApplication)}
+                      onClick={() => handleApprove(selectedApplication)}
                       disabled={isActionLoading}
                       title="Approve owner application"
                     >
                       <CheckCircle2 size={18} />
-                      {t('approve')}
+                      {isActionLoading ? t('processing') : t('approve')}
                     </button>
                     <button className="outline-button danger-action inline-flex items-center gap-2" type="button" onClick={() => setRejectTarget(selectedApplication)} disabled={isActionLoading}>
                       <XCircle size={18} />
@@ -385,18 +374,6 @@ export default function OwnerApplicationManagement() {
             </div>
           </section>
         </div>
-      )}
-
-      {approveTarget && (
-        <ConfirmModal
-          title={t('approveOwnerApplication')}
-          message="Approve this owner application and grant the Owner role?"
-          confirmLabel={t('approve')}
-          isLoading={isActionLoading}
-          onCancel={() => setApproveTarget(null)}
-          onConfirm={handleApprove}
-          t={t}
-        />
       )}
 
       {rejectTarget && (

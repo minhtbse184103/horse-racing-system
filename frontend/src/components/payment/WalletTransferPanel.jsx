@@ -6,7 +6,7 @@ import { confirmVnpayReturn } from '../../services/paymentService';
 import { createWalletDeposit, getMyWallet } from '../../services/walletService';
 import { createKycSession, getMyKyc } from '../../services/kycService';
 
-const ALLOWED_ROLES = new Set(['OWNER', 'JOCKEY', 'SPECTATOR']);
+const ALLOWED_ROLES = new Set(['SPECTATOR']);
 const QUICK_AMOUNTS = [100000, 200000, 500000, 1000000];
 function formatVnd(value) {
   const number = Number(value || 0);
@@ -59,6 +59,7 @@ export default function WalletTransferPanel({ currentUser, role: roleOverride })
   }, [role]);
 
   useEffect(() => {
+    if (!ALLOWED_ROLES.has(role)) return undefined;
     if (window.location.pathname !== '/wallet/kyc/result') return undefined;
     let cancelled = false;
     let attempts = 0;
@@ -81,7 +82,7 @@ export default function WalletTransferPanel({ currentUser, role: roleOverride })
     };
     poll();
     return () => { cancelled = true; };
-  }, []);
+  }, [role]);
 
   async function handleStartKyc() {
     setStartingKyc(true);
@@ -101,6 +102,7 @@ export default function WalletTransferPanel({ currentUser, role: roleOverride })
   }
 
   useEffect(() => {
+    if (!ALLOWED_ROLES.has(role)) return undefined;
     let ignore = false;
 
     async function syncVnpayReturn() {
@@ -147,7 +149,7 @@ export default function WalletTransferPanel({ currentUser, role: roleOverride })
     return () => {
       ignore = true;
     };
-  }, []);
+  }, [role]);
 
   async function handleSubmit(event) {
     event.preventDefault();

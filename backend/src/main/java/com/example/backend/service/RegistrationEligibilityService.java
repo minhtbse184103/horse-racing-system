@@ -43,19 +43,12 @@ public class RegistrationEligibilityService {
             Integer ownerId,
             Integer jockeyId
     ) {
-        validateSubmissionWindow(tournament);
-
-        User owner = getUser(ownerId, "Owner");
-        Horse horse = getHorse(horseId);
-
-        validateOwner(owner);
-        validateHorseOwnership(horse, ownerId);
-        validateHorse(horse, tournament);
-        validateConditions(horse, tournament);
-
-        if (jockeyId != null) {
-            validateJockey(jockeyId);
-        }
+        validateParticipationRequirements(
+                tournament,
+                horseId,
+                ownerId,
+                jockeyId
+        );
 
         boolean duplicateActiveRegistration =
                 registrationRepository.existsActiveRegistration(
@@ -85,11 +78,39 @@ public class RegistrationEligibilityService {
                                 )
                         );
 
-        if (activeRegistrationCount >= tournament.getMaxRegistrations()) {
+        if (tournament.getMaxRegistrations() != null
+                && activeRegistrationCount >= tournament.getMaxRegistrations()) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
                     "Tournament has reached its registration capacity."
             );
+        }
+    }
+
+    /**
+     * Validates the mutable participant data shared by invitation, acceptance,
+     * registration creation and payment retry flows. It intentionally does not
+     * check for another Registration so an existing UNPAID Registration does
+     * not conflict with itself when its payment URL is recreated.
+     */
+    public void validateParticipationRequirements(
+            Tournament tournament,
+            Integer horseId,
+            Integer ownerId,
+            Integer jockeyId
+    ) {
+        validateSubmissionWindow(tournament);
+
+        User owner = getUser(ownerId, "Owner");
+        Horse horse = getHorse(horseId);
+
+        validateOwner(owner);
+        validateHorseOwnership(horse, ownerId);
+        validateHorse(horse, tournament);
+        validateConditions(horse, tournament);
+
+        if (jockeyId != null) {
+            validateJockey(jockeyId);
         }
     }
 
@@ -152,7 +173,8 @@ public class RegistrationEligibilityService {
                                 List.of(RegistrationStatus.APPROVED)
                         );
 
-        if (approvedCount >= tournament.getMaxRegistrations()) {
+        if (tournament.getMaxRegistrations() != null
+                && approvedCount >= tournament.getMaxRegistrations()) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
                     "Tournament has reached its approved registration capacity."
@@ -168,6 +190,14 @@ public class RegistrationEligibilityService {
             throw new ApiException(
                     HttpStatus.CONFLICT,
                     "Tournament is not open for registration."
+            );
+        }
+
+        if (tournament.getRegistrationOpenAt() == null
+                || tournament.getRegistrationCloseAt() == null) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "Tournament registration window is not configured."
             );
         }
 
@@ -247,6 +277,13 @@ public class RegistrationEligibilityService {
             throw new ApiException(
                     HttpStatus.CONFLICT,
                     "Horse is not active."
+            );
+        }
+
+        if (tournament.getStartDate() == null) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "Tournament start date is not configured."
             );
         }
 
@@ -377,10 +414,18 @@ public class RegistrationEligibilityService {
             );
         }
 
+        String requiredGender = condition.getValue() == null
+                ? null
+                : condition.getValue().trim();
+
+        if (requiredGender != null
+                && "ANY".equalsIgnoreCase(requiredGender)) {
+            return;
+        }
+
         if (horse.getSex() == null
-                || condition.getValue() == null
-                || !horse.getSex().trim().equalsIgnoreCase(
-                condition.getValue().trim())) {
+                || requiredGender == null
+                || !horse.getSex().trim().equalsIgnoreCase(requiredGender)) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
                     "Horse does not satisfy the tournament gender condition."

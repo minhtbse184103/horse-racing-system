@@ -1,12 +1,10 @@
 import { useState } from 'react';
-import { Wallet } from 'lucide-react';
 import AppShell from '../common/AppShell';
 import OwnerOverview from './OwnerOverview';
 import OwnerHorseForm from './OwnerHorseForm';
 import OwnerHorseTable from './OwnerHorseTable';
 import OwnerRegisterRace from './OwnerRegisterRace';
 import OwnerProfile from './OwnerProfile';
-import WalletTransferPanel from '../payment/WalletTransferPanel';
 import { useHorses } from '../../hooks/useHorses';
 import { useOwnerDashboard } from '../../hooks/useOwnerDashboard';
 import { emptyHorseForm, formatDisplayLabel, getHorseId, getHorseName, getUserRole, toHorsePayload } from '../../lib';
@@ -20,8 +18,6 @@ const ownerNavItems = [
   { key: 'horses', labelKey: 'ownerNavHorses', icon: '🐎' },
   { key: 'register', labelKey: 'ownerNavRegister', icon: '📝' },
   { key: 'profile', labelKey: 'ownerNavProfile', icon: '👤' }
-  ,
-  { key: 'wallet', labelKey: 'wallet', icon: Wallet },
 ];
 
 function getErrorText(error, fallback) {
@@ -29,7 +25,7 @@ function getErrorText(error, fallback) {
 }
 
 function isOwnerSection(section) {
-  return section === 'overview' || section === 'horses' || section === 'register' || section === 'wallet' || section === 'profile';
+  return section === 'overview' || section === 'horses' || section === 'register' || section === 'profile';
 }
 
 function hasRegistrationPaymentReturn(params) {
@@ -86,7 +82,6 @@ function ApprovedOwnerDashboard({ currentUser, onLogout, onUserUpdated }) {
   const [activeSection, setActiveSection] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     if (hasRegistrationPaymentReturn(params)) return 'register';
-    if (params.has('vnp_TxnRef') || params.has('vnp_SecureHash')) return 'wallet';
     const section = params.get('section');
     return isOwnerSection(section) ? section : 'overview';
   });
@@ -572,10 +567,6 @@ function ApprovedOwnerDashboard({ currentUser, onLogout, onUserUpdated }) {
           user={currentUser}
           onUserUpdated={onUserUpdated}
         />
-      )}
-
-      {activeSection === 'wallet' && (
-        <WalletTransferPanel currentUser={currentUser} role="OWNER" />
       )}
     </AppShell>
   );
