@@ -6,6 +6,8 @@ const statusClasses = {
     'border-emerald-200 bg-emerald-50 text-emerald-900 before:bg-emerald-500',
   REGISTRATION_CLOSED:
     'border-stone-200 bg-stone-100 text-stone-800 before:bg-stone-500',
+  ENTRIES_FINALIZED:
+    'border-orange-200 bg-orange-50 text-orange-900 before:bg-orange-500',
   READY: 'border-amber-200 bg-amber-50 text-amber-900 before:bg-amber-500',
   IN_PROGRESS: 'border-sky-200 bg-sky-50 text-sky-900 before:bg-sky-500',
   PENDING_REVIEW:

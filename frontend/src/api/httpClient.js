@@ -1,5 +1,11 @@
 import API_BASE_URL from '../configs/apiConfig';
 
+const LANGUAGE_STORAGE_KEY = 'horse-racing:language';
+const DEFAULT_ERROR_MESSAGES = {
+  vi: 'Đã xảy ra lỗi. Vui lòng thử lại.',
+  en: 'Something went wrong. Please try again.'
+};
+
 const MESSAGE_TRANSLATIONS = {
   'Horse name is required': 'Tên ngựa là bắt buộc.',
   'Age must be zero or positive': 'Tuổi phải là số không âm.',
@@ -349,8 +355,19 @@ function requestError(message, status = null, data = null) {
   return error;
 }
 
+export function getCurrentLanguage() {
+  if (typeof window === 'undefined') return 'vi';
+  const storedLanguage = window.localStorage?.getItem(LANGUAGE_STORAGE_KEY);
+  return storedLanguage === 'en' ? 'en' : 'vi';
+}
+
+function getDefaultErrorMessage() {
+  return DEFAULT_ERROR_MESSAGES[getCurrentLanguage()] || DEFAULT_ERROR_MESSAGES.vi;
+}
+
 function translateMessage(message) {
   if (typeof message !== 'string') return message;
+  if (getCurrentLanguage() !== 'vi') return message;
   if (message.startsWith('Race needs at least ') && message.endsWith(' assigned entries before it can be run.')) {
     const count = message.match(/Race needs at least (\d+)/)?.[1];
     return count
@@ -396,7 +413,8 @@ function hasErrorsArray(value) {
 }
 
 export function getErrorMessage(data, fallbackMessage = 'Đã xảy ra lỗi. Vui lòng thử lại.') {
-  if (!data) return fallbackMessage;
+  const fallback = fallbackMessage === DEFAULT_ERROR_MESSAGES.vi ? getDefaultErrorMessage() : fallbackMessage;
+  if (!data) return fallback;
   if (typeof data === 'string') return translateMessage(data);
   if (hasStringField(data, 'message')) return translateMessage(data.message);
   if (hasStringField(data, 'error')) return translateMessage(data.error);
@@ -405,7 +423,7 @@ export function getErrorMessage(data, fallbackMessage = 'Đã xảy ra lỗi. Vu
       .map((error) => translateMessage(error.defaultMessage || error.message || String(error)))
       .join('\n');
   }
-  return fallbackMessage;
+  return fallback;
 }
 
 function parseResponseBody(text) {
@@ -422,7 +440,7 @@ function isFormData(value) {
 }
 
 export async function httpRequest(path, options = {}) {
-  const { method = 'GET', body, auth = true, headers = {}, fallbackError = 'Đã xảy ra lỗi. Vui lòng thử lại.' } = options;
+  const { method = 'GET', body, auth = true, headers = {}, fallbackError = getDefaultErrorMessage() } = options;
   const requestHeaders = { ...headers };
 
   if (!isFormData(body)) {
@@ -432,11 +450,21 @@ export async function httpRequest(path, options = {}) {
   if (auth) {
     const token = getStoredToken();
     if (!token) {
-      throw requestError('Bạn chưa đăng nhập hoặc phiên đăng nhập đã hết hạn.', 401);
+      throw requestError(
+        getCurrentLanguage() === 'vi'
+          ? 'Bạn chưa đăng nhập hoặc phiên đăng nhập đã hết hạn.'
+          : 'You are not signed in or your session has expired.',
+        401
+      );
     }
     if (isExpiredToken(token)) {
       expireStoredSession();
-      throw requestError('Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.', 401);
+      throw requestError(
+        getCurrentLanguage() === 'vi'
+          ? 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.'
+          : 'Your session has expired. Please sign in again.',
+        401
+      );
     }
     requestHeaders.Authorization = `Bearer ${token}`;
   }

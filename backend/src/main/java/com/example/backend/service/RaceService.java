@@ -33,6 +33,7 @@ import java.util.stream.Collectors;
 @Service
 public class RaceService {
 
+    private static final int MIN_RUNNERS_TO_FINALIZE = 3;
     private static final int MIN_RUNNERS_TO_READY = 3;
 
     private static final Set<String> RACE_SETUP_TOURNAMENT_STATUSES =
@@ -214,6 +215,10 @@ public class RaceService {
                 request.getRaceEndTime(),
                 tournament
         );
+        validateEntryFinalizationSchedule(
+                request.getEntryFinalizationScheduledAt(),
+                request.getRaceStartTime()
+        );
 
         validatePrizes(request.getPrizes());
 
@@ -259,6 +264,9 @@ public class RaceService {
         race.setTrackName(trackName);
         race.setRaceStartTime(request.getRaceStartTime());
         race.setRaceEndTime(request.getRaceEndTime());
+        race.setEntryFinalizationScheduledAt(
+                request.getEntryFinalizationScheduledAt()
+        );
         race.setDistance(request.getDistance());
         race.setMaxRunners(request.getMaxRunners());
         race.setRaceOrder(raceOrder);
@@ -313,6 +321,10 @@ public class RaceService {
                 request.getRaceStartTime(),
                 request.getRaceEndTime(),
                 tournament
+        );
+        validateEntryFinalizationSchedule(
+                request.getEntryFinalizationScheduledAt(),
+                request.getRaceStartTime()
         );
 
         validatePrizes(request.getPrizes());
@@ -369,6 +381,9 @@ public class RaceService {
         race.setTrackName(trackName);
         race.setRaceStartTime(request.getRaceStartTime());
         race.setRaceEndTime(request.getRaceEndTime());
+        race.setEntryFinalizationScheduledAt(
+                request.getEntryFinalizationScheduledAt()
+        );
         race.setDistance(request.getDistance());
         race.setMaxRunners(request.getMaxRunners());
         race.setRaceOrder(raceOrder);
@@ -462,10 +477,56 @@ public class RaceService {
     }
 
     @Transactional
+    public RaceResponse finalizeRaceEntries(Integer raceId, String adminEmail) {
+        // FLOW: Admin Finalize RaceEntry
+        // ORDER: 4/6 - Service locks Race and validates Admin, setup status, and minimum assigned entries.
+        // Validation: Admin must be ACTIVE ADMIN; Race must still be in setup status; at least MIN_RUNNERS_TO_FINALIZE ASSIGNED RaceEntries must exist.
+        // DB effect: locks RaceEntry list by moving Race to ENTRIES_FINALIZED and records finalization audit fields.
+        User admin = getAdmin(adminEmail);
+
+        Race race = raceRepository.findByIdForUpdate(raceId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "Race does not exist."
+                ));
+
+        if (EventStatus.ENTRIES_FINALIZED.equals(race.getStatus())) {
+            return toResponse(race);
+        }
+
+        if (!EventStatus.OPEN_FOR_REGISTRATION.equals(race.getStatus())
+                && !EventStatus.REGISTRATION_CLOSED.equals(race.getStatus())) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "Only a race waiting for entry setup can be finalized."
+            );
+        }
+
+        long assignedEntries = raceEntryRepository.countByRaceIdAndStatus(
+                raceId,
+                RaceEntryStatus.ASSIGNED
+        );
+
+        if (assignedEntries < MIN_RUNNERS_TO_FINALIZE) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "Race needs at least " + MIN_RUNNERS_TO_FINALIZE
+                            + " assigned entries before RaceEntry can be finalized."
+            );
+        }
+
+        race.setStatus(EventStatus.ENTRIES_FINALIZED);
+        race.setEntryFinalizedAt(LocalDateTime.now());
+        race.setEntryFinalizedBy(admin.getUserID());
+
+        return toResponse(raceRepository.save(race));
+    }
+
+    @Transactional
     public RaceResponse markRaceReady(Integer raceId, String adminEmail) {
         // FLOW: Admin Mark Race READY
-        // ORDER: 5/6 - Service locks Race and validates Admin, setup status, scheduled time, and minimum assigned entries.
-        // Validation: Admin must be ACTIVE ADMIN; Race must be in setup status; scheduled start time must be reached; at least MIN_RUNNERS_TO_READY ASSIGNED RaceEntries must exist.
+        // ORDER: 5/6 - Service locks Race and validates Admin, finalized entries status, scheduled time, and minimum assigned entries.
+        // Validation: Admin must be ACTIVE ADMIN; RaceEntry must be finalized; scheduled start time must be reached; at least MIN_RUNNERS_TO_READY ASSIGNED RaceEntries must exist.
         // DB effect: sets Race status READY and moves the parent Tournament to IN_PROGRESS if needed.
         getAdmin(adminEmail);
 
@@ -479,11 +540,10 @@ public class RaceService {
             return toResponse(race);
         }
 
-        if (!EventStatus.OPEN_FOR_REGISTRATION.equals(race.getStatus())
-                && !EventStatus.REGISTRATION_CLOSED.equals(race.getStatus())) {
+        if (!EventStatus.ENTRIES_FINALIZED.equals(race.getStatus())) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
-                    "Only a race waiting for setup can be marked ready."
+                    "Only a race with finalized RaceEntry can be marked ready."
             );
         }
 
@@ -713,6 +773,22 @@ public class RaceService {
         }
     }
 
+    private void validateEntryFinalizationSchedule(
+            LocalDateTime entryFinalizationScheduledAt,
+            LocalDateTime raceStartTime
+    ) {
+        if (entryFinalizationScheduledAt == null) {
+            return;
+        }
+
+        if (entryFinalizationScheduledAt.isAfter(raceStartTime.minusDays(2))) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "RaceEntry finalization time must be at least 2 days before race start time."
+            );
+        }
+    }
+
     private void validatePrizes(List<RacePrizeRequest> prizes) {
         // FLOW: Admin Edit Tournament Program
         // ORDER: 6B.2/8 - Validation helper checks RacePrize rules for create/update.
@@ -871,6 +947,11 @@ public class RaceService {
                 .trackImageUrl(race.getTrackImageUrl())
                 .raceStartTime(race.getRaceStartTime())
                 .raceEndTime(race.getRaceEndTime())
+                .entryFinalizationScheduledAt(
+                        race.getEntryFinalizationScheduledAt()
+                )
+                .entryFinalizedAt(race.getEntryFinalizedAt())
+                .entryFinalizedBy(race.getEntryFinalizedBy())
                 .distance(race.getDistance())
                 .maxRunners(race.getMaxRunners())
                 .raceOrder(race.getRaceOrder())

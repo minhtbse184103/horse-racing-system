@@ -209,7 +209,7 @@ public class RaceEntryService {
     ) {
         // FLOW: Admin Cancel RaceEntry
         // ORDER: 6/6 - Service locks RaceEntry, validates ASSIGNED state/admin/race timing/reason, then writes CANCELLED audit fields.
-        // Validation: RaceEntry must exist, status must be ASSIGNED, Race must not have started, reason must be non-blank, and user must be ACTIVE ADMIN.
+        // Validation: RaceEntry must exist, status must be ASSIGNED, Race must still allow entry changes, Race must not have started, reason must be non-blank, and user must be ACTIVE ADMIN.
         // DB effect: keeps the RaceEntry history row, changes status to CANCELLED, and writes cancelledAt/cancelledBy/cancellationReason.
         RaceEntry entry = raceEntryRepository
                 .findByIdForUpdate(raceEntryId)
@@ -241,12 +241,19 @@ public class RaceEntryService {
             );
         }
 
+        if (!ASSIGNABLE_RACE_STATUSES.contains(race.getStatus())) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "Race entry cannot be cancelled after RaceEntry is finalized."
+            );
+        }
+
         if (!now.isBefore(race.getRaceStartTime())) {
-        throw new ApiException(
-                HttpStatus.CONFLICT,
-                "Race entry cannot be cancelled after the race starts."
-        );
-    }
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "Race entry cannot be cancelled after the race starts."
+            );
+        }
 
         String cancellationReason = request == null
                 || request.getCancellationReason() == null

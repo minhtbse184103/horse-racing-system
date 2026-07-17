@@ -209,6 +209,9 @@ CREATE TABLE `Race` (
   `trackImageUrl` varchar(500),
   `raceStartTime` datetime NOT NULL,
   `raceEndTime` datetime,
+  `entryFinalizationScheduledAt` datetime,
+  `entryFinalizedAt` datetime,
+  `entryFinalizedBy` int,
   `distance` int NOT NULL,
   `maxRunners` int NOT NULL,
   `raceOrder` int,
@@ -221,6 +224,8 @@ CREATE TABLE `Race` (
   `updatedAt` datetime,
   CONSTRAINT `chk_race_time`
     CHECK (`raceEndTime` IS NULL OR `raceStartTime` < `raceEndTime`),
+  CONSTRAINT `chk_race_entry_finalization_schedule`
+    CHECK (`entryFinalizationScheduledAt` IS NULL OR `entryFinalizationScheduledAt` <= DATE_SUB(`raceStartTime`, INTERVAL 2 DAY)),
   CONSTRAINT `chk_race_distance`
     CHECK (`distance` > 0),
   CONSTRAINT `chk_race_max_runners`
@@ -231,6 +236,7 @@ CREATE TABLE `Race` (
     CHECK (`status` IN (
       'OPEN_FOR_REGISTRATION',
       'REGISTRATION_CLOSED',
+      'ENTRIES_FINALIZED',
       'READY',
       'IN_PROGRESS',
       'PENDING_REVIEW',
@@ -889,6 +895,8 @@ ALTER TABLE `TournamentCondition` ADD FOREIGN KEY (`tournamentID`) REFERENCES `T
 ALTER TABLE `Race` ADD FOREIGN KEY (`tournamentID`) REFERENCES `Tournament` (`tournamentID`);
 
 ALTER TABLE `Race` ADD FOREIGN KEY (`runTriggeredBy`) REFERENCES `Users` (`userID`);
+
+ALTER TABLE `Race` ADD FOREIGN KEY (`entryFinalizedBy`) REFERENCES `Users` (`userID`);
 
 ALTER TABLE `RacePrize` ADD FOREIGN KEY (`raceID`) REFERENCES `Race` (`raceID`);
 

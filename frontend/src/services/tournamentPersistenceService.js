@@ -16,11 +16,16 @@ import {
   updateRace,
   updateTournament
 } from './eventService';
+import { getCurrentLanguage } from '../api/httpClient';
 
 function persistenceError(message, cause, partialTournamentId = null) {
   const error = new Error(`${message}${cause?.message ? ` ${cause.message}` : ''}`);
   error.partialTournamentId = partialTournamentId;
   return error;
+}
+
+function localized(vi, en) {
+  return getCurrentLanguage() === 'en' ? en : vi;
 }
 
 async function syncRaceTrackImage(raceId, race) {
@@ -53,7 +58,10 @@ async function syncCreatedRaceTrackImages(savedTournament, draft) {
     const savedRace = savedRaceByOrder.get(raceOrder);
 
     if (!savedRace?.raceId) {
-      throw new Error(`Không tìm thấy Race đã lưu cho ${race.name}.`);
+      throw new Error(localized(
+        `Không tìm thấy Race đã lưu cho ${race.name}.`,
+        `Could not find the saved Race for ${race.name}.`
+      ));
     }
 
     await uploadRaceTrackImage(savedRace.raceId, race.trackImageFile);
@@ -79,7 +87,10 @@ export async function createTournamentProgram(draft) {
       await uploadTournamentVenueImage(tournamentId, draft.venueImageFile);
     } catch (error) {
       throw persistenceError(
-        `Đã tạo ${draft.name} và chương trình Race, nhưng không thể tải hình địa điểm lên. Hãy chỉnh sửa Tournament đã lưu để thử tải hình lại.`,
+        localized(
+          `Đã tạo ${draft.name} và chương trình Race, nhưng không thể tải hình địa điểm lên. Hãy chỉnh sửa Tournament đã lưu để thử tải hình lại.`,
+          `${draft.name} and its Race program were created, but the venue image could not be uploaded. Edit the saved Tournament to retry the image upload.`
+        ),
         error,
         tournamentId
       );
@@ -90,7 +101,10 @@ export async function createTournamentProgram(draft) {
     await syncCreatedRaceTrackImages(tournament, draft);
   } catch (error) {
     throw persistenceError(
-      `Đã tạo ${draft.name} và chương trình Race, nhưng không thể tải hình đường đua lên. Hãy chỉnh sửa Tournament đã lưu để thử tải hình lại.`,
+      localized(
+        `Đã tạo ${draft.name} và chương trình Race, nhưng không thể tải hình đường đua lên. Hãy chỉnh sửa Tournament đã lưu để thử tải hình lại.`,
+        `${draft.name} and its Race program were created, but a track image could not be uploaded. Edit the saved Tournament to retry the track image upload.`
+      ),
       error,
       tournamentId
     );
@@ -135,7 +149,10 @@ export async function updateTournamentProgram(original, draft) {
       }
     } catch (error) {
       throw persistenceError(
-        `Đã cập nhật ${draft.name}, nhưng không thể đồng bộ Race ${race.name}. Hãy tải lại Tournament trước khi thử lại.`,
+        localized(
+          `Đã cập nhật ${draft.name}, nhưng không thể đồng bộ Race ${race.name}. Hãy tải lại Tournament trước khi thử lại.`,
+          `${draft.name} was updated, but Race ${race.name} could not be synchronized. Reload the Tournament before retrying.`
+        ),
         error
       );
     }
@@ -150,7 +167,10 @@ export async function updateTournamentProgram(original, draft) {
         await cancelRace(race.id);
       } catch (error) {
         throw persistenceError(
-          `Đã cập nhật ${draft.name}, nhưng không thể hủy Race ${race.name} đã bị xóa. Hãy tải lại Tournament trước khi thử lại.`,
+          localized(
+            `Đã cập nhật ${draft.name}, nhưng Race ${race.name} đã bị xóa không thể được hủy. Hãy tải lại Tournament trước khi thử lại.`,
+            `${draft.name} was updated, but removed Race ${race.name} could not be cancelled. Reload the Tournament before retrying.`
+          ),
           error
         );
       }
@@ -168,7 +188,10 @@ export async function updateTournamentProgram(original, draft) {
     }
   } catch (error) {
     throw persistenceError(
-      `Đã lưu ${draft.name} và các Race, nhưng không thể hoàn tất thay đổi hình địa điểm. Hãy tải lại Tournament trước khi thử lại.`,
+      localized(
+        `Đã lưu ${draft.name} và các Race, nhưng không thể hoàn tất thay đổi hình địa điểm. Hãy tải lại Tournament trước khi thử lại.`,
+        `${draft.name} and its Races were saved, but the venue image change could not be completed. Reload the Tournament before retrying.`
+      ),
       error
     );
   }

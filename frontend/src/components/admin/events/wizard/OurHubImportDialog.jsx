@@ -28,7 +28,7 @@ function RunnerPreview({ runners }) {
   if (!runners.length) {
     return (
       <p className="mt-3 rounded-lg bg-cream-100 px-3 py-2 text-xs font-bold text-slate-500">
-        OurHub chưa cung cấp danh sách Horse / Jockey cho Race này.
+        {t('eventWizardImportNoRunners')}
       </p>
     );
   }
@@ -136,7 +136,7 @@ export default function OurHubImportDialog({ draft, onClose, onImport }) {
             <p className="text-xs font-black uppercase text-brown-500">OurHub Racing API</p>
             <h3 id="ourhub-import-title" className="mt-1 text-2xl font-black text-brown-900">{t('eventWizardImportOurHub')}</h3>
             <p className="mt-1 text-sm font-semibold text-slate-500">
-              Tải Race preview từ backend, chọn Race cần thêm, rồi chỉnh sửa lại trong wizard trước khi lưu Tournament.
+              {t('eventWizardImportSubtitle')}
             </p>
           </div>
           <button
@@ -199,7 +199,7 @@ export default function OurHubImportDialog({ draft, onClose, onImport }) {
                 </span>
                 <h4 className="mt-4 text-lg font-black text-brown-900">{t('eventWizardImportEmptyTitle')}</h4>
                 <p className="mx-auto mt-1 max-w-md text-sm font-semibold leading-6 text-slate-500">
-                  Chọn ngày và bấm tải dữ liệu. Nếu OurHub không có dữ liệu cho ngày đó, hãy thử ngày khác.
+                  {t('eventWizardImportEmptyDescription')}
                 </p>
               </div>
             </div>

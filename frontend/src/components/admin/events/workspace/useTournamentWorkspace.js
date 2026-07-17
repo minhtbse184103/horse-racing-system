@@ -17,6 +17,11 @@ import {
   updateTournamentProgram
 } from '../../../../services/tournamentPersistenceService';
 import { buildRegistrationCounts } from './tournamentWorkspaceUtils';
+import { getCurrentLanguage } from '../../../../api/httpClient';
+
+function localized(vi, en) {
+  return getCurrentLanguage() === 'en' ? en : vi;
+}
 
 export default function useTournamentWorkspace() {
   const [tournaments, setTournaments] = useState([]);
@@ -50,7 +55,10 @@ export default function useTournamentWorkspace() {
     try {
       const response = await getTournamentWorkspace();
       if (!Array.isArray(response)) {
-        throw new Error('Dịch vụ Tournament trả về dữ liệu không hợp lệ.');
+        throw new Error(localized(
+          'Dịch vụ Tournament trả về dữ liệu không hợp lệ.',
+          'Tournament service returned invalid data.'
+        ));
       }
 
       const adaptedTournaments = response.map(adaptWorkspaceTournament);
@@ -60,7 +68,7 @@ export default function useTournamentWorkspace() {
       }
     } catch (error) {
       if (sequence === loadSequence.current) {
-        setLoadError(error.message || 'Không thể tải Tournament.');
+        setLoadError(error.message || localized('Không thể tải Tournament.', 'Unable to load Tournament data.'));
       }
     } finally {
       if (sequence === loadSequence.current) {
@@ -89,7 +97,7 @@ export default function useTournamentWorkspace() {
       }
     } catch (error) {
       if (sequence === registrationLoadSequence.current) {
-        setRegistrationsError(error.message || 'Không thể tải Registration.');
+        setRegistrationsError(error.message || localized('Không thể tải Registration.', 'Unable to load Registration data.'));
       }
     } finally {
       if (sequence === registrationLoadSequence.current) {
@@ -251,7 +259,7 @@ export default function useTournamentWorkspace() {
     } catch (error) {
       await loadTournaments();
       if (error.partialTournamentId) {
-        setMutationError(error.message || 'Không thể lưu Tournament này.');
+        setMutationError(error.message || localized('Không thể lưu Tournament này.', 'Unable to save this Tournament.'));
         setExpandedId(error.partialTournamentId);
         setWizardOpen(false);
         return error.partialTournamentId;
@@ -273,7 +281,7 @@ export default function useTournamentWorkspace() {
       setDeleteTarget(null);
       setNotice(`Đã hủy ${target.name} thành công.`);
     } catch (error) {
-      setMutationError(error.message || 'Không thể hủy Tournament này.');
+      setMutationError(error.message || localized('Không thể hủy Tournament này.', 'Unable to cancel this Tournament.'));
       throw error;
     }
   }
@@ -294,7 +302,7 @@ export default function useTournamentWorkspace() {
       await loadTournaments();
       setNotice(`Đã cập nhật Status của ${tournament.name} thành công.`);
     } catch (error) {
-      setMutationError(error.message || 'Không thể cập nhật Status của Tournament.');
+      setMutationError(error.message || localized('Không thể cập nhật Status của Tournament.', 'Unable to update Tournament Status.'));
     } finally {
       setLifecycleProcessingId(null);
     }

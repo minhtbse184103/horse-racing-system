@@ -60,6 +60,13 @@ export function validateWizardStep(step, draft, t = defaultTranslate) {
       if (race.raceStartTime && race.raceEndTime && race.raceEndTime <= race.raceStartTime) {
         errors[`${prefix}-raceEndTime`] = t('eventValidationRaceEndAfterStart');
       }
+      if (race.entryFinalizationScheduledAt && race.raceStartTime) {
+        const finalizeTime = new Date(race.entryFinalizationScheduledAt).getTime();
+        const minimumFinalizeTime = new Date(race.raceStartTime).getTime() - (2 * 24 * 60 * 60 * 1000);
+        if (finalizeTime > minimumFinalizeTime) {
+          errors[`${prefix}-entryFinalizationScheduledAt`] = t('eventValidationEntryFinalizeTwoDays');
+        }
+      }
       if (race.raceStartTime && draft.start && race.raceStartTime.slice(0, 10) < draft.start) {
         errors[`${prefix}-raceStartTime`] = t('eventValidationRaceWithinTournament');
       }

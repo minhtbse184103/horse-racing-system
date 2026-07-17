@@ -1,6 +1,7 @@
 export const tournamentStatusLabels = {
   OPEN_FOR_REGISTRATION: 'Open Registration',
   REGISTRATION_CLOSED: 'Registration Closed',
+  ENTRIES_FINALIZED: 'Entries Finalized',
   READY: 'Ready',
   IN_PROGRESS: 'In Progress',
   PENDING_REVIEW: 'Pending Result Review',

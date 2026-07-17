@@ -32,6 +32,8 @@ public class CreateTournamentProgramRaceRequest {
     @NotNull(message = "Race end time is required.")
     private LocalDateTime raceEndTime;
 
+    private LocalDateTime entryFinalizationScheduledAt;
+
     @NotNull(message = "Race distance is required.")
     @Min(value = 1, message = "Race distance must be greater than zero.")
     private Integer distance;

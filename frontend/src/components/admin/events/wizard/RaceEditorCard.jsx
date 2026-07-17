@@ -52,6 +52,9 @@ export default function RaceEditorCard({ race, index, draft, errors, onChange, o
         <WizardField label={t('eventWizardRaceEndTime')} error={errors[`${prefix}-raceEndTime`]} className="xl:col-span-2">
           <input type="datetime-local" min={race.raceStartTime || (draft.start ? `${draft.start}T00:00` : undefined)} max={draft.end ? `${draft.end}T23:59` : undefined} className={FIELD_CLASS} value={race.raceEndTime} onChange={(event) => onChange({ raceEndTime: event.target.value })} />
         </WizardField>
+        <WizardField label={t('eventWizardEntryFinalizeTime')} error={errors[`${prefix}-entryFinalizationScheduledAt`]} hint={t('eventWizardEntryFinalizeHint')} className="xl:col-span-4">
+          <input type="datetime-local" max={race.raceStartTime || undefined} className={FIELD_CLASS} value={race.entryFinalizationScheduledAt || ''} onChange={(event) => onChange({ entryFinalizationScheduledAt: event.target.value })} />
+        </WizardField>
         <WizardField label={t('eventWizardRaceDistance')} error={errors[`${prefix}-distance`]} hint={t('eventWizardMetersUnit')} className="xl:col-span-4">
           <div className="relative">
             <input type="number" min="1" step="100" className={`${FIELD_CLASS} pr-12`} value={race.distance} onChange={(event) => onChange({ distance: Number(event.target.value) })} />
