@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Wallet } from 'lucide-react';
 import defaultJockeyAvatar from '../../assets/default-jockey-avatar.svg';
 import AppShell from '../common/AppShell';
+import ConfirmModal from '../common/ConfirmModal';
 import WalletTransferPanel from '../payment/WalletTransferPanel';
 import JockeyPendingDashboard from './JockeyPendingDashboard';
 import JockeyProfileView from './JockeyProfileView';
@@ -12,7 +13,6 @@ import {
   getJockeyInvitations,
   getJockeyInvitationDetail,
   getJockeyProfile,
-  getHorsePerformance as fetchHorsePerformance,
   rejectJockeyInvitation,
   toJockeyProfilePayload,
   updateJockeyProfile
@@ -27,13 +27,13 @@ const jockeyNavItems = [
   { key: 'wallet', labelKey: 'wallet', icon: Wallet }
 ];
 
-const INVITATION_STATUS_OPTIONS = ['ALL', 'PENDING', 'ACCEPTED', 'APPROVED', 'REJECTED', 'EXPIRED'];
 const INVITATION_TABS = [
+  { key: 'ALL', label: 'Tất cả' },
   { key: 'PENDING', label: 'Pending' },
   { key: 'ACCEPTED', label: 'Accepted' },
-  { key: 'APPROVED', label: 'Approved' },
   { key: 'REJECTED', label: 'Declined' },
-  { key: 'EXPIRED', label: 'Expired' }
+  { key: 'EXPIRED', label: 'Expired' },
+  { key: 'CANCELLED', label: 'Cancelled' }
 ];
 
 
@@ -169,6 +169,9 @@ function formatTournamentDateRange(invitation) {
 function getInvitationRegistrationDeadline(invitation, tournamentById) {
   return invitation.registrationDeadline
     ?? invitation.tournamentRegistrationDeadline
+    ?? invitation.tournament?.registrationCloseAt
+    ?? invitation.tournament?.registrationDeadline
+    ?? tournamentById.get(String(invitation.tournamentId))?.registrationCloseAt
     ?? tournamentById.get(String(invitation.tournamentId))?.registrationDeadline
     ?? null;
 }
@@ -192,33 +195,18 @@ function getInvitationHorseDetails(invitation) {
     color: firstDefined(readHorseValue(invitation, horse, 'color', 'horseColor'), horse.colour),
     dayOfBirth: readHorseValue(invitation, horse, 'dayOfBirth', 'horseDayOfBirth'),
     weight: readHorseValue(invitation, horse, 'weight', 'horseWeight'),
+    trainer: readHorseValue(invitation, horse, 'trainer', 'horseTrainer'),
     healthCertExpiry: readHorseValue(invitation, horse, 'healthCertExpiry', 'horseHealthCertExpiry'),
     status: readHorseValue(invitation, horse, 'status', 'horseStatus'),
-    imgUrl: readHorseValue(invitation, horse, 'imgUrl', 'horseImgUrl'),
-    totalRaces: readHorseValue(invitation, horse, 'totalRaces', 'horseTotalRaces'),
-    totalWins: readHorseValue(invitation, horse, 'totalWins', 'horseTotalWins'),
-    top1Count: readHorseValue(invitation, horse, 'top1Count', 'horseTop1Count'),
-    top2Count: readHorseValue(invitation, horse, 'top2Count', 'horseTop2Count'),
-    top3Count: readHorseValue(invitation, horse, 'top3Count', 'horseTop3Count'),
-    violationCount: readHorseValue(invitation, horse, 'violationCount', 'horseViolationCount'),
-    disqualifiedCount: readHorseValue(invitation, horse, 'disqualifiedCount', 'horseDisqualifiedCount'),
-    recentRaces: invitation.horseRecentRaces || horse.recentRaces || horse.raceHistory || []
+    imgUrl: firstDefined(
+      readHorseValue(invitation, horse, 'healthCertificateUrl', 'horseHealthCertificateUrl'),
+      readHorseValue(invitation, horse, 'imgUrl', 'horseImgUrl')
+    )
   };
 }
 
 function firstDefined(...values) {
   return values.find((value) => value !== undefined && value !== null && value !== '');
-}
-
-function toNumber(value, fallback = 0) {
-  const number = Number(value);
-  return Number.isFinite(number) ? number : fallback;
-}
-
-function formatPercent(value) {
-  const number = Number(value);
-  if (!Number.isFinite(number)) return 'Chưa có dữ liệu';
-  return `${number.toFixed(number % 1 === 0 ? 0 : 1)}%`;
 }
 
 function formatRequirementItem(item) {
@@ -264,201 +252,138 @@ function formatRequirement(value) {
   return String(value);
 }
 
-function calculateRate(part, total) {
-  const totalValue = toNumber(total);
-  if (!totalValue) return null;
-  return (toNumber(part) / totalValue) * 100;
-}
-
-function getHorsePerformance(horse) {
-  const totalRaces = toNumber(horse.totalRaces);
-  const wins = toNumber(firstDefined(horse.totalWins, horse.top1Count));
-  const top1 = toNumber(firstDefined(horse.top1Count, horse.totalWins));
-  const top2 = toNumber(horse.top2Count);
-  const top3 = toNumber(horse.top3Count);
-  const top3Total = top1 + top2 + top3;
-
-  return {
-    totalRaces,
-    wins,
-    winRate: calculateRate(wins, totalRaces),
-    top3Rate: calculateRate(top3Total, totalRaces),
-    violationCount: toNumber(horse.violationCount),
-    disqualifiedCount: toNumber(horse.disqualifiedCount),
-    recentRaces: Array.isArray(horse.recentRaces) ? horse.recentRaces : []
-  };
-}
-
 function getInvitationRaceDetails(invitation, tournamentById) {
   const tournament = invitation.tournament || tournamentById.get(String(invitation.tournamentId)) || {};
-  const race = invitation.race || invitation.raceInfo || invitation.assignedRace || (Array.isArray(tournament.races) ? tournament.races[0] : {}) || {};
   return {
-    name: firstDefined(invitation.raceName, invitation.assignedRaceName, race.raceName, race.name, invitation.tournamentName, tournament.tournamentName, invitation.tournamentId),
-    startTime: firstDefined(invitation.raceStartTime, race.raceStartTime, race.startTime, race.scheduledAt, invitation.tournamentStartDate, tournament.startDate),
-    endTime: firstDefined(invitation.raceEndTime, race.raceEndTime, race.endTime, invitation.tournamentEndDate, tournament.endDate),
-    track: firstDefined(invitation.trackName, invitation.raceTrackName, race.trackName, race.track, race.venue, tournament.venue, invitation.venue),
-    distance: firstDefined(invitation.distance, invitation.raceDistance, race.distance),
-    prize: firstDefined(invitation.prize, invitation.prizePool, race.prize, race.prizePool, tournament.prizePool),
+    name: firstDefined(invitation.tournamentName, tournament.tournamentName, invitation.tournamentId),
+    startTime: firstDefined(invitation.tournamentStartDate, tournament.startDate),
+    endTime: firstDefined(invitation.tournamentEndDate, tournament.endDate),
+    track: firstDefined(tournament.venue, invitation.venue),
     fee: firstDefined(invitation.entryFee, invitation.tournamentEntryFee, tournament.entryFee),
-    requirement: firstDefined(invitation.requirement, invitation.conditions, tournament.conditions, 'Chưa có dữ liệu'),
+    requirement: firstDefined(invitation.conditions, tournament.conditions, 'Chưa có dữ liệu'),
     deadline: getInvitationRegistrationDeadline(invitation, tournamentById)
   };
 }
 
-function getOwnerTeamDetails(invitation) {
-  return {
-    name: firstDefined(invitation.ownerName, invitation.teamName, invitation.owner?.fullName, invitation.ownerEmail, invitation.ownerId, 'N/A'),
-    experience: firstDefined(invitation.ownerExperience, invitation.ownerTotalRaces, invitation.teamExperience, 'Chưa có dữ liệu'),
-    reputation: firstDefined(invitation.ownerReputation, invitation.teamReputation, invitation.ownerRating, 'Chưa có dữ liệu')
-  };
+function getOwnerName(invitation) {
+  return firstDefined(invitation.ownerName, invitation.owner?.fullName, invitation.ownerEmail, invitation.ownerId, 'Chưa có dữ liệu');
 }
 
-function hasHorseDetailData(details) {
-  return Boolean(details.breed || details.gender || details.color || details.dayOfBirth || details.weight || details.healthCertExpiry || details.status || details.imgUrl);
-}
-
-function InvitationDetailModal({ invitation, tournamentById, isLoading, error, onClose }) {
+function InvitationDetailModal({
+  invitation,
+  tournamentById,
+  isLoading,
+  error,
+  canAccept,
+  actionId,
+  onAccept,
+  onDecline,
+  onClose
+}) {
   if (!invitation) return null;
 
   const horse = getInvitationHorseDetails(invitation);
-  const race = getInvitationRaceDetails(invitation, tournamentById);
-  const ownerTeam = getOwnerTeamDetails(invitation);
-  const performance = getHorsePerformance(horse);
+  const tournament = getInvitationRaceDetails(invitation, tournamentById);
   const registrationDeadline = getInvitationRegistrationDeadline(invitation, tournamentById);
-  const hasExtraHorseData = hasHorseDetailData(horse);
+  const invitationStatus = String(invitation.status || '').toUpperCase();
+  const isPending = invitationStatus === 'PENDING';
+  const isExpired = invitation.expiredAt && new Date(invitation.expiredAt).getTime() <= Date.now();
+  const isProcessing = actionId === getInvitationId(invitation);
 
   return (
     <div className="fixed inset-0 z-[1000] grid place-items-center bg-brown-900/60 p-4 backdrop-blur-sm" onClick={onClose}>
       <section className="jockey-invitation-detail-modal w-full max-w-5xl rounded-lg bg-cream-100 p-6 shadow-2xl" onClick={(event) => event.stopPropagation()}>
-        <div className="owner-panel-header">
+        <div className="jockey-invitation-detail-header">
           <div>
             <p className="eyebrow">Chi tiết lời mời</p>
-            <h2>{horse.horseName || `Horse ${horse.horseId || ''}`}</h2>
-            <p>Xem thông tin ngựa và deadline đăng ký trước khi chấp nhận lời mời.</p>
+            <h2>{invitation.tournamentName || tournament.name || 'Lời mời tham gia giải đấu'}</h2>
+            <p>{horse.horseName ? `Ngựa ${horse.horseName}` : 'Thông tin lời mời từ owner'}</p>
           </div>
-          <button className="outline-button compact-button" type="button" onClick={onClose}>Đóng</button>
+          <div className="jockey-invitation-detail-heading-actions">
+            <span className={`status-badge ${statusClass(invitation.status)}`}>{formatDisplayLabel(invitation.status)}</span>
+            <button className="outline-button compact-button" type="button" onClick={onClose}>Đóng</button>
+          </div>
         </div>
 
         {isLoading && <div className="admin-alert info" role="status">Đang tải thông tin đầy đủ từ backend...</div>}
         {error && <div className="admin-alert error" role="alert">{error}</div>}
 
         <div className="jockey-invitation-detail-sections">
-          <section className="jockey-invitation-detail-section">
-            <h3>Race</h3>
-            <div className="detail-grid">
-              <span>Tournament/race</span>
-              <strong>{race.name || 'N/A'}</strong>
-              <span>Thời gian</span>
-              <strong>{formatDate(race.startTime)}{race.endTime ? ` - ${formatDate(race.endTime)}` : ''}</strong>
-              <span>Track</span>
-              <strong>{race.track || 'Chưa có dữ liệu'}</strong>
-              <span>Distance</span>
-              <strong>{race.distance ? `${race.distance}m` : 'Chưa có dữ liệu'}</strong>
-              <span>Prize/Fee</span>
-              <strong>{firstDefined(race.prize, race.fee, 'Chưa có dữ liệu')}</strong>
-              <span>Requirement</span>
-              <strong>{formatRequirement(race.requirement)}</strong>
-              <span>Deadline phản hồi</span>
-              <strong>{formatDate(firstDefined(invitation.expiredAt, registrationDeadline))}</strong>
-            </div>
-          </section>
-
-          <section className="jockey-invitation-detail-section">
-            <h3>Horse performance</h3>
-            <div className="detail-grid">
-              <span>Total races</span>
-              <strong>{performance.totalRaces}</strong>
-              <span>Win rate</span>
-              <strong>{formatPercent(performance.winRate)}</strong>
-              <span>Top 3 rate</span>
-              <strong>{formatPercent(performance.top3Rate)}</strong>
-              <span>Vi phạm</span>
-              <strong>{performance.violationCount} / DQ {performance.disqualifiedCount}</strong>
-              <span>Eligibility</span>
-              <strong>{horse.status ? formatDisplayLabel(horse.status) : 'Chưa có dữ liệu'}</strong>
-            </div>
-          </section>
-
-          <section className="jockey-invitation-detail-section">
-            <h3>Phong độ 3-5 race gần nhất</h3>
-            {performance.recentRaces.length > 0 ? (
-              <div className="jockey-recent-race-list">
-                {performance.recentRaces.slice(0, 5).map((raceItem, index) => (
-                  <div key={`${raceItem.raceId || raceItem.name || index}`}>
-                    <strong>{raceItem.raceName || raceItem.name || `Race ${index + 1}`}</strong>
-                    <span>{formatDate(raceItem.raceStartTime || raceItem.date)} · Hạng {firstDefined(raceItem.finishPosition, raceItem.position, 'N/A')}</span>
-                  </div>
-                ))}
+          <section className="jockey-invitation-detail-section invitation-summary-section">
+            <div className="jockey-detail-section-heading">
+              <div>
+                <span className="jockey-detail-section-icon">i</span>
+                <h3>Lời mời</h3>
               </div>
-            ) : (
-              <p className="drawer-empty-note">Chưa có dữ liệu race gần đây.</p>
+              {invitation.registrationStatus && (
+                <span className={`status-badge ${statusClass(invitation.registrationStatus)}`}>
+                  Đăng ký: {formatDisplayLabel(invitation.registrationStatus)}
+                </span>
+              )}
+            </div>
+            <div className="jockey-invitation-message">
+              <span>Lời nhắn từ owner</span>
+              <strong>{invitation.message || 'Owner không gửi lời nhắn kèm theo.'}</strong>
+            </div>
+            <dl className="jockey-detail-grid">
+              <div><dt>Owner</dt><dd>{getOwnerName(invitation)}</dd></div>
+              <div><dt>Gửi lúc</dt><dd>{formatDate(invitation.createdAt)}</dd></div>
+              <div><dt>Hạn phản hồi</dt><dd>{formatDate(invitation.expiredAt)}</dd></div>
+              <div><dt>Trạng thái</dt><dd>{formatDisplayLabel(invitation.status)}</dd></div>
+            </dl>
+          </section>
+
+          <section className="jockey-invitation-detail-section">
+            <div className="jockey-detail-section-heading"><div><span className="jockey-detail-section-icon">T</span><h3>Giải đấu</h3></div></div>
+            <dl className="jockey-detail-grid">
+              <div><dt>Tên giải</dt><dd>{invitation.tournamentName || tournament.name || 'Chưa có dữ liệu'}</dd></div>
+              <div><dt>Thời gian</dt><dd>{formatTournamentDateRange(invitation)}</dd></div>
+              <div><dt>Địa điểm</dt><dd>{tournament.track || 'Chưa có dữ liệu'}</dd></div>
+              <div><dt>Hạn đăng ký</dt><dd>{formatDate(registrationDeadline)}</dd></div>
+              <div><dt>Phí đăng ký của owner</dt><dd>{tournament.fee == null ? 'Chưa có dữ liệu' : `${Number(tournament.fee).toLocaleString('vi-VN')} VND`}</dd></div>
+              <div className="wide"><dt>Điều kiện tham gia</dt><dd>{formatRequirement(tournament.requirement)}</dd></div>
+            </dl>
+          </section>
+
+          <section className="jockey-invitation-detail-section">
+            <div className="jockey-detail-section-heading">
+              <div><span className="jockey-detail-section-icon">H</span><h3>Ngựa tham gia</h3></div>
+              <span className={`status-badge ${statusClass(horse.status)}`}>{formatDisplayLabel(horse.status)}</span>
+            </div>
+            <dl className="jockey-detail-grid">
+              <div><dt>Tên ngựa</dt><dd>{horse.horseName || 'Chưa có dữ liệu'}</dd></div>
+              <div><dt>Giống</dt><dd>{horse.breed || 'Chưa có dữ liệu'}</dd></div>
+              <div><dt>Giới tính</dt><dd>{horse.gender ? formatDisplayLabel(horse.gender) : 'Chưa có dữ liệu'}</dd></div>
+              <div><dt>Ngày sinh</dt><dd>{formatDate(horse.dayOfBirth)}</dd></div>
+              <div><dt>Cân nặng</dt><dd>{horse.weight ? `${horse.weight} kg` : 'Chưa có dữ liệu'}</dd></div>
+              <div><dt>Hạn giấy sức khỏe</dt><dd>{formatDate(horse.healthCertExpiry)}</dd></div>
+              <div><dt>Huấn luyện viên</dt><dd>{horse.trainer || 'Chưa có dữ liệu'}</dd></div>
+              <div><dt>Màu lông</dt><dd>{horse.color || 'Chưa có dữ liệu'}</dd></div>
+            </dl>
+            {horse.imgUrl && (
+              <a className="outline-button jockey-certificate-link" href={horse.imgUrl} target="_blank" rel="noreferrer">
+                Xem giấy chứng nhận sức khỏe
+              </a>
             )}
           </section>
-
-          <section className="jockey-invitation-detail-section">
-            <h3>Owner/team</h3>
-            <div className="detail-grid">
-              <span>Tên</span>
-              <strong>{ownerTeam.name}</strong>
-              <span>Kinh nghiệm</span>
-              <strong>{ownerTeam.experience}</strong>
-              <span>Độ uy tín</span>
-              <strong>{ownerTeam.reputation}</strong>
-            </div>
-          </section>
         </div>
 
-        <div className="detail-grid">
-          <span>Giải đấu</span>
-          <strong>{invitation.tournamentName || invitation.tournamentId || 'N/A'}</strong>
-
-          <span>Thời gian giải</span>
-          <strong>{formatTournamentDateRange(invitation)}</strong>
-
-          <span>Deadline đăng ký</span>
-          <strong>{formatDate(registrationDeadline)}</strong>
-
-          <span>Owner</span>
-          <strong>{invitation.ownerName || invitation.ownerId || 'N/A'}</strong>
-
-          <span>Horse ID</span>
-          <strong>{horse.horseId || 'N/A'}</strong>
-
-          <span>Tên ngựa</span>
-          <strong>{horse.horseName || 'N/A'}</strong>
-
-          <span>Giống ngựa</span>
-          <strong>{horse.breed || 'Chưa có trong dữ liệu lời mời'}</strong>
-
-          <span>Giới tính</span>
-          <strong>{horse.gender ? formatDisplayLabel(horse.gender) : 'Chưa có trong dữ liệu lời mời'}</strong>
-
-          <span>Màu lông</span>
-          <strong>{horse.color || 'Chưa có trong dữ liệu lời mời'}</strong>
-
-          <span>Ngày sinh</span>
-          <strong>{formatDate(horse.dayOfBirth)}</strong>
-
-          <span>Cân nặng</span>
-          <strong>{horse.weight ? `${horse.weight} kg` : 'Chưa có trong dữ liệu lời mời'}</strong>
-
-          <span>Hạn chứng nhận sức khỏe</span>
-          <strong>{formatDate(horse.healthCertExpiry)}</strong>
-
-          <span>Trạng thái ngựa</span>
-          <strong>{horse.status ? formatDisplayLabel(horse.status) : 'Chưa có trong dữ liệu lời mời'}</strong>
-
-          <span>Health Certificate URL</span>
-          <strong className="break-anywhere">
-            {horse.imgUrl ? <a href={horse.imgUrl} target="_blank" rel="noreferrer">{horse.imgUrl}</a> : 'Chưa có trong dữ liệu lời mời'}
-          </strong>
-        </div>
-
-        {!hasExtraHorseData && (
-          <div className="admin-alert warning soft-alert mt-4" role="note">
-            API lời mời hiện chỉ gửi tên ngựa và mã ngựa. Giao diện đã sẵn sàng hiển thị breed, gender, color, weight, health certificate nếu backend trả các field đó trong response lời mời.
+        <footer className="jockey-invitation-detail-footer">
+          <p>
+            {isExpired ? 'Lời mời đã hết hạn phản hồi.' : isPending ? 'Kiểm tra thông tin trước khi đưa ra quyết định.' : `Lời mời đã được xử lý: ${formatDisplayLabel(invitation.status)}.`}
+          </p>
+          <div>
+            <button className="outline-button" type="button" onClick={onClose}>Đóng</button>
+            {isPending && !isExpired && (
+              <>
+                <button className="outline-button danger-action" type="button" onClick={() => onDecline(invitation)} disabled={isProcessing}>Từ chối</button>
+                <button className="primary-button" type="button" onClick={() => onAccept(invitation)} disabled={!canAccept || isProcessing}>
+                  {isProcessing ? 'Đang xử lý...' : 'Chấp nhận lời mời'}
+                </button>
+              </>
+            )}
           </div>
-        )}
+        </footer>
       </section>
     </div>
   );
@@ -558,10 +483,9 @@ function ApprovedJockeyDashboard({ currentUser, onLogout, onUserUpdated }) {
   const [invitations, setInvitations] = useState([]);
   const [tournaments, setTournaments] = useState([]);
   const [selectedInvitation, setSelectedInvitation] = useState(null);
+  const [invitationDecision, setInvitationDecision] = useState(null);
   const [isLoadingInvitationDetail, setIsLoadingInvitationDetail] = useState(false);
   const [invitationDetailError, setInvitationDetailError] = useState('');
-  const [declineTarget, setDeclineTarget] = useState(null);
-  const [declineReason, setDeclineReason] = useState('');
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [isLoadingInvitations, setIsLoadingInvitations] = useState(false);
@@ -789,11 +713,6 @@ function ApprovedJockeyDashboard({ currentUser, onLogout, onUserUpdated }) {
       const detail = await getJockeyInvitationDetail(invitationId);
       const detailInvitation = detail?.invitation || {};
       const detailHorse = detail?.horse || {};
-      const horseId = firstDefined(detailHorse.horseId, detailInvitation.horseId, invitation.horseId);
-      const horsePerformance = horseId
-        ? await fetchHorsePerformance(horseId).catch(() => null)
-        : null;
-
       setSelectedInvitation((current) => {
         if (!current || getInvitationId(current) !== invitationId) return current;
 
@@ -801,10 +720,7 @@ function ApprovedJockeyDashboard({ currentUser, onLogout, onUserUpdated }) {
           ...current,
           ...detailInvitation,
           tournament: detail?.tournament || current.tournament,
-          horse: {
-            ...detailHorse,
-            ...(horsePerformance || {})
-          },
+          horse: detailHorse,
           tournamentName: firstDefined(detailInvitation.tournamentName, detail?.tournament?.tournamentName, current.tournamentName),
           horseName: firstDefined(detailInvitation.horseName, detailHorse.horseName, current.horseName),
           ownerName: firstDefined(detailInvitation.ownerName, current.ownerName),
@@ -818,7 +734,7 @@ function ApprovedJockeyDashboard({ currentUser, onLogout, onUserUpdated }) {
     }
   }
 
-  async function handleInvitationAction(invitation, action) {
+  function requestInvitationDecision(invitation, action) {
     const invitationId = getInvitationId(invitation);
 
     if (!invitationId) {
@@ -826,13 +742,16 @@ function ApprovedJockeyDashboard({ currentUser, onLogout, onUserUpdated }) {
       return;
     }
 
-    const confirmed = window.confirm(
-      action === 'accept'
-        ? 'Bạn có chắc muốn chấp nhận lời mời này?'
-        : 'Bạn có chắc muốn từ chối lời mời này?'
-    );
+    setSelectedInvitation(null);
+    setInvitationDecision({ invitation, action });
+  }
 
-    if (!confirmed) return;
+  async function confirmInvitationDecision() {
+    const invitation = invitationDecision?.invitation;
+    const action = invitationDecision?.action;
+    const invitationId = getInvitationId(invitation);
+
+    if (!invitationId || !action) return;
 
     setPageError('');
     setMessage('');
@@ -847,44 +766,16 @@ function ApprovedJockeyDashboard({ currentUser, onLogout, onUserUpdated }) {
           getInvitationId(item) === invitationId ? { ...item, ...updatedInvitation } : item
         )
       );
+      setSelectedInvitation((current) =>
+        current && getInvitationId(current) === invitationId
+          ? { ...current, ...updatedInvitation }
+          : current
+      );
 
       setMessage(action === 'accept' ? 'Đã chấp nhận lời mời.' : 'Đã từ chối lời mời.');
+      setInvitationDecision(null);
     } catch (error) {
       setPageError(getErrorText(error, 'Không thể xử lý lời mời.'));
-    } finally {
-      setActionId(null);
-    }
-  }
-
-  async function submitDeclineInvitation(event) {
-    event.preventDefault();
-    if (!declineTarget) return;
-
-    const invitationId = getInvitationId(declineTarget);
-    if (!invitationId) {
-      setPageError('Không tìm thấy mã lời mời.');
-      return;
-    }
-
-    setPageError('');
-    setMessage('');
-    setActionId(invitationId);
-
-    try {
-      const updatedInvitation = await rejectJockeyInvitation(invitationId);
-      const trimmedReason = declineReason.trim();
-      setInvitations((current) =>
-        current.map((item) =>
-          getInvitationId(item) === invitationId
-            ? { ...item, ...updatedInvitation, declineReason: trimmedReason || null }
-            : item
-        )
-      );
-      setMessage('Đã từ chối lời mời.');
-      setDeclineTarget(null);
-      setDeclineReason('');
-    } catch (error) {
-      setPageError(getErrorText(error, 'Không thể từ chối lời mời.'));
     } finally {
       setActionId(null);
     }
@@ -1308,97 +1199,71 @@ function ApprovedJockeyDashboard({ currentUser, onLogout, onUserUpdated }) {
           const invitationId = getInvitationId(invitation);
           const isPending = String(invitation.status || '').toUpperCase() === 'PENDING';
           const acceptDisabled = !isPending || !isProfileActive || actionId === invitationId;
-          const race = getInvitationRaceDetails(invitation, tournamentById);
-          const ownerTeam = getOwnerTeamDetails(invitation);
           const horse = getInvitationHorseDetails(invitation);
+          const registrationDeadline = getInvitationRegistrationDeadline(invitation, tournamentById);
 
           return (
             <article className="jockey-invitation-card" key={invitationId || `${invitation.tournamentId}-${invitation.horseId}`}>
-              <div className="jockey-invitation-main">
+              <header className="jockey-invitation-card-header">
                 <div className="jockey-invitation-title">
-                  <span className="jockey-id-chip">#{invitationId || 'N/A'}</span>
+                  <span className="jockey-id-chip">#{invitationId || '-'}</span>
                   <div>
-                    <h3>{race.name || invitation.tournamentName || invitation.tournamentId || 'N/A'}</h3>
-                    {invitation.message && <p>{invitation.message}</p>}
+                    <h3>{invitation.tournamentName || `Giải đấu #${invitation.tournamentId}`}</h3>
+                    <p>Được mời bởi {getOwnerName(invitation)}</p>
                   </div>
                 </div>
-
-                <div className="jockey-invitation-meta">
-                  <div>
-                    <span>Race time</span>
-                    <strong>{formatDate(race.startTime)}</strong>
-                  </div>
-                  <div>
-                    <span>Track</span>
-                    <strong>{race.track || 'Chưa có dữ liệu'}</strong>
-                  </div>
-                  <div>
-                    <span>Distance</span>
-                    <strong>{race.distance ? `${race.distance}m` : 'Chưa có dữ liệu'}</strong>
-                  </div>
-                  <div>
-                    <span>Owner/team</span>
-                    <strong>{ownerTeam.name}</strong>
-                  </div>
-                  <div>
-                    <span>Horse</span>
-                    <strong>{horse.horseName || horse.horseId || 'N/A'}</strong>
-                  </div>
-                  <div>
-                    <span>Thời gian</span>
-                    <strong>{formatTournamentDateRange(invitation)}</strong>
-                  </div>
-                  <div>
-                    <span>Deadline</span>
-                    <strong>{formatDate(getInvitationRegistrationDeadline(invitation, tournamentById))}</strong>
-                  </div>
-                  <div>
-                    <span>Owner</span>
-                    <strong>{invitation.ownerName || invitation.ownerId || 'N/A'}</strong>
-                  </div>
-                  <div>
-                    <span>Hết hạn</span>
-                    <strong>{formatDate(invitation.expiredAt)}</strong>
-                  </div>
-                </div>
-              </div>
-
-              <aside className="jockey-invitation-side">
-                <div className="jockey-horse-pill">
-                  <span>Ngựa</span>
-                  <strong>{horse.horseName || horse.horseId || 'N/A'}</strong>
-                  <button className="table-button" type="button" onClick={() => openInvitationDetail(invitation)}>
-                    Xem thông tin
-                  </button>
-                </div>
-
                 <div className="jockey-status-pair">
                   <span className={`status-badge ${statusClass(invitation.status)}`}>{formatDisplayLabel(invitation.status)}</span>
-                  <span className={`status-badge ${statusClass(invitation.registrationStatus)}`}>{formatDisplayLabel(invitation.registrationStatus)}</span>
+                  {invitation.registrationStatus && (
+                    <span className={`status-badge ${statusClass(invitation.registrationStatus)}`}>
+                      Đăng ký: {formatDisplayLabel(invitation.registrationStatus)}
+                    </span>
+                  )}
                 </div>
+              </header>
 
+              {invitation.message && (
+                <div className="jockey-invitation-message compact">
+                  <span>Lời nhắn từ owner</span>
+                  <strong>{invitation.message}</strong>
+                </div>
+              )}
+
+              <dl className="jockey-invitation-summary-grid">
+                <div><dt>Ngựa</dt><dd>{horse.horseName || `#${horse.horseId}`}</dd></div>
+                <div><dt>Thời gian giải</dt><dd>{formatTournamentDateRange(invitation)}</dd></div>
+                <div><dt>Hạn phản hồi</dt><dd>{formatDate(invitation.expiredAt)}</dd></div>
+                {registrationDeadline && <div><dt>Hạn đăng ký</dt><dd>{formatDate(registrationDeadline)}</dd></div>}
+              </dl>
+
+              <footer className="jockey-invitation-card-footer">
+                <button className="outline-button" type="button" onClick={() => openInvitationDetail(invitation)}>
+                  Xem chi tiết
+                </button>
                 {isPending ? (
                   <div className="jockey-invitation-actions">
                     <button
+                      type="button"
+                      className="outline-button danger-action"
+                      onClick={() => requestInvitationDecision(invitation, 'decline')}
+                      disabled={actionId === invitationId}
+                    >
+                      Từ chối
+                    </button>
+                    <button
                       className="primary-button"
                       type="button"
-                      onClick={() => handleInvitationAction(invitation, 'accept')}
+                      onClick={() => requestInvitationDecision(invitation, 'accept')}
                       disabled={acceptDisabled}
                       title={!isProfileActive ? 'Hồ sơ chưa ở trạng thái ACTIVE nên không thể chấp nhận lời mời này.' : 'Chấp nhận lời mời'}
                     >
-                      Accept
-                    </button>
-                    <button type="button" className="outline-button danger-action" onClick={() => { setDeclineTarget(invitation); setDeclineReason(''); }} disabled={actionId === invitationId}>
-                      Decline
-                    </button>
-                    <button type="button" className="outline-button" onClick={() => openInvitationDetail(invitation)}>
-                      Message Owner
+                      {actionId === invitationId ? 'Đang xử lý...' : 'Chấp nhận'}
                     </button>
                   </div>
                 ) : (
-                  <span className="readonly-note">Đã xử lý</span>
+                  <span className="readonly-note">Lời mời đã được xử lý</span>
                 )}
-              </aside>
+              </footer>
             </article>
           );
         })}
@@ -1531,30 +1396,19 @@ function ApprovedJockeyDashboard({ currentUser, onLogout, onUserUpdated }) {
                 <h2>Lời mời đã nhận</h2>
                 <p>Jockey có thể xem thông tin ngựa, deadline đăng ký, rồi chấp nhận hoặc từ chối lời mời PENDING.</p>
               </div>
-              <div className="jockey-invitation-tabs" role="tablist" aria-label="Invitation status">
-                {INVITATION_TABS.map((tab) => (
-                  <button
-                    type="button"
-                    role="tab"
-                    aria-selected={statusFilter === tab.key}
-                    className={statusFilter === tab.key ? 'active' : ''}
-                    key={tab.key}
-                    onClick={() => setStatusFilter(tab.key)}
-                  >
-                    {tab.label}
-                    <span>{countByStatus(invitations, tab.key)}</span>
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  role="tab"
-                  aria-selected={statusFilter === 'ALL'}
-                  className={statusFilter === 'ALL' ? 'active' : ''}
-                  onClick={() => setStatusFilter('ALL')}
+              <div className="jockey-invitation-filter">
+                <label htmlFor="invitationStatusFilter">Trạng thái</label>
+                <select
+                  id="invitationStatusFilter"
+                  value={statusFilter}
+                  onChange={(event) => setStatusFilter(event.target.value)}
                 >
-                  All
-                  <span>{invitations.length}</span>
-                </button>
+                  {INVITATION_TABS.map((option) => (
+                    <option key={option.key} value={option.key}>
+                      {option.label} ({option.key === 'ALL' ? invitations.length : countByStatus(invitations, option.key)})
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
             {renderInvitationList()}
@@ -1566,46 +1420,38 @@ function ApprovedJockeyDashboard({ currentUser, onLogout, onUserUpdated }) {
         <WalletTransferPanel currentUser={currentUser} role="JOCKEY" />
       )}
 
-      {declineTarget && (
-        <div className="fixed inset-0 z-[1000] grid place-items-center bg-brown-900/60 p-4 backdrop-blur-sm" onClick={() => setDeclineTarget(null)}>
-          <form className="jockey-decline-modal" onSubmit={submitDeclineInvitation} onClick={(event) => event.stopPropagation()}>
-            <div className="owner-panel-header">
-              <div>
-                <p className="eyebrow">Decline invitation</p>
-                <h2>Từ chối lời mời</h2>
-                <p>{declineTarget.tournamentName || declineTarget.tournamentId || 'Invitation'}</p>
-              </div>
-              <button className="outline-button compact-button" type="button" onClick={() => setDeclineTarget(null)}>
-                Đóng
-              </button>
-            </div>
-            <label className="field-label" htmlFor="declineReason">Lý do từ chối</label>
-            <textarea
-              className="input textarea-input"
-              id="declineReason"
-              rows={4}
-              value={declineReason}
-              onChange={(event) => setDeclineReason(event.target.value)}
-              placeholder="Ví dụ: lịch thi đấu bị trùng, cần thêm thông tin về ngựa..."
-            />
-            <p className="field-help">Lý do này hiện được lưu ở giao diện sau khi từ chối; backend hiện tại chưa nhận thêm trường lý do.</p>
-            <div className="admin-form-actions">
-              <button className="outline-button" type="button" onClick={() => setDeclineTarget(null)}>Hủy</button>
-              <button className="primary-button danger-action" type="submit" disabled={actionId === getInvitationId(declineTarget)}>
-                {actionId === getInvitationId(declineTarget) ? 'Đang xử lý...' : 'Decline'}
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
       <InvitationDetailModal
         invitation={selectedInvitation}
         tournamentById={tournamentById}
         isLoading={isLoadingInvitationDetail}
         error={invitationDetailError}
+        canAccept={isProfileActive}
+        actionId={actionId}
+        onAccept={(invitation) => requestInvitationDecision(invitation, 'accept')}
+        onDecline={(invitation) => requestInvitationDecision(invitation, 'decline')}
         onClose={() => setSelectedInvitation(null)}
       />
+
+      <ConfirmModal
+        open={Boolean(invitationDecision)}
+        title={invitationDecision?.action === 'accept' ? 'Chấp nhận lời mời?' : 'Từ chối lời mời?'}
+        message={invitationDecision?.action === 'accept'
+          ? 'Sau khi chấp nhận, Owner có thể tạo đơn đăng ký giải và thanh toán lệ phí cho ngựa này.'
+          : 'Lời mời sẽ được đánh dấu đã từ chối và Owner phải chọn Jockey khác.'}
+        confirmLabel={invitationDecision?.action === 'accept' ? 'Chấp nhận' : 'Từ chối'}
+        cancelLabel="Quay lại"
+        variant={invitationDecision?.action === 'accept' ? 'primary' : 'danger'}
+        loading={Boolean(actionId)}
+        onCancel={() => !actionId && setInvitationDecision(null)}
+        onConfirm={confirmInvitationDecision}
+      >
+        <dl className="jockey-invitation-confirm-summary">
+          <div><dt>Giải đấu</dt><dd>{invitationDecision?.invitation?.tournamentName || 'Chưa cập nhật'}</dd></div>
+          <div><dt>Ngựa</dt><dd>{invitationDecision?.invitation?.horseName || 'Chưa cập nhật'}</dd></div>
+          <div><dt>Owner</dt><dd>{invitationDecision ? getOwnerName(invitationDecision.invitation) : ''}</dd></div>
+          <div><dt>Hạn phản hồi</dt><dd>{formatDate(invitationDecision?.invitation?.expiredAt)}</dd></div>
+        </dl>
+      </ConfirmModal>
     </AppShell>
   );
 }

@@ -33,6 +33,7 @@ function isOwnerSection(section) {
 
 function hasRegistrationPaymentReturn(params) {
   if (!params.has('vnp_TxnRef') && !params.has('vnp_SecureHash')) return false;
+  if (String(params.get('vnp_TxnRef') || '').toUpperCase().startsWith('REG-')) return true;
   try {
     return window.localStorage.getItem('owner_registration_payment_pending') === 'true';
   } catch {
