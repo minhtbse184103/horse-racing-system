@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, BadgeCheck, ExternalLink, Eye, RefreshCw, Search, ShieldCheck, XCircle } from 'lucide-react';
+import { BadgeCheck, ExternalLink, Eye, FileText, HeartPulse, RefreshCw, Search, ShieldCheck, X, XCircle } from 'lucide-react';
 import { approveHorse, getHorses, rejectHorse } from '../../../services/adminHorseReviewService';
 import { formatDate, getHorseId, getHorseName } from '../../../lib';
 
@@ -44,7 +44,7 @@ function StatCard({ label, value, tone }) {
 
 function InfoCard({ label, value, children }) {
   return (
-    <div className="rounded-2xl border border-brown-700/10 bg-white/70 p-4">
+    <div className="rounded-lg border border-brown-700/10 bg-white/80 p-4 shadow-[0_8px_20px_rgba(78,44,25,0.05)]">
       <span className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">{label}</span>
       <strong className="mt-1 block break-words text-brown-900">{children || displayValue(value)}</strong>
     </div>
@@ -56,7 +56,7 @@ function DocumentCard({ label, document }) {
   const isImage = String(document?.type || '').startsWith('image/') || /\.(jpg|jpeg|png|webp)(\?|$)/i.test(url);
 
   return (
-    <div className="rounded-2xl border border-brown-700/10 bg-white/70 p-4">
+    <div className="rounded-lg border border-brown-700/10 bg-white/80 p-4 shadow-[0_8px_20px_rgba(78,44,25,0.05)]">
       <span className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">{label}</span>
       {url ? (
         isImage ? (
@@ -132,8 +132,8 @@ function ConfirmModal({ horse, isLoading, onCancel, onConfirm }) {
 
 function EmptyState() {
   return (
-    <div className="rounded-[24px] border border-dashed border-brown-700/20 bg-white/60 p-8 text-center">
-      <div className="mx-auto grid size-12 place-items-center rounded-2xl bg-cream-200 text-brown-700">
+    <div className="rounded-lg border border-dashed border-brown-700/20 bg-white/70 p-8 text-center">
+      <div className="mx-auto grid size-12 place-items-center rounded-lg bg-cream-200 text-brown-700">
         <ShieldCheck size={22} />
       </div>
       <h3 className="mt-4 text-xl font-black text-brown-900">No horse submissions</h3>
@@ -250,117 +250,9 @@ export default function HorseReview() {
     loadHorses(nextStatus);
   }
 
-  if (selectedHorse) {
-    const documents = getDocuments(selectedHorse);
-    const officialUrl = String(selectedHorse.officialHorseProfileUrl || '').trim();
-    const pending = isPending(selectedHorse);
-
-    return (
-      <section className="space-y-6 text-brown-900">
-        <header className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div>
-            <p className="text-sm font-extrabold uppercase tracking-widest text-brown-500">Horse review detail</p>
-            <h1 className="mt-2 text-4xl font-black md:text-5xl">Horse #{displayValue(getHorseId(selectedHorse))}</h1>
-            <p className="mt-3 max-w-2xl font-medium text-slate-500">Compare the submitted horse details with official profile and health certificate documents.</p>
-          </div>
-          <button className="inline-flex items-center gap-2 rounded-lg border border-brown-700/15 bg-white px-4 py-3 font-extrabold text-brown-700 shadow-sm transition hover:bg-cream-100" type="button" onClick={() => setSelectedHorse(null)}>
-            <ArrowLeft size={17} />
-            Back to list
-          </button>
-        </header>
-
-        {error && <div className="admin-alert error" role="alert">{error}</div>}
-        {message && <div className="admin-alert success" role="status">{message}</div>}
-
-        <section className="rounded-lg border border-brown-700/10 bg-cream-100 p-5 shadow-[0_18px_45px_rgba(78,44,25,0.1)]">
-          <div className="flex flex-col gap-3 border-b border-brown-700/10 pb-4 md:flex-row md:items-start md:justify-between">
-            <div>
-              <span className="text-xs font-extrabold uppercase text-brown-500">Horse information</span>
-              <h2 className="mt-1 text-2xl font-black">{displayValue(getHorseName(selectedHorse))}</h2>
-              <p className="mt-2 font-medium text-slate-500">Submitted at {formatDate(selectedHorse.createdAt || selectedHorse.submittedAt)}</p>
-            </div>
-            <StatusBadge status={selectedHorse.status} />
-          </div>
-
-          <div className="mt-5 grid gap-4 md:grid-cols-2">
-            <InfoCard label="Horse name" value={getHorseName(selectedHorse)} />
-            <InfoCard label="Owner ID" value={selectedHorse.ownerId} />
-            <InfoCard label="Age" value={selectedHorse.age} />
-            <InfoCard label="Date of birth" value={formatDate(selectedHorse.dayOfBirth)} />
-            <InfoCard label="Weight" value={selectedHorse.weight ? `${selectedHorse.weight} kg` : ''} />
-            <InfoCard label="Colour" value={selectedHorse.colour} />
-            <InfoCard label="Sex" value={selectedHorse.sex} />
-            <InfoCard label="Breeding" value={selectedHorse.breeding} />
-            <InfoCard label="Trainer" value={selectedHorse.trainer} />
-            <InfoCard label="Health certificate expiry" value={formatDate(selectedHorse.healthCertificateExpiryDate || selectedHorse.healthCertExpiry)} />
-            <InfoCard label="Registration count" value={selectedHorse.registrationCount} />
-            <InfoCard label="Participated" value={selectedHorse.participated ? 'Yes' : 'No'} />
-          </div>
-
-          <div className="mt-6">
-            <h3 className="text-xl font-black text-brown-900">Official profile</h3>
-            <div className="mt-3 rounded-2xl border border-brown-700/10 bg-white/70 p-4">
-              <span className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">Official Horse Profile URL</span>
-              <strong className="mt-1 block break-words text-brown-900">{officialUrl || 'Not updated'}</strong>
-              {officialUrl && (
-                <a className="outline-button compact-button mt-3 inline-flex max-w-full break-all" href={officialUrl} target="_blank" rel="noreferrer">
-                  <ExternalLink size={16} />
-                  Open official website
-                </a>
-              )}
-            </div>
-          </div>
-
-          <div className="mt-6">
-            <h3 className="text-xl font-black text-brown-900">Health certificate</h3>
-            <div className="mt-3 grid gap-4 md:grid-cols-2">
-              {documents.length > 0 ? (
-                documents.map((document, index) => <DocumentCard document={document} label={`Health certificate ${index + 1}`} key={document.id || document.url || index} />)
-              ) : (
-                <InfoCard label="Health certificate" value="" />
-              )}
-            </div>
-          </div>
-
-          {selectedHorse.rejectionReason && (
-            <div className="mt-5 rounded-2xl border border-danger/20 bg-danger-bg p-4 font-bold text-danger">
-              Rejection reason: {selectedHorse.rejectionReason}
-            </div>
-          )}
-
-          {pending ? (
-            <div className="mt-6 flex flex-wrap gap-3 border-t border-brown-700/10 pt-5">
-              <button className="inline-flex items-center gap-2 rounded-lg bg-green-700 px-5 py-3 font-extrabold text-white shadow-sm transition hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50" type="button" onClick={() => setApproveTarget(selectedHorse)} disabled={isProcessing}>
-                <BadgeCheck size={18} />
-                Approve
-              </button>
-              <button className="outline-button danger-action inline-flex items-center gap-2" type="button" onClick={() => setRejectTarget(selectedHorse)} disabled={isProcessing}>
-                <XCircle size={18} />
-                Reject
-              </button>
-            </div>
-          ) : (
-            <div className="mt-6 border-t border-brown-700/10 pt-5">
-              <StatusBadge status={selectedHorse.status} />
-            </div>
-          )}
-        </section>
-
-        <ConfirmModal horse={approveTarget} isLoading={isProcessing} onCancel={() => setApproveTarget(null)} onConfirm={handleApprove} />
-        <RejectModal
-          horse={rejectTarget}
-          reason={rejectReason}
-          setReason={setRejectReason}
-          isLoading={isProcessing}
-          onCancel={() => {
-            setRejectTarget(null);
-            setRejectReason('');
-          }}
-          onConfirm={handleReject}
-        />
-      </section>
-    );
-  }
+  const selectedDocuments = selectedHorse ? getDocuments(selectedHorse) : [];
+  const selectedOfficialUrl = String(selectedHorse?.officialHorseProfileUrl || '').trim();
+  const selectedPending = selectedHorse ? isPending(selectedHorse) : false;
 
   return (
     <section className="space-y-6 text-brown-900">
@@ -466,6 +358,121 @@ export default function HorseReview() {
           </div>
         </div>
       </section>
+
+      {selectedHorse && (
+        <div className="fixed inset-0 z-[80] grid place-items-center bg-brown-900/60 p-4 backdrop-blur-sm" role="presentation" onMouseDown={() => setSelectedHorse(null)}>
+          <section
+            className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-lg border border-white/70 bg-cream-100 shadow-[0_32px_90px_rgba(43,23,16,0.46)]"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="horse-review-detail-title"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <header className="flex shrink-0 flex-col gap-4 border-b border-brown-700/10 bg-[linear-gradient(135deg,rgba(255,248,238,0.96),rgba(247,234,216,0.82))] px-5 py-5 md:flex-row md:items-start md:justify-between">
+              <div className="min-w-0">
+                <p className="text-xs font-extrabold uppercase tracking-widest text-brown-500">Horse review detail</p>
+                <h1 id="horse-review-detail-title" className="mt-2 truncate text-3xl font-black md:text-4xl">Horse #{displayValue(getHorseId(selectedHorse))}</h1>
+                <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-slate-500">Compare submitted horse details with official profile and health certificate documents.</p>
+              </div>
+              <button className="grid size-10 shrink-0 place-items-center rounded-lg border border-brown-700/10 bg-white text-brown-700 shadow-sm transition hover:bg-cream-200" type="button" onClick={() => setSelectedHorse(null)} aria-label="Close">
+                <X size={18} />
+              </button>
+            </header>
+
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
+              {error && <div className="admin-alert error" role="alert">{error}</div>}
+              {message && <div className="admin-alert success" role="status">{message}</div>}
+
+              <section className="overflow-hidden rounded-lg border border-white/80 bg-white/70 shadow-[0_18px_45px_rgba(78,44,25,0.1)]">
+                <div className="flex flex-col gap-3 border-b border-brown-700/10 md:flex-row md:items-start md:justify-between">
+                  <div className="px-5 py-5">
+                    <span className="text-xs font-extrabold uppercase text-brown-500">Horse information</span>
+                    <h2 className="mt-1 text-2xl font-black">{displayValue(getHorseName(selectedHorse))}</h2>
+                    <p className="mt-2 font-medium text-slate-500">Submitted at {formatDate(selectedHorse.createdAt || selectedHorse.submittedAt)}</p>
+                  </div>
+                  <div className="px-5 py-5"><StatusBadge status={selectedHorse.status} /></div>
+                </div>
+
+                <div className="grid gap-4 px-5 py-5 md:grid-cols-2">
+                  <InfoCard label="Horse name" value={getHorseName(selectedHorse)} />
+                  <InfoCard label="Owner ID" value={selectedHorse.ownerId} />
+                  <InfoCard label="Age" value={selectedHorse.age} />
+                  <InfoCard label="Date of birth" value={formatDate(selectedHorse.dayOfBirth)} />
+                  <InfoCard label="Weight" value={selectedHorse.weight ? `${selectedHorse.weight} kg` : ''} />
+                  <InfoCard label="Colour" value={selectedHorse.colour} />
+                  <InfoCard label="Sex" value={selectedHorse.sex} />
+                  <InfoCard label="Breeding" value={selectedHorse.breeding} />
+                  <InfoCard label="Trainer" value={selectedHorse.trainer} />
+                  <InfoCard label="Health certificate expiry" value={formatDate(selectedHorse.healthCertificateExpiryDate || selectedHorse.healthCertExpiry)} />
+                  <InfoCard label="Registration count" value={selectedHorse.registrationCount} />
+                  <InfoCard label="Participated" value={selectedHorse.participated ? 'Yes' : 'No'} />
+                </div>
+
+                <div className="border-t border-brown-700/10 px-5 py-5">
+                  <h3 className="flex items-center gap-2 text-xl font-black text-brown-900"><FileText size={19} /> Official profile</h3>
+                  <div className="mt-3 rounded-lg border border-brown-700/10 bg-white/80 p-4 shadow-[0_8px_20px_rgba(78,44,25,0.05)]">
+                    <span className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">Official Horse Profile URL</span>
+                    <strong className="mt-1 block break-words text-brown-900">{selectedOfficialUrl || 'Not updated'}</strong>
+                    {selectedOfficialUrl && (
+                      <a className="outline-button compact-button mt-3 inline-flex max-w-full break-all" href={selectedOfficialUrl} target="_blank" rel="noreferrer">
+                        <ExternalLink size={16} />
+                        Open official website
+                      </a>
+                    )}
+                  </div>
+                </div>
+
+                <div className="border-t border-brown-700/10 px-5 py-5">
+                  <h3 className="flex items-center gap-2 text-xl font-black text-brown-900"><HeartPulse size={19} /> Health certificate</h3>
+                  <div className="mt-3 grid gap-4 md:grid-cols-2">
+                    {selectedDocuments.length > 0 ? (
+                      selectedDocuments.map((document, index) => <DocumentCard document={document} label={`Health certificate ${index + 1}`} key={document.id || document.url || index} />)
+                    ) : (
+                      <InfoCard label="Health certificate" value="" />
+                    )}
+                  </div>
+                </div>
+
+                {selectedHorse.rejectionReason && (
+                  <div className="mx-5 mb-5 rounded-lg border border-danger/20 bg-danger-bg p-4 font-bold text-danger">
+                    Rejection reason: {selectedHorse.rejectionReason}
+                  </div>
+                )}
+
+                {selectedPending ? (
+                  <div className="flex flex-wrap gap-3 border-t border-brown-700/10 bg-white/70 px-5 py-4">
+                    <button className="inline-flex items-center gap-2 rounded-lg bg-green-700 px-5 py-3 font-extrabold text-white shadow-sm transition hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50" type="button" onClick={() => setApproveTarget(selectedHorse)} disabled={isProcessing}>
+                      <BadgeCheck size={18} />
+                      Approve
+                    </button>
+                    <button className="outline-button danger-action inline-flex items-center gap-2" type="button" onClick={() => setRejectTarget(selectedHorse)} disabled={isProcessing}>
+                      <XCircle size={18} />
+                      Reject
+                    </button>
+                  </div>
+                ) : (
+                  <div className="border-t border-brown-700/10 bg-white/70 px-5 py-4">
+                    <StatusBadge status={selectedHorse.status} />
+                  </div>
+                )}
+              </section>
+            </div>
+          </section>
+        </div>
+      )}
+
+      <ConfirmModal horse={approveTarget} isLoading={isProcessing} onCancel={() => setApproveTarget(null)} onConfirm={handleApprove} />
+      <RejectModal
+        horse={rejectTarget}
+        reason={rejectReason}
+        setReason={setRejectReason}
+        isLoading={isProcessing}
+        onCancel={() => {
+          setRejectTarget(null);
+          setRejectReason('');
+        }}
+        onConfirm={handleReject}
+      />
     </section>
   );
 }

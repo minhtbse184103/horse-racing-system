@@ -1,36 +1,38 @@
 import StatCard from '../common/StatCard';
+import { useLanguage } from '../../context/LanguageContext';
 
 export default function OwnerOverview({ dashboard, horses, onGoHorses, onGoInvitations, onGoProfile }) {
+  const { t } = useLanguage();
   const registeredHorses = horses.filter((horse) => Number(horse.registrationCount || 0) > 0).length;
   const participatedHorses = horses.filter((horse) => horse.participated).length;
 
   return (
     <section className="owner-stack">
       <section className="owner-stats-grid">
-        <StatCard label="Tổng số ngựa" value={dashboard?.totalHorses ?? horses.length} description="Hồ sơ ngựa bạn đang quản lý" highlight />
-        <StatCard label="Đơn đăng ký" value={dashboard?.totalRegistrations ?? 0} description="Tổng số đơn đăng ký thi đấu đã ghi nhận" />
-        <StatCard label="Registered Horses" value={dashboard?.registeredHorses ?? registeredHorses} description="Ngựa đã có đăng ký thi đấu" />
-        <StatCard label="Participated" value={dashboard?.participatedHorses ?? participatedHorses} description="Ngựa đã tham gia thi đấu" />
+        <StatCard label={t('ownerOverviewTotalHorses')} value={dashboard?.totalHorses ?? horses.length} description={t('ownerOverviewTotalHorsesDesc')} highlight />
+        <StatCard label={t('ownerOverviewRegistrations')} value={dashboard?.totalRegistrations ?? 0} description={t('ownerOverviewRegistrationsDesc')} />
+        <StatCard label={t('ownerOverviewRegisteredHorses')} value={dashboard?.registeredHorses ?? registeredHorses} description={t('ownerOverviewRegisteredHorsesDesc')} />
+        <StatCard label={t('ownerOverviewParticipated')} value={dashboard?.participatedHorses ?? participatedHorses} description={t('ownerOverviewParticipatedDesc')} />
       </section>
 
       <section className="owner-overview-grid">
         <div className="owner-panel hero-owner-panel">
           <div>
-            <p className="eyebrow">Không gian owner</p>
-            <h2>Quản lý chuồng ngựa</h2>
+            <p className="eyebrow">{t('ownerOverviewSpace')}</p>
+            <h2>{t('ownerOverviewManageStable')}</h2>
             <p>
-              Track horse totals, registration status, and race history. New horse profiles are submitted as PENDING until admin approval.
+              {t('ownerOverviewHeroDesc')}
             </p>
           </div>
           <div className="owner-shortcut-actions">
             <button className="primary-button owner-hero-action" type="button" onClick={onGoHorses}>
-              Manage Horses
+              {t('ownerOverviewManageHorses')}
             </button>
             <button className="outline-button owner-hero-action" type="button" onClick={onGoInvitations}>
-              Invitations / Registrations
+              {t('ownerOverviewInvitations')}
             </button>
             <button className="outline-button owner-hero-action" type="button" onClick={onGoProfile}>
-              Owner Profile
+              {t('ownerOverviewProfile')}
             </button>
           </div>
         </div>
@@ -38,18 +40,18 @@ export default function OwnerOverview({ dashboard, horses, onGoHorses, onGoInvit
         <div className="owner-panel compact-panel">
           <div className="owner-panel-header">
             <div>
-              <p className="eyebrow">Trạng thái nhanh</p>
-              <h2>Mức độ sẵn sàng của ngựa</h2>
-              <p>Dựa trên danh sách ngựa hiện tại.</p>
+              <p className="eyebrow">{t('ownerOverviewQuickStatus')}</p>
+              <h2>{t('ownerOverviewHorseReadiness')}</h2>
+              <p>{t('ownerOverviewHorseReadinessDesc')}</p>
             </div>
           </div>
           <div className="owner-mini-list">
             <div>
-              <span>Đã có đăng ký</span>
+              <span>{t('ownerOverviewRegisteredHorses')}</span>
               <strong>{registeredHorses}</strong>
             </div>
             <div>
-              <span>Đã tham gia</span>
+              <span>{t('ownerOverviewParticipated')}</span>
               <strong>{participatedHorses}</strong>
             </div>
           </div>

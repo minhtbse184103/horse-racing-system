@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowLeft, CheckCircle2, Eye, RefreshCw, Search, XCircle } from 'lucide-react';
+import { CheckCircle2, Eye, FileText, Landmark, RefreshCw, Search, ShieldCheck, X, XCircle } from 'lucide-react';
 import { formatDate } from '../../../lib';
 import { useLanguage } from '../../../context/LanguageContext';
 import {
@@ -59,8 +59,8 @@ function RejectModal({ reason, setReason, isLoading, onCancel, onConfirm, t }) {
 
 function EmptyState({ t }) {
   return (
-    <div className="rounded-[24px] border border-dashed border-brown-700/20 bg-white/60 p-8 text-center">
-      <div className="mx-auto grid size-12 place-items-center rounded-2xl bg-cream-200 text-2xl">📄</div>
+    <div className="rounded-lg border border-dashed border-brown-700/20 bg-white/70 p-8 text-center">
+      <div className="mx-auto grid size-12 place-items-center rounded-lg bg-cream-200 text-brown-700"><FileText size={22} /></div>
       <h3 className="mt-4 text-xl font-black text-brown-900">{t('noOwnerApplications')}</h3>
       <p className="mx-auto mt-2 max-w-xl font-medium text-slate-500">{t('noOwnerApplicationsHint')}</p>
     </div>
@@ -69,7 +69,7 @@ function EmptyState({ t }) {
 
 function InfoCard({ label, value }) {
   return (
-    <div className="rounded-2xl border border-brown-700/10 bg-white/70 p-4">
+    <div className="rounded-lg border border-brown-700/10 bg-white/80 p-4 shadow-[0_8px_20px_rgba(78,44,25,0.05)]">
       <span className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">{label}</span>
       <strong className="mt-1 block break-words text-brown-900">{value || 'Not updated'}</strong>
     </div>
@@ -78,7 +78,7 @@ function InfoCard({ label, value }) {
 
 function DocumentCard({ label, url }) {
   return (
-    <div className="rounded-2xl border border-brown-700/10 bg-white/70 p-4">
+    <div className="rounded-lg border border-brown-700/10 bg-white/80 p-4 shadow-[0_8px_20px_rgba(78,44,25,0.05)]">
       <span className="block text-xs font-extrabold uppercase tracking-wide text-slate-500">{label}</span>
       {url ? (
         <a className="outline-button compact-button mt-3 inline-flex" href={url} target="_blank" rel="noreferrer">
@@ -152,6 +152,7 @@ export default function OwnerApplicationManagement() {
   const pendingCount = applications.filter((application) => application.status === 'PENDING').length;
   const approvedCount = applications.filter((application) => application.status === 'APPROVED').length;
   const rejectedCount = applications.filter((application) => application.status === 'REJECTED').length;
+  const selectedCanAct = selectedApplication?.status === 'PENDING';
 
   async function handleViewDetails(applicationId) {
     setIsActionLoading(true);
@@ -207,128 +208,6 @@ export default function OwnerApplicationManagement() {
     } finally {
       setIsActionLoading(false);
     }
-  }
-
-  if (selectedApplication) {
-    const canAct = selectedApplication.status === 'PENDING';
-    const canApprove = canAct;
-
-    return (
-      <section className="space-y-6 text-brown-900">
-        <header className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-          <div>
-            <p className="text-sm font-extrabold uppercase tracking-widest text-brown-500">{t('ownerApplicationDetail')}</p>
-            <h1 className="mt-2 text-4xl font-black md:text-5xl">{t('applicationNumber', { id: selectedApplication.applicationID })}</h1>
-            <p className="mt-3 max-w-2xl font-medium text-slate-500">{t('reviewOwnerApplication')}</p>
-          </div>
-          <button className="inline-flex items-center gap-2 rounded-lg border border-brown-700/15 bg-white px-4 py-3 font-extrabold text-brown-700 shadow-sm transition hover:bg-cream-100" type="button" onClick={() => setSelectedApplication(null)}>
-            <ArrowLeft size={17} />
-            {t('backToList')}
-          </button>
-        </header>
-
-        {error && <div className="admin-alert error" role="alert">{error}</div>}
-        {message && <div className="admin-alert success" role="status">{message}</div>}
-
-        <section className="rounded-lg border border-brown-700/10 bg-cream-100 p-5 shadow-[0_18px_45px_rgba(78,44,25,0.1)]">
-          <div className="flex flex-col gap-3 border-b border-brown-700/10 pb-4 md:flex-row md:items-start md:justify-between">
-            <div>
-              <span className="text-xs font-extrabold uppercase text-brown-500">{t('personalInformation')}</span>
-              <h2 className="mt-1 text-2xl font-black">{selectedApplication.fullName}</h2>
-              <p className="mt-2 font-medium text-slate-500">{t('submittedDate', { date: formatDate(selectedApplication.submittedAt) })}</p>
-            </div>
-            <StatusBadge status={selectedApplication.status} t={t} />
-          </div>
-
-          <div className="mt-5 grid gap-4 md:grid-cols-2">
-            <InfoCard label={t('email')} value={selectedApplication.applicantEmail} />
-            <InfoCard label={t('phone')} value={selectedApplication.applicantPhone} />
-          </div>
-
-          <div className="mt-6">
-            <h3 className="text-xl font-black text-brown-900">Stable Information</h3>
-            <div className="mt-3 grid gap-4 md:grid-cols-2">
-              <InfoCard label="Stable Name" value={selectedApplication.stableName} />
-              <InfoCard label="Stable Address" value={selectedApplication.stableAddress} />
-              <DocumentCard label="Stable Certificate" url={selectedApplication.stableCertificateUrl} />
-            </div>
-          </div>
-
-          <div className="mt-6">
-            <h3 className="text-xl font-black text-brown-900">Horse Ownership Proof</h3>
-            <div className="mt-3 grid gap-4 md:grid-cols-2">
-              <InfoCard label="Total Horses Owned" value={selectedApplication.totalHorsesOwned} />
-              <DocumentCard label="Horse Ownership Proof" url={selectedApplication.horseOwnershipProofUrl} />
-            </div>
-          </div>
-
-          <div className="mt-6">
-            <h3 className="text-xl font-black text-brown-900">Application Information</h3>
-            <div className="mt-3 grid gap-4 md:grid-cols-2">
-              <InfoCard label="Status" value={selectedApplication.status} />
-              <InfoCard label="Submitted At" value={formatDate(selectedApplication.submittedAt)} />
-              <InfoCard label="Reviewed At" value={formatDate(selectedApplication.reviewedAt)} />
-              <InfoCard label="Reviewed By" value={selectedApplication.reviewedBy} />
-            </div>
-          </div>
-
-          {selectedApplication.rejectReason && (
-            <div className="mt-5 rounded-2xl border border-danger/20 bg-danger-bg p-4 font-bold text-danger">
-              {t('rejectReason')}: {selectedApplication.rejectReason}
-            </div>
-          )}
-
-          {canAct ? (
-            <div className="mt-6 flex flex-wrap gap-3 border-t border-brown-700/10 pt-5">
-              <button
-                className="inline-flex items-center gap-2 rounded-lg bg-green-700 px-5 py-3 font-extrabold text-white shadow-sm transition hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50"
-                type="button"
-                onClick={() => setApproveTarget(selectedApplication)}
-                disabled={isActionLoading || !canApprove}
-                title="Approve owner application"
-              >
-                <CheckCircle2 size={18} />
-                {t('approve')}
-              </button>
-              <button className="outline-button danger-action inline-flex items-center gap-2" type="button" onClick={() => setRejectTarget(selectedApplication)} disabled={isActionLoading}>
-                <XCircle size={18} />
-                {t('reject')}
-              </button>
-            </div>
-          ) : (
-            <div className="mt-6 border-t border-brown-700/10 pt-5">
-              <StatusBadge status={selectedApplication.status} t={t} />
-            </div>
-          )}
-        </section>
-
-        {approveTarget && (
-          <ConfirmModal
-            title={t('approveOwnerApplication')}
-            message="Approve this owner application and grant the Owner role?"
-            confirmLabel={t('approve')}
-            isLoading={isActionLoading}
-            onCancel={() => setApproveTarget(null)}
-            onConfirm={handleApprove}
-            t={t}
-          />
-        )}
-
-        {rejectTarget && (
-          <RejectModal
-            reason={rejectReason}
-            setReason={setRejectReason}
-            isLoading={isActionLoading}
-            onCancel={() => {
-              setRejectTarget(null);
-              setRejectReason('');
-            }}
-            onConfirm={handleReject}
-            t={t}
-          />
-        )}
-      </section>
-    );
   }
 
   return (
@@ -407,6 +286,132 @@ export default function OwnerApplicationManagement() {
           </div>
         </div>
       </section>
+
+      {selectedApplication && (
+        <div className="fixed inset-0 z-[80] grid place-items-center bg-brown-900/60 p-4 backdrop-blur-sm" role="presentation" onMouseDown={() => setSelectedApplication(null)}>
+          <section
+            className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-lg border border-white/70 bg-cream-100 shadow-[0_32px_90px_rgba(43,23,16,0.46)]"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="owner-application-detail-title"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <header className="flex shrink-0 flex-col gap-4 border-b border-brown-700/10 bg-[linear-gradient(135deg,rgba(255,248,238,0.96),rgba(247,234,216,0.82))] px-5 py-5 md:flex-row md:items-start md:justify-between">
+              <div className="min-w-0">
+                <p className="text-xs font-extrabold uppercase tracking-widest text-brown-500">{t('ownerApplicationDetail')}</p>
+                <h1 id="owner-application-detail-title" className="mt-2 truncate text-3xl font-black md:text-4xl">{t('applicationNumber', { id: selectedApplication.applicationID })}</h1>
+                <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-slate-500">{t('reviewOwnerApplication')}</p>
+              </div>
+              <button className="grid size-10 shrink-0 place-items-center rounded-lg border border-brown-700/10 bg-white text-brown-700 shadow-sm transition hover:bg-cream-200" type="button" onClick={() => setSelectedApplication(null)} aria-label={t('eventCommonClose')}>
+                <X size={18} />
+              </button>
+            </header>
+
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
+              {error && <div className="admin-alert error" role="alert">{error}</div>}
+              {message && <div className="admin-alert success" role="status">{message}</div>}
+
+              <section className="overflow-hidden rounded-lg border border-white/80 bg-white/70 shadow-[0_18px_45px_rgba(78,44,25,0.1)]">
+                <div className="flex flex-col gap-3 border-b border-brown-700/10 md:flex-row md:items-start md:justify-between">
+                  <div className="px-5 py-5">
+                    <span className="text-xs font-extrabold uppercase text-brown-500">{t('personalInformation')}</span>
+                    <h2 className="mt-1 text-2xl font-black">{selectedApplication.fullName}</h2>
+                    <p className="mt-2 font-medium text-slate-500">{t('submittedDate', { date: formatDate(selectedApplication.submittedAt) })}</p>
+                  </div>
+                  <div className="px-5 py-5"><StatusBadge status={selectedApplication.status} t={t} /></div>
+                </div>
+
+                <div className="grid gap-4 px-5 py-5 md:grid-cols-2">
+                  <InfoCard label={t('email')} value={selectedApplication.applicantEmail} />
+                  <InfoCard label={t('phone')} value={selectedApplication.applicantPhone} />
+                </div>
+
+                <div className="border-t border-brown-700/10 px-5 py-5">
+                  <h3 className="flex items-center gap-2 text-xl font-black text-brown-900"><Landmark size={19} /> Stable Information</h3>
+                  <div className="mt-3 grid gap-4 md:grid-cols-2">
+                    <InfoCard label="Stable Name" value={selectedApplication.stableName} />
+                    <InfoCard label="Stable Address" value={selectedApplication.stableAddress} />
+                    <DocumentCard label="Stable Certificate" url={selectedApplication.stableCertificateUrl} />
+                  </div>
+                </div>
+
+                <div className="border-t border-brown-700/10 px-5 py-5">
+                  <h3 className="flex items-center gap-2 text-xl font-black text-brown-900"><ShieldCheck size={19} /> Horse Ownership Proof</h3>
+                  <div className="mt-3 grid gap-4 md:grid-cols-2">
+                    <InfoCard label="Total Horses Owned" value={selectedApplication.totalHorsesOwned} />
+                    <DocumentCard label="Horse Ownership Proof" url={selectedApplication.horseOwnershipProofUrl} />
+                  </div>
+                </div>
+
+                <div className="border-t border-brown-700/10 px-5 py-5">
+                  <h3 className="flex items-center gap-2 text-xl font-black text-brown-900"><FileText size={19} /> Application Information</h3>
+                  <div className="mt-3 grid gap-4 md:grid-cols-2">
+                    <InfoCard label="Status" value={selectedApplication.status} />
+                    <InfoCard label="Submitted At" value={formatDate(selectedApplication.submittedAt)} />
+                    <InfoCard label="Reviewed At" value={formatDate(selectedApplication.reviewedAt)} />
+                    <InfoCard label="Reviewed By" value={selectedApplication.reviewedBy} />
+                  </div>
+                </div>
+
+                {selectedApplication.rejectReason && (
+                  <div className="mx-5 mb-5 rounded-lg border border-danger/20 bg-danger-bg p-4 font-bold text-danger">
+                    {t('rejectReason')}: {selectedApplication.rejectReason}
+                  </div>
+                )}
+
+                {selectedCanAct ? (
+                  <div className="flex flex-wrap gap-3 border-t border-brown-700/10 bg-white/70 px-5 py-4">
+                    <button
+                      className="inline-flex items-center gap-2 rounded-lg bg-green-700 px-5 py-3 font-extrabold text-white shadow-sm transition hover:bg-green-800 disabled:cursor-not-allowed disabled:opacity-50"
+                      type="button"
+                      onClick={() => setApproveTarget(selectedApplication)}
+                      disabled={isActionLoading}
+                      title="Approve owner application"
+                    >
+                      <CheckCircle2 size={18} />
+                      {t('approve')}
+                    </button>
+                    <button className="outline-button danger-action inline-flex items-center gap-2" type="button" onClick={() => setRejectTarget(selectedApplication)} disabled={isActionLoading}>
+                      <XCircle size={18} />
+                      {t('reject')}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="border-t border-brown-700/10 bg-white/70 px-5 py-4">
+                    <StatusBadge status={selectedApplication.status} t={t} />
+                  </div>
+                )}
+              </section>
+            </div>
+          </section>
+        </div>
+      )}
+
+      {approveTarget && (
+        <ConfirmModal
+          title={t('approveOwnerApplication')}
+          message="Approve this owner application and grant the Owner role?"
+          confirmLabel={t('approve')}
+          isLoading={isActionLoading}
+          onCancel={() => setApproveTarget(null)}
+          onConfirm={handleApprove}
+          t={t}
+        />
+      )}
+
+      {rejectTarget && (
+        <RejectModal
+          reason={rejectReason}
+          setReason={setRejectReason}
+          isLoading={isActionLoading}
+          onCancel={() => {
+            setRejectTarget(null);
+            setRejectReason('');
+          }}
+          onConfirm={handleReject}
+          t={t}
+        />
+      )}
     </section>
   );
 }
