@@ -34,6 +34,7 @@ public class WalletService {
 
     private static final String VND = "VND";
     private static final String SPECTATOR = "SPECTATOR";
+    private static final BigDecimal MIN_DEPOSIT_AMOUNT = new BigDecimal("10000.00");
 
     private final UserRepository userRepository;
     private final WalletRepository walletRepository;
@@ -204,10 +205,10 @@ public class WalletService {
     }
 
     private BigDecimal normalizeAmount(BigDecimal amount) {
-        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+        if (amount == null || amount.compareTo(MIN_DEPOSIT_AMOUNT) < 0) {
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
-                    "Số tiền nạp phải lớn hơn 0."
+                    "Wallet deposit amount must be at least 10,000 VND."
             );
         }
         return amount.setScale(2, RoundingMode.HALF_UP);

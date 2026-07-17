@@ -99,6 +99,7 @@ const MESSAGE_TRANSLATIONS = {
   'KYC must be verified before betting.': 'KYC phải được duyệt trước khi đặt cược.',
   'Player must be at least 21 years old to bet.': 'Người chơi phải từ 21 tuổi trở lên để đặt cược.',
   'Wallet balance is not enough for this bet.': 'Số dư ví không đủ để đặt cược.',
+  'Wallet deposit amount must be at least 10,000 VND.': 'Số tiền nạp tối thiểu là 10.000 VND.',
   'Stake exceeds the daily betting limit for this product.': 'Số tiền cược vượt giới hạn ngày của sản phẩm này.',
   'Betting event is not open.': 'Event cược chưa mở nhận cược.',
   'Betting event is outside its receiving window.': 'Event cược đang ngoài thời gian nhận cược.',

@@ -7,6 +7,7 @@ import { createWalletDeposit, getMyWallet } from '../../services/walletService';
 import { createKycSession, getMyKyc } from '../../services/kycService';
 
 const ALLOWED_ROLES = new Set(['SPECTATOR']);
+const MIN_TOP_UP_AMOUNT = 10000;
 const QUICK_AMOUNTS = [100000, 200000, 500000, 1000000];
 function formatVnd(value) {
   const number = Number(value || 0);
@@ -34,7 +35,7 @@ export default function WalletTransferPanel({ currentUser, role: roleOverride })
   const [startingKyc, setStartingKyc] = useState(false);
 
   const amountValue = useMemo(() => normalizeAmount(amount), [amount]);
-  const canSubmit = ALLOWED_ROLES.has(role) && amountValue > 0 && !submitting;
+  const canSubmit = ALLOWED_ROLES.has(role) && amountValue >= MIN_TOP_UP_AMOUNT && !submitting;
 
   async function loadWallet() {
     if (!ALLOWED_ROLES.has(role)) return;
@@ -162,6 +163,11 @@ export default function WalletTransferPanel({ currentUser, role: roleOverride })
 
     if (amountValue <= 0) {
       setError(t('walletAmountGreaterThanZero'));
+      return;
+    }
+
+    if (amountValue < MIN_TOP_UP_AMOUNT) {
+      setError(t('walletMinimumTopUpAmount'));
       return;
     }
 
@@ -309,7 +315,7 @@ export default function WalletTransferPanel({ currentUser, role: roleOverride })
                 <input
                   id="wallet-transfer-amount"
                   className="min-w-0 flex-1 bg-transparent py-3 text-lg font-black text-brown-900 outline-none"
-                  min="1000"
+                  min={MIN_TOP_UP_AMOUNT}
                   step="1000"
                   type="number"
                   value={amount}

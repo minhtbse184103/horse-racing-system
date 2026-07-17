@@ -12,6 +12,6 @@ public class WalletDepositRequest {
 
     @Schema(example = "100000")
     @NotNull(message = "Số tiền nạp là bắt buộc.")
-    @DecimalMin(value = "1000.00", message = "Số tiền nạp tối thiểu là 1,000 VND.")
+    @DecimalMin(value = "10000.00", message = "Wallet deposit amount must be at least 10,000 VND.")
     private BigDecimal amount;
 }

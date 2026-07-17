@@ -55,6 +55,7 @@ public class VnpayPaymentService {
     private static final String VNPAY_LOCALE = "vn";
     private static final String VNPAY_SUCCESS_CODE = "00";
     private static final String SPECTATOR = "SPECTATOR";
+    private static final BigDecimal MIN_WALLET_DEPOSIT_AMOUNT = new BigDecimal("10000.00");
     private static final DateTimeFormatter VNPAY_DATE_FORMAT =
             DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
 
@@ -126,10 +127,10 @@ public class VnpayPaymentService {
     ) {
         // Kiểm tra ví thuộc spectator hợp lệ trước khi tạo thanh toán nạp ví.
         validateSpectatorWalletOwner(wallet);
-        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+        if (amount == null || amount.compareTo(MIN_WALLET_DEPOSIT_AMOUNT) < 0) {
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
-                    "Wallet deposit amount must be greater than zero."
+                    "Wallet deposit amount must be at least 10,000 VND."
             );
         }
         if (!WalletStatus.ACTIVE.equals(wallet.getStatus())) {
