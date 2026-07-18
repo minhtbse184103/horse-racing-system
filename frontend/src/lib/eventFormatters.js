@@ -15,7 +15,7 @@ const vndNumberFormatter = new Intl.NumberFormat('vi-VN', {
 
 export function formatVndCurrency(value) {
   const amount = Number(value);
-  return `${vndNumberFormatter.format(Number.isFinite(amount) ? amount : 0)} ₫`;
+  return `${vndNumberFormatter.format(Number.isFinite(amount) ? amount : 0)} VND`;
 }
 
 export function formatRaceSchedule(race) {

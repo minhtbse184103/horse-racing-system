@@ -1,6 +1,6 @@
 export function formatNumber(value) {
     const number = Number(value || 0);
-    return Number.isFinite(number) ? number.toLocaleString('en-US') : '0';
+    return Number.isFinite(number) ? number.toLocaleString('vi-VN') : '0';
 }
 
 export function formatDate(value) {

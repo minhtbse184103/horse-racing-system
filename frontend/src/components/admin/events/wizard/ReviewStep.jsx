@@ -22,7 +22,7 @@ export default function ReviewStep({ draft, prizeTotal }) {
               <WizardSummaryItem icon={Trophy} label={t('eventDomainTournament')} value={draft.name || t('eventWizardNotProvided')} />
               <WizardSummaryItem icon={MapPin} label={t('eventWizardLocation')} value={draft.venue || t('eventWizardNotProvided')} />
               <WizardSummaryItem icon={CalendarDays} label={t('eventDomainTournament')} value={`${draft.start || t('eventWizardNotDefined')} - ${draft.end || t('eventWizardNotDefined')}`} />
-              <WizardSummaryItem icon={CircleDollarSign} label={t('eventWizardRacePrizeTotal')} value={`VND ${prizeTotal.toLocaleString()}`} />
+              <WizardSummaryItem icon={CircleDollarSign} label={t('eventWizardRacePrizeTotal')} value={formatVndCurrency(prizeTotal)} />
               <WizardSummaryItem icon={CheckCircle2} label={t('eventWorkspaceInitialStatus')} value={t('eventStatus_OPEN_FOR_REGISTRATION')} />
             </div>
 
@@ -33,7 +33,7 @@ export default function ReviewStep({ draft, prizeTotal }) {
                   <div key={race.id} className="grid gap-3 py-3 first:pt-0 last:pb-0 sm:grid-cols-[2rem_minmax(0,1fr)_auto] sm:items-center">
                     <span className="grid size-8 place-items-center rounded-lg bg-brown-900 text-xs font-black text-white">{index + 1}</span>
                     <div><p className="font-black text-brown-900">{race.name}</p><p className="mt-0.5 text-xs font-semibold text-slate-500">{race.track} · {formatRaceSchedule(race)} · {race.distance}m · {race.maxRunners} {t('eventDomainRaceEntry')}</p><p className="mt-1 text-xs font-semibold text-slate-500">{t('eventWizardEntryFinalizeTime')}: {race.entryFinalizationScheduledAt || t('eventWizardNotDefined')}</p><p className="mt-1 text-[0.68rem] font-extrabold uppercase text-emerald-700">{t(`eventStatus_${race.status}`) || race.status}</p></div>
-                    <div className="text-left sm:text-right"><p className="text-sm font-black text-brown-900">VND {race.prizes.reduce((sum, prize) => sum + Number(prize.amount || 0), 0).toLocaleString()}</p><p className="text-xs font-semibold text-slate-500">{t('eventWizardPrizeSplitConfigured', { count: race.prizes.length })}</p></div>
+                    <div className="text-left sm:text-right"><p className="text-sm font-black text-brown-900">{formatVndCurrency(race.prizes.reduce((sum, prize) => sum + Number(prize.amount || 0), 0))}</p><p className="text-xs font-semibold text-slate-500">{t('eventWizardPrizeSplitConfigured', { count: race.prizes.length })}</p></div>
                   </div>
                 ))}
                 {draft.races.length === 0 && <p className="py-6 text-center text-sm font-semibold text-slate-500">{t('eventWizardNoRaceTitle')}</p>}

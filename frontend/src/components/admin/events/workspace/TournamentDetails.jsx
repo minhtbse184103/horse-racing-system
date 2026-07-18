@@ -42,7 +42,7 @@ export default function TournamentDetails({
             <div><dt className="text-xs font-extrabold text-slate-500">{t('eventDomainRegistration')}</dt><dd className="mt-1 font-black text-brown-900">{formatTournamentDate(tournament.registrationOpen)} - {formatTournamentDate(tournament.registrationClose)}</dd></div>
             <div><dt className="text-xs font-extrabold text-slate-500">{t('eventDomainTournament')}</dt><dd className="mt-1 font-black text-brown-900">{formatTournamentDate(tournament.start)} - {formatTournamentDate(tournament.end)}</dd></div>
             <div><dt className="text-xs font-extrabold text-slate-500">{t('eventWizardEntryFee')}</dt><dd className="mt-1 font-black text-brown-900">{formatVndCurrency(tournament.entryFee)}</dd></div>
-            <div><dt className="text-xs font-extrabold text-slate-500">{t('eventWorkspaceTotalPrize')}</dt><dd className="mt-1 font-black text-brown-900">VND {getTournamentPrizeTotal(tournament).toLocaleString()}</dd></div>
+            <div><dt className="text-xs font-extrabold text-slate-500">{t('eventWorkspaceTotalPrize')}</dt><dd className="mt-1 font-black text-brown-900">{formatVndCurrency(getTournamentPrizeTotal(tournament))}</dd></div>
           </dl>
         </section>
         <section className="rounded-lg border border-brown-700/10 bg-white/75 p-4">
