@@ -32,18 +32,21 @@ import { getRaces } from '../../services/eventService';
 import { getBettingEvents } from '../../services/bettingService';
 
 const navItems = [
-  { key: 'dashboard', label: 'Dashboard', icon: Home },
-  { key: 'horses', label: 'Horses', icon: Trophy },
-  { key: 'races', label: 'Races', icon: Flag },
-  { key: 'betting', label: 'Betting', icon: CircleDollarSign, accountTypes: ['SPECTATOR'] },
-  { key: 'results', label: 'Results', icon: Medal },
-  { key: 'profile', label: 'Profile', icon: UserRound },
-  { key: 'wallet', labelKey: 'wallet', icon: Wallet }
+  { key: 'dashboard', labelKey: 'spectatorNavDashboard', icon: Home },
+  { key: 'horses', labelKey: 'spectatorNavHorses', icon: Trophy },
+  { key: 'races', labelKey: 'spectatorNavRaces', icon: Flag },
+  { key: 'betting', labelKey: 'spectatorNavBetting', icon: CircleDollarSign, accountTypes: ['SPECTATOR'] },
+  { key: 'results', labelKey: 'spectatorNavResults', icon: Medal },
+  { key: 'profile', labelKey: 'spectatorNavProfile', icon: UserRound },
+  { key: 'wallet', labelKey: 'wallet', icon: Wallet, accountTypes: ['SPECTATOR'] }
 ];
 
 function StatusBadge({ status }) {
+  const { t } = useLanguage();
   const normalized = String(status || 'not-registered').toLowerCase().replace(/\s+/g, '-');
-  const label = status ? formatDisplayLabel(status) : 'Not Registered';
+  const key = `status_${String(status || 'NOT_SUBMITTED').toUpperCase()}`;
+  const translated = t(key);
+  const label = translated === key ? formatDisplayLabel(status || 'NOT_SUBMITTED') : translated;
 
   return <span className={`status-badge ${normalized}`}>{label}</span>;
 }
@@ -68,9 +71,9 @@ function raceStart(race) {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
-function raceDateTime(race) {
+function raceDateTime(race, language = 'vi') {
   const date = raceStart(race);
-  return date ? date.toLocaleString('vi-VN', {
+  return date ? date.toLocaleString(language === 'vi' ? 'vi-VN' : 'en-US', {
     hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric'
   }) : 'Chua cap nhat';
 }
@@ -80,6 +83,7 @@ function canViewLiveRace(race) {
 }
 
 function DashboardHome({ accountType, onGoProfile, races, bettingEvents, isLoading, error }) {
+  const { t, language } = useLanguage();
   const isSpectator = accountType === 'SPECTATOR';
   const professionalLabel = accountType === 'OWNER' ? 'Owner' : 'Jockey';
   const now = new Date();
@@ -97,28 +101,28 @@ function DashboardHome({ accountType, onGoProfile, races, bettingEvents, isLoadi
     <section className="owner-stack">
       {error && <div className="admin-alert error" role="alert">{error}</div>}
       <section className="owner-stats-grid">
-        <StatCard label="Total Races" value={isLoading ? '...' : races.length} description="Races returned by the system" highlight />
-        <StatCard label="Upcoming Races" value={isLoading ? '...' : upcomingRaces.length} description="Scheduled races" />
-        <StatCard label="Today's Races" value={isLoading ? '...' : todayRaces.length} description="Races scheduled today" />
+        <StatCard label={t('spectatorTotalRaces')} value={isLoading ? '...' : races.length} description={t('spectatorTotalRacesDesc')} highlight />
+        <StatCard label={t('spectatorUpcomingRaces')} value={isLoading ? '...' : upcomingRaces.length} description={t('spectatorUpcomingRacesDesc')} />
+        <StatCard label={t('spectatorTodayRaces')} value={isLoading ? '...' : todayRaces.length} description={t('spectatorTodayRacesDesc')} />
         {isSpectator
-          ? <StatCard label="Open Betting" value={isLoading ? '...' : openBettingEvents.length} description="Betting events currently open" />
+          ? <StatCard label={t('spectatorOpenBetting')} value={isLoading ? '...' : openBettingEvents.length} description={t('spectatorOpenBettingDesc')} />
           : <StatCard label="Application" value="Required" description={`${professionalLabel} access requires admin approval`} />}
       </section>
 
       <section className="owner-overview-grid">
         <div className="owner-panel hero-owner-panel">
           <div>
-            <p className="eyebrow">{isSpectator ? 'Spectator Dashboard' : `${professionalLabel} Onboarding`}</p>
-            <h2>{isSpectator ? 'Premium race-day command center' : `Complete your ${professionalLabel} application`}</h2>
+            <p className="eyebrow">{isSpectator ? t('spectatorDashboard') : `${professionalLabel} Onboarding`}</p>
+            <h2>{isSpectator ? t('spectatorDashboardTitle') : `Complete your ${professionalLabel} application`}</h2>
             <p>
               {isSpectator
-                ? 'Track horses, upcoming races, betting summaries, and results from one dashboard.'
+                ? t('spectatorDashboardDesc')
                 : `Your account is active. Submit the required ${professionalLabel} documents and wait for administrator approval to unlock professional features.`}
             </p>
           </div>
           <div className="owner-shortcut-actions">
             <button className="primary-button owner-hero-action" type="button" onClick={onGoProfile}>
-              {isSpectator ? 'View Profile' : `Open ${professionalLabel} Application`}
+              {isSpectator ? t('spectatorViewProfile') : `Open ${professionalLabel} Application`}
             </button>
           </div>
         </div>
@@ -126,15 +130,15 @@ function DashboardHome({ accountType, onGoProfile, races, bettingEvents, isLoadi
         <div className="owner-panel compact-panel">
           <div className="owner-panel-header">
             <div>
-              <p className="eyebrow">Upcoming Race Cards</p>
-              <h2>Race highlights</h2>
-              <p>Upcoming races from the backend.</p>
+              <p className="eyebrow">{t('spectatorUpcomingCards')}</p>
+              <h2>{t('spectatorRaceHighlights')}</h2>
+              <p>{t('spectatorRaceHighlightsDesc')}</p>
             </div>
           </div>
           {isLoading ? (
-            <div className="admin-alert success" role="status">Loading races...</div>
+            <div className="admin-alert success" role="status">{t('spectatorLoadingRaces')}</div>
           ) : upcomingRaces.length === 0 ? (
-            <EmptyState title="No upcoming races" message="There are no scheduled races available right now." />
+            <EmptyState title={t('spectatorNoUpcomingRaces')} message={t('spectatorNoUpcomingRacesDesc')} />
           ) : (
             <div className="grid gap-3">
             {upcomingRaces.slice(0, 3).map((race) => (
@@ -143,9 +147,9 @@ function DashboardHome({ accountType, onGoProfile, races, bettingEvents, isLoadi
                   <div className="grid size-14 shrink-0 place-items-center rounded-lg bg-brown-900 text-2xl text-gold-400">🏁</div>
                   <div className="min-w-0">
                     <strong className="block truncate text-brown-900">{race.raceName}</strong>
-                    <small className="mt-1 block font-bold text-slate-500">{raceDateTime(race)}</small>
+                    <small className="mt-1 block font-bold text-slate-500">{raceDateTime(race, language)}</small>
                     <small className="mt-1 block truncate font-semibold text-slate-500">
-                      {race.trackName || 'Track not provided'} · {race.entryCount ?? 0}/{race.maxRunners ?? 0} runners
+                      {race.trackName || t('spectatorTrackMissing')} · {t('spectatorRunners', { entries: race.entryCount ?? 0, max: race.maxRunners ?? 0 })}
                     </small>
                   </div>
                 </div>
@@ -176,7 +180,7 @@ function PlaceholderSection({ title, message, icon }) {
 }
 
 function RaceListSection({ title, races, isLoading, resultsOnly = false }) {
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
   const [liveRaceId, setLiveRaceId] = useState(null);
   const visibleRaces = resultsOnly
     ? races.filter((race) => String(race?.status || '').toUpperCase() === 'COMPLETED')
@@ -192,14 +196,14 @@ function RaceListSection({ title, races, isLoading, resultsOnly = false }) {
         <div>
           <p className="eyebrow">{title}</p>
           <h2>{title}</h2>
-          <p>Data loaded from the racing API.</p>
+          <p>{t('spectatorRaceApiData')}</p>
         </div>
         <Flag size={22} className="text-brown-500" />
       </div>
       {isLoading ? (
-        <div className="admin-alert success" role="status">Loading races...</div>
+        <div className="admin-alert success" role="status">{t('spectatorLoadingRaces')}</div>
       ) : visibleRaces.length === 0 ? (
-        <EmptyState title={`No ${title.toLowerCase()} available`} message="The system has not published any matching races." />
+        <EmptyState title={t('spectatorNoRaceData', { name: title.toLowerCase() })} message={t('spectatorNoMatchingRaces')} />
       ) : (
         <div className="grid gap-3 md:grid-cols-2">
           {visibleRaces.map((race) => (
@@ -207,8 +211,8 @@ function RaceListSection({ title, races, isLoading, resultsOnly = false }) {
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <strong className="block truncate text-brown-900">{race.raceName}</strong>
-                  <p className="mt-1 text-sm font-semibold text-slate-500">{race.trackName || 'Track not provided'}</p>
-                  <small className="mt-2 block font-bold text-slate-500">{raceDateTime(race)}</small>
+                  <p className="mt-1 text-sm font-semibold text-slate-500">{race.trackName || t('spectatorTrackMissing')}</p>
+                  <small className="mt-2 block font-bold text-slate-500">{raceDateTime(race, language)}</small>
                 </div>
                 <StatusBadge status={race.status} />
               </div>
@@ -310,6 +314,7 @@ function OwnerApplicationDetail({ application }) {
 }
 
 function ProfileSection({ user, ownerApplication, jockeyApplication, kyc, isLoading, onOpenApplication, onOpenAgain, onBecomeJockey, onOpenKyc }) {
+  const { t } = useLanguage();
   const role = getUserRole(user) || 'SPECTATOR';
   const accountType = String(user?.accountType || role).toUpperCase();
   const status = ownerApplication?.status || null;
@@ -320,11 +325,11 @@ function ProfileSection({ user, ownerApplication, jockeyApplication, kyc, isLoad
   const [showOwnerApplicationDetail, setShowOwnerApplicationDetail] = useState(false);
 
   const detailRows = [
-    ['Username', user?.username || user?.fullName || 'Chưa cập nhật'],
-    ['Email', user?.email || 'Chưa cập nhật'],
-    ['Phone Number', user?.phone || 'Chưa cập nhật'],
-    ['Account Type', <span className="role-badge" key="account-type">{formatDisplayLabel(accountType)}</span>],
-    ['Access Role', <span className="role-badge" key="role">{formatDisplayLabel(role)}</span>]
+    [t('spectatorUsername'), user?.username || user?.fullName || t('jockeyNotUpdated')],
+    [t('spectatorEmail'), user?.email || t('jockeyNotUpdated')],
+    [t('spectatorPhone'), user?.phone || t('jockeyNotUpdated')],
+    [t('spectatorAccountType'), <span className="role-badge" key="account-type">{formatDisplayLabel(accountType)}</span>],
+    [t('spectatorAccessRole'), <span className="role-badge" key="role">{formatDisplayLabel(role)}</span>]
   ];
 
   if (accountType === 'OWNER') detailRows.push(['Owner Status', <StatusBadge key="status" status={status} />]);
@@ -353,15 +358,15 @@ function ProfileSection({ user, ownerApplication, jockeyApplication, kyc, isLoad
               {(profileDisplayName || 'U').charAt(0).toUpperCase()}
             </div>
             <div>
-              <p className="eyebrow">Profile</p>
+              <p className="eyebrow">{t('spectatorProfile')}</p>
               <h2>{profileDisplayName}</h2>
-              <p>Manage account, identity verification, and role applications.</p>
+              <p>{t('spectatorProfileDesc')}</p>
             </div>
           </div>
         </div>
 
         {isLoading ? (
-          <div className="admin-alert success" role="status">Loading profile...</div>
+          <div className="admin-alert success" role="status">{t('spectatorLoadingProfile')}</div>
         ) : (
           <div className="grid gap-3 md:grid-cols-2">
             {detailRows.map(([label, value]) => (
@@ -381,14 +386,14 @@ function ProfileSection({ user, ownerApplication, jockeyApplication, kyc, isLoad
               <ShieldCheck size={22} />
             </div>
             <div>
-              <p className="eyebrow">KYC Verification</p>
-              <h2>Identity verification</h2>
+              <p className="eyebrow">{t('spectatorKycVerification')}</p>
+              <h2>{t('spectatorIdentityVerification')}</h2>
               <p>
                 {needsKycSubmission(kyc)
-                  ? `Verify with Didit to open your wallet${accountType === 'SPECTATOR' ? ' and enable betting' : ''}.`
+                  ? t('spectatorKycSubmitDesc')
                   : kycStatus === 'IN_REVIEW'
-                    ? 'Didit is reviewing your identity verification.'
-                    : 'Your KYC has been verified.'}
+                    ? t('spectatorKycReviewDesc')
+                    : t('spectatorKycVerifiedDesc')}
               </p>
             </div>
           </div>
@@ -404,39 +409,39 @@ function ProfileSection({ user, ownerApplication, jockeyApplication, kyc, isLoad
         {isKycVerified && (
           <div className="mt-5 grid gap-3 md:grid-cols-2">
             <div className="rounded-lg border border-brown-700/10 bg-white/70 p-4">
-              <span className="block text-xs font-extrabold uppercase text-slate-500">Verified Name</span>
-              <strong className="mt-1 block break-words text-brown-900">{kyc?.verifiedFullName || 'Not provided'}</strong>
+              <span className="block text-xs font-extrabold uppercase text-slate-500">{t('spectatorVerifiedName')}</span>
+              <strong className="mt-1 block break-words text-brown-900">{kyc?.verifiedFullName || t('spectatorNotProvided')}</strong>
             </div>
             <div className="rounded-lg border border-brown-700/10 bg-white/70 p-4">
-              <span className="block text-xs font-extrabold uppercase text-slate-500">Date of Birth</span>
+              <span className="block text-xs font-extrabold uppercase text-slate-500">{t('spectatorDateOfBirth')}</span>
               <strong className="mt-1 block text-brown-900">{formatDate(kyc?.verifiedDateOfBirth)}</strong>
             </div>
             <div className="rounded-lg border border-brown-700/10 bg-white/70 p-4">
-              <span className="block text-xs font-extrabold uppercase text-slate-500">Document</span>
+              <span className="block text-xs font-extrabold uppercase text-slate-500">{t('spectatorDocument')}</span>
               <strong className="mt-1 block text-brown-900">
                 {formatDisplayLabel(kyc?.documentType || 'Identity document')}
                 {kyc?.documentLastFour ? ` **** ${kyc.documentLastFour}` : ''}
               </strong>
             </div>
             <div className="rounded-lg border border-brown-700/10 bg-white/70 p-4">
-              <span className="block text-xs font-extrabold uppercase text-slate-500">Verified By</span>
+              <span className="block text-xs font-extrabold uppercase text-slate-500">{t('spectatorVerifiedBy')}</span>
               <strong className="mt-1 block text-brown-900">{formatDisplayLabel(kyc?.provider || 'DIDIT')}</strong>
             </div>
             <div className="rounded-lg border border-brown-700/10 bg-white/70 p-4">
-              <span className="block text-xs font-extrabold uppercase text-slate-500">Verified At</span>
+              <span className="block text-xs font-extrabold uppercase text-slate-500">{t('spectatorVerifiedAt')}</span>
               <strong className="mt-1 block text-brown-900">{formatDate(kyc?.verifiedAt)}</strong>
             </div>
             <div className="rounded-lg border border-brown-700/10 bg-white/70 p-4">
-              <span className="block text-xs font-extrabold uppercase text-slate-500">Document Expiry Date</span>
-              <strong className="mt-1 block text-brown-900">{kyc?.documentExpiryDate ? formatDate(kyc.documentExpiryDate) : 'No expiry on document'}</strong>
+              <span className="block text-xs font-extrabold uppercase text-slate-500">{t('spectatorDocumentExpiry')}</span>
+              <strong className="mt-1 block text-brown-900">{kyc?.documentExpiryDate ? formatDate(kyc.documentExpiryDate) : t('spectatorNoDocumentExpiry')}</strong>
             </div>
             <div className="rounded-lg border border-brown-700/10 bg-white/70 p-4 md:col-span-2">
-              <span className="block text-xs font-extrabold uppercase text-slate-500">Wallet Access</span>
+              <span className="block text-xs font-extrabold uppercase text-slate-500">{t('spectatorWalletAccess')}</span>
               <strong className="mt-1 flex items-center gap-2 text-brown-900">
                 <StatusBadge status={kyc?.walletOpen ? 'ACTIVE' : 'PENDING'} />
                 {kyc?.walletOpen
-                  ? accountType === 'SPECTATOR' ? 'Betting and wallet access enabled' : 'Wallet access enabled'
-                  : 'Wallet is being opened'}
+                  ? t('spectatorBettingWalletEnabled')
+                  : t('spectatorWalletOpening')}
               </strong>
             </div>
           </div>
@@ -444,19 +449,19 @@ function ProfileSection({ user, ownerApplication, jockeyApplication, kyc, isLoad
 
         {isLoading ? (
           <button className="outline-button mt-5" type="button" disabled>
-            Loading KYC...
+            {t('spectatorLoadingKyc')}
           </button>
         ) : needsKycSubmission(kyc) ? (
           <button className="primary-button owner-hero-action mt-5" type="button" onClick={onOpenKyc}>
-            {kycStatus === 'REJECTED' || kycStatus === 'EXPIRED' ? 'Verify Again' : 'Open Wallet'}
+            {kycStatus === 'REJECTED' || kycStatus === 'EXPIRED' ? t('spectatorVerifyAgain') : t('spectatorOpenWallet')}
           </button>
         ) : isKycVerified ? (
           <button className="primary-button owner-hero-action mt-5" type="button" onClick={onOpenKyc}>
-            Go to Wallet
+            {t('spectatorGoWallet')}
           </button>
         ) : (
           <button className="outline-button mt-5" type="button" disabled>
-            {kycStatus === 'IN_REVIEW' ? 'Didit Review In Progress' : 'KYC In Progress'}
+            {kycStatus === 'IN_REVIEW' ? t('spectatorDiditReview') : t('spectatorKycProgress')}
           </button>
         )}
       </section>
@@ -645,8 +650,8 @@ export default function UserPanel({ user, onLogout }) {
       return [`Your KYC has been rejected. Reason: ${kyc.rejectionReason || 'No reason provided.'}`];
     }
 
-    return ['No new notifications.'];
-  }, [ownerApplication, jockeyApplication, kyc]);
+    return [t('spectatorNoNotifications')];
+  }, [ownerApplication, jockeyApplication, kyc, t]);
 
   async function loadOwnerApplication() {
     setIsLoadingApplication(true);
@@ -704,9 +709,9 @@ export default function UserPanel({ user, onLogout }) {
       setRaces(raceResult.status === 'fulfilled' && Array.isArray(raceResult.value) ? raceResult.value : []);
       setBettingEvents(bettingResult.status === 'fulfilled' && Array.isArray(bettingResult.value) ? bettingResult.value : []);
       if (raceResult.status === 'rejected') {
-        setDashboardError(raceResult.reason?.message || 'Unable to load race data.');
+        setDashboardError(raceResult.reason?.message || t('spectatorRaceDataError'));
       } else if (bettingResult.status === 'rejected') {
-        setDashboardError(bettingResult.reason?.message || 'Unable to load betting data.');
+        setDashboardError(bettingResult.reason?.message || t('spectatorBettingDataError'));
       }
       setIsLoadingDashboard(false);
     }
@@ -795,11 +800,11 @@ export default function UserPanel({ user, onLogout }) {
     }
 
     if (activeSection === 'horses') {
-      return <PlaceholderSection title="Horses" message="No public horse profiles are available from the backend." icon="🐎" />;
+      return <PlaceholderSection title={t('spectatorNavHorses')} message={t('spectatorNoRaceData', { name: t('spectatorNavHorses').toLowerCase() })} icon="🐎" />;
     }
 
     if (activeSection === 'races') {
-      return <RaceListSection title="Races" races={races} isLoading={isLoadingDashboard} />;
+      return <RaceListSection title={t('spectatorNavRaces')} races={races} isLoading={isLoadingDashboard} />;
     }
 
     if (activeSection === 'betting' && accountType === 'SPECTATOR') {
@@ -810,7 +815,7 @@ export default function UserPanel({ user, onLogout }) {
       return <WalletTransferPanel currentUser={user} role={accountType} />;
     }
 
-    return <RaceListSection title="Results" races={races} isLoading={isLoadingDashboard} resultsOnly />;
+    return <RaceListSection title={t('spectatorNavResults')} races={races} isLoading={isLoadingDashboard} resultsOnly />;
   }
 
   return (
@@ -820,7 +825,7 @@ export default function UserPanel({ user, onLogout }) {
           <div className="owner-logo">🏇</div>
           <div>
             <strong>Horse Racing</strong>
-            <span>{formatDisplayLabel(accountType)} Account</span>
+            <span>{accountType === 'SPECTATOR' ? t('spectatorPortalAccount') : `${formatDisplayLabel(accountType)} Account`}</span>
           </div>
         </div>
 
@@ -845,13 +850,13 @@ export default function UserPanel({ user, onLogout }) {
         </nav>
 
         <div className="owner-profile-card">
-          <span>Signed in as</span>
+          <span>{t('spectatorSignedInAs')}</span>
           <strong>{profileName}</strong>
           <small>{formatDisplayLabel(accountType)}</small>
         </div>
 
         <button className="owner-logout" type="button" onClick={onLogout}>
-          Sign Out
+          {t('spectatorSignOut')}
         </button>
       </aside>
 
@@ -859,9 +864,9 @@ export default function UserPanel({ user, onLogout }) {
         <header className="owner-topbar">
           <div>
             <p className="eyebrow">Horse Racing</p>
-            <h1>{activeSection === 'profile' ? 'Profile' : `${formatDisplayLabel(accountType)} Dashboard`}</h1>
+            <h1>{activeSection === 'profile' ? t('spectatorProfile') : accountType === 'SPECTATOR' ? t('spectatorDashboard') : `${formatDisplayLabel(accountType)} Dashboard`}</h1>
             <p>{accountType === 'SPECTATOR'
-              ? 'Explore races and use betting after KYC verification.'
+              ? t('spectatorHeaderDesc')
               : `Complete your ${formatDisplayLabel(accountType)} application to unlock professional features.`}</p>
           </div>
 
@@ -876,7 +881,7 @@ export default function UserPanel({ user, onLogout }) {
             </button>
             {notificationsOpen && (
               <div className="absolute right-0 top-14 z-20 w-80 rounded-2xl border border-brown-700/10 bg-white p-4 shadow-[0_18px_50px_rgba(43,23,16,0.18)]">
-                <strong className="block text-brown-900">Notifications</strong>
+                <strong className="block text-brown-900">{t('spectatorNotifications')}</strong>
                 <div className="mt-3 grid gap-2">
                   {notifications.map((item) => (
                     <p className="rounded-xl bg-cream-200/60 px-3 py-2 text-sm font-bold text-brown-700" key={item}>{item}</p>

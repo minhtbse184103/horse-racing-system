@@ -12,6 +12,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface BetTicketRepository extends JpaRepository<BetTicket, Integer> {
@@ -19,6 +20,14 @@ public interface BetTicketRepository extends JpaRepository<BetTicket, Integer> {
     List<BetTicket> findByUserIdOrderByPlacedAtDesc(Integer userId);
 
     List<BetTicket> findByBetEventIdOrderByPlacedAtAsc(Integer betEventId);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("""
+            select ticket
+            from BetTicket ticket
+            where ticket.betTicketId = :betTicketId
+            """)
+    Optional<BetTicket> findByIdForUpdate(@Param("betTicketId") Integer betTicketId);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""

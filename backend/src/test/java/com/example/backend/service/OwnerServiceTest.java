@@ -3,6 +3,7 @@ package com.example.backend.service;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -53,6 +54,10 @@ class OwnerServiceTest {
     private TournamentRepository tournamentRepository;
     @Mock
     private FileUploadService fileUploadService;
+    @Mock
+    private RegistrationEligibilityService eligibilityService;
+    @Mock
+    private RegistrationAvailabilityService availabilityService;
 
     private OwnerServiceImpl ownerService;
 
@@ -67,7 +72,8 @@ class OwnerServiceTest {
                 userRepository,
                 tournamentRepository,
                 fileUploadService,
-                new RegistrationAvailabilityService(registrationRepository, jockeyInvitationRepository),
+                availabilityService,
+                eligibilityService,
                 new JockeyInvitationService(
                         registrationRepository,
                         tournamentRepository,
@@ -110,6 +116,57 @@ class OwnerServiceTest {
         verify(jockeyInvitationRepository, never()).save(any());
     }
 
+    @Test
+    void inviteJockeyDoesNotSaveWhenParticipationRequirementsFail() {
+        LocalDateTime registrationDeadline = LocalDateTime.now().plusDays(2);
+        InviteJockeyRequest request = inviteRequest(registrationDeadline.minusHours(1));
+        User owner = user(1, "owner@example.com", "OWNER");
+        User jockey = user(20, "jockey@example.com", "JOCKEY");
+        Horse horse = Horse.builder()
+                .horseId(10)
+                .ownerId(1)
+                .horseName("Lightning")
+                .age(4)
+                .status("ACTIVE")
+                .build();
+        Tournament tournament = tournamentSnapshot(registrationDeadline);
+
+        when(userRepository.findByEmail("owner@example.com"))
+                .thenReturn(Optional.of(owner));
+        when(horseRepository.findByHorseIdAndOwnerId(10, 1))
+                .thenReturn(Optional.of(horse));
+        when(tournamentRepository.findById(1))
+                .thenReturn(Optional.of(tournament));
+        when(userRepository.findById(20)).thenReturn(Optional.of(jockey));
+        when(jockeyProfileRepository.findById(20))
+                .thenReturn(Optional.of(com.example.backend.entity.JockeyProfile.builder()
+                        .jockeyId(20)
+                        .fullName("Jockey Test")
+                        .build()));
+        doThrow(new ApiException(
+                HttpStatus.CONFLICT,
+                "Horse does not satisfy the tournament gender condition."
+        )).when(eligibilityService).validateParticipationRequirements(
+                tournament, 10, 1, 20
+        );
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> ownerService.inviteJockey(request)
+        );
+
+        assertEquals(
+                "Horse does not satisfy the tournament gender condition.",
+                exception.getMessage()
+        );
+        verify(eligibilityService).validateParticipationRequirements(
+                tournament, 10, 1, 20
+        );
+        verify(availabilityService, never())
+                .validateInvitationCanBeCreated(any(), any(), any(), any(), any());
+        verify(jockeyInvitationRepository, never()).save(any());
+    }
+
     private InviteJockeyRequest inviteRequest(LocalDateTime expiredAt) {
         InviteJockeyRequest request = new InviteJockeyRequest();
         request.setTournamentId(1);
@@ -121,6 +178,11 @@ class OwnerServiceTest {
     }
 
     private void mockTournamentSnapshot(LocalDateTime registrationDeadline) {
+        when(tournamentRepository.findById(1))
+                .thenReturn(Optional.of(tournamentSnapshot(registrationDeadline)));
+    }
+
+    private Tournament tournamentSnapshot(LocalDateTime registrationDeadline) {
         Tournament tournament = new Tournament();
         tournament.setTournamentId(1);
         tournament.setTournamentName("Summer Cup");
@@ -129,7 +191,7 @@ class OwnerServiceTest {
         tournament.setRegistrationCloseAt(registrationDeadline);
         tournament.setMaxRegistrations(null);
         tournament.setStatus("OPEN_FOR_REGISTRATION");
-        when(tournamentRepository.findById(1)).thenReturn(Optional.of(tournament));
+        return tournament;
     }
 
     private User user(Integer userId, String email, String roleName) {

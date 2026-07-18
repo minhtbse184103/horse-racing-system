@@ -32,6 +32,7 @@ USE `horse_racing_system`;
 --   ownerminh@gmail.com owns Minh Comet and is already approved.
 --   jockeyminh@gmail.com is already approved.
 --   spectatorminh@gmail.com already has VERIFIED KYC and wallet balance.
+-- KYC and Wallet are SPECTATOR-only. No seeded OWNER/JOCKEY has either row.
 
 SET @seed_now = NOW();
 SET @seed_today = CURDATE();
@@ -59,11 +60,7 @@ VALUES
 INSERT INTO `user_verifications`
   (`verification_id`, `user_id`, `provider`, `provider_session_id`, `provider_session_number`, `workflow_id`, `vendor_data`, `verification_url`, `status`, `id_verification_status`, `liveness_status`, `face_match_status`, `verified_full_name`, `verified_date_of_birth`, `document_type`, `document_last_four`, `attempt_number`, `submitted_at`, `verified_at`, `expires_at`, `created_at`, `updated_at`)
 VALUES
-  (1, 2, 'DIDIT', 'kyc-owner-huy', 2, 'identity-verification', 'owner-huy', NULL, 'VERIFIED', 'Approved', 'Approved', 'Approved', 'Owner Huy', DATE_SUB(@seed_today, INTERVAL 35 YEAR), 'ID_CARD', '0002', 1, DATE_SUB(@seed_now, INTERVAL 40 DAY), DATE_SUB(@seed_now, INTERVAL 39 DAY), DATE_ADD(@seed_now, INTERVAL 5 YEAR), DATE_SUB(@seed_now, INTERVAL 40 DAY), DATE_SUB(@seed_now, INTERVAL 39 DAY)),
-  (2, 3, 'DIDIT', 'kyc-owner-khoa',  3, 'identity-verification', 'owner-khoa',  NULL, 'VERIFIED', 'Approved', 'Approved', 'Approved', 'Owner Khoa',  DATE_SUB(@seed_today, INTERVAL 38 YEAR), 'ID_CARD', '0003', 1, DATE_SUB(@seed_now, INTERVAL 40 DAY), DATE_SUB(@seed_now, INTERVAL 39 DAY), DATE_ADD(@seed_now, INTERVAL 5 YEAR), DATE_SUB(@seed_now, INTERVAL 40 DAY), DATE_SUB(@seed_now, INTERVAL 39 DAY)),
-  (3, 10, 'DIDIT', 'kyc-owner-minh', 10, 'identity-verification', 'owner-minh', NULL, 'VERIFIED', 'Approved', 'Approved', 'Approved', 'Owner Minh', DATE_SUB(@seed_today, INTERVAL 34 YEAR), 'ID_CARD', '0010', 1, DATE_SUB(@seed_now, INTERVAL 10 DAY), DATE_SUB(@seed_now, INTERVAL 9 DAY), DATE_ADD(@seed_now, INTERVAL 5 YEAR), DATE_SUB(@seed_now, INTERVAL 10 DAY), DATE_SUB(@seed_now, INTERVAL 9 DAY)),
-  (4, 11, 'DIDIT', 'kyc-jockey-minh', 11, 'identity-verification', 'jockey-minh', NULL, 'VERIFIED', 'Approved', 'Approved', 'Approved', 'Jockey Minh', DATE_SUB(@seed_today, INTERVAL 26 YEAR), 'ID_CARD', '0011', 1, DATE_SUB(@seed_now, INTERVAL 10 DAY), DATE_SUB(@seed_now, INTERVAL 9 DAY), DATE_ADD(@seed_now, INTERVAL 5 YEAR), DATE_SUB(@seed_now, INTERVAL 10 DAY), DATE_SUB(@seed_now, INTERVAL 9 DAY)),
-  (5, 12, 'DIDIT', 'kyc-spectator-minh', 12, 'identity-verification', 'spectator-minh', NULL, 'VERIFIED', 'Approved', 'Approved', 'Approved', 'Spectator Minh', DATE_SUB(@seed_today, INTERVAL 29 YEAR), 'ID_CARD', '0012', 1, DATE_SUB(@seed_now, INTERVAL 10 DAY), DATE_SUB(@seed_now, INTERVAL 9 DAY), DATE_ADD(@seed_now, INTERVAL 5 YEAR), DATE_SUB(@seed_now, INTERVAL 10 DAY), DATE_SUB(@seed_now, INTERVAL 9 DAY));
+  (1, 12, 'DIDIT', 'kyc-spectator-minh', 12, 'identity-verification', 'spectator-minh', NULL, 'VERIFIED', 'Approved', 'Approved', 'Approved', 'Spectator Minh', DATE_SUB(@seed_today, INTERVAL 29 YEAR), 'ID_CARD', '0012', 1, DATE_SUB(@seed_now, INTERVAL 10 DAY), DATE_SUB(@seed_now, INTERVAL 9 DAY), DATE_ADD(@seed_now, INTERVAL 5 YEAR), DATE_SUB(@seed_now, INTERVAL 10 DAY), DATE_SUB(@seed_now, INTERVAL 9 DAY));
 
 INSERT INTO `OwnerApplication`
   (`applicationID`, `userID`, `stableName`, `stableAddress`, `stableCertificateUrl`, `totalHorsesOwned`, `horseOwnershipProofUrl`, `status`, `rejectReason`, `submittedAt`, `reviewedAt`, `reviewedBy`, `createdAt`, `updatedAt`)
@@ -103,13 +100,7 @@ VALUES
 INSERT INTO `Wallet`
   (`walletID`, `userID`, `balance`, `lockedBalance`, `currency`, `status`, `createdAt`, `updatedAt`)
 VALUES
-  (1, 2, 0.00, 0.00, 'VND', 'ACTIVE', @seed_now, @seed_now),
-  (2, 3, 0.00, 0.00, 'VND', 'ACTIVE', @seed_now, @seed_now),
-  (3, 4, 0.00, 0.00, 'VND', 'ACTIVE', @seed_now, @seed_now),
-  (4, 5, 0.00, 0.00, 'VND', 'ACTIVE', @seed_now, @seed_now),
-  (5, 10, 0.00, 0.00, 'VND', 'ACTIVE', @seed_now, @seed_now),
-  (6, 11, 0.00, 0.00, 'VND', 'ACTIVE', @seed_now, @seed_now),
-  (7, 12, 2000000.00, 0.00, 'VND', 'ACTIVE', @seed_now, @seed_now);
+  (1, 12, 2000000.00, 0.00, 'VND', 'ACTIVE', @seed_now, @seed_now);
 
 INSERT INTO `Horse`
   (`horseID`, `ownerID`, `horseName`, `age`, `dayOfBirth`, `weight`, `colour`, `sex`, `breeding`, `trainer`, `healthCertExpiry`, `healthCertificateUrl`, `officialHorseProfileUrl`, `status`, `rejectionReason`, `createdAt`, `updatedAt`)
@@ -178,6 +169,7 @@ VALUES
 -- The live owner and jockey candidate accounts start clean:
 -- owner@gmail.com has no OwnerApplication, no OwnerProfile, and no Horse.
 -- jockey@gmail.com has no JockeyVerification and no JockeyProfile.
+-- Both also have no KYC and no Wallet because those are SPECTATOR-only.
 -- During presentation, approve both accounts, create/approve the Horse,
 -- invite the approved Jockey, accept, pay, then let Admin approve the new
 -- Registration to create the third runner.
@@ -194,7 +186,10 @@ VALUES
 COMMIT;
 
 -- Expected row counts for this presentation dataset.
+-- On a fresh database: user_verifications = 1 and Wallet = 1; both rows belong
+-- to the backup SPECTATOR account spectatorminh@gmail.com.
 SELECT 'Users' AS `tableName`, COUNT(*) AS `rowCount` FROM `Users`
+UNION ALL SELECT 'user_verifications', COUNT(*) FROM `user_verifications`
 UNION ALL SELECT 'OwnerApplication', COUNT(*) FROM `OwnerApplication`
 UNION ALL SELECT 'OwnerProfile', COUNT(*) FROM `OwnerProfile`
 UNION ALL SELECT 'JockeyProfile', COUNT(*) FROM `JockeyProfile`

@@ -30,6 +30,13 @@ export async function getMyBetTickets() {
   }));
 }
 
+export async function cancelBetTicket(ticketId) {
+  return unwrap(await httpRequest(`/api/betting/tickets/${ticketId}/cancel`, {
+    method: 'PUT',
+    fallbackError: 'Unable to cancel bet ticket.'
+  }));
+}
+
 export async function getAdminBetProducts() {
   return unwrap(await httpRequest('/api/admin/betting/products', {
     fallbackError: 'Unable to load betting products.'

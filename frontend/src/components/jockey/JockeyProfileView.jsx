@@ -1,8 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { formatDate, formatDisplayLabel } from '../../lib';
 import { updateMyAccount, updateStoredUser } from '../../services/authService';
-import { getMyKyc } from '../../services/kycService';
-import { getMyWallet } from '../../services/walletService';
 import { useLanguage } from '../../context/LanguageContext';
 
 const inputClass = 'w-full rounded-lg border border-brown-700/15 bg-white px-4 py-3 text-sm font-bold text-brown-900 outline-none transition placeholder:text-slate-500/65 focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20 disabled:cursor-not-allowed disabled:bg-cream-200 disabled:text-slate-500';
@@ -40,18 +38,12 @@ function StatusBadge({ status, t }) {
   return <span className={`status-badge ${normalized.toLowerCase()}`}>{translated === `status_${normalized}` ? formatDisplayLabel(normalized) : translated}</span>;
 }
 
-function money(value, currency = 'VND') {
-  return `${Number(value || 0).toLocaleString('vi-VN')} ${currency}`;
-}
-
 export default function JockeyProfileView({ user, profile, isLoading, onReload, onUserUpdated }) {
   const { t } = useLanguage();
   const [accountUser, setAccountUser] = useState(user);
   const [account, setAccount] = useState(() => getAccountValues(user));
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [kyc, setKyc] = useState(null);
-  const [wallet, setWallet] = useState(null);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
   const snapshot = useMemo(() => getAccountValues(accountUser), [accountUser]);
@@ -62,13 +54,6 @@ export default function JockeyProfileView({ user, profile, isLoading, onReload, 
     setAccount(getAccountValues(user));
     setIsEditing(false);
   }, [user]);
-
-  useEffect(() => {
-    Promise.allSettled([getMyKyc(), getMyWallet()]).then(([kycResult, walletResult]) => {
-      setKyc(kycResult.status === 'fulfilled' ? kycResult.value : null);
-      setWallet(walletResult.status === 'fulfilled' ? walletResult.value : null);
-    });
-  }, [user?.userID, user?.id]);
 
   function handleChange(event) {
     const { name, value } = event.target;
@@ -171,35 +156,6 @@ export default function JockeyProfileView({ user, profile, isLoading, onReload, 
           {profile.verificationLink && <a className="outline-button compact-button inline-flex" href={profile.verificationLink.split(/\r?\n/)[0]} target="_blank" rel="noreferrer">{t('jockeyOpenVerification')}</a>}
           {licenceFiles.map((file, index) => <a className="outline-button compact-button inline-flex" href={file.fileUrl} target="_blank" rel="noreferrer" key={file.fileId || file.fileUrl || index}>{t('jockeyViewLicence', { number: index + 1 })}</a>)}
           <button className="outline-button compact-button" type="button" onClick={() => onReload?.()}>{t('jockeyRefreshProfile')}</button>
-        </div>
-      </section>
-
-      <section className="owner-panel">
-        <div className="owner-panel-header">
-          <div><p className="eyebrow">{t('jockeyIdentityVerification')}</p><h2>{t('jockeyDiditInfo')}</h2><p>{t('jockeyKycHelp')}</p></div>
-          <StatusBadge status={kyc?.status} t={t} />
-        </div>
-        {kyc?.status === 'VERIFIED' ? (
-          <div className="grid gap-4 md:grid-cols-2">
-            <ProfileField label={t('jockeyVerifiedFullName')} value={kyc.verifiedFullName} fallback={t('jockeyNotUpdated')} />
-            <ProfileField label={t('jockeyDateOfBirth')} value={formatDate(kyc.verifiedDateOfBirth)} fallback={t('jockeyNotUpdated')} />
-            <ProfileField label={t('jockeyIdentityDocument')} value={`${kyc.documentType || t('jockeyIdentityDocument')}${kyc.documentLastFour ? ` **** ${kyc.documentLastFour}` : ''}`} fallback={t('jockeyNotUpdated')} />
-            <ProfileField label={t('jockeyDocumentExpiry')} value={kyc.documentExpiryDate ? formatDate(kyc.documentExpiryDate) : t('jockeyNoDocumentExpiry')} fallback={t('jockeyNotUpdated')} />
-            <ProfileField label={t('jockeyVerifiedBy')} value={kyc.provider || 'DIDIT'} fallback={t('jockeyNotUpdated')} />
-            <ProfileField label={t('jockeyVerifiedAt')} value={formatDate(kyc.verifiedAt)} fallback={t('jockeyNotUpdated')} />
-          </div>
-        ) : <div className="admin-alert success" role="status">{t('jockeyIdentityPending')}</div>}
-      </section>
-
-      <section className="owner-panel">
-        <div className="owner-panel-header">
-          <div><p className="eyebrow">{t('jockeyWalletSummary')}</p><h2>{t('jockeyWalletAccess')}</h2><p>{t('jockeyWalletHelp')}</p></div>
-          <StatusBadge status={wallet?.status || 'NOT_OPENED'} t={t} />
-        </div>
-        <div className="grid gap-4 md:grid-cols-3">
-          <ProfileField label={t('jockeyCurrency')} value={wallet?.currency || 'VND'} fallback={t('jockeyNotUpdated')} />
-          <ProfileField label={t('jockeyAvailableBalance')} value={wallet ? money(wallet.availableBalance, wallet.currency) : t('jockeyWalletNotOpened')} fallback={t('jockeyNotUpdated')} />
-          <ProfileField label={t('jockeyLockedBalance')} value={wallet ? money(wallet.lockedBalance, wallet.currency) : t('jockeyWalletNotOpened')} fallback={t('jockeyNotUpdated')} />
         </div>
       </section>
     </section>

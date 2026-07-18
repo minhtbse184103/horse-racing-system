@@ -65,6 +65,7 @@ public class OwnerServiceImpl implements OwnerService {
     private final TournamentRepository tournamentRepository;
     private final FileUploadService fileUploadService;
     private final RegistrationAvailabilityService availabilityService;
+    private final RegistrationEligibilityService eligibilityService;
     private final JockeyInvitationService jockeyInvitationService;
 
     public OwnerServiceImpl(
@@ -77,6 +78,7 @@ public class OwnerServiceImpl implements OwnerService {
             TournamentRepository tournamentRepository,
             FileUploadService fileUploadService,
             RegistrationAvailabilityService availabilityService,
+            RegistrationEligibilityService eligibilityService,
             JockeyInvitationService jockeyInvitationService) {
         this.horseRepository = horseRepository;
         this.registrationRepository = registrationRepository;
@@ -87,6 +89,7 @@ public class OwnerServiceImpl implements OwnerService {
         this.tournamentRepository = tournamentRepository;
         this.fileUploadService = fileUploadService;
         this.availabilityService = availabilityService;
+        this.eligibilityService = eligibilityService;
         this.jockeyInvitationService = jockeyInvitationService;
     }
 
@@ -94,14 +97,17 @@ public class OwnerServiceImpl implements OwnerService {
     @Transactional(readOnly = true)
     @Override
     public OwnerDashboardResponse getDashboard() {
+        // Xác định owner hiện tại từ JWT trước khi gom số liệu dashboard.
         User owner = getCurrentOwner();
         Integer ownerId = owner.getUserID();
+        // Lấy danh sách ngựa của owner để tính số ngựa đang có registration active.
         List<Horse> horses = horseRepository.findByOwnerId(ownerId);
 
         long participatedHorses = horses.stream()
                 .filter(horse -> hasActiveRegistration(horse.getHorseId()))
                 .count();
 
+        // Query các chỉ số tổng hợp từ DB rồi trả về dashboard response.
         return OwnerDashboardResponse.builder()
                 .ownerId(ownerId)
                 .ownerName(owner.getUsername())
@@ -116,7 +122,9 @@ public class OwnerServiceImpl implements OwnerService {
     @Transactional(readOnly = true)
     @Override
     public List<HorseResponse> getMyHorses() {
+        // Owner phải có profile đã được duyệt mới được xem danh sách ngựa.
         Integer ownerId = getCurrentOwnerProfile().getOwnerId();
+        // Query toàn bộ ngựa thuộc owner hiện tại và map sang response.
         return horseRepository.findByOwnerId(ownerId)
                 .stream()
                 .map(this::mapHorseToResponse)
@@ -127,6 +135,7 @@ public class OwnerServiceImpl implements OwnerService {
     @Transactional(readOnly = true)
     @Override
     public HorseResponse getMyHorseById(Integer horseId) {
+        // getOwnedHorse đã validate ngựa thuộc owner đang đăng nhập.
         return mapHorseToResponse(getOwnedHorse(horseId));
     }
 
@@ -134,15 +143,19 @@ public class OwnerServiceImpl implements OwnerService {
     @Transactional
     @Override
     public HorseResponse createHorse(CreateHorseRequest request) {
+        // Chỉ owner đã có profile được duyệt mới được tạo hồ sơ ngựa.
         Integer ownerId = getCurrentOwnerProfile().getOwnerId();
         String horseName = normalizeText(request.getHorseName());
 
+        // Tên ngựa là duy nhất trong hệ thống, không cho tạo trùng.
         if (horseRepository.existsByHorseNameIgnoreCase(horseName)) {
             throw new ApiException(HttpStatus.CONFLICT, "Tên ngựa đã tồn tại.");
         }
 
+        // Upload giấy chứng nhận sức khỏe và lưu URL vào hồ sơ ngựa.
         String healthCertificateUrl = storeHealthCertificate(request.getHealthCertificateFile());
 
+        // Tạo ngựa mới ở trạng thái PENDING để admin duyệt.
         Horse horse = Horse.builder()
                 .ownerId(ownerId)
                 .horseName(horseName)
@@ -160,6 +173,7 @@ public class OwnerServiceImpl implements OwnerService {
                 .rejectionReason(null)
                 .build();
 
+        // Lưu hồ sơ ngựa xuống DB.
         return mapHorseToResponse(horseRepository.save(horse));
     }
 
@@ -167,13 +181,16 @@ public class OwnerServiceImpl implements OwnerService {
     @Transactional
     @Override
     public HorseResponse updateHorse(Integer horseId, UpdateHorseRequest request) {
+        // Chỉ cho owner cập nhật ngựa thuộc sở hữu của chính mình.
         Horse horse = getOwnedHorse(horseId);
         String horseName = normalizeText(request.getHorseName());
 
+        // Nếu đổi tên, tên mới không được trùng với ngựa khác.
         if (horseRepository.existsByHorseNameIgnoreCaseAndHorseIdNot(horseName, horse.getHorseId())) {
             throw new ApiException(HttpStatus.CONFLICT, "Tên ngựa đã tồn tại.");
         }
 
+        // Cập nhật thông tin ngựa và đưa về PENDING để admin duyệt lại.
         horse.setHorseName(horseName);
         horse.setAge(calculateAge(request.getDayOfBirth()));
         horse.setDayOfBirth(request.getDayOfBirth());
@@ -187,6 +204,7 @@ public class OwnerServiceImpl implements OwnerService {
         horse.setStatus(STATUS_PENDING);
         horse.setRejectionReason(null);
 
+        // Lưu thay đổi ngựa xuống DB.
         return mapHorseToResponse(horseRepository.save(horse));
     }
 
@@ -194,18 +212,22 @@ public class OwnerServiceImpl implements OwnerService {
     @Transactional
     @Override
     public void deleteHorse(Integer horseId) {
+        // Chỉ owner sở hữu ngựa mới được xóa.
         Horse horse = getOwnedHorse(horseId);
 
+        // Không cho xóa nếu ngựa đã có lời mời jockey liên quan.
         if (jockeyInvitationRepository.existsByHorseId(horse.getHorseId())) {
             throw new ApiException(HttpStatus.CONFLICT,
                     "Ngựa đã có lời mời nài ngựa nên không thể xóa.");
         }
 
+        // Không cho xóa nếu ngựa đã có registration tham gia giải.
         if (registrationRepository.existsByHorseId(horse.getHorseId())) {
             throw new ApiException(HttpStatus.CONFLICT,
                     "Ngựa đã có đơn đăng ký giải đấu nên không thể xóa.");
         }
 
+        // Xóa hồ sơ ngựa khỏi DB.
         horseRepository.delete(horse);
     }
 
@@ -213,6 +235,7 @@ public class OwnerServiceImpl implements OwnerService {
     @Transactional(readOnly = true)
     @Override
     public List<JockeyInvitationResponse> getMyInvitations() {
+        // Lấy owner profile đã được duyệt rồi query các lời mời owner đã gửi.
         Integer ownerId = getCurrentOwnerProfile().getOwnerId();
         return jockeyInvitationRepository.findByOwnerIdOrderByCreatedAtDesc(ownerId)
                 .stream()
@@ -224,14 +247,23 @@ public class OwnerServiceImpl implements OwnerService {
     @Transactional
     @Override
     public JockeyInvitationResponse inviteJockey(InviteJockeyRequest request) {
+        // Lấy owner, ngựa và tournament từ DB để kiểm tra quyền/điều kiện trước khi mời.
         User owner = getCurrentOwner();
         Horse horse = getOwnedHorse(request.getHorseId());
         Tournament tournament = getTournament(request.getTournamentId());
 
+        // Ngựa phải hợp lệ để đăng ký và hạn lời mời không được vượt hạn đăng ký.
         validateHorseCanRegister(horse, tournament);
         validateInvitationExpiry(request.getExpiredAt(), tournament);
 
+        // Lấy jockey được mời và kiểm tra điều kiện tham gia giải.
         User jockey = getJockey(request.getJockeyId());
+        eligibilityService.validateParticipationRequirements(
+                tournament,
+                horse.getHorseId(),
+                owner.getUserID(),
+                jockey.getUserID()
+        );
         availabilityService.validateInvitationCanBeCreated(
                 owner.getUserID(),
                 horse.getHorseId(),
@@ -239,6 +271,7 @@ public class OwnerServiceImpl implements OwnerService {
                 tournament,
                 null);
 
+        // Tạo lời mời PENDING để jockey phản hồi accept/reject.
         JockeyInvitation invitation = JockeyInvitation.builder()
                 .tournamentId(tournament.getTournamentId())
                 .horseId(horse.getHorseId())
@@ -256,18 +289,22 @@ public class OwnerServiceImpl implements OwnerService {
     @Transactional
     @Override
     public JockeyInvitationResponse cancelInvitation(Integer invitationId) {
+        // Owner chỉ được hủy lời mời do chính mình gửi.
         User owner = getCurrentOwner();
         JockeyInvitation invitation = jockeyInvitationRepository
                 .findByInvitationIdAndOwnerId(invitationId, owner.getUserID())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Lời mời không tồn tại."));
 
+        // Chỉ lời mời PENDING mới có thể hủy.
         if (!INVITATION_PENDING.equals(invitation.getStatus())) {
             throw new ApiException(HttpStatus.CONFLICT, "Chỉ có thể hủy lời mời đang ở trạng thái PENDING.");
         }
 
+        // Cập nhật lời mời sang CANCELLED.
         invitation.setStatus(INVITATION_CANCELLED);
         invitation.setRespondedAt(LocalDateTime.now());
 
+        // Nếu lời mời đã sinh registration thì hủy registration liên quan.
         if (invitation.getRegistrationId() != null) {
             registrationRepository.findById(invitation.getRegistrationId())
                     .ifPresent(registration -> {
@@ -282,6 +319,7 @@ public class OwnerServiceImpl implements OwnerService {
 
     // Lấy user owner từ JWT hiện tại và kiểm tra đúng role OWNER.
     private User getCurrentOwner() {
+        // Lấy owner đang đăng nhập từ JWT và validate role OWNER.
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || authentication.getName() == null) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "Người dùng chưa được xác thực.");
@@ -299,6 +337,7 @@ public class OwnerServiceImpl implements OwnerService {
 
     // Lấy ngựa theo horseId và đảm bảo ngựa đó thuộc owner đang đăng nhập.
     private OwnerProfile getCurrentOwnerProfile() {
+        // Owner phải có profile đã được admin xác minh mới dùng được chức năng owner.
         User owner = getCurrentOwner();
         return ownerProfileRepository.findById(owner.getUserID())
                 .orElseThrow(() -> new ApiException(HttpStatus.FORBIDDEN,
@@ -306,6 +345,7 @@ public class OwnerServiceImpl implements OwnerService {
     }
 
     private Horse getOwnedHorse(Integer horseId) {
+        // Query ngựa theo horseId và ownerId để đảm bảo owner chỉ thao tác với ngựa của mình.
         Integer ownerId = getCurrentOwner().getUserID();
         return horseRepository.findByHorseIdAndOwnerId(horseId, ownerId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Ngựa không tồn tại."));
@@ -313,6 +353,7 @@ public class OwnerServiceImpl implements OwnerService {
 
     // Lấy user jockey được mời và kiểm tra user đó có role JOCKEY cùng profile hợp lệ.
     private User getJockey(Integer jockeyId) {
+        // Query user jockey được mời và kiểm tra role/trạng thái.
         User jockey = userRepository.findById(jockeyId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Nài ngựa không tồn tại."));
 
@@ -324,6 +365,7 @@ public class OwnerServiceImpl implements OwnerService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Tài khoản nài ngựa được chọn không hoạt động.");
         }
 
+        // Jockey phải có JockeyProfile thì mới được owner mời tham gia giải.
         JockeyProfile profile = jockeyProfileRepository.findById(jockeyId)
                 .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "Hồ sơ nài ngựa không tồn tại."));
 
@@ -332,20 +374,24 @@ public class OwnerServiceImpl implements OwnerService {
 
     // Kiểm tra ngựa đủ điều kiện đăng ký tournament trước khi owner gửi lời mời.
     private void validateHorseCanRegister(Horse horse, Tournament tournament) {
+        // Chỉ ngựa ACTIVE mới được đưa vào quy trình đăng ký giải.
         if (!STATUS_ACTIVE.equals(horse.getStatus())) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Chỉ ngựa đang hoạt động mới có thể đăng ký.");
         }
 
+        // Tournament phải đang mở đăng ký.
         if (!TOURNAMENT_OPEN_FOR_REGISTRATION.equals(tournament.getStatus())) {
             throw new ApiException(HttpStatus.BAD_REQUEST,
                     "Chỉ giải đấu đang mở đăng ký mới có thể nhận đơn đăng ký từ chủ ngựa.");
         }
 
+        // Không cho đăng ký sau hạn đóng đăng ký.
         if (tournament.getRegistrationCloseAt() != null
                 && tournament.getRegistrationCloseAt().isBefore(LocalDateTime.now())) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Hạn đăng ký giải đấu đã qua.");
         }
 
+        // Kiểm tra số lượng đăng ký active chưa vượt maxRegistrations.
         if (tournament.getMaxRegistrations() != null) {
             long activeRegistrations = registrationRepository.countByTournamentIdAndStatusIn(
                     tournament.getTournamentId(),
@@ -358,6 +404,7 @@ public class OwnerServiceImpl implements OwnerService {
 
     // Đảm bảo hạn phản hồi lời mời jockey không vượt quá hạn đăng ký tournament.
     private void validateInvitationExpiry(LocalDateTime expiredAt, Tournament tournament) {
+        // Hạn phản hồi lời mời phải trước hạn đóng đăng ký của tournament.
         if (expiredAt == null || tournament.getRegistrationCloseAt() == null) {
             return;
         }
@@ -370,6 +417,7 @@ public class OwnerServiceImpl implements OwnerService {
 
     // Chuyển entity Horse sang HorseResponse và bổ sung thông tin registration của ngựa.
     private HorseResponse mapHorseToResponse(Horse horse) {
+        // Lấy danh sách registration để tính số lần đăng ký và trạng thái đang tham gia.
         List<Integer> registrationIds = registrationRepository.findRegistrationIdsByHorseId(horse.getHorseId());
         return HorseResponse.builder()
                 .horseId(horse.getHorseId())
@@ -394,12 +442,14 @@ public class OwnerServiceImpl implements OwnerService {
                 .build();
     }
 
-    // Kiểm tra một ngựa có registration active hay không dựa trên horseId.
+    // Tính tuổi ngựa từ ngày sinh và validate tuổi phải hợp lệ.
     private int calculateAge(LocalDate dayOfBirth) {
+        // Ngày sinh là bắt buộc để tính tuổi ngựa.
         if (dayOfBirth == null) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Day of birth is required.");
         }
         int age = Period.between(dayOfBirth, LocalDate.now()).getYears();
+        // Tuổi ngựa phải lớn hơn 0, tránh ngày sinh ở hiện tại/tương lai.
         if (age <= 0) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Horse age must be greater than 0.");
         }
@@ -407,6 +457,7 @@ public class OwnerServiceImpl implements OwnerService {
     }
 
     private String storeHealthCertificate(MultipartFile file) {
+        // Validate file trước khi upload lên storage.
         validateHealthCertificateFile(file);
         FileUploadResponse uploaded = fileUploadService.upload(
                 file,
@@ -416,10 +467,12 @@ public class OwnerServiceImpl implements OwnerService {
     }
 
     private void validateHealthCertificateFile(MultipartFile file) {
+        // File giấy chứng nhận sức khỏe là bắt buộc khi tạo hồ sơ ngựa.
         if (file == null || file.isEmpty()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Health Certificate file is required.");
         }
 
+        // Chỉ cho phép PDF/JPG/JPEG/PNG theo cả extension và content-type.
         String extension = getFileExtension(file.getOriginalFilename());
         String contentType = String.valueOf(file.getContentType()).toLowerCase(Locale.ROOT);
         boolean allowedExtension = List.of("pdf", "jpg", "jpeg", "png").contains(extension);
@@ -431,6 +484,7 @@ public class OwnerServiceImpl implements OwnerService {
     }
 
     private String getFileExtension(String filename) {
+        // Tách extension từ tên file để kiểm tra định dạng upload.
         if (filename == null || filename.isBlank() || !filename.contains(".")) {
             return "";
         }
@@ -438,11 +492,13 @@ public class OwnerServiceImpl implements OwnerService {
     }
 
     private boolean hasActiveRegistration(Integer horseId) {
+        // Lấy danh sách registration của ngựa rồi kiểm tra trạng thái active.
         return hasActiveRegistration(registrationRepository.findRegistrationIdsByHorseId(horseId));
     }
 
     // Kiểm tra danh sách registration có trạng thái active như PENDING hoặc APPROVED.
     private boolean hasActiveRegistration(Collection<Integer> registrationIds) {
+        // Registration active gồm PENDING hoặc APPROVED.
         return !registrationIds.isEmpty()
                 && registrationRepository.countByRegistrationIdInAndStatusIn(
                 registrationIds,
@@ -450,11 +506,13 @@ public class OwnerServiceImpl implements OwnerService {
     }
 
     private Tournament getTournament(Integer tournamentId) {
+        // Query tournament theo ID để dùng cho validate invitation/registration.
         return tournamentRepository.findById(tournamentId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Giải đấu không tồn tại."));
     }
 
     private String normalizeText(String value) {
+        // Chuẩn hóa chuỗi input trước khi lưu DB.
         return value == null ? null : value.trim();
     }
 

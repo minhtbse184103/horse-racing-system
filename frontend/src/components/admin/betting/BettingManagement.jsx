@@ -20,7 +20,6 @@ import {
   getAdminBetEvents,
   getAdminBetProducts,
   openAdminBetEvent,
-  settleAdminBetEvent,
   updateAdminBetProduct
 } from '../../../services/bettingService';
 
@@ -391,7 +390,6 @@ export default function BettingManagement() {
     try {
       if (confirmAction.action === 'OPEN') await openAdminBetEvent(confirmAction.event.betEventId);
       if (confirmAction.action === 'CLOSE') await closeAdminBetEvent(confirmAction.event.betEventId);
-      if (confirmAction.action === 'SETTLE') await settleAdminBetEvent(confirmAction.event.betEventId);
       setMessage(`Đã ${confirmAction.action.toLowerCase()} betting event.`);
       setConfirmAction(null);
       await loadData();
@@ -471,7 +469,6 @@ export default function BettingManagement() {
                     <button className="refresh-button" type="button" title="View detail" onClick={() => setSelectedEvent(event)}><Eye size={16} /></button>
                     {(status === 'DRAFT' || status === 'CLOSED') && <button className="refresh-button" type="button" title="Open" onClick={() => setConfirmAction({ action: 'OPEN', event })}><Check size={16} /></button>}
                     {status === 'OPEN' && <button className="refresh-button" type="button" title="Close" onClick={() => setConfirmAction({ action: 'CLOSE', event })}><X size={16} /></button>}
-                    {status === 'CLOSED' && <button className="refresh-button" type="button" title="Settle" onClick={() => setConfirmAction({ action: 'SETTLE', event })}><CircleDollarSign size={16} /></button>}
                   </div>
                 </div>
               );

@@ -23,7 +23,6 @@ class KycServiceImplTest {
     private final WalletRepository wallets = mock(WalletRepository.class);
     private final DiditClient client = mock(DiditClient.class);
     private final DiditWebhookVerifier verifier = mock(DiditWebhookVerifier.class);
-    private final PrizePayoutService prizePayoutService = mock(PrizePayoutService.class);
     private final DiditProperties properties = new DiditProperties(
             "https://verification.didit.me", "key", "workflow", "secret",
             "http://localhost:5173", "sandbox", "ID_VERIFICATION,LIVENESS,FACE_MATCH");
@@ -32,13 +31,14 @@ class KycServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        service = new KycServiceImpl(users, verifications, events, wallets, client, properties, verifier, prizePayoutService);
+        service = new KycServiceImpl(users, verifications, events, wallets, client, properties, verifier);
         Role role = new Role();
         role.setRoleName("SPECTATOR");
         user = new User();
         user.setUserID(7);
         user.setEmail("spectator@test.local");
         user.setStatus("ACTIVE");
+        user.setAccountType("SPECTATOR");
         user.setRole(role);
         when(users.findByEmail(user.getEmail())).thenReturn(Optional.of(user));
         when(users.findByIdForUpdate(7)).thenReturn(Optional.of(user));
@@ -101,6 +101,20 @@ class KycServiceImplTest {
     }
 
     @Test
+    void spectatorRoleWithOwnerAccountTypeCannotUseKycEndpoints() {
+        user.setAccountType("OWNER");
+
+        ApiException createError = assertThrows(ApiException.class,
+                () -> service.createSession(user.getEmail()));
+        ApiException statusError = assertThrows(ApiException.class,
+                () -> service.getMine(user.getEmail()));
+
+        assertEquals(403, createError.getStatus().value());
+        assertEquals(403, statusError.getStatus().value());
+        verifyNoInteractions(verifications, client, wallets);
+    }
+
+    @Test
     void duplicateWebhookDoesNotRetrieveDecisionTwice() throws Exception {
         byte[] body = "{}".getBytes();
         when(verifier.verify(any(), any(), any(), any(), any())).thenReturn(new ObjectMapper().readTree("""
@@ -125,6 +139,7 @@ class KycServiceImplTest {
                 """));
         when(events.insertIfAbsent(any(), any(), any(), any())).thenReturn(1);
         when(events.findByEventId("evt-2")).thenReturn(Optional.of(event));
+        when(verifications.findByProviderSessionId("session-2")).thenReturn(Optional.of(verification));
         when(verifications.findByProviderSessionIdForUpdate("session-2")).thenReturn(Optional.of(verification));
         when(client.retrieveDecision("session-2")).thenReturn(new ObjectMapper().readTree("""
                 {
@@ -142,7 +157,6 @@ class KycServiceImplTest {
         assertEquals(KycStatus.VERIFIED, verification.getStatus());
         assertEquals("5678", verification.getDocumentLastFour());
         verify(wallets).save(argThat(wallet -> wallet.getUserId() == 7));
-        verify(prizePayoutService).payPendingForUser(7);
     }
 
     @Test
@@ -157,6 +171,7 @@ class KycServiceImplTest {
                 """));
         when(events.insertIfAbsent(any(), any(), any(), any())).thenReturn(1);
         when(events.findByEventId("evt-3")).thenReturn(Optional.of(event));
+        when(verifications.findByProviderSessionId("session-3")).thenReturn(Optional.of(verification));
         when(verifications.findByProviderSessionIdForUpdate("session-3")).thenReturn(Optional.of(verification));
         when(client.retrieveDecision("session-3")).thenReturn(new ObjectMapper().readTree("""
                 {"session_id":"session-3","vendor_data":"user-999","workflow_id":"workflow","status":"Approved"}
@@ -165,6 +180,48 @@ class KycServiceImplTest {
         assertThrows(ApiException.class, () -> service.processWebhook(body, "timestamp", "signature", null, null, false));
         verify(wallets, never()).save(any());
         assertNotEquals(KycStatus.VERIFIED, verification.getStatus());
+    }
+
+    @Test
+    void approvedWebhookCannotCompleteKycOrOpenWalletAfterAccountBecomesJockey() throws Exception {
+        user.setAccountType("JOCKEY");
+        byte[] body = "{}".getBytes();
+        DiditWebhookEvent event = DiditWebhookEvent.builder()
+                .eventId("evt-jockey")
+                .providerSessionId("session-jockey")
+                .build();
+        UserVerification verification = UserVerification.builder()
+                .verificationId(14)
+                .userId(7)
+                .provider("DIDIT")
+                .providerSessionId("session-jockey")
+                .workflowId("workflow")
+                .vendorData("user-7")
+                .status(KycStatus.IN_REVIEW)
+                .attemptNumber(1)
+                .build();
+        when(verifier.verify(any(), any(), any(), any(), any())).thenReturn(new ObjectMapper().readTree("""
+                {"event_id":"evt-jockey","session_id":"session-jockey","status":"Approved"}
+                """));
+        when(events.insertIfAbsent(any(), any(), any(), any())).thenReturn(1);
+        when(events.findByEventId("evt-jockey")).thenReturn(Optional.of(event));
+        when(verifications.findByProviderSessionId("session-jockey")).thenReturn(Optional.of(verification));
+        when(client.retrieveDecision("session-jockey")).thenReturn(new ObjectMapper().readTree("""
+                {
+                  "session_id":"session-jockey","vendor_data":"user-7","workflow_id":"workflow",
+                  "session_kind":"KYC","environment":"sandbox","status":"Approved",
+                  "id_verifications":[{"status":"Approved"}],
+                  "liveness_checks":[{"status":"Approved"}],
+                  "face_matches":[{"status":"Approved"}]
+                }
+                """));
+
+        assertThrows(ApiException.class,
+                () -> service.processWebhook(body, "timestamp", "signature", null, null, false));
+
+        assertEquals(KycStatus.IN_REVIEW, verification.getStatus());
+        verify(verifications, never()).findByProviderSessionIdForUpdate("session-jockey");
+        verify(wallets, never()).save(any());
     }
 
     @Test

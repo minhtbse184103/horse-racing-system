@@ -3130,6 +3130,7 @@ select {
 .owner-application-style .registration-horse-card small,
 .owner-application-style .registration-horse-card em,
 .owner-application-style .registration-horse-status,
+.owner-application-style .registration-horse-eligibility,
 .owner-application-style .registration-horse-mini-stats,
 .owner-application-style .registration-horse-actions {
   grid-area: auto;
@@ -3137,6 +3138,10 @@ select {
 
 .owner-application-style .registration-horse-status {
   justify-self: start;
+}
+
+.owner-application-style .registration-horse-eligibility {
+  align-self: start;
 }
 
 .owner-application-style .registration-horse-actions {
@@ -3447,6 +3452,148 @@ select {
   padding-top: 12px;
 }
 
+.tournament-detail-load-error {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid rgba(176, 42, 42, 0.2);
+  border-radius: 10px;
+  background: rgba(255, 240, 240, 0.78);
+  padding: 11px 12px;
+  color: #a72929;
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.owner-tournament-requirements,
+.owner-tournament-race-program {
+  display: grid;
+  gap: 12px;
+  border-top: 1px solid rgba(0, 84, 75, 0.14);
+  padding-top: 14px;
+}
+
+.owner-tournament-detail-heading,
+.owner-tournament-race-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.owner-tournament-detail-heading h4,
+.owner-tournament-race-head strong {
+  margin: 3px 0 0;
+  color: var(--brown-900);
+}
+
+.owner-tournament-detail-heading > span {
+  border-radius: 999px;
+  background: rgba(0, 84, 75, 0.1);
+  padding: 6px 10px;
+  color: #00544b;
+  font-size: 0.76rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.owner-tournament-condition-grid,
+.owner-tournament-race-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.owner-tournament-condition-grid > article {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+  border: 1px solid rgba(0, 84, 75, 0.12);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.72);
+  padding: 12px;
+  color: #087367;
+}
+
+.owner-tournament-condition-grid > article > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.owner-tournament-condition-grid strong,
+.owner-tournament-condition-grid small {
+  overflow-wrap: anywhere;
+}
+
+.owner-tournament-condition-grid strong {
+  color: var(--brown-900);
+  font-size: 0.88rem;
+}
+
+.owner-tournament-condition-grid small,
+.owner-tournament-no-extra-condition {
+  margin: 0;
+  color: var(--slate-500);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.owner-tournament-race-grid > article {
+  display: grid;
+  gap: 11px;
+  min-width: 0;
+  border: 1px solid rgba(108, 63, 36, 0.13);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.78);
+  padding: 13px;
+}
+
+.owner-tournament-race-head > div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.owner-tournament-race-head small {
+  color: var(--slate-500);
+  font-size: 0.7rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.owner-tournament-race-grid dl {
+  display: grid;
+  gap: 7px;
+  margin: 0;
+}
+
+.owner-tournament-race-grid dl > div {
+  display: grid;
+  grid-template-columns: minmax(92px, 0.8fr) minmax(0, 1.2fr);
+  gap: 8px;
+  align-items: start;
+}
+
+.owner-tournament-race-grid dt {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--slate-500);
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.owner-tournament-race-grid dd {
+  margin: 0;
+  color: var(--brown-900);
+  font-size: 0.78rem;
+  font-weight: 850;
+  overflow-wrap: anywhere;
+}
+
 .compact-empty {
   min-height: 210px;
 }
@@ -3570,6 +3717,44 @@ select {
   font-size: 0.76rem;
   font-weight: 950;
   overflow-wrap: anywhere;
+}
+
+.registration-horse-eligibility {
+  grid-area: status;
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.registration-horse-eligibility > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  width: fit-content;
+  border-radius: 999px;
+  padding: 5px 9px;
+  font-size: 0.74rem;
+  font-weight: 950;
+}
+
+.registration-horse-eligibility.eligible > span {
+  background: rgba(46, 125, 50, 0.12);
+  color: #2e7d32;
+}
+
+.registration-horse-eligibility.ineligible > span {
+  background: rgba(176, 42, 42, 0.12);
+  color: #b02a2a;
+}
+
+.registration-horse-eligibility ul {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  padding-left: 16px;
+  color: #a72929;
+  font-size: 0.72rem;
+  line-height: 1.4;
 }
 
 .registration-horse-card.unavailable .registration-horse-status,
@@ -3765,8 +3950,20 @@ select {
 
 .invitation-action-group {
   display: flex;
+  align-items: center;
   flex-wrap: wrap;
   gap: 7px;
+  min-height: 36px;
+}
+
+.invitation-no-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  color: var(--slate-500);
+  font-size: 1rem;
+  font-weight: 800;
 }
 
 .owner-invitation-table .table-subtext {
@@ -3911,10 +4108,29 @@ select {
 
 .owner-payment-result {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  gap: 18px 20px;
-  width: min(760px, 100%);
+  gap: 22px;
+  width: 100%;
   padding: 30px;
+  overflow: hidden;
+}
+
+.owner-payment-result.is-paid {
+  border-color: rgba(46, 125, 50, 0.18);
+  background: linear-gradient(135deg, rgba(246, 251, 243, 0.98), rgba(255, 250, 242, 0.98) 48%);
+}
+
+.owner-payment-result.is-failed {
+  border-color: rgba(198, 53, 43, 0.18);
+  background: linear-gradient(135deg, rgba(255, 246, 244, 0.98), rgba(255, 250, 242, 0.98) 48%);
+}
+
+.owner-payment-result-header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 18px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid rgba(108, 63, 36, 0.1);
 }
 
 .owner-payment-result-icon {
@@ -3948,11 +4164,16 @@ select {
   color: var(--slate-500);
 }
 
+.owner-payment-result-close {
+  min-width: 104px;
+  justify-content: center;
+  white-space: nowrap;
+}
+
 .owner-payment-result-details {
-  grid-column: 1 / -1;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: 12px;
   margin: 0;
 }
 
@@ -3965,6 +4186,13 @@ select {
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.64);
   padding: 13px;
+}
+
+.owner-payment-result-details > div {
+  align-content: center;
+  min-height: 78px;
+  border-radius: 12px;
+  padding: 16px;
 }
 
 .owner-payment-result-details dt,
@@ -3983,11 +4211,8 @@ select {
   overflow-wrap: anywhere;
 }
 
-.owner-payment-result-actions {
+.owner-payment-result-transaction {
   grid-column: 1 / -1;
-  display: flex;
-  justify-content: flex-end;
-  padding-top: 4px;
 }
 
 .owner-payment-order-summary {
@@ -4031,8 +4256,17 @@ select {
 
 @media (max-width: 680px) {
   .owner-payment-result {
-    grid-template-columns: 1fr;
     padding: 22px;
+  }
+
+  .owner-payment-result-header {
+    grid-template-columns: auto minmax(0, 1fr);
+    padding-bottom: 18px;
+  }
+
+  .owner-payment-result-close {
+    grid-column: 1 / -1;
+    width: 100%;
   }
 
   .owner-payment-result-details,
@@ -4041,15 +4275,8 @@ select {
     grid-template-columns: 1fr;
   }
 
-  .owner-payment-result-icon,
-  .owner-payment-result-copy,
-  .owner-payment-result-details,
-  .owner-payment-result-actions {
+  .owner-payment-result-transaction {
     grid-column: 1;
-  }
-
-  .owner-payment-result-actions .primary-button {
-    width: 100%;
   }
 }
 
@@ -5596,5 +5823,20 @@ select {
   .jockey-license-upload {
     padding: 18px;
     align-items: flex-start;
+  }
+
+  .owner-tournament-condition-grid,
+  .owner-tournament-race-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .owner-tournament-detail-heading,
+  .tournament-detail-load-error {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .owner-tournament-detail-heading > span {
+    width: fit-content;
   }
 }

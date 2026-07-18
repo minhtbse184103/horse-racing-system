@@ -154,8 +154,17 @@ export default function OwnerApplicationForm({ user, application, formError = ''
     setStep((current) => Math.max(0, current - 1));
   }
 
-  function handleSubmit(event) {
+  function handleFormSubmit(event) {
     event.preventDefault();
+
+    if (!isLastStep) {
+      handleNext();
+    }
+  }
+
+  function handleFinalSubmit() {
+    if (!isLastStep || isSubmitting) return;
+
     for (let index = 0; index < steps.length - 1; index += 1) {
       if (!validateStep(index)) {
         setStep(index);
@@ -189,7 +198,7 @@ export default function OwnerApplicationForm({ user, application, formError = ''
 
         {formError && <div className="admin-alert error mt-5" role="alert">{formError}</div>}
 
-        <form className="mt-6 grid gap-5" onSubmit={handleSubmit} noValidate>
+        <form className="mt-6 grid gap-5" onSubmit={handleFormSubmit} noValidate>
           {getStepKey() === 'Stable Information' && (
             <div className="grid gap-4">
               <label className="grid gap-2">
@@ -248,7 +257,7 @@ export default function OwnerApplicationForm({ user, application, formError = ''
                 Next
               </button>
             ) : (
-              <button className="primary-button sm:w-auto" type="submit" disabled={isSubmitting}>
+              <button className="primary-button sm:w-auto" type="button" onClick={handleFinalSubmit} disabled={isSubmitting}>
                 {isSubmitting ? 'Submitting...' : 'Submit Owner Application'}
               </button>
             )}

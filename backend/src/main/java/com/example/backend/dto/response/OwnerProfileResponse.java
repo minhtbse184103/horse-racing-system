@@ -1,6 +1,5 @@
 package com.example.backend.dto.response;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import lombok.Builder;
@@ -11,19 +10,9 @@ import lombok.Getter;
 public class OwnerProfileResponse {
     private Integer ownerId;
     private Integer applicationId;
-    private Integer kycVerificationId;
     private String username;
     private String email;
     private String phone;
-    private String kycStatus;
-    private String fullName;
-    private LocalDate dateOfBirth;
-    private String gender;
-    private String nationality;
-    private String address;
-    private String identityDocumentUrl;
-    private String identityBackUrl;
-    private String selfieUrl;
     private String stableName;
     private String stableAddress;
     private String stableCertificateUrl;

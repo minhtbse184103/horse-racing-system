@@ -198,17 +198,20 @@ public class BettingService {
 
     @Transactional
     public BetTicketResponse placeBet(Integer eventId, PlaceBetRequest request, String email) {
+        // Lấy user đặt cược và kiểm tra role, KYC, độ tuổi trước khi xử lý tiền.
         User user = getUser(email);
         validatePlayerRole(user);
         UserVerification verification = validateBettingKyc(user);
         validateAge(verification);
 
+        // Lock betting event để tránh thay đổi trạng thái khi đang đặt cược.
         BetEvent event = betEventRepository.findByIdForUpdate(eventId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Bet event does not exist."));
         BetProduct product = getProduct(event.getBetProductId());
         Race race = getRace(event.getRaceId());
         validateEventIsBettable(event, race);
 
+        // Kiểm tra race entry được chọn có thuộc race này và đã được phân slot chính thức.
         RaceEntry raceEntry = raceEntryRepository.findById(request.getRaceEntryId())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Race entry does not exist."));
         if (!event.getRaceId().equals(raceEntry.getRaceId())
@@ -216,6 +219,7 @@ public class BettingService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Race entry is not available for this betting event.");
         }
 
+        // Không cho owner hoặc jockey của entry tự đặt cược vào ngựa của mình.
         Registration registration = registrationRepository.findById(raceEntry.getRegistrationId())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Race registration does not exist."));
         if (user.getUserID().equals(registration.getOwnerId())
@@ -223,12 +227,14 @@ public class BettingService {
             throw new ApiException(HttpStatus.FORBIDDEN, "Race participants cannot bet on their own race entry.");
         }
 
+        // Chuẩn hóa tiền cược và kiểm tra giới hạn theo product/ngày.
         BigDecimal stake = normalizeMoney(request.getStake());
         if (stake.compareTo(max(product.getMinStake(), DEFAULT_MIN_STAKE)) < 0) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Stake is lower than the product minimum stake.");
         }
         validateDailyLimit(user.getUserID(), product, stake);
 
+        // Lock wallet để kiểm tra và cập nhật số dư khóa một cách nhất quán.
         Wallet wallet = walletRepository.findByUserIdForUpdate(user.getUserID())
                 .orElseThrow(() -> new ApiException(HttpStatus.FORBIDDEN, "Wallet is not opened."));
         ensureWalletActive(wallet);
@@ -237,6 +243,7 @@ public class BettingService {
             throw new ApiException(HttpStatus.CONFLICT, "Wallet balance is not enough for this bet.");
         }
 
+        // Tạo vé cược ở trạng thái PLACED.
         BigDecimal estimatedOdds = calculateEstimatedOdds(event, raceEntry.getRaceEntryId(), stake);
 
         BetTicket ticket = new BetTicket();
@@ -251,6 +258,7 @@ public class BettingService {
         ticket.setPlacedAt(LocalDateTime.now());
         BetTicket savedTicket = betTicketRepository.save(ticket);
 
+        // Khóa số tiền cược trong ví cho đến khi hủy hoặc settle.
         BigDecimal balanceBefore = valueOrZero(wallet.getBalance());
         BigDecimal lockedBefore = valueOrZero(wallet.getLockedBalance());
         BigDecimal lockedAfter = lockedBefore.add(stake);
@@ -283,14 +291,92 @@ public class BettingService {
     }
 
     @Transactional
+    public BetTicketResponse cancelTicket(Integer ticketId, String email) {
+        User user = getUser(email);
+        validatePlayerRole(user);
+
+        BetTicket ticketSnapshot = betTicketRepository.findById(ticketId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Bet ticket does not exist."));
+        BetEvent event = betEventRepository.findByIdForUpdate(ticketSnapshot.getBetEventId())
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Betting event does not exist."));
+        BetTicket ticket = betTicketRepository.findByIdForUpdate(ticketId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Bet ticket does not exist."));
+        if (!user.getUserID().equals(ticket.getUserId())) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "You can only cancel your own bet ticket.");
+        }
+        if (!BetTicketStatus.PLACED.equals(ticket.getStatus())) {
+            throw new ApiException(HttpStatus.CONFLICT, "Only placed bet tickets can be cancelled.");
+        }
+
+        Race race = getRace(event.getRaceId());
+        validateTicketCanBeCancelled(event, race);
+
+        Wallet wallet = walletRepository.findByWalletIdForUpdate(ticket.getWalletId())
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Wallet does not exist."));
+        BigDecimal balanceBefore = valueOrZero(wallet.getBalance());
+        BigDecimal lockedBefore = valueOrZero(wallet.getLockedBalance());
+        BigDecimal stake = valueOrZero(ticket.getStake());
+        BigDecimal lockedAfter = lockedBefore.subtract(stake).max(BigDecimal.ZERO);
+
+        wallet.setLockedBalance(lockedAfter);
+        walletRepository.save(wallet);
+
+        ticket.setStatus(BetTicketStatus.REFUNDED);
+        ticket.setFinalOdds(BigDecimal.ONE.setScale(4, RoundingMode.HALF_UP));
+        ticket.setPayoutAmount(stake.setScale(2, RoundingMode.HALF_UP));
+        ticket.setSettledAt(LocalDateTime.now());
+        BetTicket savedTicket = betTicketRepository.save(ticket);
+
+        // Lưu lịch sử giao dịch khóa tiền cho vé cược.
+        saveWalletTransaction(
+                wallet,
+                WalletTransactionType.BET_REFUND,
+                stake,
+                balanceBefore,
+                balanceBefore,
+                lockedBefore,
+                lockedAfter,
+                WalletReferenceType.BET_TICKET,
+                ticket.getBetTicketId(),
+                "Cancel betting ticket and unlock stake"
+        );
+
+        return toTicketResponse(savedTicket);
+    }
+
+    @Transactional
     public BetSettlementResponse settleEvent(Integer eventId, String adminEmail) {
         User admin = getAdmin(adminEmail);
         BetEvent event = betEventRepository.findByIdForUpdate(eventId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Bet event does not exist."));
+        return settleEventForAdmin(event, admin.getUserID(), false);
+    }
+
+    @Transactional
+    public List<BetSettlementResponse> settleRaceEvents(Integer raceId, Integer settledByUserId) {
+        List<BetEvent> events = betEventRepository.findByRaceIdAndStatusInForUpdate(
+                raceId,
+                List.of(BetEventStatus.OPEN, BetEventStatus.CLOSED)
+        );
+        return events.stream()
+                .filter(this::isReadyForAutoSettlement)
+                .map(event -> settleEventForAdmin(event, settledByUserId, true))
+                .toList();
+    }
+
+    private BetSettlementResponse settleEventForAdmin(
+            BetEvent event,
+            Integer settledByUserId,
+            boolean closeAutomatically
+    ) {
+        Integer eventId = event.getBetEventId();
         if (BetEventStatus.SETTLED.equals(event.getStatus())) {
             return betSettlementRepository.findByBetEventId(eventId)
                     .map(this::toSettlementResponse)
                     .orElseThrow(() -> new ApiException(HttpStatus.CONFLICT, "Settlement data is missing."));
+        }
+        if (closeAutomatically && BetEventStatus.OPEN.equals(event.getStatus())) {
+            event.setStatus(BetEventStatus.CLOSED);
         }
         if (!BetEventStatus.CLOSED.equals(event.getStatus())) {
             throw new ApiException(HttpStatus.CONFLICT, "Betting event must be closed before settlement.");
@@ -334,17 +420,26 @@ public class BettingService {
         settlement.setLosingStake(losingStake.setScale(2, RoundingMode.HALF_UP));
         settlement.setOperatorFee(operatorFee);
         settlement.setPayoutPool(payoutPool.setScale(2, RoundingMode.HALF_UP));
-        settlement.setSettledBy(admin.getUserID());
+        settlement.setSettledBy(settledByUserId);
         settlement.setSettledAt(LocalDateTime.now());
         BetSettlement savedSettlement = betSettlementRepository.save(settlement);
         fundAccountingService.recordBettingOperatorFee(savedSettlement);
 
         event.setStatus(BetEventStatus.SETTLED);
-        event.setSettledBy(admin.getUserID());
+        event.setSettledBy(settledByUserId);
         event.setSettledAt(savedSettlement.getSettledAt());
         betEventRepository.save(event);
 
         return toSettlementResponse(savedSettlement);
+    }
+
+    private boolean isReadyForAutoSettlement(BetEvent event) {
+        if (BetEventStatus.CLOSED.equals(event.getStatus())) {
+            return true;
+        }
+        return BetEventStatus.OPEN.equals(event.getStatus())
+                && event.getCloseAt() != null
+                && !event.getCloseAt().isAfter(LocalDateTime.now());
     }
 
     private void settleTicket(
@@ -443,6 +538,7 @@ public class BettingService {
     }
 
     private void validateEventIsBettable(BetEvent event, Race race) {
+        // Event phải OPEN, đang trong khung giờ nhận cược và race chưa bắt đầu.
         LocalDateTime now = LocalDateTime.now();
         if (!BetEventStatus.OPEN.equals(event.getStatus())) {
             throw new ApiException(HttpStatus.CONFLICT, "Betting event is not open.");
@@ -455,7 +551,22 @@ public class BettingService {
         }
     }
 
+    private void validateTicketCanBeCancelled(BetEvent event, Race race) {
+        // Chỉ được hủy vé trong thời gian event còn mở và race chưa bắt đầu.
+        LocalDateTime now = LocalDateTime.now();
+        if (!BetEventStatus.OPEN.equals(event.getStatus())) {
+            throw new ApiException(HttpStatus.CONFLICT, "Only open betting events allow ticket cancellation.");
+        }
+        if (now.isBefore(event.getOpenAt()) || !now.isBefore(event.getCloseAt())) {
+            throw new ApiException(HttpStatus.CONFLICT, "Bet ticket can only be cancelled during the betting window.");
+        }
+        if (!now.isBefore(race.getRaceStartTime())) {
+            throw new ApiException(HttpStatus.CONFLICT, "Race has already started.");
+        }
+    }
+
     private void validateDailyLimit(Integer userId, BetProduct product, BigDecimal stake) {
+        // Cộng stake hôm nay trong DB để kiểm tra giới hạn cược theo ngày.
         LocalDate today = LocalDate.now();
         BigDecimal used = betTicketRepository.sumDailyStake(
                 userId,
@@ -471,6 +582,7 @@ public class BettingService {
     }
 
     private UserVerification validateBettingKyc(User user) {
+        // Betting yêu cầu user đã KYC VERIFIED và KYC chưa hết hạn.
         UserVerification verification = userVerificationRepository
                 .findFirstByUserIdAndStatusOrderByAttemptNumberDesc(user.getUserID(), KycStatus.VERIFIED)
                 .orElseThrow(() -> new ApiException(HttpStatus.FORBIDDEN, "KYC is required before betting."));
@@ -485,6 +597,7 @@ public class BettingService {
     }
 
     private void validateAge(UserVerification verification) {
+        // Người đặt cược phải đủ 21 tuổi theo ngày sinh đã KYC.
         if (verification.getDateOfBirth() == null
                 || Period.between(verification.getDateOfBirth(), LocalDate.now()).getYears() < 21) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Player must be at least 21 years old to bet.");
@@ -492,6 +605,7 @@ public class BettingService {
     }
 
     private void validatePlayerRole(User user) {
+        // Chỉ spectator mới được đặt cược.
         String roleName = user.getRole() != null ? user.getRole().getRoleName() : null;
         String accountType = user.getAccountType() == null ? roleName : user.getAccountType();
         if (!"SPECTATOR".equalsIgnoreCase(roleName)
@@ -501,6 +615,7 @@ public class BettingService {
     }
 
     private void ensureWalletActive(Wallet wallet) {
+        // Wallet phải ACTIVE mới được dùng cho betting.
         if (!WalletStatus.ACTIVE.equals(wallet.getStatus())) {
             throw new ApiException(HttpStatus.CONFLICT, "Wallet is not active.");
         }
@@ -604,6 +719,8 @@ public class BettingService {
         return BetTicketResponse.builder()
                 .betTicketId(ticket.getBetTicketId())
                 .betEventId(ticket.getBetEventId())
+                .betEventStatus(event.getStatus())
+                .bettingCloseAt(event.getCloseAt())
                 .raceId(ticket.getRaceId())
                 .raceName(race.getRaceName())
                 .productCode(product.getCode())
@@ -702,6 +819,7 @@ public class BettingService {
     }
 
     private User getUser(String email) {
+        // Query user theo email lấy từ JWT.
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new ApiException(HttpStatus.UNAUTHORIZED, "Authenticated user does not exist."));
     }

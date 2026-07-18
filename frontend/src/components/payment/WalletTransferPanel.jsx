@@ -6,7 +6,8 @@ import { confirmVnpayReturn } from '../../services/paymentService';
 import { createWalletDeposit, getMyWallet } from '../../services/walletService';
 import { createKycSession, getMyKyc } from '../../services/kycService';
 
-const ALLOWED_ROLES = new Set(['OWNER', 'JOCKEY', 'SPECTATOR']);
+const ALLOWED_ROLES = new Set(['SPECTATOR']);
+const MIN_TOP_UP_AMOUNT = 10000;
 const QUICK_AMOUNTS = [100000, 200000, 500000, 1000000];
 function formatVnd(value) {
   const number = Number(value || 0);
@@ -34,7 +35,7 @@ export default function WalletTransferPanel({ currentUser, role: roleOverride })
   const [startingKyc, setStartingKyc] = useState(false);
 
   const amountValue = useMemo(() => normalizeAmount(amount), [amount]);
-  const canSubmit = ALLOWED_ROLES.has(role) && amountValue > 0 && !submitting;
+  const canSubmit = ALLOWED_ROLES.has(role) && amountValue >= MIN_TOP_UP_AMOUNT && !submitting;
 
   async function loadWallet() {
     if (!ALLOWED_ROLES.has(role)) return;
@@ -59,6 +60,7 @@ export default function WalletTransferPanel({ currentUser, role: roleOverride })
   }, [role]);
 
   useEffect(() => {
+    if (!ALLOWED_ROLES.has(role)) return undefined;
     if (window.location.pathname !== '/wallet/kyc/result') return undefined;
     let cancelled = false;
     let attempts = 0;
@@ -81,7 +83,7 @@ export default function WalletTransferPanel({ currentUser, role: roleOverride })
     };
     poll();
     return () => { cancelled = true; };
-  }, []);
+  }, [role]);
 
   async function handleStartKyc() {
     setStartingKyc(true);
@@ -101,6 +103,7 @@ export default function WalletTransferPanel({ currentUser, role: roleOverride })
   }
 
   useEffect(() => {
+    if (!ALLOWED_ROLES.has(role)) return undefined;
     let ignore = false;
 
     async function syncVnpayReturn() {
@@ -147,7 +150,7 @@ export default function WalletTransferPanel({ currentUser, role: roleOverride })
     return () => {
       ignore = true;
     };
-  }, []);
+  }, [role]);
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -160,6 +163,11 @@ export default function WalletTransferPanel({ currentUser, role: roleOverride })
 
     if (amountValue <= 0) {
       setError(t('walletAmountGreaterThanZero'));
+      return;
+    }
+
+    if (amountValue < MIN_TOP_UP_AMOUNT) {
+      setError(t('walletMinimumTopUpAmount'));
       return;
     }
 
@@ -237,18 +245,18 @@ export default function WalletTransferPanel({ currentUser, role: roleOverride })
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <span className="flex items-center gap-2 text-xs font-black uppercase text-slate-500">
-                  <ShieldCheck size={15} /> Identity verification
+                  <ShieldCheck size={15} /> {t('walletIdentityVerification')}
                 </span>
                 <strong className="mt-2 block text-lg font-black text-brown-900">
-                  {kyc?.status === 'VERIFIED' ? 'Opening your wallet' : 'Verify identity to open wallet'}
+                  {kyc?.status === 'VERIFIED' ? t('walletOpeningAfterKyc') : t('walletVerifyToOpen')}
                 </strong>
                 <p className="mt-1 text-sm font-semibold text-slate-600">
-                  Status: {String(kyc?.status || 'NOT_SUBMITTED').replaceAll('_', ' ')}
+                  {t('walletKycStatus', { status: t(`status_${String(kyc?.status || 'NOT_SUBMITTED').toUpperCase()}`) })}
                 </p>
               </div>
               {kyc?.status !== 'VERIFIED' && (
                 <button className="primary-button compact-button inline-flex items-center justify-center gap-2" type="button" onClick={handleStartKyc} disabled={startingKyc}>
-                  {startingKyc ? 'Starting...' : 'Verify with Didit'} <ExternalLink size={16} />
+                  {startingKyc ? t('walletStartingKyc') : t('walletVerifyWithDidit')} <ExternalLink size={16} />
                 </button>
               )}
             </div>
@@ -307,7 +315,7 @@ export default function WalletTransferPanel({ currentUser, role: roleOverride })
                 <input
                   id="wallet-transfer-amount"
                   className="min-w-0 flex-1 bg-transparent py-3 text-lg font-black text-brown-900 outline-none"
-                  min="1000"
+                  min={MIN_TOP_UP_AMOUNT}
                   step="1000"
                   type="number"
                   value={amount}

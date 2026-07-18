@@ -7,6 +7,7 @@ import com.example.backend.constant.RegistrationStatus;
 import com.example.backend.dto.request.OwnerTournamentRegistrationRequest;
 import com.example.backend.dto.response.OwnerRegistrationPaymentResponse;
 import com.example.backend.dto.response.RegistrationResponse;
+import com.example.backend.dto.response.TournamentConditionResponse;
 import com.example.backend.dto.response.TournamentResponse;
 import com.example.backend.entity.Horse;
 import com.example.backend.entity.JockeyProfile;
@@ -26,6 +27,7 @@ import com.example.backend.repository.RaceEntryRepository;
 import com.example.backend.repository.RaceRepository;
 import com.example.backend.repository.RegistrationRepository;
 import com.example.backend.repository.TournamentRepository;
+import com.example.backend.repository.TournamentConditionRepository;
 import com.example.backend.repository.UserRepository;
 import com.example.backend.repository.UserVerificationRepository;
 import org.springframework.http.HttpStatus;
@@ -36,7 +38,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class OwnerTournamentRegistrationService {
@@ -57,6 +61,7 @@ public class OwnerTournamentRegistrationService {
 
     private final RegistrationRepository registrationRepository;
     private final TournamentRepository tournamentRepository;
+    private final TournamentConditionRepository tournamentConditionRepository;
     private final HorseRepository horseRepository;
     private final UserRepository userRepository;
     private final JockeyProfileRepository jockeyProfileRepository;
@@ -67,10 +72,12 @@ public class OwnerTournamentRegistrationService {
     private final UserVerificationRepository userVerificationRepository;
     private final VnpayPaymentService vnpayPaymentService;
     private final RegistrationAvailabilityService availabilityService;
+    private final RegistrationEligibilityService eligibilityService;
 
     public OwnerTournamentRegistrationService(
             RegistrationRepository registrationRepository,
             TournamentRepository tournamentRepository,
+            TournamentConditionRepository tournamentConditionRepository,
             HorseRepository horseRepository,
             UserRepository userRepository,
             JockeyProfileRepository jockeyProfileRepository,
@@ -80,9 +87,11 @@ public class OwnerTournamentRegistrationService {
             RaceRepository raceRepository,
             UserVerificationRepository userVerificationRepository,
             VnpayPaymentService vnpayPaymentService,
-            RegistrationAvailabilityService availabilityService) {
+            RegistrationAvailabilityService availabilityService,
+            RegistrationEligibilityService eligibilityService) {
         this.registrationRepository = registrationRepository;
         this.tournamentRepository = tournamentRepository;
+        this.tournamentConditionRepository = tournamentConditionRepository;
         this.horseRepository = horseRepository;
         this.userRepository = userRepository;
         this.jockeyProfileRepository = jockeyProfileRepository;
@@ -93,6 +102,7 @@ public class OwnerTournamentRegistrationService {
         this.userVerificationRepository = userVerificationRepository;
         this.vnpayPaymentService = vnpayPaymentService;
         this.availabilityService = availabilityService;
+        this.eligibilityService = eligibilityService;
     }
 
     @Transactional
@@ -116,6 +126,12 @@ public class OwnerTournamentRegistrationService {
                 jockey
         );
         if (existingRegistration != null) {
+            eligibilityService.validateParticipationRequirements(
+                    tournament,
+                    horse.getHorseId(),
+                    owner.getUserID(),
+                    jockey.getUserID()
+            );
             return createPaymentResponseForExistingRegistration(
                     existingRegistration,
                     tournament,
@@ -123,6 +139,12 @@ public class OwnerTournamentRegistrationService {
             );
         }
 
+        eligibilityService.validateNewSubmission(
+                tournament,
+                horse.getHorseId(),
+                owner.getUserID(),
+                jockey.getUserID()
+        );
         availabilityService.validatePaidRegistrationCanBeCreated(
                 tournament,
                 horse,
@@ -211,13 +233,45 @@ public class OwnerTournamentRegistrationService {
     public List<TournamentResponse> getOpenTournaments() {
         getCurrentOwner();
 
-        return tournamentRepository
+        List<Tournament> tournaments = tournamentRepository
                 .findOpenForRegistration(
                         EventStatus.OPEN_FOR_REGISTRATION,
                         LocalDateTime.now()
-                )
-                .stream()
-                .map(this::toTournamentResponse)
+                );
+
+        if (tournaments.isEmpty()) {
+            return List.of();
+        }
+
+        List<Integer> tournamentIds = tournaments.stream()
+                .map(Tournament::getTournamentId)
+                .toList();
+        Map<Integer, List<TournamentConditionResponse>> conditionsByTournament =
+                tournamentConditionRepository.findByTournamentIds(tournamentIds)
+                        .stream()
+                        .collect(Collectors.groupingBy(
+                                condition -> condition.getTournamentId(),
+                                Collectors.mapping(
+                                        condition -> TournamentConditionResponse.builder()
+                                                .conditionId(condition.getConditionId())
+                                                .conditionType(condition.getConditionType())
+                                                .operator(condition.getOperator())
+                                                .value(condition.getValue())
+                                                .minValue(condition.getMinValue())
+                                                .maxValue(condition.getMaxValue())
+                                                .build(),
+                                        Collectors.toList()
+                                )
+                        ));
+
+        return tournaments.stream()
+                .map(tournament -> toTournamentResponse(
+                        tournament,
+                        conditionsByTournament.getOrDefault(
+                                tournament.getTournamentId(),
+                                List.of()
+                        )
+                ))
                 .toList();
     }
 
@@ -449,7 +503,10 @@ public class OwnerTournamentRegistrationService {
         return ownerApplication.getStableName();
     }
 
-    private TournamentResponse toTournamentResponse(Tournament tournament) {
+    private TournamentResponse toTournamentResponse(
+            Tournament tournament,
+            List<TournamentConditionResponse> conditions
+    ) {
         return TournamentResponse.builder()
                 .tournamentId(tournament.getTournamentId())
                 .tournamentName(tournament.getTournamentName())
@@ -474,6 +531,7 @@ public class OwnerTournamentRegistrationService {
                                 List.of(RegistrationStatus.APPROVED)
                         )
                 )
+                .conditions(conditions)
                 .build();
     }
 }

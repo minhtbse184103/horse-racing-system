@@ -64,14 +64,17 @@ public class JockeyVerificationServiceImpl implements JockeyVerificationService 
     @Transactional
     @Override
     public ApiResponse<JockeyVerificationResponse> submitVerification(JockeyVerificationRequest request) {
+        // Lấy user hiện tại và kiểm tra accountType có được phép nộp hồ sơ jockey không.
         User user = getCurrentUserForVerification();
         log.info("Người dùng {} đang gửi yêu cầu xác minh để trở thành Jockey.", user.getEmail());
 
+        // Nếu đã có hồ sơ PENDING trong DB thì không cho tạo thêm hồ sơ mới.
         if (verificationRepository.existsByJockeyIdAndVerificationStatus(user.getUserID(), STATUS_PENDING)) {
             throw new ApiException(HttpStatus.CONFLICT,
                     "Bạn đã có yêu cầu xác minh đang chờ duyệt. Vui lòng chờ admin xét duyệt.");
         }
 
+        // Tạo hồ sơ xác thực jockey ở trạng thái PENDING để admin duyệt.
         JockeyVerification verification = JockeyVerification.builder()
                 .jockeyId(user.getUserID())
                 .trainerName(normalizeText(request.getTrainerName()))
@@ -88,6 +91,7 @@ public class JockeyVerificationServiceImpl implements JockeyVerificationService 
                 .build();
 
         JockeyVerification saved = verificationRepository.save(verification);
+        // Lưu danh sách file giấy phép/hình ảnh đi kèm hồ sơ.
         List<JockeyVerificationFile> files = saveVerificationFiles(saved.getVerificationId(), request.getFiles());
 
         // Tài khoản vẫn giữ trạng thái ACTIVE, không thay đổi status của User
@@ -102,20 +106,24 @@ public class JockeyVerificationServiceImpl implements JockeyVerificationService 
     @Transactional
     @Override
     public ApiResponse<JockeyVerificationResponse> resubmitVerification(Integer verificationId, JockeyVerificationRequest request) {
+        // Lấy user hiện tại và hồ sơ cần nộp lại từ DB.
         User user = getCurrentUserForVerification();
         log.info("Người dùng {} đang gửi lại yêu cầu xác minh #{}.", user.getEmail(), verificationId);
 
         JockeyVerification verification = verificationRepository.findById(verificationId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Yêu cầu xác minh không tồn tại."));
 
+        // Chỉ chủ hồ sơ mới được nộp lại hồ sơ này.
         if (!verification.getJockeyId().equals(user.getUserID())) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Bạn không có quyền cập nhật yêu cầu xác minh này.");
         }
 
+        // Chỉ hồ sơ bị từ chối mới được chỉnh sửa và gửi lại.
         if (!STATUS_REJECTED.equals(verification.getVerificationStatus())) {
             throw new ApiException(HttpStatus.CONFLICT, "Chỉ có thể gửi lại yêu cầu xác minh đã bị từ chối.");
         }
 
+        // Cập nhật thông tin mới và đưa hồ sơ về PENDING để admin xét duyệt lại.
         verification.setTrainerName(normalizeText(request.getTrainerName()));
         verification.setTrainerEmail(normalizeText(request.getTrainerEmail()));
         verification.setAcademyStableAddress(normalizeText(request.getAcademyStableAddress()));
@@ -134,6 +142,7 @@ public class JockeyVerificationServiceImpl implements JockeyVerificationService 
 
         JockeyVerification saved = verificationRepository.save(verification);
 
+        // Xóa file cũ và lưu lại file mới sau khi resubmit.
         verificationFileRepository.deleteByVerificationId(verificationId);
         List<JockeyVerificationFile> files = saveVerificationFiles(verificationId, request.getFiles());
 
@@ -243,14 +252,17 @@ public class JockeyVerificationServiceImpl implements JockeyVerificationService 
             Integer verificationId,
             AdminReviewRequestDTO reviewRequest
     ) {
+        // Lấy admin đang thao tác và hồ sơ xác thực cần duyệt.
         User admin = getCurrentAdmin();
         JockeyVerification verification = verificationRepository.findById(verificationId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Yêu cầu xác minh không tồn tại."));
 
+        // Chỉ hồ sơ đang PENDING mới hợp lệ để approve.
         if (!STATUS_PENDING.equals(verification.getVerificationStatus())) {
             throw new ApiException(HttpStatus.CONFLICT, "Chỉ có thể phê duyệt yêu cầu xác minh đang ở trạng thái PENDING.");
         }
 
+        // Lưu kết quả duyệt, thời điểm duyệt và admin duyệt vào DB.
         verification.setVerificationStatus(STATUS_APPROVED);
         verification.setReviewedAt(LocalDateTime.now());
         verification.setReviewedBy(admin.getUserID());
@@ -263,9 +275,11 @@ public class JockeyVerificationServiceImpl implements JockeyVerificationService 
         Role jockeyRole = roleRepository.findByRoleName(ROLE_JOCKEY)
                 .orElseThrow(() -> new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Vai trò JOCKEY chưa được khởi tạo."));
         
+        // Sau khi được duyệt, nâng cấp user sang role/accountType JOCKEY.
         user.setRole(jockeyRole);
         user.setAccountType(ROLE_JOCKEY);
         userRepository.save(user);
+        // Đồng bộ thông tin từ hồ sơ xác thực sang JockeyProfile chính thức.
         createOrUpdateApprovedProfile(saved, user);
 
         List<JockeyVerificationFile> files = verificationFileRepository
@@ -283,18 +297,22 @@ public class JockeyVerificationServiceImpl implements JockeyVerificationService 
     @Transactional
     @Override
     public ApiResponse<JockeyVerificationResponse> rejectVerification(Integer verificationId, String rejectionReason) {
+        // Lấy admin đang thao tác và hồ sơ xác thực cần từ chối.
         User admin = getCurrentAdmin();
         JockeyVerification verification = verificationRepository.findById(verificationId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Yêu cầu xác minh không tồn tại."));
 
+        // Chỉ hồ sơ đang PENDING mới hợp lệ để reject.
         if (!STATUS_PENDING.equals(verification.getVerificationStatus())) {
             throw new ApiException(HttpStatus.CONFLICT, "Chỉ có thể từ chối yêu cầu xác minh đang ở trạng thái PENDING.");
         }
 
+        // Bắt buộc có lý do để jockey biết cần sửa gì khi nộp lại.
         if (rejectionReason == null || rejectionReason.isBlank()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Lý do từ chối là bắt buộc.");
         }
 
+        // Lưu trạng thái REJECTED, lý do và admin xử lý vào DB.
         verification.setVerificationStatus(STATUS_REJECTED);
         verification.setRejectionReason(rejectionReason.trim());
         verification.setReviewedAt(LocalDateTime.now());
@@ -318,12 +336,14 @@ public class JockeyVerificationServiceImpl implements JockeyVerificationService 
     }
 
     private User getCurrentUserForVerification() {
+        // Lấy email từ JWT và query user trong DB.
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || authentication.getName() == null) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "Người dùng chưa được xác thực.");
         }
         User user = userRepository.findByEmail(authentication.getName())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Người dùng không tồn tại."));
+        // Validate role và accountType trước khi cho thao tác hồ sơ jockey.
         String role = user.getRole().getRoleName();
         if (!ROLE_JOCKEY.equals(role) && !ROLE_SPECTATOR.equals(role)) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Chỉ Jockey hoặc Spectator mới có thể thực hiện hành động này.");
@@ -339,6 +359,7 @@ public class JockeyVerificationServiceImpl implements JockeyVerificationService 
     }
 
     private User getCurrentAdmin() {
+        // Lấy admin hiện tại từ JWT để ghi nhận người duyệt/từ chối hồ sơ.
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null || authentication.getName() == null) {
             throw new ApiException(HttpStatus.UNAUTHORIZED, "Người dùng chưa được xác thực.");
@@ -352,7 +373,9 @@ public class JockeyVerificationServiceImpl implements JockeyVerificationService 
     }
 
     private List<JockeyVerificationFile> saveVerificationFiles(Integer verificationId, List<JockeyVerificationFileRequest> fileRequests) {
+        // Không có file thì không tạo bản ghi file trong DB.
         if (fileRequests == null || fileRequests.isEmpty()) return Collections.emptyList();
+        // Map từng file request thành entity và lưu theo verificationId.
         List<JockeyVerificationFile> files = fileRequests.stream()
                 .map(fileReq -> JockeyVerificationFile.builder()
                         .verificationId(verificationId)
@@ -364,6 +387,7 @@ public class JockeyVerificationServiceImpl implements JockeyVerificationService 
     }
 
     private void createOrUpdateApprovedProfile(JockeyVerification verification, User user) {
+        // Tạo mới hoặc cập nhật JockeyProfile sau khi hồ sơ xác thực được approve.
         JockeyProfile profile = jockeyProfileRepository.findById(verification.getJockeyId())
                 .orElseGet(() -> {
                     JockeyProfile newProfile = new JockeyProfile();

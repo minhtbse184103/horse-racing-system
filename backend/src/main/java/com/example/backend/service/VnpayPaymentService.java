@@ -13,11 +13,13 @@ import com.example.backend.dto.response.VnpayPaymentResultResponse;
 import com.example.backend.entity.PaymentTransaction;
 import com.example.backend.entity.Registration;
 import com.example.backend.entity.Tournament;
+import com.example.backend.entity.User;
 import com.example.backend.entity.Wallet;
 import com.example.backend.entity.WalletTransaction;
 import com.example.backend.exception.ApiException;
 import com.example.backend.repository.PaymentTransactionRepository;
 import com.example.backend.repository.RegistrationRepository;
+import com.example.backend.repository.UserRepository;
 import com.example.backend.repository.WalletRepository;
 import com.example.backend.repository.WalletTransactionRepository;
 import org.springframework.http.HttpStatus;
@@ -36,6 +38,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -51,12 +54,15 @@ public class VnpayPaymentService {
     private static final String VNPAY_ORDER_TYPE = "other";
     private static final String VNPAY_LOCALE = "vn";
     private static final String VNPAY_SUCCESS_CODE = "00";
+    private static final String SPECTATOR = "SPECTATOR";
+    private static final BigDecimal MIN_WALLET_DEPOSIT_AMOUNT = new BigDecimal("10000.00");
     private static final DateTimeFormatter VNPAY_DATE_FORMAT =
             DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
 
     private final VnpayProperties properties;
     private final PaymentTransactionRepository paymentTransactionRepository;
     private final RegistrationRepository registrationRepository;
+    private final UserRepository userRepository;
     private final WalletRepository walletRepository;
     private final WalletTransactionRepository walletTransactionRepository;
     private final FundAccountingService fundAccountingService;
@@ -65,6 +71,7 @@ public class VnpayPaymentService {
             VnpayProperties properties,
             PaymentTransactionRepository paymentTransactionRepository,
             RegistrationRepository registrationRepository,
+            UserRepository userRepository,
             WalletRepository walletRepository,
             WalletTransactionRepository walletTransactionRepository,
             FundAccountingService fundAccountingService
@@ -72,6 +79,7 @@ public class VnpayPaymentService {
         this.properties = properties;
         this.paymentTransactionRepository = paymentTransactionRepository;
         this.registrationRepository = registrationRepository;
+        this.userRepository = userRepository;
         this.walletRepository = walletRepository;
         this.walletTransactionRepository = walletTransactionRepository;
         this.fundAccountingService = fundAccountingService;
@@ -117,10 +125,12 @@ public class VnpayPaymentService {
             BigDecimal amount,
             String clientIp
     ) {
-        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+        // Kiểm tra ví thuộc spectator hợp lệ trước khi tạo thanh toán nạp ví.
+        validateSpectatorWalletOwner(wallet);
+        if (amount == null || amount.compareTo(MIN_WALLET_DEPOSIT_AMOUNT) < 0) {
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
-                    "Wallet deposit amount must be greater than zero."
+                    "Wallet deposit amount must be at least 10,000 VND."
             );
         }
         if (!WalletStatus.ACTIVE.equals(wallet.getStatus())) {
@@ -130,6 +140,7 @@ public class VnpayPaymentService {
             );
         }
 
+        // Tạo payment transaction trạng thái PENDING để redirect sang VNPAY.
         PaymentTransaction paymentTransaction = new PaymentTransaction();
         paymentTransaction.setUserId(wallet.getUserId());
         paymentTransaction.setWalletId(wallet.getWalletId());
@@ -498,6 +509,9 @@ public class VnpayPaymentService {
         boolean success =
                 VNPAY_SUCCESS_CODE.equals(responseCode)
                         && VNPAY_SUCCESS_CODE.equals(transactionStatus);
+        Wallet depositWallet = success
+                ? loadEligibleWalletForDeposit(paymentTransaction)
+                : null;
 
         paymentTransaction.setProviderTransactionNo(
                 requestParams.get("vnp_TransactionNo")
@@ -508,7 +522,7 @@ public class VnpayPaymentService {
         if (success) {
             paymentTransaction.setStatus(PaymentTransactionStatus.SUCCESS);
             paymentTransaction.setPaidAt(LocalDateTime.now());
-            applyWalletDeposit(paymentTransaction);
+            applyWalletDeposit(paymentTransaction, depositWallet);
         } else {
             paymentTransaction.setStatus(PaymentTransactionStatus.FAILED);
         }
@@ -524,7 +538,8 @@ public class VnpayPaymentService {
         );
     }
 
-    private void applyWalletDeposit(PaymentTransaction paymentTransaction) {
+    private Wallet loadEligibleWalletForDeposit(PaymentTransaction paymentTransaction) {
+        // Lock wallet theo payment transaction để xử lý callback nạp tiền an toàn.
         Wallet wallet = walletRepository
                 .findByWalletIdForUpdate(paymentTransaction.getWalletId())
                 .orElseThrow(() -> new ApiException(
@@ -532,13 +547,19 @@ public class VnpayPaymentService {
                         "Wallet does not exist."
                 ));
 
+        // Validate lại chủ ví và trạng thái ví trước khi cộng tiền.
+        validateSpectatorWalletOwner(wallet);
         if (!WalletStatus.ACTIVE.equals(wallet.getStatus())) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
                     "Wallet is not active."
             );
         }
+        return wallet;
+    }
 
+    private void applyWalletDeposit(PaymentTransaction paymentTransaction, Wallet wallet) {
+        // Cộng tiền vào balance và giữ nguyên lockedBalance.
         BigDecimal balanceBefore = valueOrZero(wallet.getBalance());
         BigDecimal lockedBefore = valueOrZero(wallet.getLockedBalance());
         BigDecimal balanceAfter = balanceBefore.add(paymentTransaction.getAmount());
@@ -546,6 +567,7 @@ public class VnpayPaymentService {
         wallet.setBalance(balanceAfter);
         walletRepository.save(wallet);
 
+        // Lưu lịch sử giao dịch nạp tiền để audit ví.
         WalletTransaction walletTransaction = new WalletTransaction();
         walletTransaction.setWalletId(wallet.getWalletId());
         walletTransaction.setUserId(wallet.getUserId());
@@ -559,6 +581,25 @@ public class VnpayPaymentService {
         walletTransaction.setReferenceId(paymentTransaction.getPaymentTransactionId());
         walletTransaction.setDescription("VNPAY wallet deposit");
         walletTransactionRepository.save(walletTransaction);
+    }
+
+    private void validateSpectatorWalletOwner(Wallet wallet) {
+        // Wallet phải có userId hợp lệ để truy ngược chủ ví.
+        if (wallet == null || wallet.getUserId() == null) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Wallet owner is not eligible for wallet services.");
+        }
+        // Query chủ ví và hiện tại chỉ cho spectator active nạp ví.
+        User user = userRepository.findById(wallet.getUserId())
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Wallet owner does not exist."));
+        String roleName = user.getRole() == null ? null : user.getRole().getRoleName();
+        String accountType = user.getAccountType();
+        if (!"ACTIVE".equalsIgnoreCase(user.getStatus())
+                || roleName == null
+                || accountType == null
+                || !SPECTATOR.equals(roleName.trim().toUpperCase(Locale.ROOT))
+                || !SPECTATOR.equals(accountType.trim().toUpperCase(Locale.ROOT))) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Only Spectator accounts may use wallet deposits.");
+        }
     }
 
     private void markWalletPaymentFailed(
