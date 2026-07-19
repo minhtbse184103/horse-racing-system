@@ -2,6 +2,10 @@ package com.example.backend.controller;
 
 import com.example.backend.dto.request.CreateBetEventRequest;
 import com.example.backend.dto.request.UpdateBetProductRequest;
+import com.example.backend.dto.response.AdminBetEventDetailResponse;
+import com.example.backend.dto.response.AdminBetSettlementDetailResponse;
+import com.example.backend.dto.response.AdminBetSettlementSummaryResponse;
+import com.example.backend.dto.response.AdminBetTicketResponse;
 import com.example.backend.dto.response.BetEventResponse;
 import com.example.backend.dto.response.BetProductResponse;
 import com.example.backend.dto.response.BetSettlementResponse;
@@ -46,6 +50,22 @@ public class AdminBettingController {
         return bettingService.getAdminEvents();
     }
 
+    @GetMapping("/events/{eventId}")
+    public AdminBetEventDetailResponse getEventDetail(
+            @PathVariable Integer eventId,
+            Authentication authentication
+    ) {
+        return bettingService.getAdminEventDetail(eventId, authentication.getName());
+    }
+
+    @GetMapping("/events/{eventId}/tickets")
+    public List<AdminBetTicketResponse> getEventTickets(
+            @PathVariable Integer eventId,
+            Authentication authentication
+    ) {
+        return bettingService.getAdminEventTickets(eventId, authentication.getName());
+    }
+
     @PostMapping("/events")
     public ResponseEntity<BetEventResponse> createEvent(
             @Valid @RequestBody CreateBetEventRequest request,
@@ -72,5 +92,18 @@ public class AdminBettingController {
             Authentication authentication
     ) {
         return bettingService.settleEvent(eventId, authentication.getName());
+    }
+
+    @GetMapping("/settlements")
+    public List<AdminBetSettlementSummaryResponse> getSettlements(Authentication authentication) {
+        return bettingService.getAdminSettlements(authentication.getName());
+    }
+
+    @GetMapping("/settlements/{settlementId}")
+    public AdminBetSettlementDetailResponse getSettlementDetail(
+            @PathVariable Integer settlementId,
+            Authentication authentication
+    ) {
+        return bettingService.getAdminSettlementDetail(settlementId, authentication.getName());
     }
 }

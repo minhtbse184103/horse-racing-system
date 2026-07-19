@@ -78,7 +78,7 @@ VALUES
 INSERT INTO `Wallet`
   (`walletID`, `userID`, `balance`, `lockedBalance`, `currency`, `status`, `createdAt`, `updatedAt`)
 VALUES
-  (7, 14, 5000000.00, 600000.00, 'VND', 'ACTIVE', DATE_SUB(@seed_now, INTERVAL 2 DAY), @seed_now);
+  (7, 14, 5000000.00, 800000.00, 'VND', 'ACTIVE', DATE_SUB(@seed_now, INTERVAL 2 DAY), @seed_now);
 
 INSERT INTO `Horse`
   (`horseID`, `ownerID`, `horseName`, `age`, `dayOfBirth`, `weight`, `colour`, `sex`, `breeding`, `trainer`, `healthCertExpiry`, `healthCertificateUrl`, `officialHorseProfileUrl`, `status`, `rejectionReason`, `createdAt`, `updatedAt`)
@@ -246,7 +246,9 @@ INSERT INTO `BetEvent`
 VALUES
   (1, 7, 1, 'OPEN', DATE_SUB(@seed_now, INTERVAL 1 HOUR), DATE_ADD(@seed_now, INTERVAL 1 DAY), 0.1000, 1, NULL, NULL, @seed_now, @seed_now),
   (2, 7, 2, 'OPEN', DATE_SUB(@seed_now, INTERVAL 1 HOUR), DATE_ADD(@seed_now, INTERVAL 1 DAY), 0.1000, 1, NULL, NULL, @seed_now, @seed_now),
-  (3, 4, 1, 'SETTLED', DATE_SUB(@seed_now, INTERVAL 5 HOUR), DATE_SUB(@seed_now, INTERVAL 3 HOUR), 0.1000, 1, 1, DATE_SUB(@seed_now, INTERVAL 2 HOUR), DATE_SUB(@seed_now, INTERVAL 5 HOUR), DATE_SUB(@seed_now, INTERVAL 2 HOUR));
+  (3, 4, 1, 'SETTLED', DATE_SUB(@seed_now, INTERVAL 5 HOUR), DATE_SUB(@seed_now, INTERVAL 3 HOUR), 0.1000, 1, 1, DATE_SUB(@seed_now, INTERVAL 2 HOUR), DATE_SUB(@seed_now, INTERVAL 5 HOUR), DATE_SUB(@seed_now, INTERVAL 2 HOUR)),
+  -- Closed and not settled, with official RaceResult below, so Admin can test the manual Settle action.
+  (4, 4, 2, 'CLOSED', DATE_SUB(@seed_now, INTERVAL 4 HOUR), DATE_SUB(@seed_now, INTERVAL 2 HOUR), 0.1000, 1, NULL, NULL, DATE_SUB(@seed_now, INTERVAL 4 HOUR), DATE_SUB(@seed_now, INTERVAL 2 HOUR));
 
 INSERT INTO `BetSettlement`
   (`betSettlementID`, `betEventID`, `totalStake`, `winningStake`, `losingStake`, `operatorFee`, `payoutPool`, `settledBy`, `settledAt`)
@@ -258,7 +260,8 @@ INSERT INTO `BetTicket`
 VALUES
   (1, 1, 14, 7, 7, 10, 200000.00, 1.0000, NULL, NULL, 'PLACED', DATE_SUB(@seed_now, INTERVAL 30 MINUTE), NULL, DATE_SUB(@seed_now, INTERVAL 30 MINUTE), DATE_SUB(@seed_now, INTERVAL 30 MINUTE)),
   (2, 1, 14, 7, 7, 11, 150000.00, 2.2000, NULL, NULL, 'PLACED', DATE_SUB(@seed_now, INTERVAL 20 MINUTE), NULL, DATE_SUB(@seed_now, INTERVAL 20 MINUTE), DATE_SUB(@seed_now, INTERVAL 20 MINUTE)),
-  (3, 2, 14, 7, 7, 12, 250000.00, 1.0000, NULL, NULL, 'PLACED', DATE_SUB(@seed_now, INTERVAL 10 MINUTE), NULL, DATE_SUB(@seed_now, INTERVAL 10 MINUTE), DATE_SUB(@seed_now, INTERVAL 10 MINUTE));
+  (3, 2, 14, 7, 7, 12, 250000.00, 1.0000, NULL, NULL, 'PLACED', DATE_SUB(@seed_now, INTERVAL 10 MINUTE), NULL, DATE_SUB(@seed_now, INTERVAL 10 MINUTE), DATE_SUB(@seed_now, INTERVAL 10 MINUTE)),
+  (4, 4, 14, 7, 4, 3, 200000.00, 1.0000, NULL, NULL, 'PLACED', DATE_SUB(@seed_now, INTERVAL 90 MINUTE), NULL, DATE_SUB(@seed_now, INTERVAL 90 MINUTE), DATE_SUB(@seed_now, INTERVAL 90 MINUTE));
 
 INSERT INTO `WalletTransaction`
   (`walletTransactionID`, `walletID`, `userID`, `type`, `amount`, `balanceBefore`, `balanceAfter`, `lockedBefore`, `lockedAfter`, `referenceType`, `referenceID`, `description`, `createdAt`)
@@ -266,7 +269,8 @@ VALUES
   (1, 7, 14, 'DEPOSIT',  5000000.00,       0.00, 5000000.00,      0.00,      0.00, 'PAYMENT_TRANSACTION', 17, 'Seed wallet deposit', DATE_SUB(@seed_now, INTERVAL 2 DAY)),
   (2, 7, 14, 'BET_LOCK',  200000.00, 5000000.00, 5000000.00,      0.00, 200000.00, 'BET_TICKET', 1, 'Lock stake for betting ticket', DATE_SUB(@seed_now, INTERVAL 30 MINUTE)),
   (3, 7, 14, 'BET_LOCK',  150000.00, 5000000.00, 5000000.00, 200000.00, 350000.00, 'BET_TICKET', 2, 'Lock stake for betting ticket', DATE_SUB(@seed_now, INTERVAL 20 MINUTE)),
-  (4, 7, 14, 'BET_LOCK',  250000.00, 5000000.00, 5000000.00, 350000.00, 600000.00, 'BET_TICKET', 3, 'Lock stake for betting ticket', DATE_SUB(@seed_now, INTERVAL 10 MINUTE));
+  (4, 7, 14, 'BET_LOCK',  250000.00, 5000000.00, 5000000.00, 350000.00, 600000.00, 'BET_TICKET', 3, 'Lock stake for betting ticket', DATE_SUB(@seed_now, INTERVAL 10 MINUTE)),
+  (5, 7, 14, 'BET_LOCK',  200000.00, 5000000.00, 5000000.00, 600000.00, 800000.00, 'BET_TICKET', 4, 'Lock stake for settlement demo ticket', DATE_SUB(@seed_now, INTERVAL 90 MINUTE));
 
 INSERT INTO `RaceResult`
   (`resultID`, `raceEntryID`, `finishPosition`, `finishTime`, `prizeMoney`, `recordedAt`, `recordedBy`)

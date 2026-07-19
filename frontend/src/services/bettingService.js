@@ -57,6 +57,18 @@ export async function getAdminBetEvents() {
   }));
 }
 
+export async function getAdminBetEventDetail(eventId) {
+  return unwrap(await httpRequest(`/api/admin/betting/events/${eventId}`, {
+    fallbackError: 'Unable to load betting event details.'
+  }));
+}
+
+export async function getAdminBetEventTickets(eventId) {
+  return unwrap(await httpRequest(`/api/admin/betting/events/${eventId}/tickets`, {
+    fallbackError: 'Unable to load betting event tickets.'
+  }));
+}
+
 export async function createAdminBetEvent(payload) {
   return unwrap(await httpRequest('/api/admin/betting/events', {
     method: 'POST',
@@ -83,5 +95,17 @@ export async function settleAdminBetEvent(eventId) {
   return unwrap(await httpRequest(`/api/admin/betting/events/${eventId}/settle`, {
     method: 'POST',
     fallbackError: 'Unable to settle betting event.'
+  }));
+}
+
+export async function getAdminBetSettlements() {
+  return unwrap(await httpRequest('/api/admin/betting/settlements', {
+    fallbackError: 'Unable to load betting settlements.'
+  }));
+}
+
+export async function getAdminBetSettlementDetail(settlementId) {
+  return unwrap(await httpRequest(`/api/admin/betting/settlements/${settlementId}`, {
+    fallbackError: 'Unable to load betting settlement details.'
   }));
 }

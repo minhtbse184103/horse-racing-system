@@ -10,6 +10,10 @@ import com.example.backend.constant.WalletTransactionType;
 import com.example.backend.dto.request.CreateBetEventRequest;
 import com.example.backend.dto.request.PlaceBetRequest;
 import com.example.backend.dto.request.UpdateBetProductRequest;
+import com.example.backend.dto.response.AdminBetEventDetailResponse;
+import com.example.backend.dto.response.AdminBetSettlementDetailResponse;
+import com.example.backend.dto.response.AdminBetSettlementSummaryResponse;
+import com.example.backend.dto.response.AdminBetTicketResponse;
 import com.example.backend.dto.response.BetEntryOptionResponse;
 import com.example.backend.dto.response.BetEventResponse;
 import com.example.backend.dto.response.BetProductResponse;
@@ -135,6 +139,46 @@ public class BettingService {
                 .sorted(Comparator.comparing(BetEvent::getOpenAt).reversed())
                 .map(event -> toEventResponse(event, false))
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public AdminBetEventDetailResponse getAdminEventDetail(Integer eventId, String adminEmail) {
+        getAdmin(adminEmail);
+        BetEvent event = getEventOrThrow(eventId);
+        return AdminBetEventDetailResponse.builder()
+                .event(toEventResponse(event, true))
+                .tickets(getAdminTicketsForEvent(event.getBetEventId()))
+                .settlement(betSettlementRepository.findByBetEventId(event.getBetEventId())
+                        .map(this::toSettlementResponse)
+                        .orElse(null))
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public List<AdminBetTicketResponse> getAdminEventTickets(Integer eventId, String adminEmail) {
+        getAdmin(adminEmail);
+        BetEvent event = getEventOrThrow(eventId);
+        return getAdminTicketsForEvent(event.getBetEventId());
+    }
+
+    @Transactional(readOnly = true)
+    public List<AdminBetSettlementSummaryResponse> getAdminSettlements(String adminEmail) {
+        getAdmin(adminEmail);
+        return betSettlementRepository.findAllByOrderBySettledAtDesc()
+                .stream()
+                .map(this::toAdminSettlementSummaryResponse)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public AdminBetSettlementDetailResponse getAdminSettlementDetail(Integer settlementId, String adminEmail) {
+        getAdmin(adminEmail);
+        BetSettlement settlement = betSettlementRepository.findById(settlementId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Bet settlement does not exist."));
+        return AdminBetSettlementDetailResponse.builder()
+                .settlement(toAdminSettlementSummaryResponse(settlement))
+                .tickets(getAdminTicketsForEvent(settlement.getBetEventId()))
+                .build();
     }
 
     @Transactional(readOnly = true)
@@ -738,6 +782,84 @@ public class BettingService {
                 .build();
     }
 
+    private List<AdminBetTicketResponse> getAdminTicketsForEvent(Integer betEventId) {
+        return betTicketRepository.findByBetEventIdOrderByPlacedAtAsc(betEventId)
+                .stream()
+                .map(this::toAdminTicketResponse)
+                .toList();
+    }
+
+    private AdminBetTicketResponse toAdminTicketResponse(BetTicket ticket) {
+        Race race = getRace(ticket.getRaceId());
+        RaceEntry entry = raceEntryRepository.findById(ticket.getRaceEntryId()).orElse(null);
+        Registration registration = entry == null
+                ? null
+                : registrationRepository.findById(entry.getRegistrationId()).orElse(null);
+        Horse horse = registration == null
+                ? null
+                : horseRepository.findById(registration.getHorseId()).orElse(null);
+        User bettor = userRepository.findById(ticket.getUserId()).orElse(null);
+        User owner = registration == null || registration.getOwnerId() == null
+                ? null
+                : userRepository.findById(registration.getOwnerId()).orElse(null);
+        User jockey = registration == null || registration.getJockeyId() == null
+                ? null
+                : userRepository.findById(registration.getJockeyId()).orElse(null);
+
+        return AdminBetTicketResponse.builder()
+                .betTicketId(ticket.getBetTicketId())
+                .betEventId(ticket.getBetEventId())
+                .bettorId(bettor != null ? bettor.getUserID() : ticket.getUserId())
+                .bettorName(displayName(bettor))
+                .bettorEmail(bettor != null ? bettor.getEmail() : null)
+                .raceId(ticket.getRaceId())
+                .raceName(race.getRaceName())
+                .raceEntryId(ticket.getRaceEntryId())
+                .startingStall(entry != null ? entry.getStartingStall() : null)
+                .horseId(horse != null ? horse.getHorseId() : null)
+                .horseName(horse != null ? horse.getHorseName() : null)
+                .ownerId(owner != null ? owner.getUserID() : registration != null ? registration.getOwnerId() : null)
+                .ownerName(displayName(owner))
+                .jockeyId(jockey != null ? jockey.getUserID() : registration != null ? registration.getJockeyId() : null)
+                .jockeyName(displayName(jockey))
+                .stake(ticket.getStake())
+                .estimatedOddsAtBet(ticket.getEstimatedOddsAtBet())
+                .finalOdds(ticket.getFinalOdds())
+                .payoutAmount(ticket.getPayoutAmount())
+                .status(ticket.getStatus())
+                .placedAt(ticket.getPlacedAt())
+                .settledAt(ticket.getSettledAt())
+                .build();
+    }
+
+    private AdminBetSettlementSummaryResponse toAdminSettlementSummaryResponse(BetSettlement settlement) {
+        BetEvent event = getEventOrThrow(settlement.getBetEventId());
+        Race race = getRace(event.getRaceId());
+        BetProduct product = getProduct(event.getBetProductId());
+        User settledBy = userRepository.findById(settlement.getSettledBy()).orElse(null);
+
+        return AdminBetSettlementSummaryResponse.builder()
+                .betSettlementId(settlement.getBetSettlementId())
+                .betEventId(settlement.getBetEventId())
+                .raceId(race.getRaceId())
+                .raceName(race.getRaceName())
+                .trackName(race.getTrackName())
+                .raceStartTime(race.getRaceStartTime())
+                .betProductId(product.getBetProductId())
+                .productCode(product.getCode())
+                .productName(product.getName())
+                .eventStatus(event.getStatus())
+                .totalStake(settlement.getTotalStake())
+                .winningStake(settlement.getWinningStake())
+                .losingStake(settlement.getLosingStake())
+                .operatorFee(settlement.getOperatorFee())
+                .payoutPool(settlement.getPayoutPool())
+                .settledBy(settlement.getSettledBy())
+                .settledByName(displayName(settledBy))
+                .settledAt(settlement.getSettledAt())
+                .build();
+    }
+
     private BetSettlementResponse toSettlementResponse(BetSettlement settlement) {
         return BetSettlementResponse.builder()
                 .betSettlementId(settlement.getBetSettlementId())
@@ -750,6 +872,16 @@ public class BettingService {
                 .settledBy(settlement.getSettledBy())
                 .settledAt(settlement.getSettledAt())
                 .build();
+    }
+
+    private String displayName(User user) {
+        if (user == null) {
+            return null;
+        }
+        if (user.getUsername() != null && !user.getUsername().isBlank()) {
+            return user.getUsername();
+        }
+        return user.getEmail();
     }
 
     private BetProductResponse toProductResponse(BetProduct product) {
