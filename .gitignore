@@ -43,3 +43,4 @@ db-repair-auth-schema.sql
 
 ### Runtime logs ###
 *.log
+*.md
