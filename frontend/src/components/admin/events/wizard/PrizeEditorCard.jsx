@@ -5,6 +5,20 @@ import { WizardValidationBanner } from './WizardPrimitives';
 import { useLanguage } from '../../../../context/LanguageContext';
 import { formatVndCurrency } from '../../../../lib/eventFormatters';
 
+const moneyInputFormatter = new Intl.NumberFormat('vi-VN', {
+  maximumFractionDigits: 0
+});
+
+function formatMoneyInputValue(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? moneyInputFormatter.format(number) : '';
+}
+
+function parseMoneyInputValue(value) {
+  const digits = String(value || '').replace(/\D/g, '');
+  return digits ? Number(digits) : 0;
+}
+
 export default function PrizeEditorCard({ race, index, error, onChange }) {
   const { t } = useLanguage();
   const total = race.prizes.reduce((sum, prize) => sum + Number(prize.amount || 0), 0);
@@ -42,16 +56,15 @@ export default function PrizeEditorCard({ race, index, error, onChange }) {
               <span className={`grid size-9 place-items-center rounded-lg text-xs font-black ${rankIndex === 0 ? 'bg-gold-400 text-brown-900' : 'bg-cream-200 text-brown-700'}`}>#{rankIndex + 1}</span>
               <label className="relative block">
                 <span className="mb-1 block text-[10px] font-black uppercase text-slate-500">{t('eventWizardPrizeAmount')}</span>
-                <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs font-extrabold text-slate-500">VND</span>
                 <input
-                  type="number"
-                  min="1"
-                  step="1000"
-                  className={`${FIELD_CLASS} pl-12`}
-                  value={prize.amount}
-                  onChange={(event) => updatePrize(rankIndex, { amount: Number(event.target.value) })}
+                  type="text"
+                  inputMode="numeric"
+                  className={`${FIELD_CLASS} pr-14`}
+                  value={formatMoneyInputValue(prize.amount)}
+                  onChange={(event) => updatePrize(rankIndex, { amount: parseMoneyInputValue(event.target.value) })}
                   aria-label={`${t('eventWizardPrizeAmount')} #${rankIndex + 1}`}
                 />
+                <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-extrabold text-slate-500">VND</span>
               </label>
               <label className="block">
                 <span className="mb-1 block text-[10px] font-black uppercase text-slate-500">{t('eventWizardOwnerPercentage')}</span>
