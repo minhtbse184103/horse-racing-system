@@ -114,7 +114,7 @@ public class AdminRaceResultReviewService {
         // FLOW: Admin Approve Result
         // ORDER: 4/9 - Service validates admin, referee-reviewed submission, approvable Race, and duplicate official results.
         // Validation: ACTIVE ADMIN, referee-reviewed submission, approvable Race, no duplicate official results.
-        // DB effect: creates RaceResult rows, PrizeDistribution rows, performance summary updates, and review action.
+        // DB effect: creates RaceResult rows, calculates prizeMoney, updates performance summaries, and records review action.
         User admin = getAdmin(adminEmail);
         RaceResultSubmission submission = getSubmissionForReview(submissionId);
         Race race = getRaceForUpdate(submission.getRaceId());
@@ -169,11 +169,10 @@ public class AdminRaceResultReviewService {
                 raceResultRepository.saveAll(officialResults);
 
         // FLOW: Admin Approve Result
-        // ORDER: 7/9 - Create pending PrizeDistribution rows from official results and prize rules.
+        // ORDER: 7/9 - Calculate display-only prizeMoney from the RacePrize rules.
         prizeSettlementService.settlePrizes(
                 race.getRaceId(),
-                savedResults,
-                entriesByRaceEntryId
+                savedResults
         );
         // FLOW: Admin Approve Result
         // ORDER: 8/9 - Update Horse/Jockey performance summaries after official approval.

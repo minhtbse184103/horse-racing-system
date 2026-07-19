@@ -33,10 +33,4 @@ public class RacePrize {
 
     @Column(name = "amount", nullable = false, precision = 12, scale = 2)
     private BigDecimal amount;
-
-    @Column(name = "ownerPercent", nullable = false, precision = 5, scale = 2)
-    private BigDecimal ownerPercent;
-
-    @Column(name = "jockeyPercent", nullable = false, precision = 5, scale = 2)
-    private BigDecimal jockeyPercent;
 }

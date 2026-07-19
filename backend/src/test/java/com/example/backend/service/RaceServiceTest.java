@@ -122,31 +122,7 @@ class RaceServiceTest {
         order.verify(racePrizeRepository).deleteByRaceId(8);
         order.verify(racePrizeRepository).flush();
         order.verify(racePrizeRepository).saveAll(any());
-        assertEquals(new BigDecimal("80"), response.getPrizes().getFirst().getOwnerPercent());
-        assertEquals(new BigDecimal("20"), response.getPrizes().getFirst().getJockeyPercent());
-    }
-
-    @Test
-    void updateRaceRejectsPrizeSplitThatDoesNotTotalOneHundred() {
-        Race race = race();
-        Tournament tournament = tournament();
-        UpdateRaceRequest request = updateRequest();
-        request.getPrizes().getFirst().setOwnerPercent(new BigDecimal("70"));
-        request.getPrizes().getFirst().setJockeyPercent(new BigDecimal("20"));
-
-        stubAdmin();
-        when(raceRepository.findByIdForUpdate(8)).thenReturn(Optional.of(race));
-        when(raceEntryRepository.existsByRaceId(8)).thenReturn(false);
-        when(tournamentRepository.findByIdForUpdate(12))
-                .thenReturn(Optional.of(tournament));
-
-        var exception = assertThrows(
-                com.example.backend.exception.ApiException.class,
-                () -> service.updateRace(8, request, "admin@example.com")
-        );
-
-        assertEquals(org.springframework.http.HttpStatus.BAD_REQUEST, exception.getStatus());
-        verify(racePrizeRepository, never()).saveAll(any());
+        assertEquals(new BigDecimal("50000"), response.getPrizes().getFirst().getAmount());
     }
 
     @Test
@@ -796,8 +772,6 @@ class RaceServiceTest {
         RacePrizeRequest firstPrize = new RacePrizeRequest();
         firstPrize.setRankPosition(1);
         firstPrize.setAmount(new BigDecimal("50000"));
-        firstPrize.setOwnerPercent(new BigDecimal("80"));
-        firstPrize.setJockeyPercent(new BigDecimal("20"));
 
         UpdateRaceRequest request = new UpdateRaceRequest();
         request.setRaceName("Race test 1");
@@ -815,8 +789,6 @@ class RaceServiceTest {
         RacePrizeRequest firstPrize = new RacePrizeRequest();
         firstPrize.setRankPosition(1);
         firstPrize.setAmount(new BigDecimal("50000"));
-        firstPrize.setOwnerPercent(new BigDecimal("80"));
-        firstPrize.setJockeyPercent(new BigDecimal("20"));
 
         CreateRaceRequest request = new CreateRaceRequest();
         request.setTournamentId(12);
@@ -837,8 +809,6 @@ class RaceServiceTest {
         prize.setRaceId(8);
         prize.setRankPosition(1);
         prize.setAmount(new BigDecimal("50000"));
-        prize.setOwnerPercent(new BigDecimal("80"));
-        prize.setJockeyPercent(new BigDecimal("20"));
         return prize;
     }
 }

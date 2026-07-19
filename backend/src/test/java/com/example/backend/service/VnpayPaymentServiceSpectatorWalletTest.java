@@ -44,7 +44,7 @@ class VnpayPaymentServiceSpectatorWalletTest {
     @Mock private UserRepository userRepository;
     @Mock private WalletRepository walletRepository;
     @Mock private WalletTransactionRepository walletTransactionRepository;
-    @Mock private FundAccountingService fundAccountingService;
+    @Mock private WalletAccessPolicy walletAccessPolicy;
 
     private VnpayPaymentService service;
 
@@ -59,7 +59,7 @@ class VnpayPaymentServiceSpectatorWalletTest {
                 userRepository,
                 walletRepository,
                 walletTransactionRepository,
-                fundAccountingService
+                walletAccessPolicy
         );
     }
 
@@ -104,6 +104,7 @@ class VnpayPaymentServiceSpectatorWalletTest {
         verify(paymentTransactionRepository).save(payment);
         verify(walletRepository).save(wallet);
         verify(walletTransactionRepository).save(any());
+        verify(walletAccessPolicy).validate(owner);
     }
 
     private Map<String, String> signedCallback(PaymentTransaction payment) throws Exception {

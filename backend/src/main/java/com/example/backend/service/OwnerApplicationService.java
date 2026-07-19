@@ -20,13 +20,11 @@ import com.example.backend.entity.OwnerApplication;
 import com.example.backend.entity.OwnerProfile;
 import com.example.backend.entity.Role;
 import com.example.backend.entity.User;
-import com.example.backend.entity.UserVerification;
 import com.example.backend.exception.ApiException;
 import com.example.backend.repository.OwnerApplicationRepository;
 import com.example.backend.repository.OwnerProfileRepository;
 import com.example.backend.repository.RoleRepository;
 import com.example.backend.repository.UserRepository;
-import com.example.backend.repository.UserVerificationRepository;
 
 @Service
 public class OwnerApplicationService {
@@ -41,22 +39,22 @@ public class OwnerApplicationService {
     private final OwnerProfileRepository ownerProfileRepository;
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
-    private final UserVerificationRepository userVerificationRepository;
     private final FileUploadService fileUploadService;
+    private final WalletProvisioningService walletProvisioningService;
 
     public OwnerApplicationService(
             OwnerApplicationRepository ownerApplicationRepository,
             OwnerProfileRepository ownerProfileRepository,
             UserRepository userRepository,
             RoleRepository roleRepository,
-            UserVerificationRepository userVerificationRepository,
-            FileUploadService fileUploadService) {
+            FileUploadService fileUploadService,
+            WalletProvisioningService walletProvisioningService) {
         this.ownerApplicationRepository = ownerApplicationRepository;
         this.ownerProfileRepository = ownerProfileRepository;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
-        this.userVerificationRepository = userVerificationRepository;
         this.fileUploadService = fileUploadService;
+        this.walletProvisioningService = walletProvisioningService;
     }
 
     @Transactional
@@ -144,7 +142,7 @@ public class OwnerApplicationService {
             throw new ApiException(HttpStatus.CONFLICT, "Only pending applications can be approved.");
         }
 
-        User applicant = userRepository.findById(application.getUserId())
+        User applicant = userRepository.findByIdForUpdate(application.getUserId())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Applicant not found."));
         Role ownerRole = roleRepository.findByRoleName(ROLE_OWNER)
                 .orElseThrow(() -> new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "OWNER role is not initialized."));
@@ -164,6 +162,7 @@ public class OwnerApplicationService {
                         .ownerId(applicant.getUserID())
                         .applicationId(application.getApplicationId())
                         .build()));
+        walletProvisioningService.provisionForApprovedProfessional(applicant);
 
         return mapApplication(application);
     }
@@ -276,23 +275,12 @@ public class OwnerApplicationService {
             User owner,
             LocalDateTime ownerSince
     ) {
-        UserVerification verification = userVerificationRepository.findByUserId(owner.getUserID()).orElse(null);
         return OwnerProfileResponse.builder()
                 .ownerId(ownerId)
                 .applicationId(applicationId)
-                .kycVerificationId(verification != null ? verification.getVerificationId() : null)
                 .username(owner.getUsername())
                 .email(owner.getEmail())
                 .phone(owner.getPhone())
-                .kycStatus(verification != null && verification.getStatus() != null ? verification.getStatus().name() : null)
-                .fullName(verification != null ? verification.getFullName() : null)
-                .dateOfBirth(verification != null ? verification.getDateOfBirth() : null)
-                .gender(null)
-                .nationality(null)
-                .address(null)
-                .identityDocumentUrl(null)
-                .identityBackUrl(null)
-                .selfieUrl(null)
                 .stableName(application.getStableName())
                 .stableAddress(application.getStableAddress())
                 .stableCertificateUrl(application.getStableCertificateUrl())

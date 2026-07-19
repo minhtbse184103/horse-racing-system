@@ -22,7 +22,7 @@ export function approveRaceResultSubmission(submissionId, reason = '') {
   // FLOW: Admin Approve Result
   // ORDER: 2/9 - FE service sends approval request with optional admin comment.
   // API: PUT /api/admin/race-result-submissions/{submissionId}/approve.
-  // Backend converts provisional submission into official RaceResult, PrizeDistribution, and COMPLETED Race.
+  // Backend converts the provisional submission into official RaceResult rows and marks the Race COMPLETED.
   const comment = String(reason || '').trim();
 
   return httpRequest(`${BASE_PATH}/${submissionId}/approve`, {

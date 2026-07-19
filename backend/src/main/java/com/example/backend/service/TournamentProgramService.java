@@ -332,7 +332,7 @@ public class TournamentProgramService {
     private void validatePrizes(List<RacePrizeRequest> prizes) {
         // FLOW: Admin Create Tournament Program
         // ORDER: 7A.2/8 - Service validates RacePrize rules for each Race before saving the program.
-        // Validation: each Race needs at least one prize, unique rank positions, and Owner/Jockey percentages totaling 100.
+        // Validation: each Race needs at least one prize and unique rank positions.
         if (prizes == null || prizes.isEmpty()) {
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
@@ -341,22 +341,12 @@ public class TournamentProgramService {
         }
 
         Set<Integer> usedRanks = new HashSet<>();
-        BigDecimal oneHundred = new BigDecimal("100");
 
         for (RacePrizeRequest prize : prizes) {
             if (!usedRanks.add(prize.getRankPosition())) {
                 throw new ApiException(
                         HttpStatus.BAD_REQUEST,
                         "Race cannot contain duplicate prize ranks."
-                );
-            }
-
-            if (prize.getOwnerPercent()
-                    .add(prize.getJockeyPercent())
-                    .compareTo(oneHundred) != 0) {
-                throw new ApiException(
-                        HttpStatus.BAD_REQUEST,
-                        "Owner and jockey prize percentages must total 100."
                 );
             }
         }
@@ -553,8 +543,6 @@ public class TournamentProgramService {
                     prize.setRaceId(raceId);
                     prize.setRankPosition(request.getRankPosition());
                     prize.setAmount(request.getAmount());
-                    prize.setOwnerPercent(request.getOwnerPercent());
-                    prize.setJockeyPercent(request.getJockeyPercent());
                     return prize;
                 })
                 .toList();

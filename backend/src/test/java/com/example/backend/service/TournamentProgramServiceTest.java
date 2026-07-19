@@ -246,29 +246,6 @@ class TournamentProgramServiceTest {
     }
 
     @Test
-    void createTournamentProgramRejectsInvalidPrizeSplit() {
-        CreateTournamentProgramRequest request = validProgramRequest();
-        request.getRaces().getFirst().getPrizes().getFirst()
-                .setOwnerPercent(new BigDecimal("70"));
-        request.getRaces().getFirst().getPrizes().getFirst()
-                .setJockeyPercent(new BigDecimal("20"));
-
-        stubAdmin();
-
-        ApiException exception = assertThrows(
-                ApiException.class,
-                () -> service.createTournamentProgram(request, "admin@example.com")
-        );
-
-        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
-        assertEquals(
-                "Owner and jockey prize percentages must total 100.",
-                exception.getMessage()
-        );
-        verifyNoProgramSave();
-    }
-
-    @Test
     void createTournamentProgramRejectsNonAdmin() {
         CreateTournamentProgramRequest request = validProgramRequest();
         User nonAdmin = new User();
@@ -369,8 +346,6 @@ class TournamentProgramServiceTest {
         RacePrizeRequest request = new RacePrizeRequest();
         request.setRankPosition(1);
         request.setAmount(new BigDecimal("50000"));
-        request.setOwnerPercent(new BigDecimal("80"));
-        request.setJockeyPercent(new BigDecimal("20"));
         return request;
     }
 }

@@ -65,15 +65,10 @@ public interface RaceResultRepository extends JpaRepository<RaceResult, Integer>
         String getOwnerName();
         Integer getJockeyId();
         String getJockeyName();
-        Integer getPrizeDistributionId();
-        BigDecimal getTotalPrize();
-        BigDecimal getOwnerAmount();
-        BigDecimal getJockeyAmount();
-        String getDistributionStatus();
     }
 
-    // FLOW: Prize Split Display
-    // ORDER: 5/7 - Repository joins official RaceResult rows with RaceEntry, Registration, Horse, Owner/Jockey names, and PrizeDistribution.
+    // FLOW: Official Result Display
+    // Repository joins official results with their horse, owner, and jockey identities.
     @Query("""
         select result.resultId as resultId,
                entry.raceEntryId as raceEntryId,
@@ -87,12 +82,7 @@ public interface RaceResultRepository extends JpaRepository<RaceResult, Integer>
                owner.userID as ownerId,
                owner.username as ownerName,
                jockey.userID as jockeyId,
-               coalesce(jockeyProfile.fullName, jockey.username) as jockeyName,
-               distribution.prizeDistributionId as prizeDistributionId,
-               distribution.totalPrize as totalPrize,
-               distribution.ownerAmount as ownerAmount,
-               distribution.jockeyAmount as jockeyAmount,
-               distribution.status as distributionStatus
+               coalesce(jockeyProfile.fullName, jockey.username) as jockeyName
         from RaceResult result
         join RaceEntry entry
           on entry.raceEntryId = result.raceEntryId
@@ -106,9 +96,6 @@ public interface RaceResultRepository extends JpaRepository<RaceResult, Integer>
           on jockey.userID = registration.jockeyId
         left join JockeyProfile jockeyProfile
           on jockeyProfile.jockeyId = jockey.userID
-        left join PrizeDistribution distribution
-          on distribution.raceId = entry.raceId
-         and distribution.raceEntryId = entry.raceEntryId
         where entry.raceId = :raceId
         order by result.finishPosition asc
         """)

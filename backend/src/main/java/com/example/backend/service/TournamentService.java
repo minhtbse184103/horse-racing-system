@@ -136,8 +136,6 @@ public class TournamentService {
                                     .raceId(prize.getRaceId())
                                     .rankPosition(prize.getRankPosition())
                                     .amount(prize.getAmount())
-                                    .ownerPercent(prize.getOwnerPercent())
-                                    .jockeyPercent(prize.getJockeyPercent())
                                     .build())
                     );
         }
@@ -926,8 +924,6 @@ public class TournamentService {
                                         .raceId(p.getRaceId())
                                         .rankPosition(p.getRankPosition())
                                         .amount(p.getAmount())
-                                        .ownerPercent(p.getOwnerPercent())
-                                        .jockeyPercent(p.getJockeyPercent())
                                         .build(),
                                         Collectors.toList()
                                 )

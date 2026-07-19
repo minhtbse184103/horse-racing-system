@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { formatDate, formatDisplayLabel } from '../../lib';
 import { updateMyAccount, updateStoredUser } from '../../services/authService';
 import { getMyOwnerProfile } from '../../services/ownerApplicationService';
-import { getMyKyc } from '../../services/kycService';
 import { getMyWallet } from '../../services/walletService';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -55,7 +54,6 @@ function money(value, currency = 'VND') {
 export default function OwnerProfile({ user, onUserUpdated }) {
   const { t } = useLanguage();
   const [profile, setProfile] = useState(null);
-  const [kyc, setKyc] = useState(null);
   const [wallet, setWallet] = useState(null);
   const [accountUser, setAccountUser] = useState(user);
   const [accountValues, setAccountValues] = useState(() => getAccountValues(user));
@@ -72,9 +70,8 @@ export default function OwnerProfile({ user, onUserUpdated }) {
     setMessage('');
 
     try {
-      const [ownerResult, kycResult, walletResult] = await Promise.allSettled([
+      const [ownerResult, walletResult] = await Promise.allSettled([
         getMyOwnerProfile(),
-        getMyKyc(),
         getMyWallet()
       ]);
 
@@ -84,7 +81,6 @@ export default function OwnerProfile({ user, onUserUpdated }) {
       }
 
       setProfile(ownerResult.value);
-      setKyc(kycResult.status === 'fulfilled' ? kycResult.value : null);
       setWallet(walletResult.status === 'fulfilled' ? walletResult.value : null);
     } catch (err) {
       setError(err?.message || t('ownerProfileLoadError'));
@@ -226,30 +222,6 @@ export default function OwnerProfile({ user, onUserUpdated }) {
           </div>
         </section>
       )}
-
-      <section className="owner-panel">
-        <div className="owner-panel-header">
-          <div>
-            <p className="eyebrow">{t('ownerProfileIdentity')}</p>
-            <h2>{t('ownerProfileKycInfo')}</h2>
-            <p>{t('ownerProfileKycDesc')}</p>
-          </div>
-          <StatusBadge status={kyc?.status} />
-        </div>
-
-        {kyc?.status === 'VERIFIED' ? (
-          <div className="grid gap-4 md:grid-cols-2">
-            <ProfileField label={t('ownerProfileVerifiedFullName')} value={kyc.verifiedFullName} fallback={t('notUpdated')} />
-            <ProfileField label={t('dateOfBirth')} value={formatDate(kyc.verifiedDateOfBirth)} fallback={t('notUpdated')} />
-            <ProfileField label={t('ownerProfileIdentityDocument')} value={`${kyc.documentType || t('ownerProfileIdentityDocument')}${kyc.documentLastFour ? ` **** ${kyc.documentLastFour}` : ''}`} fallback={t('notUpdated')} />
-            <ProfileField label={t('ownerProfileDocumentExpiry')} value={kyc.documentExpiryDate ? formatDate(kyc.documentExpiryDate) : t('ownerProfileNoExpiry')} fallback={t('notUpdated')} />
-            <ProfileField label={t('ownerProfileVerifiedBy')} value={kyc.provider || 'DIDIT'} fallback={t('notUpdated')} />
-            <ProfileField label={t('ownerProfileVerifiedAt')} value={formatDate(kyc.verifiedAt)} fallback={t('notUpdated')} />
-          </div>
-        ) : (
-          <div className="admin-alert success" role="status">{t('ownerProfileKycPending')}</div>
-        )}
-      </section>
 
       <section className="owner-panel">
         <div className="owner-panel-header">

@@ -5,7 +5,6 @@ import com.example.backend.entity.OwnerApplication;
 import com.example.backend.entity.User;
 import com.example.backend.repository.JockeyProfileRepository;
 import com.example.backend.repository.OwnerApplicationRepository;
-import com.example.backend.repository.UserVerificationRepository;
 import org.springframework.stereotype.Service;
 
 import java.util.Collection;
@@ -18,16 +17,13 @@ public class DisplayNameResolver {
 
     private final OwnerApplicationRepository ownerApplicationRepository;
     private final JockeyProfileRepository jockeyProfileRepository;
-    private final UserVerificationRepository userVerificationRepository;
 
     public DisplayNameResolver(
             OwnerApplicationRepository ownerApplicationRepository,
-            JockeyProfileRepository jockeyProfileRepository,
-            UserVerificationRepository userVerificationRepository
+            JockeyProfileRepository jockeyProfileRepository
     ) {
         this.ownerApplicationRepository = ownerApplicationRepository;
         this.jockeyProfileRepository = jockeyProfileRepository;
-        this.userVerificationRepository = userVerificationRepository;
     }
 
     public Map<Integer, String> resolveOwnerNames(

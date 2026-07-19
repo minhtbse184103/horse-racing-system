@@ -158,7 +158,6 @@ const MESSAGE_TRANSLATIONS = {
   'Race schedule must be inside the tournament date range.': 'Lịch Race phải nằm trong thời gian của Tournament.',
   'Race must contain at least one prize.': 'Race phải có ít nhất một prize rule.',
   'Race cannot contain duplicate prize ranks.': 'Race không được có hạng giải thưởng bị trùng.',
-  'Owner and jockey prize percentages must total 100.': 'Tổng tỷ lệ giải thưởng của Owner và Jockey phải bằng 100.',
   'A tournament cannot contain duplicate condition types.': 'Tournament không được có loại điều kiện tham gia bị trùng.',
   'Gender conditions only support the EQ operator.': 'Điều kiện giới tính chỉ hỗ trợ toán tử EQ.',
   'Gender condition requires a value.': 'Điều kiện giới tính cần có giá trị.',

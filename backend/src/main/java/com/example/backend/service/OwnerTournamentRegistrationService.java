@@ -17,7 +17,6 @@ import com.example.backend.entity.RaceEntry;
 import com.example.backend.entity.Registration;
 import com.example.backend.entity.Tournament;
 import com.example.backend.entity.User;
-import com.example.backend.entity.UserVerification;
 import com.example.backend.exception.ApiException;
 import com.example.backend.repository.HorseRepository;
 import com.example.backend.repository.JockeyInvitationRepository;
@@ -29,7 +28,6 @@ import com.example.backend.repository.RegistrationRepository;
 import com.example.backend.repository.TournamentRepository;
 import com.example.backend.repository.TournamentConditionRepository;
 import com.example.backend.repository.UserRepository;
-import com.example.backend.repository.UserVerificationRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -69,7 +67,6 @@ public class OwnerTournamentRegistrationService {
     private final JockeyInvitationRepository jockeyInvitationRepository;
     private final RaceEntryRepository raceEntryRepository;
     private final RaceRepository raceRepository;
-    private final UserVerificationRepository userVerificationRepository;
     private final VnpayPaymentService vnpayPaymentService;
     private final RegistrationAvailabilityService availabilityService;
     private final RegistrationEligibilityService eligibilityService;
@@ -85,7 +82,6 @@ public class OwnerTournamentRegistrationService {
             JockeyInvitationRepository jockeyInvitationRepository,
             RaceEntryRepository raceEntryRepository,
             RaceRepository raceRepository,
-            UserVerificationRepository userVerificationRepository,
             VnpayPaymentService vnpayPaymentService,
             RegistrationAvailabilityService availabilityService,
             RegistrationEligibilityService eligibilityService) {
@@ -99,7 +95,6 @@ public class OwnerTournamentRegistrationService {
         this.jockeyInvitationRepository = jockeyInvitationRepository;
         this.raceEntryRepository = raceEntryRepository;
         this.raceRepository = raceRepository;
-        this.userVerificationRepository = userVerificationRepository;
         this.vnpayPaymentService = vnpayPaymentService;
         this.availabilityService = availabilityService;
         this.eligibilityService = eligibilityService;

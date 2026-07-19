@@ -157,7 +157,7 @@ public class RaceService {
     public List<RaceResultPrizeResponse> getRaceResults(Integer raceId) {
         // FLOW: Official Result Display
         // ORDER: 4/7 - Service verifies the Race exists before exposing official result rows.
-        // Validation: Race exists. DB read returns official approved RaceResult rows joined with prize data.
+        // Validation: Race exists. DB read returns official approved RaceResult rows and prizeMoney.
         if (!raceRepository.existsById(raceId)) {
             throw new ApiException(
                     HttpStatus.NOT_FOUND,
@@ -165,9 +165,7 @@ public class RaceService {
             );
         }
 
-        // FLOW: Prize Split Display
-        // ORDER: 6/7 - Service maps repository projection fields into the official result/prize response DTO.
-        // Maps the official RaceResult + PrizeDistribution projection into amounts shown in the result/prize dialog.
+        // Maps official RaceResult fields into the result response DTO.
         return raceResultRepository.findPrizeResultsByRaceId(raceId)
                 .stream()
                 .map(result -> RaceResultPrizeResponse.builder()
@@ -184,11 +182,6 @@ public class RaceService {
                         .ownerName(result.getOwnerName())
                         .jockeyId(result.getJockeyId())
                         .jockeyName(result.getJockeyName())
-                        .prizeDistributionId(result.getPrizeDistributionId())
-                        .totalPrize(result.getTotalPrize())
-                        .ownerAmount(result.getOwnerAmount())
-                        .jockeyAmount(result.getJockeyAmount())
-                        .distributionStatus(result.getDistributionStatus())
                         .build())
                 .toList();
     }
@@ -792,7 +785,7 @@ public class RaceService {
     private void validatePrizes(List<RacePrizeRequest> prizes) {
         // FLOW: Admin Edit Tournament Program
         // ORDER: 6B.2/8 - Validation helper checks RacePrize rules for create/update.
-        // Validation: RacePrize list is required, rank positions are unique, and Owner/Jockey percentages total 100.
+        // Validation: RacePrize list is required and rank positions are unique.
         if (prizes == null || prizes.isEmpty()) {
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
@@ -801,7 +794,6 @@ public class RaceService {
         }
 
         Set<Integer> usedRanks = new HashSet<>();
-        BigDecimal oneHundred = new BigDecimal("100");
 
         for (RacePrizeRequest prize : prizes) {
             if (!usedRanks.add(prize.getRankPosition())) {
@@ -811,14 +803,6 @@ public class RaceService {
                 );
             }
 
-            if (prize.getOwnerPercent()
-                    .add(prize.getJockeyPercent())
-                    .compareTo(oneHundred) != 0) {
-                throw new ApiException(
-                        HttpStatus.BAD_REQUEST,
-                        "Owner and jockey prize percentages must total 100."
-                );
-            }
         }
     }
 
@@ -870,8 +854,6 @@ public class RaceService {
                     prize.setRaceId(raceId);
                     prize.setRankPosition(request.getRankPosition());
                     prize.setAmount(request.getAmount());
-                    prize.setOwnerPercent(request.getOwnerPercent());
-                    prize.setJockeyPercent(request.getJockeyPercent());
                     return prize;
                 })
                 .toList();
@@ -933,8 +915,6 @@ public class RaceService {
                                 .raceId(prize.getRaceId())
                                 .rankPosition(prize.getRankPosition())
                                 .amount(prize.getAmount())
-                                .ownerPercent(prize.getOwnerPercent())
-                                .jockeyPercent(prize.getJockeyPercent())
                                 .build()
                 )
                 .toList();
