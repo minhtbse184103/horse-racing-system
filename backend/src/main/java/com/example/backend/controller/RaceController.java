@@ -153,6 +153,20 @@ public class RaceController {
         return raceService.markRaceReady(raceId, authentication.getName());
     }
 
+    @PutMapping("/{raceId}/demo-time")
+    public RaceResponse fastForwardRaceForDemo(
+            @PathVariable Integer raceId,
+            Authentication authentication
+    ) {
+        // FLOW: Admin Demo Time Control
+        // API: PUT /api/races/{raceId}/demo-time.
+        // Purpose: presentation helper that shifts Race/BetEvent timing so admins do not edit MySQL manually.
+        return raceService.fastForwardRaceForDemo(
+                raceId,
+                authentication.getName()
+        );
+    }
+
     @PutMapping("/{raceId}/complete")
     public RaceResponse completeRace(
             @PathVariable Integer raceId,

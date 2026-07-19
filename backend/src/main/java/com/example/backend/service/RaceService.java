@@ -1,6 +1,7 @@
 package com.example.backend.service;
 
 import com.example.backend.constant.EventStatus;
+import com.example.backend.constant.BetEventStatus;
 import com.example.backend.constant.RaceEntryStatus;
 import com.example.backend.dto.request.CreateRaceRequest;
 import com.example.backend.dto.request.RacePrizeRequest;
@@ -46,6 +47,7 @@ public class RaceService {
     private final RacePrizeRepository racePrizeRepository;
     private final RaceEntryRepository raceEntryRepository;
     private final RaceResultRepository raceResultRepository;
+    private final BetEventRepository betEventRepository;
     private final TournamentRepository tournamentRepository;
     private final UserRepository userRepository;
     private final RaceRunWatchdogService raceRunWatchdogService;
@@ -56,6 +58,7 @@ public class RaceService {
             RacePrizeRepository racePrizeRepository,
             RaceEntryRepository raceEntryRepository,
             RaceResultRepository raceResultRepository,
+            BetEventRepository betEventRepository,
             TournamentRepository tournamentRepository,
             UserRepository userRepository,
             RaceRunWatchdogService raceRunWatchdogService,
@@ -65,6 +68,7 @@ public class RaceService {
         this.racePrizeRepository = racePrizeRepository;
         this.raceEntryRepository = raceEntryRepository;
         this.raceResultRepository = raceResultRepository;
+        this.betEventRepository = betEventRepository;
         this.tournamentRepository = tournamentRepository;
         this.userRepository = userRepository;
         this.raceRunWatchdogService = raceRunWatchdogService;
@@ -576,6 +580,46 @@ public class RaceService {
         updateTournamentToInProgress(savedRace.getTournamentId());
 
         return toResponse(savedRace);
+    }
+
+    @Transactional
+    public RaceResponse fastForwardRaceForDemo(Integer raceId, String adminEmail) {
+        // FLOW: Admin Demo Time Control
+        // Validation: ACTIVE ADMIN; Race must not be launched, pending review, completed, or cancelled.
+        // DB effect: shifts the Race schedule around now and closes non-settled BetEvents for the Race.
+        getAdmin(adminEmail);
+
+        Race race = raceRepository.findByIdForUpdate(raceId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "Race does not exist."
+                ));
+
+        if (race.getRunStartedAt() != null
+                || EventStatus.IN_PROGRESS.equals(race.getStatus())
+                || EventStatus.PENDING_REVIEW.equals(race.getStatus())
+                || EventStatus.COMPLETED.equals(race.getStatus())
+                || EventStatus.CANCELLED.equals(race.getStatus())) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "Race can no longer be fast-forwarded for demo testing."
+            );
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        race.setRaceStartTime(now.minusMinutes(1));
+        race.setRaceEndTime(now.plusMinutes(10));
+        race.setEntryFinalizationScheduledAt(now.minusDays(2).minusMinutes(2));
+
+        betEventRepository.fastForwardCloseTimeByRaceId(
+                raceId,
+                now.minusHours(1),
+                now.minusSeconds(30),
+                now,
+                BetEventStatus.SETTLED
+        );
+
+        return toResponse(raceRepository.save(race));
     }
 
     @Transactional

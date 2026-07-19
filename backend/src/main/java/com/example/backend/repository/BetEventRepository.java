@@ -2,6 +2,7 @@ package com.example.backend.repository;
 
 import com.example.backend.entity.BetEvent;
 import jakarta.persistence.LockModeType;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -41,4 +42,21 @@ public interface BetEventRepository extends JpaRepository<BetEvent, Integer> {
             where event.betEventId = :betEventId
             """)
     Optional<BetEvent> findByIdForUpdate(@Param("betEventId") Integer betEventId);
+
+    @Modifying
+    @Query("""
+            update BetEvent event
+            set event.openAt = :openAt,
+                event.closeAt = :closeAt,
+                event.updatedAt = :updatedAt
+            where event.raceId = :raceId
+              and event.status <> :settledStatus
+            """)
+    int fastForwardCloseTimeByRaceId(
+            @Param("raceId") Integer raceId,
+            @Param("openAt") java.time.LocalDateTime openAt,
+            @Param("closeAt") java.time.LocalDateTime closeAt,
+            @Param("updatedAt") java.time.LocalDateTime updatedAt,
+            @Param("settledStatus") String settledStatus
+    );
 }

@@ -351,20 +351,46 @@ export default function useTournamentWorkspace() {
   // tree. Without this guard, every redundant call would still produce a
   // new tournaments array -> re-render -> new onResult reference -> effect
   // fires again, looping indefinitely.
-  const updateRaceStatus = useCallback((raceId, status) => {
+  const updateRaceStatus = useCallback((raceId, statusOrRace) => {
     setTournaments((current) => {
       const race = current
         .flatMap((tournament) => tournament.races)
         .find((candidate) => candidate.id === raceId);
+      const isRacePayload = statusOrRace && typeof statusOrRace === 'object';
+      const status = isRacePayload
+        ? statusOrRace.status || race?.status
+        : statusOrRace;
 
-      if (!race || race.status === status) {
+      if (!race) {
+        return current;
+      }
+
+      const racePatch = isRacePayload
+        ? {
+            status,
+            raceStartTime: statusOrRace.raceStartTime || race.raceStartTime,
+            raceEndTime: statusOrRace.raceEndTime || race.raceEndTime,
+            entryFinalizationScheduledAt: statusOrRace.entryFinalizationScheduledAt || race.entryFinalizationScheduledAt,
+            entryFinalizedAt: statusOrRace.entryFinalizedAt || race.entryFinalizedAt,
+            entryFinalizedBy: statusOrRace.entryFinalizedBy || race.entryFinalizedBy,
+            runStartedAt: statusOrRace.runStartedAt || null,
+            runStuck: Boolean(statusOrRace.runStuck),
+            runElapsedMinutes: Number(statusOrRace.runElapsedMinutes || 0),
+            runWatchdogTimeoutMinutes: Number(statusOrRace.runWatchdogTimeoutMinutes || race.runWatchdogTimeoutMinutes || 0),
+            entries: Number(statusOrRace.entryCount ?? race.entries ?? 0),
+            availableStalls: Number(statusOrRace.availableStalls ?? race.availableStalls ?? 0)
+          }
+        : { status };
+
+      const unchanged = Object.entries(racePatch).every(([key, value]) => race[key] === value);
+      if (unchanged) {
         return current;
       }
 
       return current.map((tournament) => ({
         ...tournament,
         races: tournament.races.map((candidate) => candidate.id === raceId
-          ? { ...candidate, status }
+          ? { ...candidate, ...racePatch }
           : candidate)
       }));
     });

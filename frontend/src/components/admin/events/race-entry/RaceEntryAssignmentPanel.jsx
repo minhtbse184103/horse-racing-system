@@ -1,6 +1,6 @@
 import { Fragment, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
-import { AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, Flag, Image as ImageIcon, LoaderCircle, Medal, PlayCircle, Radio, RefreshCw, Trophy, UserPlus, XCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, ChevronDown, ChevronRight, Clock3, Flag, Image as ImageIcon, LoaderCircle, Medal, PlayCircle, Radio, RefreshCw, Trophy, UserPlus, XCircle } from 'lucide-react';
 import AssignmentDialog from './AssignmentDialog';
 import CancellationDialog from './CancellationDialog';
 import OfficialEntries from './OfficialEntries';
@@ -10,7 +10,7 @@ import RaceLiveView from '../../../shared/live/RaceLiveView';
 import useRaceEntryAssignment from './useRaceEntryAssignment';
 import ImagePreviewDialog from '../ImagePreviewDialog';
 import TournamentStatusBadge from '../TournamentStatusBadge';
-import { failRaceRun, finalizeRaceEntries, readyRace, runRace } from '../../../../services/eventService';
+import { failRaceRun, fastForwardRaceForDemo, finalizeRaceEntries, readyRace, runRace } from '../../../../services/eventService';
 import { formatRaceSchedule } from '../../../../lib/eventFormatters';
 import { useLanguage } from '../../../../context/LanguageContext';
 
@@ -46,6 +46,7 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
   // to PENDING_REVIEW after Unity result submission no longer appears live.
   const [launchedRaceIds, setLaunchedRaceIds] = useState(() => new Set());
   const [finalizingRaceId, setFinalizingRaceId] = useState(null);
+  const [fastForwardingRaceId, setFastForwardingRaceId] = useState(null);
   const [readyingRaceId, setReadyingRaceId] = useState(null);
   const [runningRaceId, setRunningRaceId] = useState(null);
   const [failingRaceId, setFailingRaceId] = useState(null);
@@ -90,6 +91,23 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
       setRunErrors((current) => ({ ...current, [raceId]: error.message || t('eventRaceReadyError') }));
     } finally {
       setReadyingRaceId(null);
+    }
+  }
+
+  async function handleFastForwardRace(raceId) {
+    // FLOW: Admin Demo Time Control
+    // FE path: Race row demo button -> PUT /api/races/{raceId}/demo-time.
+    // Purpose: avoid manual MySQL edits during presentation testing by moving Race/BetEvent timing around now.
+    setFastForwardingRaceId(raceId);
+    setRunErrors((current) => ({ ...current, [raceId]: '' }));
+    try {
+      const response = await fastForwardRaceForDemo(raceId);
+      onRaceStatusChange?.(raceId, response);
+      setSelectedRaceId(raceId);
+    } catch (error) {
+      setRunErrors((current) => ({ ...current, [raceId]: error.message || t('eventRaceDemoTimeError') }));
+    } finally {
+      setFastForwardingRaceId(null);
     }
   }
 
@@ -278,6 +296,18 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
                   </div>
                 </div>
                 <div className="grid gap-2 sm:grid-cols-2 lg:justify-self-end">
+                  {!isLive && !isPendingReview && race.status !== 'COMPLETED' && race.status !== 'CANCELLED' && (
+                    <button
+                      type="button"
+                      disabled={fastForwardingRaceId === race.id}
+                      onClick={() => handleFastForwardRace(race.id)}
+                      className="inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 text-xs font-extrabold text-blue-800 hover:bg-blue-100 disabled:cursor-not-allowed disabled:opacity-60"
+                      title={t('eventRaceDemoTimeHint')}
+                    >
+                      {fastForwardingRaceId === race.id ? <LoaderCircle size={15} className="animate-spin" /> : <Clock3 size={15} />}
+                      {fastForwardingRaceId === race.id ? t('eventCommonProcessing') : t('eventRaceDemoTimeTitle')}
+                    </button>
+                  )}
                   {(canManageRaceEntries || isEntriesFinalized || race.status === 'READY' || isLive) && (
                     isLive ? (
                       <>

@@ -192,6 +192,15 @@ export function readyRace(raceId) {
   });
 }
 
+export function fastForwardRaceForDemo(raceId) {
+  // FLOW: Admin Demo Time Control
+  // API: PUT /api/races/{raceId}/demo-time.
+  // Purpose: shift Race/BetEvent timing for presentation testing without manual MySQL edits.
+  return httpRequest(`/api/races/${raceId}/demo-time`, {
+    method: 'PUT'
+  });
+}
+
 export function finalizeRaceEntries(raceId) {
   // FLOW: Admin Finalize RaceEntry
   // ORDER: 2/6 - API service sends Race ID to backend RaceEntry finalization endpoint.

@@ -17,6 +17,7 @@ import com.example.backend.repository.RaceEntryRepository;
 import com.example.backend.repository.RacePrizeRepository;
 import com.example.backend.repository.RaceRepository;
 import com.example.backend.repository.RaceResultRepository;
+import com.example.backend.repository.BetEventRepository;
 import com.example.backend.repository.TournamentRepository;
 import com.example.backend.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -50,6 +51,7 @@ class RaceServiceTest {
     @Mock private RacePrizeRepository racePrizeRepository;
     @Mock private RaceEntryRepository raceEntryRepository;
     @Mock private RaceResultRepository raceResultRepository;
+    @Mock private BetEventRepository betEventRepository;
     @Mock private UserRepository userRepository;
     @Mock private RaceRunWatchdogService raceRunWatchdogService;
     @Mock private RaceTrackImageStorageService raceTrackImageStorageService;
@@ -63,6 +65,7 @@ class RaceServiceTest {
                 racePrizeRepository,
                 raceEntryRepository,
                 raceResultRepository,
+                betEventRepository,
                 tournamentRepository,
                 userRepository,
                 raceRunWatchdogService,
@@ -499,6 +502,64 @@ class RaceServiceTest {
                 exception.getMessage()
         );
         verify(raceEntryRepository, never()).countByRaceIdAndStatus(any(), any());
+        verify(raceRepository, never()).save(any());
+    }
+
+    @Test
+    void fastForwardRaceForDemoShiftsRaceAndClosesBetEvents() {
+        Race race = race();
+        race.setStatus(EventStatus.ENTRIES_FINALIZED);
+
+        stubAdmin();
+        when(raceRepository.findByIdForUpdate(8)).thenReturn(Optional.of(race));
+        when(raceRepository.save(race)).thenReturn(race);
+        when(raceResultRepository.countResultsByRaceIds(List.of(8))).thenReturn(List.of());
+        when(racePrizeRepository.findByRaceIdOrderByRankPositionAsc(8)).thenReturn(List.of());
+        when(raceEntryRepository.countByRaceIdAndStatus(8, RaceEntryStatus.ASSIGNED))
+                .thenReturn(3L);
+
+        LocalDateTime before = LocalDateTime.now();
+        RaceResponse response = service.fastForwardRaceForDemo(8, "admin@example.com");
+        LocalDateTime after = LocalDateTime.now();
+
+        assertEquals(EventStatus.ENTRIES_FINALIZED, response.getStatus());
+        assertEquals(true, !race.getRaceStartTime().isAfter(after.minusMinutes(1).plusSeconds(1)));
+        assertEquals(true, !race.getRaceEndTime().isBefore(before.plusMinutes(10).minusSeconds(1)));
+        assertEquals(true, !race.getEntryFinalizationScheduledAt().isAfter(
+                race.getRaceStartTime().minusDays(2)
+        ));
+        verify(betEventRepository).fastForwardCloseTimeByRaceId(
+                org.mockito.ArgumentMatchers.eq(8),
+                org.mockito.ArgumentMatchers.any(LocalDateTime.class),
+                org.mockito.ArgumentMatchers.any(LocalDateTime.class),
+                org.mockito.ArgumentMatchers.any(LocalDateTime.class),
+                org.mockito.ArgumentMatchers.eq("SETTLED")
+        );
+        verify(raceRepository).save(race);
+    }
+
+    @Test
+    void fastForwardRaceForDemoRejectsLaunchedRace() {
+        Race race = race();
+        race.setStatus(EventStatus.IN_PROGRESS);
+        race.setRunStartedAt(LocalDateTime.now().minusMinutes(1));
+
+        stubAdmin();
+        when(raceRepository.findByIdForUpdate(8)).thenReturn(Optional.of(race));
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.fastForwardRaceForDemo(8, "admin@example.com")
+        );
+
+        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
+        verify(betEventRepository, never()).fastForwardCloseTimeByRaceId(
+                any(),
+                any(),
+                any(),
+                any(),
+                any()
+        );
         verify(raceRepository, never()).save(any());
     }
 
