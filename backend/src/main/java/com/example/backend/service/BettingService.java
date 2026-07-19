@@ -83,6 +83,7 @@ public class BettingService {
     private final UserVerificationRepository userVerificationRepository;
     private final WalletRepository walletRepository;
     private final WalletTransactionRepository walletTransactionRepository;
+    private final FundAccountingService fundAccountingService;
 
     @Transactional(readOnly = true)
     public List<BetProductResponse> getProducts() {
@@ -422,6 +423,7 @@ public class BettingService {
         settlement.setSettledBy(settledByUserId);
         settlement.setSettledAt(LocalDateTime.now());
         BetSettlement savedSettlement = betSettlementRepository.save(settlement);
+        fundAccountingService.recordBettingOperatorFee(savedSettlement);
 
         event.setStatus(BetEventStatus.SETTLED);
         event.setSettledBy(settledByUserId);

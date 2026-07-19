@@ -24,7 +24,6 @@ function normalizeAmount(value) {
 export default function WalletTransferPanel({ currentUser, role: roleOverride }) {
   const { t } = useLanguage();
   const role = String(roleOverride || getUserRole(currentUser) || '').toUpperCase();
-  const isSpectator = role === 'SPECTATOR';
   const [wallet, setWallet] = useState(null);
   const [amount, setAmount] = useState('200000');
   const [loading, setLoading] = useState(false);
@@ -43,16 +42,11 @@ export default function WalletTransferPanel({ currentUser, role: roleOverride })
     setLoading(true);
     setError('');
     try {
-      if (isSpectator) {
-        const [walletResult, kycResult] = await Promise.allSettled([getMyWallet(), getMyKyc()]);
-        setWallet(walletResult.status === 'fulfilled' ? walletResult.value : null);
-        setKyc(kycResult.status === 'fulfilled' ? kycResult.value : null);
-        if (walletResult.status === 'rejected' && kycResult.status === 'rejected') {
-          throw walletResult.reason;
-        }
-      } else {
-        setWallet(await getMyWallet());
-        setKyc(null);
+      const [walletResult, kycResult] = await Promise.allSettled([getMyWallet(), getMyKyc()]);
+      setWallet(walletResult.status === 'fulfilled' ? walletResult.value : null);
+      if (kycResult.status === 'fulfilled') setKyc(kycResult.value);
+      if (walletResult.status === 'rejected' && kycResult.status === 'rejected') {
+        throw walletResult.reason;
       }
     } catch (err) {
       setError(err.message || t('walletLoadError'));
@@ -66,7 +60,7 @@ export default function WalletTransferPanel({ currentUser, role: roleOverride })
   }, [role]);
 
   useEffect(() => {
-    if (!isSpectator) return undefined;
+    if (!ALLOWED_ROLES.has(role)) return undefined;
     if (window.location.pathname !== '/wallet/kyc/result') return undefined;
     let cancelled = false;
     let attempts = 0;
@@ -89,10 +83,9 @@ export default function WalletTransferPanel({ currentUser, role: roleOverride })
     };
     poll();
     return () => { cancelled = true; };
-  }, [isSpectator]);
+  }, [role]);
 
   async function handleStartKyc() {
-    if (!isSpectator) return;
     setStartingKyc(true);
     setError('');
     try {
@@ -247,7 +240,7 @@ export default function WalletTransferPanel({ currentUser, role: roleOverride })
         {!isDepositOpen && error && <div className="admin-alert error" role="alert">{error}</div>}
         {!isDepositOpen && notice && <div className={`admin-alert ${notice.type}`} role="status">{notice.key ? t(notice.key) : notice.text}</div>}
 
-        {!wallet && isSpectator && (
+        {!wallet && (
           <div className="mb-5 border-y border-brown-700/10 bg-white/55 px-1 py-5">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
               <div>
@@ -267,12 +260,6 @@ export default function WalletTransferPanel({ currentUser, role: roleOverride })
                 </button>
               )}
             </div>
-          </div>
-        )}
-
-        {!wallet && !isSpectator && !loading && !error && (
-          <div className="admin-alert error mb-5" role="alert">
-            {t('walletNotAvailableAfterApproval')}
           </div>
         )}
 

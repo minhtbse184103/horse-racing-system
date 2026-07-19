@@ -47,21 +47,18 @@ public class JockeyVerificationServiceImpl implements JockeyVerificationService 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final JockeyProfileRepository jockeyProfileRepository;
-    private final WalletProvisioningService walletProvisioningService;
 
     public JockeyVerificationServiceImpl(
             JockeyVerificationRepository verificationRepository,
             JockeyVerificationFileRepository verificationFileRepository,
             UserRepository userRepository,
             RoleRepository roleRepository,
-            JockeyProfileRepository jockeyProfileRepository,
-            WalletProvisioningService walletProvisioningService) {
+            JockeyProfileRepository jockeyProfileRepository) {
         this.verificationRepository = verificationRepository;
         this.verificationFileRepository = verificationFileRepository;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.jockeyProfileRepository = jockeyProfileRepository;
-        this.walletProvisioningService = walletProvisioningService;
     }
 
     @Transactional
@@ -271,7 +268,7 @@ public class JockeyVerificationServiceImpl implements JockeyVerificationService 
         verification.setReviewedBy(admin.getUserID());
         JockeyVerification saved = verificationRepository.save(verification);
 
-        User user = userRepository.findByIdForUpdate(verification.getJockeyId())
+        User user = userRepository.findById(verification.getJockeyId())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Người dùng không tồn tại."));
         
         // Đổi Role sang JOCKEY khi được APPROVED
@@ -284,7 +281,6 @@ public class JockeyVerificationServiceImpl implements JockeyVerificationService 
         userRepository.save(user);
         // Đồng bộ thông tin từ hồ sơ xác thực sang JockeyProfile chính thức.
         createOrUpdateApprovedProfile(saved, user);
-        walletProvisioningService.provisionForApprovedProfessional(user);
 
         List<JockeyVerificationFile> files = verificationFileRepository
                 .findByVerificationId(verificationId);

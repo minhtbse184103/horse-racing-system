@@ -38,8 +38,10 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -53,6 +55,8 @@ public class VnpayPaymentService {
     private static final String VNPAY_ORDER_TYPE = "other";
     private static final String VNPAY_LOCALE = "vn";
     private static final String VNPAY_SUCCESS_CODE = "00";
+    private static final Set<String> WALLET_ALLOWED_ROLES =
+            Set.of("OWNER", "SPECTATOR", "JOCKEY");
     private static final BigDecimal MIN_WALLET_DEPOSIT_AMOUNT = new BigDecimal("10000.00");
     private static final DateTimeFormatter VNPAY_DATE_FORMAT =
             DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
@@ -63,7 +67,7 @@ public class VnpayPaymentService {
     private final UserRepository userRepository;
     private final WalletRepository walletRepository;
     private final WalletTransactionRepository walletTransactionRepository;
-    private final WalletAccessPolicy walletAccessPolicy;
+    private final FundAccountingService fundAccountingService;
 
     public VnpayPaymentService(
             VnpayProperties properties,
@@ -72,7 +76,7 @@ public class VnpayPaymentService {
             UserRepository userRepository,
             WalletRepository walletRepository,
             WalletTransactionRepository walletTransactionRepository,
-            WalletAccessPolicy walletAccessPolicy
+            FundAccountingService fundAccountingService
     ) {
         this.properties = properties;
         this.paymentTransactionRepository = paymentTransactionRepository;
@@ -80,7 +84,7 @@ public class VnpayPaymentService {
         this.userRepository = userRepository;
         this.walletRepository = walletRepository;
         this.walletTransactionRepository = walletTransactionRepository;
-        this.walletAccessPolicy = walletAccessPolicy;
+        this.fundAccountingService = fundAccountingService;
     }
 
     @Transactional
@@ -250,6 +254,7 @@ public class VnpayPaymentService {
             registration.setPaymentStatus(PaymentStatus.PAID);
             paymentTransactionRepository.save(paymentTransaction);
             registrationRepository.save(registration);
+            fundAccountingService.recordRegistrationFee(paymentTransaction, registration);
         } else {
             paymentTransaction.setStatus(PaymentTransactionStatus.FAILED);
             registration.setPaymentStatus(PaymentStatus.FAILED);
@@ -585,10 +590,15 @@ public class VnpayPaymentService {
         if (wallet == null || wallet.getUserId() == null) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Wallet owner is not eligible for wallet services.");
         }
-        // Owner/Jockey phải đã được duyệt; Spectator phải còn KYC hợp lệ.
+        // Query chủ ví và chỉ cho Owner, Jockey hoặc Spectator đang hoạt động nạp ví.
         User user = userRepository.findById(wallet.getUserId())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Wallet owner does not exist."));
-        walletAccessPolicy.validate(user);
+        String roleName = user.getRole() == null ? null : user.getRole().getRoleName();
+        if (!"ACTIVE".equalsIgnoreCase(user.getStatus())
+                || roleName == null
+                || !WALLET_ALLOWED_ROLES.contains(roleName.trim().toUpperCase(Locale.ROOT))) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "This account cannot use wallet deposits.");
+        }
     }
 
     private void markWalletPaymentFailed(

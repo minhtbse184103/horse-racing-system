@@ -6,7 +6,25 @@ import { formatVndCurrency } from '../../../../lib/eventFormatters';
 import { useLanguage } from '../../../../context/LanguageContext';
 
 const RESULT_GRID_COLUMNS =
-  'grid-cols-[3.75rem_minmax(10rem,1.15fr)_minmax(7rem,0.75fr)_minmax(8rem,0.85fr)_5rem_7.5rem]';
+  'grid-cols-[3.75rem_minmax(10rem,1.15fr)_minmax(7rem,0.75fr)_minmax(8rem,0.85fr)_5rem_6.75rem_6.75rem_6.75rem_6.5rem]';
+
+const DISTRIBUTION_STATUS_STYLES = {
+  PENDING: 'bg-amber-50 text-amber-800',
+  PAID: 'bg-emerald-50 text-emerald-800',
+  FAILED: 'bg-red-50 text-red-700',
+  NO_PRIZE: 'bg-stone-100 text-stone-700'
+};
+
+function formatDistributionStatus(status) {
+  const normalized = String(status || 'NO_PRIZE').toUpperCase();
+  const labels = {
+    PENDING: 'Pending',
+    PAID: 'Paid',
+    FAILED: 'Failed',
+    NO_PRIZE: 'No Prize'
+  };
+  return labels[normalized] || String(status || 'No Prize').replace(/_/g, ' ');
+}
 
 export default function RaceResultPrizeDialog({ race, onClose }) {
   const { t } = useLanguage();
@@ -34,8 +52,11 @@ export default function RaceResultPrizeDialog({ race, onClose }) {
     loadResults();
   }, [race.id]);
 
+  // FLOW: Prize Split Display
+  // ORDER: 7A/7 - Dialog totals PrizeDistribution-backed prize rows for the summary amount.
+  // Totals the official result/prize rows that include PrizeDistribution owner and jockey split amounts.
   const totalPrize = results.reduce(
-    (sum, result) => sum + Number(result.prizeMoney || 0),
+    (sum, result) => sum + Number(result.totalPrize || result.prizeMoney || 0),
     0
   );
 
@@ -118,11 +139,20 @@ export default function RaceResultPrizeDialog({ race, onClose }) {
                 <span>{t('eventDomainJockey')}</span>
                 <span>{t('eventResultPrizeTime')}</span>
                 <span>{t('eventResultPrizePrizeMoney')}</span>
+                <span>{t('eventResultPrizeOwnerShare')}</span>
+                <span>{t('eventResultPrizeJockeyShare')}</span>
+                <span>{t('eventResultPrizePayoutStatus')}</span>
               </div>
               <div className="divide-y divide-brown-700/10">
                 {/* FLOW: Official Result Display */}
-                {/* ORDER: 7/7 - Render official finish order and configured prize money. */}
-                {results.map((result) => (
+                {/* ORDER: 7/7 - Render official finish order and the prize split fields returned by the backend. */}
+                {/* FLOW: Prize Split Display
+                   ORDER: 7B/7 - Row cells display ownerAmount, jockeyAmount, and distributionStatus from PrizeDistribution.
+                   Shows official prize money plus owner/jockey split amounts calculated during Admin approval. */}
+                {results.map((result) => {
+                  const distributionStatus = String(result.distributionStatus || 'NO_PRIZE').toUpperCase();
+
+                  return (
                   <article key={result.resultId} className={`grid ${RESULT_GRID_COLUMNS} items-center gap-2 px-4 py-3 text-sm`}>
                     <span className="inline-flex size-10 items-center justify-center rounded-lg bg-amber-50 text-sm font-black text-amber-800">
                       #{result.finishPosition}
@@ -135,8 +165,14 @@ export default function RaceResultPrizeDialog({ race, onClose }) {
                     <span className="truncate font-bold text-brown-900">{result.jockeyName || 'N/A'}</span>
                     <span className="font-mono text-xs font-black text-slate-600">{result.finishTime || '-'}</span>
                     <span className="truncate font-black text-brown-900">{formatVndCurrency(result.prizeMoney || 0)}</span>
+                    <span className="truncate font-bold text-emerald-700">{formatVndCurrency(result.ownerAmount || 0)}</span>
+                    <span className="truncate font-bold text-sky-700">{formatVndCurrency(result.jockeyAmount || 0)}</span>
+                    <span className={`inline-flex w-fit rounded-full px-2.5 py-1 text-[0.68rem] font-black ${DISTRIBUTION_STATUS_STYLES[distributionStatus] || DISTRIBUTION_STATUS_STYLES.NO_PRIZE}`}>
+                      {formatDistributionStatus(distributionStatus)}
+                    </span>
                   </article>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}

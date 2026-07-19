@@ -89,6 +89,13 @@ export function validateWizardStep(step, draft, t = defaultTranslate) {
     draft.races.forEach((race) => {
       if (race.prizes.length === 0) errors[`race-${race.id}-prizes`] = t('eventValidationRacePrizeRequired', { raceName: race.name });
       else if (race.prizes.some((prize) => Number(prize.amount) <= 0)) errors[`race-${race.id}-prizes`] = t('eventValidationRacePrizePositive', { raceName: race.name });
+      else if (race.prizes.some((prize) => {
+        const ownerBasisPoints = Math.round(Number(prize.ownerPercent) * 100);
+        const jockeyBasisPoints = Math.round(Number(prize.jockeyPercent) * 100);
+        return ownerBasisPoints < 0 || jockeyBasisPoints < 0 || ownerBasisPoints + jockeyBasisPoints !== 10000;
+      })) {
+        errors[`race-${race.id}-prizes`] = t('eventValidationRacePrizeSplit', { raceName: race.name });
+      }
     });
   }
 

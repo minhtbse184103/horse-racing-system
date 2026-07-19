@@ -13,4 +13,6 @@ public class RacePrizeResponse {
     private Integer raceId;
     private Integer rankPosition;
     private BigDecimal amount;
+    private BigDecimal ownerPercent;
+    private BigDecimal jockeyPercent;
 }

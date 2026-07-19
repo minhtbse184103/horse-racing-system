@@ -6,8 +6,8 @@ import com.example.backend.entity.PaymentTransaction;
 import com.example.backend.entity.Role;
 import com.example.backend.entity.User;
 import com.example.backend.entity.Wallet;
-import com.example.backend.exception.ApiException;
 import com.example.backend.repository.UserRepository;
+import com.example.backend.repository.UserVerificationRepository;
 import com.example.backend.repository.WalletRepository;
 import com.example.backend.repository.WalletTransactionRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -20,9 +20,7 @@ import java.math.BigDecimal;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -32,8 +30,8 @@ class WalletServiceSpectatorAccessTest {
     @Mock private UserRepository userRepository;
     @Mock private WalletRepository walletRepository;
     @Mock private WalletTransactionRepository walletTransactionRepository;
+    @Mock private UserVerificationRepository userVerificationRepository;
     @Mock private VnpayPaymentService vnpayPaymentService;
-    @Mock private WalletAccessPolicy walletAccessPolicy;
 
     private WalletService service;
 
@@ -43,34 +41,22 @@ class WalletServiceSpectatorAccessTest {
                 userRepository,
                 walletRepository,
                 walletTransactionRepository,
-                vnpayPaymentService,
-                walletAccessPolicy
+                userVerificationRepository,
+                vnpayPaymentService
         );
     }
 
     @Test
-    void approvedOwnerCanReadProvisionedWallet() {
-        User owner = user(8, "owner@test.local", "OWNER", "OWNER");
-        Wallet wallet = wallet(81, owner.getUserID());
-        when(userRepository.findByEmail(owner.getEmail())).thenReturn(Optional.of(owner));
-        when(walletRepository.findByUserId(owner.getUserID())).thenReturn(Optional.of(wallet));
+    void ownerAccountCandidateCanReadWallet() {
+        User ownerCandidate = user(8, "owner@test.local", "SPECTATOR", "OWNER");
+        Wallet wallet = wallet(81, ownerCandidate.getUserID());
+        when(userRepository.findByEmail(ownerCandidate.getEmail())).thenReturn(Optional.of(ownerCandidate));
+        when(walletRepository.findByUserId(ownerCandidate.getUserID())).thenReturn(Optional.of(wallet));
 
-        var response = service.getMyWallet(owner.getEmail());
+        var response = service.getMyWallet(ownerCandidate.getEmail());
 
         assertEquals(wallet.getWalletId(), response.getWalletId());
-        assertEquals(owner.getUserID(), response.getUserId());
-        verify(walletAccessPolicy).validate(owner);
-    }
-
-    @Test
-    void depositDoesNotCreateMissingWallet() {
-        User owner = user(8, "owner@test.local", "OWNER", "OWNER");
-        when(userRepository.findByEmail(owner.getEmail())).thenReturn(Optional.of(owner));
-        when(walletRepository.findByUserIdForUpdate(owner.getUserID())).thenReturn(Optional.empty());
-
-        assertThrows(ApiException.class,
-                () -> service.createDepositPayment(owner.getEmail(), depositRequest(), "127.0.0.1"));
-        verify(walletRepository, never()).save(any());
+        assertEquals(ownerCandidate.getUserID(), response.getUserId());
     }
 
     @Test

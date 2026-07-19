@@ -37,7 +37,7 @@ export default function PrizeEditorCard({ race, index, error, onChange }) {
         {error && <WizardValidationBanner message={error} />}
         <div className="grid gap-2">
           {race.prizes.map((prize, rankIndex) => (
-            <div key={`${race.id}-rank-${rankIndex}`} className="grid gap-3 rounded-lg border border-brown-700/10 bg-cream-100 px-3 py-3 sm:grid-cols-[3.25rem_minmax(0,1fr)_2.5rem] sm:items-end">
+            <div key={`${race.id}-rank-${rankIndex}`} className="grid gap-3 rounded-lg border border-brown-700/10 bg-cream-100 px-3 py-3 sm:grid-cols-[3.25rem_minmax(0,1fr)_6.5rem_6.5rem_2.5rem] sm:items-end">
               <span className={`grid size-9 place-items-center rounded-lg text-xs font-black ${rankIndex === 0 ? 'bg-gold-400 text-brown-900' : 'bg-cream-200 text-brown-700'}`}>#{rankIndex + 1}</span>
               <label className="relative block">
                 <span className="mb-1 block text-[10px] font-black uppercase text-slate-500">{t('eventWizardPrizeAmount')}</span>
@@ -51,6 +51,14 @@ export default function PrizeEditorCard({ race, index, error, onChange }) {
                   onChange={(event) => updatePrize(rankIndex, { amount: Number(event.target.value) })}
                   aria-label={`${t('eventWizardPrizeAmount')} #${rankIndex + 1}`}
                 />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-[10px] font-black uppercase text-slate-500">{t('eventWizardOwnerPercentage')}</span>
+                <input type="number" min="0" max="100" step="0.01" className={FIELD_CLASS} value={prize.ownerPercent} onChange={(event) => updatePrize(rankIndex, { ownerPercent: Number(event.target.value) })} aria-label={`${t('eventWizardOwnerPercentage')} #${rankIndex + 1}`} />
+              </label>
+              <label className="block">
+                <span className="mb-1 block text-[10px] font-black uppercase text-slate-500">{t('eventWizardJockeyPercentage')}</span>
+                <input type="number" min="0" max="100" step="0.01" className={FIELD_CLASS} value={prize.jockeyPercent} onChange={(event) => updatePrize(rankIndex, { jockeyPercent: Number(event.target.value) })} aria-label={`${t('eventWizardJockeyPercentage')} #${rankIndex + 1}`} />
               </label>
               <button type="button" onClick={() => onChange(race.prizes.filter((_, itemIndex) => itemIndex !== rankIndex))} className="grid size-9 place-items-center rounded-lg text-slate-500 transition hover:bg-red-50 hover:text-danger" aria-label={`${t('eventCommonDelete')} #${rankIndex + 1}`}>
                 <Trash2 size={15} />

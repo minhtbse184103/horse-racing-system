@@ -32,7 +32,9 @@ function adaptRace(race) {
   const prizes = [...(race.prizes || [])]
     .sort((left, right) => left.rankPosition - right.rankPosition)
     .map((prize) => ({
-      amount: toNumber(prize.amount)
+      amount: toNumber(prize.amount),
+      ownerPercent: toNumber(prize.ownerPercent, 80),
+      jockeyPercent: toNumber(prize.jockeyPercent, 20)
     }));
 
   return {

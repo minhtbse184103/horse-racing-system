@@ -16,12 +16,12 @@ function buildRanking(results, type) {
     current.races += 1;
     if (position === 1) current.wins += 1;
     if (position >= 1 && position <= 3) current.topThree += 1;
-    if (isHorse) current.prize += Number(result.prizeMoney || 0) || 0;
+    current.prize += Number(isHorse ? result.totalPrize ?? result.prizeMoney : result.jockeyAmount ?? 0) || 0;
     ranking.set(key, current);
   });
 
   return [...ranking.values()]
-    .sort((a, b) => b.wins - a.wins || b.topThree - a.topThree || (isHorse ? b.prize - a.prize : 0) || a.name.localeCompare(b.name))
+    .sort((a, b) => b.wins - a.wins || b.topThree - a.topThree || b.prize - a.prize || a.name.localeCompare(b.name))
     .slice(0, 3);
 }
 

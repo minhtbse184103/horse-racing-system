@@ -1349,7 +1349,7 @@ function ApprovedJockeyDashboard({ currentUser, onLogout, onUserUpdated }) {
                 </div>
                 <div>
                   <span>3</span>
-                  <p>{t('jockeyWalletHelp')}</p>
+                  <p>{t('jockeyWalletKycHint')}</p>
                 </div>
               </div>
             </div>

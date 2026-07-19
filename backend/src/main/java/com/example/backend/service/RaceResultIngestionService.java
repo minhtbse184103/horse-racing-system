@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
  * Deliberately NOT RaceService.completeRace(): that method gates on
  * raceEndTime having passed, but here completion is event-driven
  * (Unity reporting it actually finished). Official RaceResult rows
- * and official prizeMoney values are created only after Referee/Admin
+ * and PrizeDistribution rows are created only after Referee/Admin
  * review in a later workflow.
  */
 @Service
@@ -179,7 +179,7 @@ public class RaceResultIngestionService {
         // FLOW: Provisional Race Result Submission
         // ORDER: 7/10 - Duplicate guard ensures one active provisional submission per Race review cycle.
         // Unity is allowed to create only one active submission per Race. It
-        // does not create official RaceResult rows or calculate prizeMoney here.
+        // does not create official RaceResult/PrizeDistribution rows here.
         if (submissionRepository.existsByRaceIdAndStatusIn(
                 raceId,
                 RaceResultSubmissionStatus.ACTIVE_SUBMISSION_STATUSES

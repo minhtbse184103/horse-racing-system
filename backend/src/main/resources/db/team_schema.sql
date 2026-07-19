@@ -250,10 +250,18 @@ CREATE TABLE `RacePrize` (
   `raceID` int NOT NULL,
   `rankPosition` int NOT NULL,
   `amount` decimal(12,2) NOT NULL,
+  `ownerPercent` decimal(5,2) NOT NULL,
+  `jockeyPercent` decimal(5,2) NOT NULL,
   CONSTRAINT `chk_race_prize_rank`
     CHECK (`rankPosition` > 0),
   CONSTRAINT `chk_race_prize_amount`
-    CHECK (`amount` > 0)
+    CHECK (`amount` > 0),
+  CONSTRAINT `chk_race_prize_owner_percent`
+    CHECK (`ownerPercent` >= 0),
+  CONSTRAINT `chk_race_prize_jockey_percent`
+    CHECK (`jockeyPercent` >= 0),
+  CONSTRAINT `chk_race_prize_split_total`
+    CHECK (`ownerPercent` + `jockeyPercent` = 100)
 );
 
 CREATE TABLE `Registration` (
@@ -519,10 +527,60 @@ CREATE TABLE `WalletTransaction` (
       'BET_LOST',
       'BET_WIN',
       'BET_REFUND',
+      'PRIZE_PAYOUT',
       'WITHDRAW'
     )),
   CONSTRAINT `chk_wallet_transaction_amount`
     CHECK (`amount` > 0)
+);
+
+CREATE TABLE `TournamentFund` (
+  `tournamentID` int PRIMARY KEY,
+  `collectedAmount` decimal(14,2) NOT NULL DEFAULT 0,
+  `paidPrizeAmount` decimal(14,2) NOT NULL DEFAULT 0,
+  `availableBalance` decimal(14,2) NOT NULL DEFAULT 0,
+  `createdAt` datetime NOT NULL,
+  `updatedAt` datetime NOT NULL,
+  CONSTRAINT `chk_tournament_fund_amounts`
+    CHECK (
+      `collectedAmount` >= 0
+      AND `paidPrizeAmount` >= 0
+      AND `availableBalance` >= 0
+      AND `paidPrizeAmount` + `availableBalance` = `collectedAmount`
+    )
+);
+
+CREATE TABLE `SystemFund` (
+  `systemFundID` int PRIMARY KEY,
+  `balance` decimal(14,2) NOT NULL DEFAULT 0,
+  `bettingFeeRevenue` decimal(14,2) NOT NULL DEFAULT 0,
+  `createdAt` datetime NOT NULL,
+  `updatedAt` datetime NOT NULL,
+  CONSTRAINT `chk_system_fund_amounts`
+    CHECK (`balance` >= 0 AND `bettingFeeRevenue` >= 0)
+);
+
+CREATE TABLE `FundTransaction` (
+  `fundTransactionID` bigint PRIMARY KEY AUTO_INCREMENT,
+  `fundKey` varchar(80) NOT NULL,
+  `tournamentID` int,
+  `transactionType` varchar(50) NOT NULL,
+  `direction` varchar(10) NOT NULL,
+  `amount` decimal(14,2) NOT NULL,
+  `balanceBefore` decimal(14,2) NOT NULL,
+  `balanceAfter` decimal(14,2) NOT NULL,
+  `referenceType` varchar(50) NOT NULL,
+  `referenceID` int NOT NULL,
+  `description` varchar(500),
+  `createdAt` datetime NOT NULL,
+  CONSTRAINT `FundTransaction_unique_reference`
+    UNIQUE (`fundKey`, `transactionType`, `referenceType`, `referenceID`),
+  CONSTRAINT `chk_fund_transaction_type`
+    CHECK (`transactionType` IN ('REGISTRATION_FEE', 'PRIZE_PAYOUT', 'BETTING_OPERATOR_FEE')),
+  CONSTRAINT `chk_fund_transaction_direction`
+    CHECK (`direction` IN ('CREDIT', 'DEBIT')),
+  CONSTRAINT `chk_fund_transaction_amount`
+    CHECK (`amount` > 0 AND `balanceBefore` >= 0 AND `balanceAfter` >= 0)
 );
 
 CREATE TABLE `Bet` (
@@ -626,6 +684,30 @@ CREATE TABLE `BetSettlement` (
     )
 );
 
+CREATE TABLE `PrizeDistribution` (
+  `prizeDistributionID` int PRIMARY KEY AUTO_INCREMENT,
+  `raceID` int NOT NULL,
+  `raceEntryID` int NOT NULL,
+  `racePrizeID` int NOT NULL,
+  `ownerID` int NOT NULL,
+  `jockeyID` int NOT NULL,
+  `totalPrize` decimal(12,2) NOT NULL,
+  `ownerAmount` decimal(12,2) NOT NULL,
+  `jockeyAmount` decimal(12,2) NOT NULL,
+  `status` varchar(50) NOT NULL DEFAULT 'PENDING',
+  `distributedAt` datetime,
+  `createdAt` datetime,
+  CONSTRAINT `chk_prize_distribution_amounts`
+    CHECK (
+      `totalPrize` > 0
+      AND `ownerAmount` >= 0
+      AND `jockeyAmount` >= 0
+      AND `ownerAmount` + `jockeyAmount` = `totalPrize`
+    ),
+  CONSTRAINT `chk_prize_distribution_status`
+    CHECK (`status` IN ('PENDING', 'PAID', 'FAILED', 'CANCELLED'))
+);
+
 CREATE TABLE `HorsePerformanceSummary` (
   `horseID` int PRIMARY KEY,
   `totalRaces` int NOT NULL DEFAULT 0,
@@ -702,6 +784,9 @@ CREATE UNIQUE INDEX `RacePrize_index_2` ON `RacePrize` (`raceID`, `rankPosition`
 CREATE UNIQUE INDEX `TournamentCondition_index_3`
 ON `TournamentCondition` (`tournamentID`, `conditionType`);
 
+CREATE UNIQUE INDEX `PrizeDistribution_unique_prize_idx`
+ON `PrizeDistribution` (`raceID`, `raceEntryID`, `racePrizeID`);
+
 CREATE INDEX `RaceEntry_registration_idx`
 ON `RaceEntry` (`registrationID`);
 
@@ -755,6 +840,9 @@ ON `BetTicket` (`userID`, `placedAt`);
 
 CREATE INDEX `BetTicket_event_entry_status_idx`
 ON `BetTicket` (`betEventID`, `raceEntryID`, `status`);
+
+CREATE INDEX `PrizeDistribution_race_status_idx`
+ON `PrizeDistribution` (`raceID`, `status`);
 
 CREATE INDEX `RaceResultSubmission_status_submitted_idx`
 ON `RaceResultSubmission` (`status`, `submittedAt`);
@@ -864,6 +952,10 @@ ALTER TABLE `WalletTransaction` ADD FOREIGN KEY (`walletID`) REFERENCES `Wallet`
 
 ALTER TABLE `WalletTransaction` ADD FOREIGN KEY (`userID`) REFERENCES `Users` (`userID`);
 
+ALTER TABLE `TournamentFund` ADD FOREIGN KEY (`tournamentID`) REFERENCES `Tournament` (`tournamentID`);
+
+ALTER TABLE `FundTransaction` ADD FOREIGN KEY (`tournamentID`) REFERENCES `Tournament` (`tournamentID`);
+
 ALTER TABLE `Bet` ADD FOREIGN KEY (`spectatorID`) REFERENCES `Users` (`userID`);
 
 ALTER TABLE `Bet` ADD FOREIGN KEY (`raceID`) REFERENCES `Race` (`raceID`);
@@ -893,6 +985,16 @@ ALTER TABLE `BetTicket` ADD FOREIGN KEY (`raceEntryID`) REFERENCES `RaceEntry` (
 ALTER TABLE `BetSettlement` ADD FOREIGN KEY (`betEventID`) REFERENCES `BetEvent` (`betEventID`);
 
 ALTER TABLE `BetSettlement` ADD FOREIGN KEY (`settledBy`) REFERENCES `Users` (`userID`);
+
+ALTER TABLE `PrizeDistribution` ADD FOREIGN KEY (`raceID`) REFERENCES `Race` (`raceID`);
+
+ALTER TABLE `PrizeDistribution` ADD FOREIGN KEY (`raceEntryID`) REFERENCES `RaceEntry` (`raceEntryID`);
+
+ALTER TABLE `PrizeDistribution` ADD FOREIGN KEY (`racePrizeID`) REFERENCES `RacePrize` (`racePrizeID`);
+
+ALTER TABLE `PrizeDistribution` ADD FOREIGN KEY (`ownerID`) REFERENCES `Users` (`userID`);
+
+ALTER TABLE `PrizeDistribution` ADD FOREIGN KEY (`jockeyID`) REFERENCES `Users` (`userID`);
 
 ALTER TABLE `HorsePerformanceSummary` ADD FOREIGN KEY (`horseID`) REFERENCES `Horse` (`horseID`);
 

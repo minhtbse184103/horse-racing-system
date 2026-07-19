@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Trophy, X } from 'lucide-react';
+import { CircleDollarSign, Trophy, X } from 'lucide-react';
 import { formatVndCurrency } from '../../../../lib/eventFormatters';
 import { useLanguage } from '../../../../context/LanguageContext';
 
@@ -54,14 +54,33 @@ export default function PrizeRuleDialog({ race, onClose }) {
             <div className="space-y-3">
               {race.prizes.map((prize, index) => {
                 const amount = Number(prize.amount || 0);
+                const ownerAmount = amount * Number(prize.ownerPercent || 0) / 100;
+                const jockeyAmount = amount * Number(prize.jockeyPercent || 0) / 100;
+
                 return (
                   <article
                     key={`${race.id}-prize-${index}`}
                     className="rounded-lg border border-brown-700/10 bg-white/80 p-4 shadow-[0_8px_22px_rgba(78,44,25,0.06)]"
                   >
-                    <div>
-                      <p className="text-xs font-black uppercase text-brown-500">{t('eventCommonRank')} {index + 1}</p>
-                      <p className="mt-1 text-lg font-black text-brown-900">{formatVndCurrency(amount)}</p>
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <p className="text-xs font-black uppercase text-brown-500">{t('eventCommonRank')} {index + 1}</p>
+                        <p className="mt-1 text-lg font-black text-brown-900">{formatVndCurrency(amount)}</p>
+                      </div>
+                      <span className="inline-flex w-fit items-center gap-2 rounded-full bg-cream-200 px-3 py-1.5 text-xs font-extrabold text-brown-700">
+                        <CircleDollarSign size={14} /> Owner + Jockey = {Number(prize.ownerPercent || 0) + Number(prize.jockeyPercent || 0)}%
+                      </span>
+                    </div>
+
+                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                      <div className="rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-3">
+                        <p className="text-xs font-black uppercase text-emerald-700">Owner</p>
+                        <p className="mt-1 text-sm font-black text-emerald-900">{prize.ownerPercent}% · {formatVndCurrency(ownerAmount)}</p>
+                      </div>
+                      <div className="rounded-lg border border-sky-100 bg-sky-50 px-3 py-3">
+                        <p className="text-xs font-black uppercase text-sky-700">Jockey</p>
+                        <p className="mt-1 text-sm font-black text-sky-900">{prize.jockeyPercent}% · {formatVndCurrency(jockeyAmount)}</p>
+                      </div>
                     </div>
                   </article>
                 );

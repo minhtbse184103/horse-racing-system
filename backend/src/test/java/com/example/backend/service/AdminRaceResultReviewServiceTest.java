@@ -141,7 +141,8 @@ class AdminRaceResultReviewServiceTest {
 
         verify(prizeSettlementService).settlePrizes(
                 eq(RACE_ID),
-                eq(savedResults)
+                eq(savedResults),
+                any()
         );
         verify(performanceSummaryService).updateAfterRaceApproved(
                 eq(savedResults),
@@ -194,7 +195,7 @@ class AdminRaceResultReviewServiceTest {
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
         verify(raceResultRepository, never()).saveAll(any());
-        verify(prizeSettlementService, never()).settlePrizes(any(), any());
+        verify(prizeSettlementService, never()).settlePrizes(any(), any(), any());
         verify(performanceSummaryService, never())
                 .updateAfterRaceApproved(any(), any());
         verify(submissionRepository, never()).save(any());
@@ -232,7 +233,7 @@ class AdminRaceResultReviewServiceTest {
                 );
 
         verify(raceResultRepository, never()).saveAll(any());
-        verify(prizeSettlementService, never()).settlePrizes(any(), any());
+        verify(prizeSettlementService, never()).settlePrizes(any(), any(), any());
         verify(performanceSummaryService, never())
                 .updateAfterRaceApproved(any(), any());
         verify(raceEntryRepository, never()).findAllById(any());
@@ -279,7 +280,7 @@ class AdminRaceResultReviewServiceTest {
 
         assertEquals(HttpStatus.CONFLICT, exception.getStatus());
         verify(raceResultRepository, never()).saveAll(any());
-        verify(prizeSettlementService, never()).settlePrizes(any(), any());
+        verify(prizeSettlementService, never()).settlePrizes(any(), any(), any());
         verify(performanceSummaryService, never())
                 .updateAfterRaceApproved(any(), any());
         verify(raceRepository, never()).save(any());
@@ -300,7 +301,7 @@ class AdminRaceResultReviewServiceTest {
 
         assertEquals(HttpStatus.CONFLICT, exception.getStatus());
         verify(raceResultRepository, never()).saveAll(any());
-        verify(prizeSettlementService, never()).settlePrizes(any(), any());
+        verify(prizeSettlementService, never()).settlePrizes(any(), any(), any());
         verify(performanceSummaryService, never())
                 .updateAfterRaceApproved(any(), any());
     }
@@ -326,7 +327,7 @@ class AdminRaceResultReviewServiceTest {
         verify(entryRepository, never())
                 .findBySubmissionIdOrderByFinishPositionAsc(any());
         verify(raceResultRepository, never()).saveAll(any());
-        verify(prizeSettlementService, never()).settlePrizes(any(), any());
+        verify(prizeSettlementService, never()).settlePrizes(any(), any(), any());
         verify(performanceSummaryService, never())
                 .updateAfterRaceApproved(any(), any());
     }
@@ -352,7 +353,7 @@ class AdminRaceResultReviewServiceTest {
         verify(entryRepository, never())
                 .findBySubmissionIdOrderByFinishPositionAsc(any());
         verify(raceResultRepository, never()).saveAll(any());
-        verify(prizeSettlementService, never()).settlePrizes(any(), any());
+        verify(prizeSettlementService, never()).settlePrizes(any(), any(), any());
     }
 
     @Test

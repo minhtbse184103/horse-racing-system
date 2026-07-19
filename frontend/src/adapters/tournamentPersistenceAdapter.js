@@ -17,7 +17,9 @@ function toConditionRequest(condition) {
 function toPrizeRequests(prizes) {
   return prizes.map((prize, index) => ({
     rankPosition: index + 1,
-    amount: Number(prize.amount)
+    amount: Number(prize.amount),
+    ownerPercent: Number(prize.ownerPercent),
+    jockeyPercent: Number(prize.jockeyPercent)
   }));
 }
 

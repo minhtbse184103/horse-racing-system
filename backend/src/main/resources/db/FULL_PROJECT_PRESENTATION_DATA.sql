@@ -12,9 +12,9 @@ USE `horse_racing_system`;
 -- in real create/edit flow it must be at least 2 days before raceStartTime.
 -- Two APPROVED + PAID registrations are already waiting in the RaceEntry queue.
 -- During presentation:
---   1. Register owner@gmail.com as Owner; Admin approval creates the Owner wallet.
+--   1. Register owner@gmail.com as Owner, then Admin approves the Owner application.
 --   2. Owner creates a Horse, then Admin approves the Horse.
---   3. Register jockey@gmail.com as Jockey; Admin approval creates the Jockey wallet.
+--   3. Register jockey@gmail.com as Jockey, then Admin approves the Jockey verification.
 --   4. Approved Owner invites approved Jockey for the new Horse and this Tournament.
 --   5. Jockey accepts invitation, Owner pays registration fee, then Admin approves it.
 --   6. Assign all 3 RaceEntries.
@@ -26,9 +26,9 @@ USE `horse_racing_system`;
 --   12. Unity submits provisional result.
 --   13. Referee confirms result.
 --   14. Admin approves final result.
---   15. Official RaceResult rows are created, then Admin can settle betting.
+--   15. Official RaceResult + PrizeDistribution are created, then Admin can settle betting.
 --
--- Backup accounts if the long onboarding or spectator KYC flow is not completed in time:
+-- Backup accounts if the long onboarding/KYC flow is not completed in time:
 --   ownerminh@gmail.com owns Minh Comet and is already approved.
 --   jockeyminh@gmail.com is already approved.
 --   spectatorminh@gmail.com already has VERIFIED KYC and wallet balance.
@@ -59,7 +59,11 @@ VALUES
 INSERT INTO `user_verifications`
   (`verification_id`, `user_id`, `provider`, `provider_session_id`, `provider_session_number`, `workflow_id`, `vendor_data`, `verification_url`, `status`, `id_verification_status`, `liveness_status`, `face_match_status`, `verified_full_name`, `verified_date_of_birth`, `document_type`, `document_last_four`, `attempt_number`, `submitted_at`, `verified_at`, `expires_at`, `created_at`, `updated_at`)
 VALUES
-  (1, 12, 'DIDIT', 'kyc-spectator-minh', 12, 'identity-verification', 'spectator-minh', NULL, 'VERIFIED', 'Approved', 'Approved', 'Approved', 'Spectator Minh', DATE_SUB(@seed_today, INTERVAL 29 YEAR), 'ID_CARD', '0012', 1, DATE_SUB(@seed_now, INTERVAL 10 DAY), DATE_SUB(@seed_now, INTERVAL 9 DAY), DATE_ADD(@seed_now, INTERVAL 5 YEAR), DATE_SUB(@seed_now, INTERVAL 10 DAY), DATE_SUB(@seed_now, INTERVAL 9 DAY));
+  (1, 2, 'DIDIT', 'kyc-owner-huy', 2, 'identity-verification', 'owner-huy', NULL, 'VERIFIED', 'Approved', 'Approved', 'Approved', 'Owner Huy', DATE_SUB(@seed_today, INTERVAL 35 YEAR), 'ID_CARD', '0002', 1, DATE_SUB(@seed_now, INTERVAL 40 DAY), DATE_SUB(@seed_now, INTERVAL 39 DAY), DATE_ADD(@seed_now, INTERVAL 5 YEAR), DATE_SUB(@seed_now, INTERVAL 40 DAY), DATE_SUB(@seed_now, INTERVAL 39 DAY)),
+  (2, 3, 'DIDIT', 'kyc-owner-khoa',  3, 'identity-verification', 'owner-khoa',  NULL, 'VERIFIED', 'Approved', 'Approved', 'Approved', 'Owner Khoa',  DATE_SUB(@seed_today, INTERVAL 38 YEAR), 'ID_CARD', '0003', 1, DATE_SUB(@seed_now, INTERVAL 40 DAY), DATE_SUB(@seed_now, INTERVAL 39 DAY), DATE_ADD(@seed_now, INTERVAL 5 YEAR), DATE_SUB(@seed_now, INTERVAL 40 DAY), DATE_SUB(@seed_now, INTERVAL 39 DAY)),
+  (3, 10, 'DIDIT', 'kyc-owner-minh', 10, 'identity-verification', 'owner-minh', NULL, 'VERIFIED', 'Approved', 'Approved', 'Approved', 'Owner Minh', DATE_SUB(@seed_today, INTERVAL 34 YEAR), 'ID_CARD', '0010', 1, DATE_SUB(@seed_now, INTERVAL 10 DAY), DATE_SUB(@seed_now, INTERVAL 9 DAY), DATE_ADD(@seed_now, INTERVAL 5 YEAR), DATE_SUB(@seed_now, INTERVAL 10 DAY), DATE_SUB(@seed_now, INTERVAL 9 DAY)),
+  (4, 11, 'DIDIT', 'kyc-jockey-minh', 11, 'identity-verification', 'jockey-minh', NULL, 'VERIFIED', 'Approved', 'Approved', 'Approved', 'Jockey Minh', DATE_SUB(@seed_today, INTERVAL 26 YEAR), 'ID_CARD', '0011', 1, DATE_SUB(@seed_now, INTERVAL 10 DAY), DATE_SUB(@seed_now, INTERVAL 9 DAY), DATE_ADD(@seed_now, INTERVAL 5 YEAR), DATE_SUB(@seed_now, INTERVAL 10 DAY), DATE_SUB(@seed_now, INTERVAL 9 DAY)),
+  (5, 12, 'DIDIT', 'kyc-spectator-minh', 12, 'identity-verification', 'spectator-minh', NULL, 'VERIFIED', 'Approved', 'Approved', 'Approved', 'Spectator Minh', DATE_SUB(@seed_today, INTERVAL 29 YEAR), 'ID_CARD', '0012', 1, DATE_SUB(@seed_now, INTERVAL 10 DAY), DATE_SUB(@seed_now, INTERVAL 9 DAY), DATE_ADD(@seed_now, INTERVAL 5 YEAR), DATE_SUB(@seed_now, INTERVAL 10 DAY), DATE_SUB(@seed_now, INTERVAL 9 DAY));
 
 INSERT INTO `OwnerApplication`
   (`applicationID`, `userID`, `stableName`, `stableAddress`, `stableCertificateUrl`, `totalHorsesOwned`, `horseOwnershipProofUrl`, `status`, `rejectReason`, `submittedAt`, `reviewedAt`, `reviewedBy`, `createdAt`, `updatedAt`)
@@ -117,7 +121,7 @@ VALUES
 INSERT INTO `Tournament`
   (`tournamentID`, `tournamentName`, `venue`, `venueImageUrl`, `description`, `registrationOpenAt`, `registrationCloseAt`, `startDate`, `endDate`, `maxRegistrations`, `entryFee`, `status`, `createdBy`, `createdAt`, `updatedAt`)
 VALUES
-  (1, 'Bangkok Unity Cup', 'Bangkok Equestrian Park', 'https://images.unsplash.com/photo-1533587851505-d119e13fa0d7?auto=format&fit=crop&w=1200&q=80', 'Official Tournament for owner registration, admin approval, RaceEntry assignment, Unity run, Referee review, Admin final approval, and official results.', DATE_SUB(@seed_now, INTERVAL 2 DAY), DATE_ADD(@seed_now, INTERVAL 1 DAY), @seed_today, @seed_today, 12, 1000000.00, 'OPEN_FOR_REGISTRATION', 1, @seed_now, @seed_now);
+  (1, 'Bangkok Unity Cup', 'Bangkok Equestrian Park', 'https://images.unsplash.com/photo-1533587851505-d119e13fa0d7?auto=format&fit=crop&w=1200&q=80', 'Official Tournament for owner registration, admin approval, RaceEntry assignment, Unity run, Referee review, Admin final approval, and prize split.', DATE_SUB(@seed_now, INTERVAL 2 DAY), DATE_ADD(@seed_now, INTERVAL 1 DAY), @seed_today, @seed_today, 12, 1000000.00, 'OPEN_FOR_REGISTRATION', 1, @seed_now, @seed_now);
 
 INSERT INTO `TournamentCondition`
   (`conditionID`, `tournamentID`, `conditionType`, `operator`, `minValue`, `maxValue`, `value`)
@@ -132,11 +136,11 @@ VALUES
   (1, 1, 'Bangkok Sprint', 'Bangkok Track A', 'https://images.unsplash.com/photo-1540479859555-17af45c78602?auto=format&fit=crop&w=1200&q=80', DATE_ADD(@seed_now, INTERVAL 60 MINUTE), DATE_ADD(@seed_now, INTERVAL 120 MINUTE), DATE_SUB(@seed_now, INTERVAL 3 DAY), NULL, NULL, 1200, 6, 1, 'OPEN_FOR_REGISTRATION', NULL, NULL, NULL, NULL, @seed_now, @seed_now);
 
 INSERT INTO `RacePrize`
-  (`racePrizeID`, `raceID`, `rankPosition`, `amount`)
+  (`racePrizeID`, `raceID`, `rankPosition`, `amount`, `ownerPercent`, `jockeyPercent`)
 VALUES
-  (1, 1, 1, 20000000.00),
-  (2, 1, 2, 12000000.00),
-  (3, 1, 3, 8000000.00);
+  (1, 1, 1, 20000000.00, 80.00, 20.00),
+  (2, 1, 2, 12000000.00, 80.00, 20.00),
+  (3, 1, 3, 8000000.00,  80.00, 20.00);
 
 INSERT INTO `Registration`
   (`registrationID`, `tournamentID`, `horseID`, `ownerID`, `jockeyID`, `registrationNo`, `paymentStatus`, `approvalStatus`, `rejectionReason`, `submittedAt`, `reviewedAt`, `reviewedBy`, `createdAt`, `updatedAt`)
@@ -149,6 +153,11 @@ INSERT INTO `PaymentTransaction`
 VALUES
   (1, 2, 1, NULL, 'REGISTRATION_FEE', 'VNPAY', 1000000.00, 'VND', 'PRESENT-REG-001', 'VNP-PRESENT-001', 'SUCCESS', 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html?txn=1', '00', '{"source":"presentation"}', DATE_SUB(@seed_now, INTERVAL 1 DAY), DATE_SUB(@seed_now, INTERVAL 23 HOUR), @seed_now),
   (2, 3, 2, NULL, 'REGISTRATION_FEE', 'VNPAY', 1000000.00, 'VND', 'PRESENT-REG-002', 'VNP-PRESENT-002', 'SUCCESS', 'https://sandbox.vnpayment.vn/paymentv2/vpcpay.html?txn=2', '00', '{"source":"presentation"}', DATE_SUB(@seed_now, INTERVAL 1 DAY), DATE_SUB(@seed_now, INTERVAL 23 HOUR), @seed_now);
+
+INSERT INTO `TournamentFund`
+  (`tournamentID`, `collectedAmount`, `paidPrizeAmount`, `availableBalance`, `createdAt`, `updatedAt`)
+VALUES
+  (1, 2000000.00, 0.00, 2000000.00, @seed_now, @seed_now);
 
 INSERT INTO `BetProduct`
   (`betProductID`, `code`, `name`, `description`, `minStake`, `maxDailyStake`, `operatorFeeRate`, `active`, `createdAt`, `updatedAt`)
@@ -167,9 +176,8 @@ VALUES
   (1, 1, 6, @seed_now, 'ASSIGNED');
 
 -- The live owner and jockey candidate accounts start clean:
--- owner@gmail.com has no OwnerApplication, OwnerProfile, Horse, KYC, or Wallet.
--- jockey@gmail.com has no JockeyVerification, JockeyProfile, KYC, or Wallet.
--- Admin approval upgrades each professional account and creates its Wallet.
+-- owner@gmail.com has no OwnerApplication, no OwnerProfile, and no Horse.
+-- jockey@gmail.com has no JockeyVerification and no JockeyProfile.
 -- During presentation, approve both accounts, create/approve the Horse,
 -- invite the approved Jockey, accept, pay, then let Admin approve the new
 -- Registration to create the third runner.
@@ -186,8 +194,8 @@ VALUES
 COMMIT;
 
 -- Expected row counts for this presentation dataset.
--- On a fresh database: user_verifications = 1 and Wallet = 7. Approved seeded
--- OWNER/JOCKEY accounts have Wallets without KYC; only the spectator backup has KYC.
+-- On a fresh database: user_verifications = 5 and Wallet = 7. Approved seeded
+-- OWNER/JOCKEY backup accounts and spectatorminh@gmail.com have KYC/Wallet data.
 SELECT 'Users' AS `tableName`, COUNT(*) AS `rowCount` FROM `Users`
 UNION ALL SELECT 'user_verifications', COUNT(*) FROM `user_verifications`
 UNION ALL SELECT 'OwnerApplication', COUNT(*) FROM `OwnerApplication`
@@ -208,4 +216,5 @@ UNION ALL SELECT 'BetProduct', COUNT(*) FROM `BetProduct`
 UNION ALL SELECT 'BetEvent', COUNT(*) FROM `BetEvent`
 UNION ALL SELECT 'BetTicket', COUNT(*) FROM `BetTicket`
 UNION ALL SELECT 'RaceResultSubmission', COUNT(*) FROM `RaceResultSubmission`
-UNION ALL SELECT 'RaceResult', COUNT(*) FROM `RaceResult`;
+UNION ALL SELECT 'RaceResult', COUNT(*) FROM `RaceResult`
+UNION ALL SELECT 'PrizeDistribution', COUNT(*) FROM `PrizeDistribution`;

@@ -32,7 +32,13 @@ VALUES
 INSERT INTO `user_verifications`
   (`verification_id`, `user_id`, `provider`, `provider_session_id`, `provider_session_number`, `workflow_id`, `vendor_data`, `verification_url`, `status`, `id_verification_status`, `liveness_status`, `face_match_status`, `verified_full_name`, `verified_date_of_birth`, `document_type`, `document_last_four`, `attempt_number`, `submitted_at`, `verified_at`, `expires_at`, `created_at`, `updated_at`)
 VALUES
-  (1, 14, 'DIDIT', 'seed-didit-14', 14, 'seed-workflow', 'user-14', NULL, 'VERIFIED', 'Approved', 'Approved', 'Approved', 'Spectator Bettor', DATE_SUB(@seed_today, INTERVAL 30 YEAR), 'ID_CARD', '0014', 1, DATE_SUB(@seed_now, INTERVAL 3 DAY), DATE_SUB(@seed_now, INTERVAL 2 DAY), DATE_ADD(@seed_now, INTERVAL 5 YEAR), DATE_SUB(@seed_now, INTERVAL 3 DAY), DATE_SUB(@seed_now, INTERVAL 2 DAY));
+  (1, 2,  'DIDIT', 'seed-didit-2',  2,  'seed-workflow', 'user-2',  NULL, 'VERIFIED', 'Approved', 'Approved', 'Approved', 'Alice Tran',        DATE_SUB(@seed_today, INTERVAL 35 YEAR), 'ID_CARD', '0002', 1, DATE_SUB(@seed_now, INTERVAL 121 DAY), DATE_SUB(@seed_now, INTERVAL 118 DAY), DATE_ADD(@seed_now, INTERVAL 5 YEAR), DATE_SUB(@seed_now, INTERVAL 121 DAY), DATE_SUB(@seed_now, INTERVAL 118 DAY)),
+  (2, 3,  'DIDIT', 'seed-didit-3',  3,  'seed-workflow', 'user-3',  NULL, 'VERIFIED', 'Approved', 'Approved', 'Approved', 'Bao Nguyen',        DATE_SUB(@seed_today, INTERVAL 40 YEAR), 'ID_CARD', '0003', 1, DATE_SUB(@seed_now, INTERVAL 111 DAY), DATE_SUB(@seed_now, INTERVAL 108 DAY), DATE_ADD(@seed_now, INTERVAL 5 YEAR), DATE_SUB(@seed_now, INTERVAL 111 DAY), DATE_SUB(@seed_now, INTERVAL 108 DAY)),
+  (3, 4,  'DIDIT', 'seed-didit-4',  4,  'seed-workflow', 'user-4',  NULL, 'VERIFIED', 'Approved', 'Approved', 'Approved', 'Chloe Le',          DATE_SUB(@seed_today, INTERVAL 32 YEAR), 'ID_CARD', '0004', 1, DATE_SUB(@seed_now, INTERVAL 101 DAY), DATE_SUB(@seed_now, INTERVAL 98 DAY),  DATE_ADD(@seed_now, INTERVAL 5 YEAR), DATE_SUB(@seed_now, INTERVAL 101 DAY), DATE_SUB(@seed_now, INTERVAL 98 DAY)),
+  (4, 5,  'DIDIT', 'seed-didit-5',  5,  'seed-workflow', 'user-5',  NULL, 'VERIFIED', 'Approved', 'Approved', 'Approved', 'Demo Jockey Five',  DATE_SUB(@seed_today, INTERVAL 27 YEAR), 'ID_CARD', '0005', 1, DATE_SUB(@seed_now, INTERVAL 201 DAY), DATE_SUB(@seed_now, INTERVAL 198 DAY), DATE_ADD(@seed_now, INTERVAL 5 YEAR), DATE_SUB(@seed_now, INTERVAL 201 DAY), DATE_SUB(@seed_now, INTERVAL 198 DAY)),
+  (5, 6,  'DIDIT', 'seed-didit-6',  6,  'seed-workflow', 'user-6',  NULL, 'VERIFIED', 'Approved', 'Approved', 'Approved', 'Demo Jockey Six',   DATE_SUB(@seed_today, INTERVAL 26 YEAR), 'ID_CARD', '0006', 1, DATE_SUB(@seed_now, INTERVAL 191 DAY), DATE_SUB(@seed_now, INTERVAL 188 DAY), DATE_ADD(@seed_now, INTERVAL 5 YEAR), DATE_SUB(@seed_now, INTERVAL 191 DAY), DATE_SUB(@seed_now, INTERVAL 188 DAY)),
+  (6, 7,  'DIDIT', 'seed-didit-7',  7,  'seed-workflow', 'user-7',  NULL, 'VERIFIED', 'Approved', 'Approved', 'Approved', 'Demo Jockey Seven', DATE_SUB(@seed_today, INTERVAL 24 YEAR), 'ID_CARD', '0007', 1, DATE_SUB(@seed_now, INTERVAL 31 DAY),  DATE_SUB(@seed_now, INTERVAL 28 DAY),  DATE_ADD(@seed_now, INTERVAL 5 YEAR), DATE_SUB(@seed_now, INTERVAL 31 DAY), DATE_SUB(@seed_now, INTERVAL 28 DAY)),
+  (7, 14, 'DIDIT', 'seed-didit-14', 14, 'seed-workflow', 'user-14', NULL, 'VERIFIED', 'Approved', 'Approved', 'Approved', 'Spectator Bettor',  DATE_SUB(@seed_today, INTERVAL 30 YEAR), 'ID_CARD', '0014', 1, DATE_SUB(@seed_now, INTERVAL 3 DAY),   DATE_SUB(@seed_now, INTERVAL 2 DAY),   DATE_ADD(@seed_now, INTERVAL 5 YEAR), DATE_SUB(@seed_now, INTERVAL 3 DAY), DATE_SUB(@seed_now, INTERVAL 2 DAY));
 
 INSERT INTO `OwnerApplication`
   (`applicationID`, `userID`, `stableName`, `stableAddress`, `stableCertificateUrl`, `totalHorsesOwned`, `horseOwnershipProofUrl`, `status`, `rejectReason`, `submittedAt`, `reviewedAt`, `reviewedBy`, `createdAt`, `updatedAt`)
@@ -128,15 +134,15 @@ VALUES
   (7, 1, 'Betting Demo Sprint', 'Bangkok Track C', 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80', DATE_ADD(@seed_now, INTERVAL 3 DAY), DATE_ADD(@seed_now, INTERVAL 3 DAY) + INTERVAL 30 MINUTE, DATE_ADD(@seed_now, INTERVAL 1 DAY), NULL, NULL, 1200, 6, 5, 'REGISTRATION_CLOSED', @seed_now, @seed_now);
 
 INSERT INTO `RacePrize`
-  (`racePrizeID`, `raceID`, `rankPosition`, `amount`)
+  (`racePrizeID`, `raceID`, `rankPosition`, `amount`, `ownerPercent`, `jockeyPercent`)
 VALUES
-  (1,  1, 1, 50000000.00), (2,  1, 2, 30000000.00), (3,  1, 3, 20000000.00),
-  (4,  2, 1, 75000000.00), (5,  2, 2, 45000000.00), (6,  2, 3, 30000000.00),
-  (7,  3, 1, 90000000.00), (8,  3, 2, 54000000.00), (9,  3, 3, 36000000.00),
-  (10, 4, 1, 40000000.00), (11, 4, 2, 24000000.00), (12, 4, 3, 16000000.00),
-  (13, 5, 1, 60000000.00), (14, 5, 2, 36000000.00), (15, 5, 3, 24000000.00),
-  (16, 6, 1, 20000000.00), (17, 6, 2, 12000000.00), (18, 6, 3, 8000000.00),
-  (19, 7, 1, 20000000.00), (20, 7, 2, 12000000.00), (21, 7, 3, 8000000.00);
+  (1,  1, 1, 50000000.00, 80.00, 20.00), (2,  1, 2, 30000000.00, 80.00, 20.00), (3,  1, 3, 20000000.00, 80.00, 20.00),
+  (4,  2, 1, 75000000.00, 80.00, 20.00), (5,  2, 2, 45000000.00, 80.00, 20.00), (6,  2, 3, 30000000.00, 80.00, 20.00),
+  (7,  3, 1, 90000000.00, 80.00, 20.00), (8,  3, 2, 54000000.00, 80.00, 20.00), (9,  3, 3, 36000000.00, 80.00, 20.00),
+  (10, 4, 1, 40000000.00, 80.00, 20.00), (11, 4, 2, 24000000.00, 80.00, 20.00), (12, 4, 3, 16000000.00, 80.00, 20.00),
+  (13, 5, 1, 60000000.00, 80.00, 20.00), (14, 5, 2, 36000000.00, 80.00, 20.00), (15, 5, 3, 24000000.00, 80.00, 20.00),
+  (16, 6, 1, 20000000.00, 80.00, 20.00), (17, 6, 2, 12000000.00, 80.00, 20.00), (18, 6, 3, 8000000.00,  80.00, 20.00),
+  (19, 7, 1, 20000000.00, 80.00, 20.00), (20, 7, 2, 12000000.00, 80.00, 20.00), (21, 7, 3, 8000000.00,  80.00, 20.00);
 
 INSERT INTO `Registration`
   (`registrationID`, `tournamentID`, `horseID`, `ownerID`, `jockeyID`, `registrationNo`, `paymentStatus`, `approvalStatus`, `rejectionReason`, `submittedAt`, `reviewedAt`, `reviewedBy`, `createdAt`, `updatedAt`)
@@ -184,6 +190,37 @@ VALUES
   (15, 4, 18, NULL, 'REGISTRATION_FEE', 'VNPAY', 1000000.00, 'VND', 'SEED-REG-018', 'VNP-SEED-018', 'SUCCESS', NULL, '00', '{"seed":true}', DATE_SUB(@seed_now, INTERVAL 1 DAY), DATE_SUB(@seed_now, INTERVAL 1 DAY), DATE_SUB(@seed_now, INTERVAL 1 DAY)),
   (16, 4, 19, NULL, 'REGISTRATION_FEE', 'VNPAY', 1000000.00, 'VND', 'SEED-REG-019', 'VNP-SEED-019', 'SUCCESS', NULL, '00', '{"seed":true}', DATE_SUB(@seed_now, INTERVAL 1 DAY), DATE_SUB(@seed_now, INTERVAL 1 DAY), DATE_SUB(@seed_now, INTERVAL 1 DAY)),
   (17, 14, NULL, 7, 'WALLET_DEPOSIT',   'VNPAY', 5000000.00, 'VND', 'SEED-WALLET-014', 'VNP-SEED-W014', 'SUCCESS', NULL, '00', '{"seed":true}', DATE_SUB(@seed_now, INTERVAL 2 DAY), DATE_SUB(@seed_now, INTERVAL 2 DAY), DATE_SUB(@seed_now, INTERVAL 2 DAY));
+
+INSERT INTO `TournamentFund`
+  (`tournamentID`, `collectedAmount`, `paidPrizeAmount`, `availableBalance`, `createdAt`, `updatedAt`)
+VALUES
+  (1, 15000000.00, 0.00, 15000000.00, DATE_SUB(@seed_now, INTERVAL 7 DAY), @seed_now),
+  (2,  2000000.00, 0.00,  2000000.00, DATE_SUB(@seed_now, INTERVAL 160 DAY), DATE_SUB(@seed_now, INTERVAL 160 DAY));
+
+INSERT INTO `SystemFund`
+  (`systemFundID`, `balance`, `bettingFeeRevenue`, `createdAt`, `updatedAt`)
+VALUES
+  (1, 0.00, 0.00, @seed_now, @seed_now);
+
+INSERT INTO `FundTransaction`
+  (`fundTransactionID`, `fundKey`, `tournamentID`, `transactionType`, `direction`, `amount`, `balanceBefore`, `balanceAfter`, `referenceType`, `referenceID`, `description`, `createdAt`)
+VALUES
+  (1,  'TOURNAMENT:1', 1, 'REGISTRATION_FEE', 'CREDIT', 1000000.00,        0.00,  1000000.00, 'PAYMENT_TRANSACTION', 1,  'Tournament registration fee REG-DEMO-001', DATE_SUB(@seed_now, INTERVAL 5 DAY)),
+  (2,  'TOURNAMENT:1', 1, 'REGISTRATION_FEE', 'CREDIT', 1000000.00,  1000000.00,  2000000.00, 'PAYMENT_TRANSACTION', 2,  'Tournament registration fee REG-DEMO-003', DATE_SUB(@seed_now, INTERVAL 6 DAY)),
+  (3,  'TOURNAMENT:1', 1, 'REGISTRATION_FEE', 'CREDIT', 1000000.00,  2000000.00,  3000000.00, 'PAYMENT_TRANSACTION', 3,  'Tournament registration fee REG-DEMO-004', DATE_SUB(@seed_now, INTERVAL 7 DAY)),
+  (4,  'TOURNAMENT:2', 2, 'REGISTRATION_FEE', 'CREDIT', 2000000.00,        0.00,  2000000.00, 'PAYMENT_TRANSACTION', 4,  'Tournament registration fee REG-DEMO-006', DATE_SUB(@seed_now, INTERVAL 160 DAY)),
+  (5,  'TOURNAMENT:1', 1, 'REGISTRATION_FEE', 'CREDIT', 1000000.00,  3000000.00,  4000000.00, 'PAYMENT_TRANSACTION', 5,  'Tournament registration fee REG-DEMO-008', DATE_SUB(@seed_now, INTERVAL 1 DAY)),
+  (6,  'TOURNAMENT:1', 1, 'REGISTRATION_FEE', 'CREDIT', 1000000.00,  4000000.00,  5000000.00, 'PAYMENT_TRANSACTION', 6,  'Tournament registration fee REG-DEMO-009', DATE_SUB(@seed_now, INTERVAL 1 DAY)),
+  (7,  'TOURNAMENT:1', 1, 'REGISTRATION_FEE', 'CREDIT', 1000000.00,  5000000.00,  6000000.00, 'PAYMENT_TRANSACTION', 7,  'Tournament registration fee REG-DEMO-010', DATE_SUB(@seed_now, INTERVAL 1 DAY)),
+  (8,  'TOURNAMENT:1', 1, 'REGISTRATION_FEE', 'CREDIT', 1000000.00,  6000000.00,  7000000.00, 'PAYMENT_TRANSACTION', 8,  'Tournament registration fee REG-DEMO-011', DATE_SUB(@seed_now, INTERVAL 1 DAY)),
+  (9,  'TOURNAMENT:1', 1, 'REGISTRATION_FEE', 'CREDIT', 1000000.00,  7000000.00,  8000000.00, 'PAYMENT_TRANSACTION', 9,  'Tournament registration fee REG-DEMO-012', DATE_SUB(@seed_now, INTERVAL 1 DAY)),
+  (10, 'TOURNAMENT:1', 1, 'REGISTRATION_FEE', 'CREDIT', 1000000.00,  8000000.00,  9000000.00, 'PAYMENT_TRANSACTION', 10, 'Tournament registration fee REG-DEMO-013', DATE_SUB(@seed_now, INTERVAL 1 DAY)),
+  (11, 'TOURNAMENT:1', 1, 'REGISTRATION_FEE', 'CREDIT', 1000000.00,  9000000.00, 10000000.00, 'PAYMENT_TRANSACTION', 11, 'Tournament registration fee REG-DEMO-014', DATE_SUB(@seed_now, INTERVAL 1 DAY)),
+  (12, 'TOURNAMENT:1', 1, 'REGISTRATION_FEE', 'CREDIT', 1000000.00, 10000000.00, 11000000.00, 'PAYMENT_TRANSACTION', 12, 'Tournament registration fee REG-DEMO-015', DATE_SUB(@seed_now, INTERVAL 1 DAY)),
+  (13, 'TOURNAMENT:1', 1, 'REGISTRATION_FEE', 'CREDIT', 1000000.00, 11000000.00, 12000000.00, 'PAYMENT_TRANSACTION', 13, 'Tournament registration fee REG-DEMO-016', DATE_SUB(@seed_now, INTERVAL 1 DAY)),
+  (14, 'TOURNAMENT:1', 1, 'REGISTRATION_FEE', 'CREDIT', 1000000.00, 12000000.00, 13000000.00, 'PAYMENT_TRANSACTION', 14, 'Tournament registration fee REG-DEMO-017', DATE_SUB(@seed_now, INTERVAL 1 DAY)),
+  (15, 'TOURNAMENT:1', 1, 'REGISTRATION_FEE', 'CREDIT', 1000000.00, 13000000.00, 14000000.00, 'PAYMENT_TRANSACTION', 15, 'Tournament registration fee REG-DEMO-018', DATE_SUB(@seed_now, INTERVAL 1 DAY)),
+  (16, 'TOURNAMENT:1', 1, 'REGISTRATION_FEE', 'CREDIT', 1000000.00, 14000000.00, 15000000.00, 'PAYMENT_TRANSACTION', 16, 'Tournament registration fee REG-DEMO-019', DATE_SUB(@seed_now, INTERVAL 1 DAY));
 
 INSERT INTO `RaceEntry`
   (`raceEntryID`, `raceID`, `registrationID`, `startingStall`, `status`, `assignedAt`, `assignedBy`, `cancelledAt`, `cancelledBy`, `cancellationReason`)
@@ -277,14 +314,17 @@ VALUES
 COMMIT;
 
 -- Expected row counts after a successful import.
--- On a fresh database: user_verifications = 1 and Wallet = 7. Approved
--- OWNER/JOCKEY accounts have Wallets without KYC; only spectator.bet has KYC.
+-- On a fresh database: user_verifications = 7 and Wallet = 7. Approved
+-- OWNER/JOCKEY test accounts and spectator.bet@horse.test have both records.
 SELECT 'Roles' AS `tableName`, COUNT(*) AS `rowCount` FROM `Roles`
 UNION ALL SELECT 'Users', COUNT(*) FROM `Users`
 UNION ALL SELECT 'OwnerApplication', COUNT(*) FROM `OwnerApplication`
 UNION ALL SELECT 'OwnerProfile', COUNT(*) FROM `OwnerProfile`
 UNION ALL SELECT 'user_verifications', COUNT(*) FROM `user_verifications`
 UNION ALL SELECT 'Wallet', COUNT(*) FROM `Wallet`
+UNION ALL SELECT 'TournamentFund', COUNT(*) FROM `TournamentFund`
+UNION ALL SELECT 'SystemFund', COUNT(*) FROM `SystemFund`
+UNION ALL SELECT 'FundTransaction', COUNT(*) FROM `FundTransaction`
 UNION ALL SELECT 'Horse', COUNT(*) FROM `Horse`
 UNION ALL SELECT 'JockeyProfile', COUNT(*) FROM `JockeyProfile`
 UNION ALL SELECT 'JockeyVerification', COUNT(*) FROM `JockeyVerification`

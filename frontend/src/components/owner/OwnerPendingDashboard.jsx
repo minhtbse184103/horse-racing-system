@@ -7,16 +7,28 @@ import {
   List,
   LockKeyhole,
   Trophy,
-  UserRound
+  UserRound,
+  Wallet
 } from 'lucide-react';
 import AppShell from '../common/AppShell';
 import OwnerApplicationForm from '../profile/OwnerApplicationForm';
+import WalletTransferPanel from '../payment/WalletTransferPanel';
 import { getMyOwnerApplication, submitOwnerApplication } from '../../services/ownerApplicationService';
+import { getMyKyc } from '../../services/kycService';
+import { getMyWallet } from '../../services/walletService';
 import { formatDate, formatDisplayLabel } from '../../lib';
 import { useLanguage } from '../../context/LanguageContext';
 
 function applicationStatus(application) {
   return String(application?.status || 'NOT_SUBMITTED').toUpperCase();
+}
+
+function kycStatus(kyc) {
+  return String(kyc?.status || 'NOT_SUBMITTED').toUpperCase();
+}
+
+function walletStatus(wallet) {
+  return String(wallet?.status || 'NOT_OPENED').toUpperCase();
 }
 
 function StatusBadge({ status }) {
@@ -62,10 +74,13 @@ export default function OwnerPendingDashboard({ currentUser, onLogout }) {
   const { t } = useLanguage();
   const [activeSection, setActiveSection] = useState(() => {
     const params = new URLSearchParams(window.location.search);
+    if (params.has('vnp_TxnRef') || params.has('vnp_SecureHash')) return 'wallet';
     const section = params.get('section');
-    return ['overview', 'application', 'profile'].includes(section) ? section : 'overview';
+    return ['overview', 'application', 'profile', 'wallet'].includes(section) ? section : 'overview';
   });
   const [application, setApplication] = useState(null);
+  const [kyc, setKyc] = useState(null);
+  const [walletData, setWalletData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -74,6 +89,8 @@ export default function OwnerPendingDashboard({ currentUser, onLogout }) {
   const [formError, setFormError] = useState('');
 
   const status = applicationStatus(application);
+  const identityStatus = kycStatus(kyc);
+  const currentWalletStatus = walletStatus(walletData);
   const profileName = currentUser?.fullName || currentUser?.username || currentUser?.email || 'Owner';
   const lockedReason = t('ownerPendingLockedReason');
   const navItems = useMemo(() => [
@@ -81,7 +98,8 @@ export default function OwnerPendingDashboard({ currentUser, onLogout }) {
     { key: 'horses', labelKey: 'ownerNavHorses', icon: List, disabled: true, disabledReason: lockedReason },
     { key: 'register', labelKey: 'ownerPendingCompetitions', icon: Trophy, disabled: true, disabledReason: lockedReason },
     { key: 'application', labelKey: 'ownerPendingApplication', icon: FileCheck2 },
-    { key: 'profile', labelKey: 'ownerNavProfile', icon: UserRound }
+    { key: 'profile', labelKey: 'ownerNavProfile', icon: UserRound },
+    { key: 'wallet', labelKey: 'wallet', icon: Wallet }
   ], [lockedReason]);
 
   const applicationCopy = {
@@ -115,7 +133,11 @@ export default function OwnerPendingDashboard({ currentUser, onLogout }) {
     setIsLoading(true);
     setError('');
 
-    const [applicationResult] = await Promise.allSettled([getMyOwnerApplication()]);
+    const [applicationResult, kycResult, walletResult] = await Promise.allSettled([
+      getMyOwnerApplication(),
+      getMyKyc(),
+      getMyWallet()
+    ]);
 
     if (applicationResult.status === 'fulfilled') {
       setApplication(applicationResult.value);
@@ -125,6 +147,8 @@ export default function OwnerPendingDashboard({ currentUser, onLogout }) {
       setError(applicationResult.reason?.message || t('ownerPendingLoadError'));
     }
 
+    setKyc(kycResult.status === 'fulfilled' ? kycResult.value : null);
+    setWalletData(walletResult.status === 'fulfilled' ? walletResult.value : null);
     setIsLoading(false);
   }
 
@@ -220,6 +244,16 @@ export default function OwnerPendingDashboard({ currentUser, onLogout }) {
             <strong className="text-2xl"><StatusBadge status={status} /></strong>
             <small>{application?.submittedAt ? t('ownerPendingApplicationSubmitted', { date: formatDate(application.submittedAt) }) : t('ownerPendingDocumentsRequired')}</small>
           </div>
+          <div className="owner-stat-card">
+            <span>{t('ownerProfileIdentity')}</span>
+            <strong className="text-2xl"><StatusBadge status={identityStatus} /></strong>
+            <small>{t('ownerPendingKycWallet')}</small>
+          </div>
+          <div className="owner-stat-card">
+            <span>{t('wallet')}</span>
+            <strong className="text-2xl"><StatusBadge status={currentWalletStatus} /></strong>
+            <small>{walletData ? t('ownerPendingWalletAvailable') : t('ownerPendingWalletNeedKyc')}</small>
+          </div>
         </section>
 
         <section className="owner-overview-grid">
@@ -251,6 +285,7 @@ export default function OwnerPendingDashboard({ currentUser, onLogout }) {
   }
 
   function renderContent() {
+    if (activeSection === 'wallet') return <WalletTransferPanel currentUser={currentUser} role="OWNER" />;
     if (activeSection === 'application') return renderApplication();
     if (activeSection === 'profile') {
       return (
@@ -266,6 +301,7 @@ export default function OwnerPendingDashboard({ currentUser, onLogout }) {
               <Detail label={t('phone')} value={currentUser?.phone} fallback={t('notUpdated')} />
               <Detail label={t('ownerPendingAccountType')} value="Owner" fallback={t('notUpdated')} />
               <Detail label={t('ownerPendingOwnerAccess')} value={formatDisplayLabel(status)} fallback={t('notUpdated')} />
+              <Detail label={t('ownerPendingKycStatus')} value={formatDisplayLabel(identityStatus)} fallback={t('notUpdated')} />
             </div>
           </section>
           {application && renderApplication()}

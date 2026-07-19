@@ -11,7 +11,8 @@ import {
   Settings,
   ShieldCheck,
   Trophy,
-  Users
+  Users,
+  Landmark
 } from 'lucide-react';
 
 import AdminOverview from './AdminOverview';
@@ -27,6 +28,7 @@ import { formatDisplayLabel } from '../../lib';
 import { tapPress } from './ui/motion';
 import { useLanguage } from '../../context/LanguageContext';
 import BettingManagement from './betting/BettingManagement';
+import FinancialManagement from './finance/FinancialManagement';
 
 const adminNavItems = [
   {
@@ -82,6 +84,12 @@ const adminNavItems = [
     labelKey: 'raceResultReviews',
     descriptionKey: 'raceResultReviewDescription',
     icon: FileCheck2
+  },
+  {
+    key: 'finance',
+    labelKey: 'financialManagement',
+    descriptionKey: 'financialManagementDescription',
+    icon: Landmark
   }
 ];
 
@@ -127,7 +135,8 @@ export default function AdminDashboard({ currentUser, onLogout }) {
     refereeAssignments: <RefereeAssignmentManagement />,
     raceResultReviews: <AdminRaceResultReview />,
     jockeyReviews: <JockeyReview />,
-    horseReviews: <HorseReview />
+    horseReviews: <HorseReview />,
+    finance: <FinancialManagement />
   }[activeSection];
 
   return (

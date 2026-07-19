@@ -3,6 +3,7 @@ package com.example.backend.service;
 import com.example.backend.constant.WalletReferenceType;
 import com.example.backend.constant.WalletStatus;
 import com.example.backend.constant.WalletTransactionType;
+import com.example.backend.enums.KycStatus;
 import com.example.backend.dto.request.WalletDepositRequest;
 import com.example.backend.dto.response.WalletDepositResponse;
 import com.example.backend.dto.response.WalletResponse;
@@ -12,6 +13,7 @@ import com.example.backend.entity.Wallet;
 import com.example.backend.entity.WalletTransaction;
 import com.example.backend.exception.ApiException;
 import com.example.backend.repository.UserRepository;
+import com.example.backend.repository.UserVerificationRepository;
 import com.example.backend.repository.WalletRepository;
 import com.example.backend.repository.WalletTransactionRepository;
 import lombok.RequiredArgsConstructor;
@@ -22,31 +24,36 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.LocalDateTime;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
 @Slf4j
 public class WalletService {
 
+    private static final String VND = "VND";
+    private static final Set<String> WALLET_ALLOWED_ROLES =
+            Set.of("OWNER", "SPECTATOR", "JOCKEY");
     private static final BigDecimal MIN_DEPOSIT_AMOUNT = new BigDecimal("10000.00");
 
     private final UserRepository userRepository;
     private final WalletRepository walletRepository;
     private final WalletTransactionRepository walletTransactionRepository;
+    private final UserVerificationRepository userVerificationRepository;
     private final VnpayPaymentService vnpayPaymentService;
-    private final WalletAccessPolicy walletAccessPolicy;
 
     @Transactional
     public WalletResponse getMyWallet(String email) {
         // Lấy user hiện tại và kiểm tra quyền dùng ví.
         User user = getUserByEmail(email);
-        walletAccessPolicy.validate(user);
+        validateWalletAllowedRole(user);
 
-        // Ví professional được cấp khi Admin duyệt; ví Spectator được cấp sau KYC.
+        // Query wallet của user; nếu chưa có thì yêu cầu hoàn tất KYC để mở ví.
         Wallet wallet = walletRepository.findByUserId(user.getUserID())
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
-                        "Ví chưa được cấp cho tài khoản này."
+                        "Ví chưa được mở. Vui lòng hoàn tất xác minh KYC."
                 ));
         return mapToResponse(wallet);
     }
@@ -57,17 +64,15 @@ public class WalletService {
             WalletDepositRequest request,
             String clientIp
     ) {
-        // Owner/Jockey được dùng ví sau khi được duyệt; Spectator vẫn phải KYC.
+        // Kiểm tra user, role và KYC trước khi cho tạo payment nạp tiền.
         User user = getUserByEmail(email);
-        walletAccessPolicy.validate(user);
+        validateWalletAllowedRole(user);
+        validateVerifiedKyc(user);
         BigDecimal amount = normalizeAmount(request.getAmount());
 
         // Lock wallet để tránh tạo trùng hoặc cập nhật sai khi có nhiều request.
         Wallet wallet = walletRepository.findByUserIdForUpdate(user.getUserID())
-                .orElseThrow(() -> new ApiException(
-                        HttpStatus.NOT_FOUND,
-                        "Wallet has not been provisioned for this account."
-                ));
+                .orElseGet(() -> walletRepository.save(newWallet(user.getUserID())));
         ensureWalletActive(wallet);
 
         // Tạo giao dịch thanh toán VNPAY cho lần nạp ví này.
@@ -104,7 +109,7 @@ public class WalletService {
                         "Người dùng không tồn tại."
                 ));
         // Kiểm tra lại quyền và trạng thái ví trước khi cộng tiền.
-        walletAccessPolicy.validate(user);
+        validateWalletAllowedRole(user);
         ensureWalletActive(wallet);
 
         // Cộng balance và lưu wallet transaction để có lịch sử nạp tiền.
@@ -149,12 +154,48 @@ public class WalletService {
                 ));
     }
 
+    private void validateWalletAllowedRole(User user) {
+        // Ví dành cho Owner, Jockey và Spectator.
+        String roleName = user.getRole() != null
+                ? user.getRole().getRoleName()
+                : null;
+        if (roleName == null || !WALLET_ALLOWED_ROLES.contains(roleName.toUpperCase())) {
+            throw new ApiException(
+                    HttpStatus.FORBIDDEN,
+                    "Vai trò không được phép sử dụng ví."
+            );
+        }
+    }
+
     private void ensureWalletActive(Wallet wallet) {
         // Ví phải ACTIVE mới được xem, nạp tiền hoặc dùng cho betting.
         if (!WalletStatus.ACTIVE.equals(wallet.getStatus())) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
                     "Ví hiện không hoạt động."
+            );
+        }
+    }
+
+    private void validateVerifiedKyc(User user) {
+        // Nạp tiền yêu cầu KYC VERIFIED và chưa hết hạn.
+        var verification = userVerificationRepository
+                .findFirstByUserIdAndStatusOrderByAttemptNumberDesc(user.getUserID(), KycStatus.VERIFIED)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.FORBIDDEN,
+                        "Bạn phải hoàn tất xác minh KYC trước khi nạp tiền."
+                ));
+        if (KycStatus.VERIFIED != verification.getStatus()) {
+            throw new ApiException(
+                    HttpStatus.FORBIDDEN,
+                    "Hồ sơ KYC chưa được xác minh."
+            );
+        }
+        if (verification.getExpiresAt() != null
+                && !verification.getExpiresAt().isAfter(LocalDateTime.now())) {
+            throw new ApiException(
+                    HttpStatus.FORBIDDEN,
+                    "Hồ sơ KYC đã hết hạn."
             );
         }
     }
@@ -167,6 +208,17 @@ public class WalletService {
             );
         }
         return amount.setScale(2, RoundingMode.HALF_UP);
+    }
+
+    private Wallet newWallet(Integer userId) {
+        // Tạo ví mặc định lần đầu với số dư 0 và tiền tệ VND.
+        Wallet wallet = new Wallet();
+        wallet.setUserId(userId);
+        wallet.setBalance(BigDecimal.ZERO);
+        wallet.setLockedBalance(BigDecimal.ZERO);
+        wallet.setCurrency(VND);
+        wallet.setStatus(WalletStatus.ACTIVE);
+        return wallet;
     }
 
     private WalletResponse mapToResponse(Wallet wallet) {

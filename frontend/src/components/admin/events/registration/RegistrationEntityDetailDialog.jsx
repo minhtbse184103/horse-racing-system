@@ -76,6 +76,7 @@ function buildEntityConfig(entity, t) {
         { icon: Mail, label: t('eventRegistrationEmail'), value: detail.email || entity.registration.ownerEmail },
         { icon: Phone, label: t('eventRegistrationPhone'), value: detail.phone },
         { icon: ShieldCheck, label: t('eventRegistrationStatus'), value: detail.status, status: detail.status },
+        { icon: ShieldCheck, label: t('eventRegistrationKycStatus'), value: detail.kycStatus, status: detail.kycStatus },
         { icon: CalendarDays, label: t('eventRegistrationDateOfBirth'), value: formatDate(detail.dateOfBirth) },
         { icon: User, label: t('eventRegistrationGender'), value: detail.gender },
         { icon: MapPin, label: t('eventRegistrationNationality'), value: detail.nationality },
