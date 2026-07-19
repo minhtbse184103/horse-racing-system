@@ -38,7 +38,7 @@ const navItems = [
   { key: 'betting', labelKey: 'spectatorNavBetting', icon: CircleDollarSign, accountTypes: ['SPECTATOR'] },
   { key: 'results', labelKey: 'spectatorNavResults', icon: Medal },
   { key: 'profile', labelKey: 'spectatorNavProfile', icon: UserRound },
-  { key: 'wallet', labelKey: 'wallet', icon: Wallet, accountTypes: ['SPECTATOR'] }
+  { key: 'wallet', labelKey: 'wallet', icon: Wallet }
 ];
 
 function StatusBadge({ status }) {

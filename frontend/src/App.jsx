@@ -53,7 +53,7 @@ export default function App() {
     return <AccessDenied onReturnDashboard={() => navigateTo('/dashboard')} />;
   }
 
-  if (user && currentPath === '/wallet/kyc/result' && accountType !== 'SPECTATOR') {
+  if (user && currentPath === '/wallet/kyc/result' && !['SPECTATOR', 'OWNER', 'JOCKEY'].includes(accountType)) {
     return <AccessDenied onReturnDashboard={() => navigateTo('/dashboard')} />;
   }
 
@@ -61,7 +61,7 @@ export default function App() {
     return (
       <main className="min-h-screen bg-cream-100 p-4 sm:p-8">
         <div className="mx-auto max-w-4xl">
-          <WalletTransferPanel currentUser={user} role="SPECTATOR" />
+          <WalletTransferPanel currentUser={user} role={accountType} />
         </div>
       </main>
     );

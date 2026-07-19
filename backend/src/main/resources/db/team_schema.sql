@@ -342,10 +342,6 @@ CREATE TABLE `user_verifications` (
   KEY `idx_user_verifications_status` (`status`)
 );
 
--- Didit identity verification belongs exclusively to SPECTATOR accounts.
--- Cross-table accountType validation is enforced by triggers below because a
--- MySQL CHECK constraint cannot query the Users table.
-
 CREATE TABLE `didit_webhook_events` (
   `webhook_event_id` bigint PRIMARY KEY AUTO_INCREMENT,
   `event_id` varchar(120) UNIQUE NOT NULL,
@@ -374,10 +370,6 @@ CREATE TABLE `Wallet` (
   CONSTRAINT `chk_wallet_status`
     CHECK (`status` IN ('ACTIVE', 'LOCKED', 'CLOSED'))
 );
-
--- Wallet is the betting wallet and belongs exclusively to SPECTATOR accounts.
--- Registration fees for OWNER accounts continue to use PaymentTransaction with
--- walletID = NULL and therefore do not require an OWNER/JOCKEY Wallet row.
 
 CREATE TABLE `PaymentTransaction` (
   `paymentTransactionID` int PRIMARY KEY AUTO_INCREMENT,
@@ -1027,80 +1019,3 @@ INSERT INTO `Roles` (`roleID`, `roleName`) VALUES
 (3, 'JOCKEY'),
 (4, 'REFEREE'),
 (5, 'SPECTATOR');
-
--- Keep the SPECTATOR-only KYC/Wallet invariant valid for inserts, reassignment,
--- and later account-type changes. OWNER/JOCKEY onboarding starts with their
--- intended accountType even while roleID is still SPECTATOR, so these triggers
--- do not interfere with approval of those applications.
-DELIMITER $$
-
-CREATE TRIGGER `trg_user_verification_spectator_insert`
-BEFORE INSERT ON `user_verifications`
-FOR EACH ROW
-BEGIN
-  IF (SELECT COUNT(*)
-      FROM `Users`
-      WHERE `userID` = NEW.`user_id`
-        AND `accountType` = 'SPECTATOR') = 0 THEN
-    SIGNAL SQLSTATE '45000'
-      SET MESSAGE_TEXT = 'Only SPECTATOR accounts can have identity verification.';
-  END IF;
-END$$
-
-CREATE TRIGGER `trg_user_verification_spectator_update`
-BEFORE UPDATE ON `user_verifications`
-FOR EACH ROW
-BEGIN
-  IF (SELECT COUNT(*)
-      FROM `Users`
-      WHERE `userID` = NEW.`user_id`
-        AND `accountType` = 'SPECTATOR') = 0 THEN
-    SIGNAL SQLSTATE '45000'
-      SET MESSAGE_TEXT = 'Only SPECTATOR accounts can have identity verification.';
-  END IF;
-END$$
-
-CREATE TRIGGER `trg_wallet_spectator_insert`
-BEFORE INSERT ON `Wallet`
-FOR EACH ROW
-BEGIN
-  IF (SELECT COUNT(*)
-      FROM `Users`
-      WHERE `userID` = NEW.`userID`
-        AND `accountType` = 'SPECTATOR') = 0 THEN
-    SIGNAL SQLSTATE '45000'
-      SET MESSAGE_TEXT = 'Only SPECTATOR accounts can have a wallet.';
-  END IF;
-END$$
-
-CREATE TRIGGER `trg_wallet_spectator_update`
-BEFORE UPDATE ON `Wallet`
-FOR EACH ROW
-BEGIN
-  IF (SELECT COUNT(*)
-      FROM `Users`
-      WHERE `userID` = NEW.`userID`
-        AND `accountType` = 'SPECTATOR') = 0 THEN
-    SIGNAL SQLSTATE '45000'
-      SET MESSAGE_TEXT = 'Only SPECTATOR accounts can have a wallet.';
-  END IF;
-END$$
-
-CREATE TRIGGER `trg_users_preserve_spectator_finance_identity`
-BEFORE UPDATE ON `Users`
-FOR EACH ROW
-BEGIN
-  IF NEW.`accountType` <> 'SPECTATOR'
-     AND (
-       (SELECT COUNT(*) FROM `user_verifications`
-        WHERE `user_id` = OLD.`userID`) > 0
-       OR
-       (SELECT COUNT(*) FROM `Wallet`
-        WHERE `userID` = OLD.`userID`) > 0
-     ) THEN
-    SIGNAL SQLSTATE '45000'
-      SET MESSAGE_TEXT = 'Remove SPECTATOR verification and wallet data before changing account type.';
-  END IF;
-END$$
-
-DELIMITER ;

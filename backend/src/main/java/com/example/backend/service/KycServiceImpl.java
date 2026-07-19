@@ -28,7 +28,7 @@ import java.util.*;
 @Slf4j
 public class KycServiceImpl implements KycService {
     private static final String PROVIDER = "DIDIT";
-    private static final String SPECTATOR = "SPECTATOR";
+    private static final Set<String> ALLOWED_ROLES = Set.of("SPECTATOR", "OWNER", "JOCKEY");
     private static final Set<KycStatus> ACTIVE_STATUSES = EnumSet.of(
             KycStatus.NOT_STARTED, KycStatus.IN_PROGRESS, KycStatus.AWAITING_USER,
             KycStatus.IN_REVIEW, KycStatus.RESUBMITTED);
@@ -40,11 +40,12 @@ public class KycServiceImpl implements KycService {
     private final DiditClient diditClient;
     private final DiditProperties properties;
     private final DiditWebhookVerifier webhookVerifier;
+    private final PrizePayoutService prizePayoutService;
 
     @Override
     @Transactional
     public KycSessionResponse createSession(String email) {
-        // Lấy user, lock user trong DB và kiểm tra chỉ spectator active được tạo KYC session.
+        // Lấy user, lock user trong DB và kiểm tra Owner, Jockey hoặc Spectator đang active.
         User user = getUser(email);
         userRepository.findByIdForUpdate(user.getUserID())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "User not found."));
@@ -89,7 +90,7 @@ public class KycServiceImpl implements KycService {
     @Override
     @Transactional(readOnly = true)
     public KycResponseDTO getMine(String email) {
-        // Lấy trạng thái KYC mới nhất của spectator hiện tại.
+        // Lấy trạng thái KYC mới nhất của Owner, Jockey hoặc Spectator hiện tại.
         User user = getUser(email);
         validateEligibleUser(user);
         return verificationRepository.findFirstByUserIdOrderByAttemptNumberDesc(user.getUserID())
@@ -187,7 +188,7 @@ public class KycServiceImpl implements KycService {
         verification.setVerifiedAt(LocalDateTime.now());
         verification.setRejectionReason(null);
         verificationRepository.save(verification);
-        // Sau KYC thành công, mở ví cho spectator nếu chưa có.
+        // Sau KYC thành công, mở ví cho Owner, Jockey hoặc Spectator nếu chưa có.
         openWalletIfAbsent(verification.getUserId());
         log.info("Didit KYC verified and wallet opened. userId={}, verificationId={}",
                 verification.getUserId(), verification.getVerificationId());
@@ -204,6 +205,7 @@ public class KycServiceImpl implements KycService {
         walletRepository.save(Wallet.builder().userId(userId).balance(BigDecimal.ZERO)
                 .lockedBalance(BigDecimal.ZERO).currency("VND").status(WalletStatus.ACTIVE).build());
         walletRepository.flush();
+        prizePayoutService.payPendingForUser(userId);
     }
 
     private Map<String, String> extractFeatures(JsonNode decision) {
@@ -255,16 +257,12 @@ public class KycServiceImpl implements KycService {
     }
 
     private void validateEligibleUser(User user) {
-        // KYC hiện chỉ dành cho tài khoản spectator active.
+        // KYC dành cho tài khoản Owner, Jockey và Spectator đang hoạt động.
         String role = user.getRole() == null ? null : user.getRole().getRoleName();
-        String accountType = user.getAccountType();
         if (!"ACTIVE".equalsIgnoreCase(user.getStatus())
                 || role == null
-                || accountType == null
-                || !SPECTATOR.equals(role.trim().toUpperCase(Locale.ROOT))
-                || !SPECTATOR.equals(accountType.trim().toUpperCase(Locale.ROOT))) {
-            throw new ApiException(HttpStatus.FORBIDDEN,
-                    "Only active Spectator accounts may use KYC.");
+                || !ALLOWED_ROLES.contains(role.trim().toUpperCase(Locale.ROOT))) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "This account cannot start KYC.");
         }
     }
 

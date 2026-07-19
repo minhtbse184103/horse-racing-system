@@ -25,7 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
-import java.util.Locale;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -33,7 +33,8 @@ import java.util.Locale;
 public class WalletService {
 
     private static final String VND = "VND";
-    private static final String SPECTATOR = "SPECTATOR";
+    private static final Set<String> WALLET_ALLOWED_ROLES =
+            Set.of("OWNER", "SPECTATOR", "JOCKEY");
     private static final BigDecimal MIN_DEPOSIT_AMOUNT = new BigDecimal("10000.00");
 
     private final UserRepository userRepository;
@@ -154,19 +155,14 @@ public class WalletService {
     }
 
     private void validateWalletAllowedRole(User user) {
-        // Hiện tại ví chỉ cho spectator active; mở cho owner/jockey thì sửa điều kiện này.
+        // Ví dành cho Owner, Jockey và Spectator.
         String roleName = user.getRole() != null
                 ? user.getRole().getRoleName()
                 : null;
-        String accountType = user.getAccountType();
-        if (!"ACTIVE".equalsIgnoreCase(user.getStatus())
-                || roleName == null
-                || accountType == null
-                || !SPECTATOR.equals(roleName.trim().toUpperCase(Locale.ROOT))
-                || !SPECTATOR.equals(accountType.trim().toUpperCase(Locale.ROOT))) {
+        if (roleName == null || !WALLET_ALLOWED_ROLES.contains(roleName.toUpperCase())) {
             throw new ApiException(
                     HttpStatus.FORBIDDEN,
-                    "Chỉ tài khoản Spectator được phép sử dụng ví."
+                    "Vai trò không được phép sử dụng ví."
             );
         }
     }

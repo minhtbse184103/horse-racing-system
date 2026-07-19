@@ -6,7 +6,7 @@ import { confirmVnpayReturn } from '../../services/paymentService';
 import { createWalletDeposit, getMyWallet } from '../../services/walletService';
 import { createKycSession, getMyKyc } from '../../services/kycService';
 
-const ALLOWED_ROLES = new Set(['SPECTATOR']);
+const ALLOWED_ROLES = new Set(['OWNER', 'JOCKEY', 'SPECTATOR']);
 const MIN_TOP_UP_AMOUNT = 10000;
 const QUICK_AMOUNTS = [100000, 200000, 500000, 1000000];
 function formatVnd(value) {

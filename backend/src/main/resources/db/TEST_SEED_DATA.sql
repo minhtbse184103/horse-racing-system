@@ -3,8 +3,6 @@ USE `horse_racing_system`;
 -- Run once immediately after team_schema.sql on a fresh database.
 -- Login password for every seeded account: admin123
 -- Admin login: admin@horse.test / admin123
--- KYC and Wallet are SPECTATOR-only. OWNER/JOCKEY test accounts intentionally
--- have neither row; registration fees do not use Wallet.
 
 SET @seed_now = NOW();
 SET @seed_today = CURDATE();
@@ -34,6 +32,12 @@ VALUES
 INSERT INTO `user_verifications`
   (`verification_id`, `user_id`, `provider`, `provider_session_id`, `provider_session_number`, `workflow_id`, `vendor_data`, `verification_url`, `status`, `id_verification_status`, `liveness_status`, `face_match_status`, `verified_full_name`, `verified_date_of_birth`, `document_type`, `document_last_four`, `attempt_number`, `submitted_at`, `verified_at`, `expires_at`, `created_at`, `updated_at`)
 VALUES
+  (1, 2,  'DIDIT', 'seed-didit-2',  2,  'seed-workflow', 'user-2',  NULL, 'VERIFIED', 'Approved', 'Approved', 'Approved', 'Alice Tran',        DATE_SUB(@seed_today, INTERVAL 35 YEAR), 'ID_CARD', '0002', 1, DATE_SUB(@seed_now, INTERVAL 121 DAY), DATE_SUB(@seed_now, INTERVAL 118 DAY), DATE_ADD(@seed_now, INTERVAL 5 YEAR), DATE_SUB(@seed_now, INTERVAL 121 DAY), DATE_SUB(@seed_now, INTERVAL 118 DAY)),
+  (2, 3,  'DIDIT', 'seed-didit-3',  3,  'seed-workflow', 'user-3',  NULL, 'VERIFIED', 'Approved', 'Approved', 'Approved', 'Bao Nguyen',        DATE_SUB(@seed_today, INTERVAL 40 YEAR), 'ID_CARD', '0003', 1, DATE_SUB(@seed_now, INTERVAL 111 DAY), DATE_SUB(@seed_now, INTERVAL 108 DAY), DATE_ADD(@seed_now, INTERVAL 5 YEAR), DATE_SUB(@seed_now, INTERVAL 111 DAY), DATE_SUB(@seed_now, INTERVAL 108 DAY)),
+  (3, 4,  'DIDIT', 'seed-didit-4',  4,  'seed-workflow', 'user-4',  NULL, 'VERIFIED', 'Approved', 'Approved', 'Approved', 'Chloe Le',          DATE_SUB(@seed_today, INTERVAL 32 YEAR), 'ID_CARD', '0004', 1, DATE_SUB(@seed_now, INTERVAL 101 DAY), DATE_SUB(@seed_now, INTERVAL 98 DAY),  DATE_ADD(@seed_now, INTERVAL 5 YEAR), DATE_SUB(@seed_now, INTERVAL 101 DAY), DATE_SUB(@seed_now, INTERVAL 98 DAY)),
+  (4, 5,  'DIDIT', 'seed-didit-5',  5,  'seed-workflow', 'user-5',  NULL, 'VERIFIED', 'Approved', 'Approved', 'Approved', 'Demo Jockey Five',  DATE_SUB(@seed_today, INTERVAL 27 YEAR), 'ID_CARD', '0005', 1, DATE_SUB(@seed_now, INTERVAL 201 DAY), DATE_SUB(@seed_now, INTERVAL 198 DAY), DATE_ADD(@seed_now, INTERVAL 5 YEAR), DATE_SUB(@seed_now, INTERVAL 201 DAY), DATE_SUB(@seed_now, INTERVAL 198 DAY)),
+  (5, 6,  'DIDIT', 'seed-didit-6',  6,  'seed-workflow', 'user-6',  NULL, 'VERIFIED', 'Approved', 'Approved', 'Approved', 'Demo Jockey Six',   DATE_SUB(@seed_today, INTERVAL 26 YEAR), 'ID_CARD', '0006', 1, DATE_SUB(@seed_now, INTERVAL 191 DAY), DATE_SUB(@seed_now, INTERVAL 188 DAY), DATE_ADD(@seed_now, INTERVAL 5 YEAR), DATE_SUB(@seed_now, INTERVAL 191 DAY), DATE_SUB(@seed_now, INTERVAL 188 DAY)),
+  (6, 7,  'DIDIT', 'seed-didit-7',  7,  'seed-workflow', 'user-7',  NULL, 'VERIFIED', 'Approved', 'Approved', 'Approved', 'Demo Jockey Seven', DATE_SUB(@seed_today, INTERVAL 24 YEAR), 'ID_CARD', '0007', 1, DATE_SUB(@seed_now, INTERVAL 31 DAY),  DATE_SUB(@seed_now, INTERVAL 28 DAY),  DATE_ADD(@seed_now, INTERVAL 5 YEAR), DATE_SUB(@seed_now, INTERVAL 31 DAY), DATE_SUB(@seed_now, INTERVAL 28 DAY)),
   (7, 14, 'DIDIT', 'seed-didit-14', 14, 'seed-workflow', 'user-14', NULL, 'VERIFIED', 'Approved', 'Approved', 'Approved', 'Spectator Bettor',  DATE_SUB(@seed_today, INTERVAL 30 YEAR), 'ID_CARD', '0014', 1, DATE_SUB(@seed_now, INTERVAL 3 DAY),   DATE_SUB(@seed_now, INTERVAL 2 DAY),   DATE_ADD(@seed_now, INTERVAL 5 YEAR), DATE_SUB(@seed_now, INTERVAL 3 DAY), DATE_SUB(@seed_now, INTERVAL 2 DAY));
 
 INSERT INTO `OwnerApplication`
@@ -78,6 +82,12 @@ VALUES
 INSERT INTO `Wallet`
   (`walletID`, `userID`, `balance`, `lockedBalance`, `currency`, `status`, `createdAt`, `updatedAt`)
 VALUES
+  (1, 2, 0.00, 0.00, 'VND', 'ACTIVE', DATE_SUB(@seed_now, INTERVAL 118 DAY), DATE_SUB(@seed_now, INTERVAL 118 DAY)),
+  (2, 3, 0.00, 0.00, 'VND', 'ACTIVE', DATE_SUB(@seed_now, INTERVAL 108 DAY), DATE_SUB(@seed_now, INTERVAL 108 DAY)),
+  (3, 4, 0.00, 0.00, 'VND', 'ACTIVE', DATE_SUB(@seed_now, INTERVAL 98 DAY),  DATE_SUB(@seed_now, INTERVAL 98 DAY)),
+  (4, 5, 0.00, 0.00, 'VND', 'ACTIVE', DATE_SUB(@seed_now, INTERVAL 198 DAY), DATE_SUB(@seed_now, INTERVAL 198 DAY)),
+  (5, 6, 0.00, 0.00, 'VND', 'ACTIVE', DATE_SUB(@seed_now, INTERVAL 188 DAY), DATE_SUB(@seed_now, INTERVAL 188 DAY)),
+  (6, 7, 0.00, 0.00, 'VND', 'ACTIVE', DATE_SUB(@seed_now, INTERVAL 28 DAY),  DATE_SUB(@seed_now, INTERVAL 28 DAY)),
   (7, 14, 5000000.00, 600000.00, 'VND', 'ACTIVE', DATE_SUB(@seed_now, INTERVAL 2 DAY), @seed_now);
 
 INSERT INTO `Horse`
@@ -304,8 +314,8 @@ VALUES
 COMMIT;
 
 -- Expected row counts after a successful import.
--- On a fresh database: user_verifications = 1 and Wallet = 1; both belong to
--- spectator.bet@horse.test. Wallet ID 7 is retained for betting references.
+-- On a fresh database: user_verifications = 7 and Wallet = 7. Approved
+-- OWNER/JOCKEY test accounts and spectator.bet@horse.test have both records.
 SELECT 'Roles' AS `tableName`, COUNT(*) AS `rowCount` FROM `Roles`
 UNION ALL SELECT 'Users', COUNT(*) FROM `Users`
 UNION ALL SELECT 'OwnerApplication', COUNT(*) FROM `OwnerApplication`

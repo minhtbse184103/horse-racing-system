@@ -16,14 +16,14 @@ public class KycController {
     private final KycService kycService;
 
     @PostMapping("/api/kyc/session")
-    @PreAuthorize("hasRole('SPECTATOR')")
+    @PreAuthorize("hasAnyRole('OWNER', 'SPECTATOR', 'JOCKEY')")
     public ResponseEntity<ApiResponse<KycSessionResponse>> createSession(Authentication authentication) {
         return ResponseEntity.status(201).body(ApiResponse.<KycSessionResponse>builder().status(true)
                 .message("KYC session is ready.").data(kycService.createSession(authentication.getName())).build());
     }
 
     @GetMapping("/api/kyc/me")
-    @PreAuthorize("hasRole('SPECTATOR')")
+    @PreAuthorize("hasAnyRole('OWNER', 'SPECTATOR', 'JOCKEY')")
     public ResponseEntity<ApiResponse<KycResponseDTO>> getMine(Authentication authentication) {
         return ResponseEntity.ok(ApiResponse.<KycResponseDTO>builder().status(true)
                 .message("KYC status retrieved.").data(kycService.getMine(authentication.getName())).build());
