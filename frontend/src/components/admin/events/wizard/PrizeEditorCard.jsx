@@ -3,6 +3,7 @@ import { Medal, Plus, Trash2 } from 'lucide-react';
 import { DEFAULT_ADDITIONAL_PRIZE, FIELD_CLASS } from './wizardConstants';
 import { WizardValidationBanner } from './WizardPrimitives';
 import { useLanguage } from '../../../../context/LanguageContext';
+import { formatVndCurrency } from '../../../../lib/eventFormatters';
 
 export default function PrizeEditorCard({ race, index, error, onChange }) {
   const { t } = useLanguage();
@@ -29,7 +30,7 @@ export default function PrizeEditorCard({ race, index, error, onChange }) {
         </div>
         <div className="text-right">
           <p className="text-xs font-extrabold uppercase text-slate-500">{t('eventWorkspaceTotalPrize')}</p>
-          <p className="font-black text-brown-900">VND {total.toLocaleString()}</p>
+          <p className="font-black text-brown-900">{formatVndCurrency(total)}</p>
         </div>
       </div>
 

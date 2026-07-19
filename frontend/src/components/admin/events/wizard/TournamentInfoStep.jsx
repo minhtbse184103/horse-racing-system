@@ -5,6 +5,20 @@ import { WizardField, WizardSectionHeading } from './WizardPrimitives';
 import VenueImageField from './VenueImageField';
 import { useLanguage } from '../../../../context/LanguageContext';
 
+const moneyInputFormatter = new Intl.NumberFormat('vi-VN', {
+  maximumFractionDigits: 0
+});
+
+function formatMoneyInputValue(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? moneyInputFormatter.format(number) : '';
+}
+
+function parseMoneyInputValue(value) {
+  const digits = String(value || '').replace(/\D/g, '');
+  return digits ? Number(digits) : 0;
+}
+
 export default function TournamentInfoStep({
   draft,
   setDraft,
@@ -41,7 +55,16 @@ export default function TournamentInfoStep({
             <input type="number" min="3" className={FIELD_CLASS} value={draft.maxRegistration} onChange={(event) => updateTournamentField('maxRegistration', Number(event.target.value))} />
           </WizardField>
           <WizardField label={t('eventWizardEntryFee')} error={errors.entryFee} hint={t('eventWizardEntryFeeHint')} className="xl:col-span-3">
-            <div className="relative"><span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-xs font-extrabold text-slate-500">VND</span><input type="number" min="0" step="1000000" className={`${FIELD_CLASS} pl-14`} value={draft.entryFee} onChange={(event) => updateTournamentField('entryFee', Number(event.target.value))} /></div>
+            <div className="relative">
+              <input
+                type="text"
+                inputMode="numeric"
+                className={`${FIELD_CLASS} pr-16`}
+                value={formatMoneyInputValue(draft.entryFee)}
+                onChange={(event) => updateTournamentField('entryFee', parseMoneyInputValue(event.target.value))}
+              />
+              <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-extrabold text-slate-500">VND</span>
+            </div>
           </WizardField>
         </div>
         <VenueImageField

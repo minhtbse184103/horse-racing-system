@@ -12,8 +12,8 @@ const QUICK_AMOUNTS = [100000, 200000, 500000, 1000000];
 function formatVnd(value) {
   const number = Number(value || 0);
   return Number.isFinite(number)
-    ? `VND ${number.toLocaleString('vi-VN')}`
-    : 'VND 0';
+    ? `${number.toLocaleString('vi-VN')} VND`
+    : '0 VND';
 }
 
 function normalizeAmount(value) {

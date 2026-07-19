@@ -4,6 +4,7 @@ import { staggerContainer } from '../../ui/motion';
 import PrizeEditorCard from './PrizeEditorCard';
 import { WizardSectionHeading, WizardSummaryItem } from './WizardPrimitives';
 import { useLanguage } from '../../../../context/LanguageContext';
+import { formatVndCurrency } from '../../../../lib/eventFormatters';
 
 export default function PrizeConfigStep({ draft, errors, prizeTotal, onUpdateRace }) {
   const { t } = useLanguage();
@@ -14,7 +15,7 @@ export default function PrizeConfigStep({ draft, errors, prizeTotal, onUpdateRac
       <motion.div variants={staggerContainer} initial="hidden" animate="visible" className="mt-4 grid gap-3 sm:grid-cols-3">
         <WizardSummaryItem icon={Flag} label={t('eventDomainRace')} value={draft.races.length} />
         <WizardSummaryItem icon={Medal} label={t('eventWorkspacePrizeRanks')} value={draft.races.reduce((sum, race) => sum + race.prizes.length, 0)} />
-        <WizardSummaryItem icon={CircleDollarSign} label={t('eventWorkspaceTotalPrize')} value={`VND ${prizeTotal.toLocaleString()}`} />
+        <WizardSummaryItem icon={CircleDollarSign} label={t('eventWorkspaceTotalPrize')} value={formatVndCurrency(prizeTotal)} />
       </motion.div>
       <div className="mt-4 grid gap-3 xl:grid-cols-2">
         {draft.races.map((race, index) => (

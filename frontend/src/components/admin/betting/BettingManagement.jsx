@@ -97,7 +97,7 @@ function ProductEditor({ product, onSave }) {
     const maxDailyStake = Number(form.maxDailyStake);
     const operatorFeeRate = Number(form.operatorFeeRate);
     if (!form.name.trim()) return 'Tên sản phẩm là bắt buộc.';
-    if (!Number.isFinite(minStake) || minStake < 10000) return 'Min stake phải từ 10,000 VND.';
+    if (!Number.isFinite(minStake) || minStake < 10000) return 'Min stake phải từ 10.000 VND.';
     if (!Number.isFinite(maxDailyStake) || maxDailyStake < minStake) return 'Max daily stake không được nhỏ hơn min stake.';
     if (!Number.isFinite(operatorFeeRate) || operatorFeeRate < 0 || operatorFeeRate > 50) return 'Phí tổ chức phải từ 0% đến 50%.';
     return '';
