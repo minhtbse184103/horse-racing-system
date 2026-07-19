@@ -41,7 +41,6 @@ import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -55,8 +54,7 @@ public class VnpayPaymentService {
     private static final String VNPAY_ORDER_TYPE = "other";
     private static final String VNPAY_LOCALE = "vn";
     private static final String VNPAY_SUCCESS_CODE = "00";
-    private static final Set<String> WALLET_ALLOWED_ROLES =
-            Set.of("OWNER", "SPECTATOR", "JOCKEY");
+    private static final String SPECTATOR = "SPECTATOR";
     private static final BigDecimal MIN_WALLET_DEPOSIT_AMOUNT = new BigDecimal("10000.00");
     private static final DateTimeFormatter VNPAY_DATE_FORMAT =
             DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
@@ -127,8 +125,8 @@ public class VnpayPaymentService {
             BigDecimal amount,
             String clientIp
     ) {
-        // Kiểm tra ví thuộc tài khoản được phép trước khi tạo thanh toán nạp ví.
-        validateWalletOwnerAllowedRole(wallet);
+        // Kiểm tra ví thuộc spectator hợp lệ trước khi tạo thanh toán nạp ví.
+        validateSpectatorWalletOwner(wallet);
         if (amount == null || amount.compareTo(MIN_WALLET_DEPOSIT_AMOUNT) < 0) {
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
@@ -550,7 +548,7 @@ public class VnpayPaymentService {
                 ));
 
         // Validate lại chủ ví và trạng thái ví trước khi cộng tiền.
-        validateWalletOwnerAllowedRole(wallet);
+        validateSpectatorWalletOwner(wallet);
         if (!WalletStatus.ACTIVE.equals(wallet.getStatus())) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
@@ -585,19 +583,22 @@ public class VnpayPaymentService {
         walletTransactionRepository.save(walletTransaction);
     }
 
-    private void validateWalletOwnerAllowedRole(Wallet wallet) {
+    private void validateSpectatorWalletOwner(Wallet wallet) {
         // Wallet phải có userId hợp lệ để truy ngược chủ ví.
         if (wallet == null || wallet.getUserId() == null) {
             throw new ApiException(HttpStatus.FORBIDDEN, "Wallet owner is not eligible for wallet services.");
         }
-        // Query chủ ví và chỉ cho Owner, Jockey hoặc Spectator đang hoạt động nạp ví.
+        // Query chủ ví và hiện tại chỉ cho spectator active nạp ví.
         User user = userRepository.findById(wallet.getUserId())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Wallet owner does not exist."));
         String roleName = user.getRole() == null ? null : user.getRole().getRoleName();
+        String accountType = user.getAccountType();
         if (!"ACTIVE".equalsIgnoreCase(user.getStatus())
                 || roleName == null
-                || !WALLET_ALLOWED_ROLES.contains(roleName.trim().toUpperCase(Locale.ROOT))) {
-            throw new ApiException(HttpStatus.FORBIDDEN, "This account cannot use wallet deposits.");
+                || accountType == null
+                || !SPECTATOR.equals(roleName.trim().toUpperCase(Locale.ROOT))
+                || !SPECTATOR.equals(accountType.trim().toUpperCase(Locale.ROOT))) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Only Spectator accounts may use wallet deposits.");
         }
     }
 

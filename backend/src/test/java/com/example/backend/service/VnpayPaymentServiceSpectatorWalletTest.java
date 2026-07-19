@@ -8,6 +8,7 @@ import com.example.backend.entity.PaymentTransaction;
 import com.example.backend.entity.Role;
 import com.example.backend.entity.User;
 import com.example.backend.entity.Wallet;
+import com.example.backend.exception.ApiException;
 import com.example.backend.repository.PaymentTransactionRepository;
 import com.example.backend.repository.RegistrationRepository;
 import com.example.backend.repository.UserRepository;
@@ -30,7 +31,9 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -64,7 +67,7 @@ class VnpayPaymentServiceSpectatorWalletTest {
     }
 
     @Test
-    void validCallbackCreditsOwnerWallet() throws Exception {
+    void validCallbackCannotCreditLegacyOwnerWallet() throws Exception {
         PaymentTransaction payment = new PaymentTransaction();
         payment.setPaymentTransactionId(55);
         payment.setUserId(8);
@@ -81,29 +84,30 @@ class VnpayPaymentServiceSpectatorWalletTest {
         wallet.setLockedBalance(BigDecimal.ZERO.setScale(2));
         wallet.setStatus(WalletStatus.ACTIVE);
 
-        Role ownerRole = new Role();
-        ownerRole.setRoleName("OWNER");
-        User owner = new User();
-        owner.setUserID(8);
-        owner.setStatus("ACTIVE");
-        owner.setRole(ownerRole);
-        owner.setAccountType("OWNER");
+        Role spectatorRole = new Role();
+        spectatorRole.setRoleName("SPECTATOR");
+        User ownerCandidate = new User();
+        ownerCandidate.setUserID(8);
+        ownerCandidate.setStatus("ACTIVE");
+        ownerCandidate.setRole(spectatorRole);
+        ownerCandidate.setAccountType("OWNER");
 
         when(paymentTransactionRepository.findByTxnRefForUpdate(payment.getTxnRef()))
                 .thenReturn(Optional.of(payment));
         when(walletRepository.findByWalletIdForUpdate(88)).thenReturn(Optional.of(wallet));
-        when(userRepository.findById(8)).thenReturn(Optional.of(owner));
+        when(userRepository.findById(8)).thenReturn(Optional.of(ownerCandidate));
 
         Map<String, String> callback = signedCallback(payment);
 
-        var result = service.processVnpayCallback(callback);
+        ApiException error = assertThrows(ApiException.class,
+                () -> service.processVnpayCallback(callback));
 
-        assertEquals(true, result.isSuccess());
-        assertEquals(PaymentTransactionStatus.SUCCESS, payment.getStatus());
-        assertEquals(new BigDecimal("100000.00"), wallet.getBalance());
-        verify(paymentTransactionRepository).save(payment);
-        verify(walletRepository).save(wallet);
-        verify(walletTransactionRepository).save(any());
+        assertEquals(403, error.getStatus().value());
+        assertEquals(PaymentTransactionStatus.PENDING, payment.getStatus());
+        assertEquals(BigDecimal.ZERO.setScale(2), wallet.getBalance());
+        verify(paymentTransactionRepository, never()).save(any());
+        verify(walletRepository, never()).save(any());
+        verify(walletTransactionRepository, never()).save(any());
     }
 
     private Map<String, String> signedCallback(PaymentTransaction payment) throws Exception {

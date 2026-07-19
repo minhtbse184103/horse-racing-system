@@ -1,9 +1,12 @@
 import { useMemo, useState } from 'react';
 import { uploadFile } from '../../services/uploadService.js';
-import { useLanguage } from '../../context/LanguageContext.jsx';
 
 const inputClass = 'w-full rounded-lg border border-brown-700/15 bg-white px-4 py-3 text-sm font-bold text-brown-900 outline-none transition placeholder:text-slate-500/65 focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20 disabled:cursor-not-allowed disabled:bg-cream-200 disabled:text-slate-500';
-const licenceTypeOptions = [{ value: 'TRAINEE', vi: 'Tập sự', en: 'Trainee' }, { value: 'AMATEUR', vi: 'Nghiệp dư', en: 'Amateur' }, { value: 'PROFESSIONAL', vi: 'Chuyên nghiệp', en: 'Professional' }];
+const licenceTypeOptions = [
+  { value: 'TRAINEE', label: 'Tập sự' },
+  { value: 'AMATEUR', label: 'Nghiệp dư' },
+  { value: 'PROFESSIONAL', label: 'Chuyên nghiệp' }
+];
 
 function parseLocalDate(value) {
   if (!value) return null;
@@ -51,8 +54,6 @@ function makeInitialValues(user, application) {
 }
 
 export default function JockeyApplicationForm({ user, application, mode = 'submit', formError = '', onSubmit, onCancel, isSubmitting }) {
-  const { language } = useLanguage();
-  const tr = (en, vi) => language === 'en' ? en : vi;
   const [values, setValues] = useState(() => makeInitialValues(user, application));
   const [errors, setErrors] = useState({});
   const [isUploadingLicense, setIsUploadingLicense] = useState(false);
@@ -79,31 +80,31 @@ export default function JockeyApplicationForm({ user, application, mode = 'submi
   function validate() {
     const nextErrors = {};
     const weight = Number(values.weight);
-    if (!values.trainerName.trim()) nextErrors.trainerName = tr('Trainer name is required.', 'Vui lòng nhập tên huấn luyện viên.');
-    if (!values.trainerEmail.trim()) nextErrors.trainerEmail = tr('Trainer email is required.', 'Vui lòng nhập email huấn luyện viên.');
+    if (!values.trainerName.trim()) nextErrors.trainerName = 'Trainer name is required.';
+    if (!values.trainerEmail.trim()) nextErrors.trainerEmail = 'Trainer email is required.';
     if (values.trainerEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.trainerEmail)) {
-      nextErrors.trainerEmail = tr('Trainer email is invalid.', 'Email huấn luyện viên không hợp lệ.');
+      nextErrors.trainerEmail = 'Trainer email is invalid.';
     }
-    if (!values.issuingAuthority.trim()) nextErrors.issuingAuthority = tr('Issuing authority is required.', 'Vui lòng nhập cơ quan cấp phép.');
-    if (!values.licenceType.trim()) nextErrors.licenceType = tr('Licence type is required.', 'Vui lòng chọn loại giấy phép.');
+    if (!values.issuingAuthority.trim()) nextErrors.issuingAuthority = 'Issuing authority is required.';
+    if (!values.licenceType.trim()) nextErrors.licenceType = 'Licence type is required.';
     if (!values.expiryDate) {
-      nextErrors.expiryDate = tr('Expiry date is required.', 'Vui lòng chọn ngày hết hạn.');
+      nextErrors.expiryDate = 'Expiry date is required.';
     } else {
       const expiryDate = parseLocalDate(values.expiryDate);
       if (!expiryDate || expiryDate <= startOfToday()) {
-        nextErrors.expiryDate = tr('Expiry date must be in the future.', 'Ngày hết hạn phải là một ngày trong tương lai.');
+        nextErrors.expiryDate = 'Expiry date must be in the future.';
       }
     }
     if (!Number.isFinite(weight) || weight < 35 || weight > 90) {
-      nextErrors.weight = tr('Jockey weight must be between 35 and 90 kg.', 'Cân nặng Jockey phải từ 35 đến 90 kg.');
+      nextErrors.weight = 'Jockey weight must be between 35 and 90 kg.';
     }
     const links = values.verificationLinks.map((link) => link.trim()).filter(Boolean);
     const invalidLink = links.find((link) => !/^https?:\/\/.+/i.test(link));
     if (invalidLink) {
-      nextErrors.verificationLinks = tr('Every verification link must start with http:// or https://.', 'Mỗi liên kết xác minh phải bắt đầu bằng http:// hoặc https://.');
+      nextErrors.verificationLinks = 'Every verification link must start with http:// or https://.';
     }
-    if (values.licenseFiles.length === 0) nextErrors.licenseFiles = tr('At least one jockey licence image is required.', 'Vui lòng tải lên ít nhất một ảnh giấy phép Jockey.');
-    if (values.licenseFiles.length > 5) nextErrors.licenseFiles = tr('You can upload at most 5 licence images.', 'Bạn chỉ có thể tải lên tối đa 5 ảnh giấy phép.');
+    if (values.licenseFiles.length === 0) nextErrors.licenseFiles = 'At least one jockey licence image is required.';
+    if (values.licenseFiles.length > 5) nextErrors.licenseFiles = 'You can upload at most 5 licence images.';
 
     setErrors(nextErrors);
     return nextErrors;
@@ -149,13 +150,13 @@ export default function JockeyApplicationForm({ user, application, mode = 'submi
     if (files.length === 0) return;
 
     if (values.licenseFiles.length + files.length > 5) {
-      setErrors((current) => ({ ...current, licenseFiles: tr('You can upload at most 5 licence images.', 'Bạn chỉ có thể tải lên tối đa 5 ảnh giấy phép.') }));
+      setErrors((current) => ({ ...current, licenseFiles: 'You can upload at most 5 licence images.' }));
       return;
     }
 
     const invalidFile = files.find((file) => !file.type.startsWith('image/'));
     if (invalidFile) {
-      setErrors((current) => ({ ...current, licenseFiles: tr('Only image files are supported.', 'Chỉ hỗ trợ tệp hình ảnh.') }));
+      setErrors((current) => ({ ...current, licenseFiles: 'Only image files are supported.' }));
       return;
     }
 
@@ -181,7 +182,7 @@ export default function JockeyApplicationForm({ user, application, mode = 'submi
       }));
       setErrors((current) => ({ ...current, licenseFiles: '' }));
     } catch (error) {
-      setErrors((current) => ({ ...current, licenseFiles: error.message || tr('Cannot upload licence images.', 'Không thể tải ảnh giấy phép lên.') }));
+      setErrors((current) => ({ ...current, licenseFiles: error.message || 'Cannot upload licence images.' }));
     } finally {
       setIsUploadingLicense(false);
     }
@@ -228,16 +229,16 @@ export default function JockeyApplicationForm({ user, application, mode = 'submi
       <section className="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-[28px] border border-brown-700/10 bg-cream-100 p-6 shadow-[0_28px_80px_rgba(43,23,16,0.3)]">
         <div className="flex flex-col gap-3 border-b border-brown-700/10 pb-5 sm:flex-row sm:items-start sm:justify-between">
           <div>
-            <p className="eyebrow">{tr('Jockey Application', 'Hồ sơ Jockey')}</p>
+            <p className="eyebrow">Jockey Application</p>
             <h2 className="text-3xl font-black text-brown-900">
-              {mode === 'resubmit' ? tr('Apply Again as Jockey', 'Đăng ký lại làm Jockey') : tr('Become a Jockey', 'Trở thành Jockey')}
+              {mode === 'resubmit' ? 'Apply Again as Jockey' : 'Become a Jockey'}
             </h2>
             <p className="mt-2 max-w-2xl font-medium text-slate-500">
-              {tr('Submit licence and trainer information for administrator approval. After approval, sign in again to enter the Jockey workspace.', 'Gửi giấy phép và thông tin huấn luyện viên để quản trị viên phê duyệt. Sau khi được duyệt, hãy đăng nhập lại để vào khu vực Jockey.')}
+              Submit licence and trainer information for administrator approval. After approval, sign in again to enter the Jockey workspace.
             </p>
           </div>
           <button className="outline-button" type="button" onClick={onCancel} disabled={isSubmitting}>
-            {tr('Cancel', 'Hủy')}
+            Cancel
           </button>
         </div>
 
@@ -245,57 +246,57 @@ export default function JockeyApplicationForm({ user, application, mode = 'submi
           {formError && <div className="admin-alert error" role="alert">{formError}</div>}
           <div className="grid gap-4 md:grid-cols-2">
             <label className="grid gap-2">
-              <span className="text-sm font-extrabold text-brown-900">{tr('Applicant Email', 'Email người đăng ký')}</span>
-              <input className={inputClass} value={values.applicantEmail || tr('Not updated', 'Chưa cập nhật')} readOnly disabled />
+              <span className="text-sm font-extrabold text-brown-900">Applicant Email</span>
+              <input className={inputClass} value={values.applicantEmail || 'Chua cap nhat'} readOnly disabled />
             </label>
 
             <label className="grid gap-2">
-              <span className="text-sm font-extrabold text-brown-900">{tr('Trainer Name', 'Tên huấn luyện viên')}</span>
+              <span className="text-sm font-extrabold text-brown-900">Trainer Name</span>
               <input className={inputClass} name="trainerName" value={values.trainerName} onChange={handleChange} disabled={isSubmitting} />
               {renderError('trainerName')}
             </label>
 
             <label className="grid gap-2">
-              <span className="text-sm font-extrabold text-brown-900">{tr('Trainer Email', 'Email huấn luyện viên')}</span>
+              <span className="text-sm font-extrabold text-brown-900">Trainer Email</span>
               <input className={inputClass} name="trainerEmail" type="email" value={values.trainerEmail} onChange={handleChange} disabled={isSubmitting} />
               {renderError('trainerEmail')}
             </label>
 
             <label className="grid gap-2 md:col-span-2">
-              <span className="text-sm font-extrabold text-brown-900">{tr('Academy / Stable Address', 'Học viện / Địa chỉ chuồng ngựa')}</span>
+              <span className="text-sm font-extrabold text-brown-900">Academy / Stable Address</span>
               <input className={inputClass} name="academyStableAddress" value={values.academyStableAddress} onChange={handleChange} disabled={isSubmitting} />
             </label>
 
             <label className="grid gap-2">
-              <span className="text-sm font-extrabold text-brown-900">{tr('Issuing Authority', 'Cơ quan cấp phép')}</span>
+              <span className="text-sm font-extrabold text-brown-900">Issuing Authority</span>
               <input className={inputClass} name="issuingAuthority" value={values.issuingAuthority} onChange={handleChange} disabled={isSubmitting} />
               {renderError('issuingAuthority')}
             </label>
 
             <label className="grid gap-2">
-              <span className="text-sm font-extrabold text-brown-900">{tr('Licence Type', 'Loại giấy phép')}</span>
+              <span className="text-sm font-extrabold text-brown-900">Licence Type</span>
               <select className={inputClass} name="licenceType" value={values.licenceType} onChange={handleChange} disabled={isSubmitting}>
                 {licenceTypeOptions.map((option) => (
-                  <option value={option.value} key={option.value}>{option[language] || option.vi}</option>
+                  <option value={option.value} key={option.value}>{option.label}</option>
                 ))}
               </select>
               {renderError('licenceType')}
             </label>
 
             <label className="grid gap-2">
-              <span className="text-sm font-extrabold text-brown-900">{tr('Expiry Date', 'Ngày hết hạn')}</span>
+              <span className="text-sm font-extrabold text-brown-900">Expiry Date</span>
               <input className={inputClass} name="expiryDate" type="date" min={tomorrowInputValue()} value={values.expiryDate} onChange={handleChange} disabled={isSubmitting} />
               {renderError('expiryDate')}
             </label>
 
             <label className="grid gap-2">
-              <span className="text-sm font-extrabold text-brown-900">{tr('Weight (kg)', 'Cân nặng (kg)')}</span>
+              <span className="text-sm font-extrabold text-brown-900">Weight (kg)</span>
               <input className={inputClass} name="weight" type="number" min="35" max="90" step="0.01" value={values.weight} onChange={handleChange} disabled={isSubmitting} />
               {renderError('weight')}
             </label>
 
             <div className="grid gap-2 md:col-span-2">
-              <span className="text-sm font-extrabold text-brown-900">{tr('Verification Link', 'Liên kết xác minh')}</span>
+              <span className="text-sm font-extrabold text-brown-900">Verification Link</span>
               <div className="grid gap-2">
                 {values.verificationLinks.map((link, index) => (
                   <div className="flex gap-2 max-sm:flex-col" key={`verification-link-${index}`}>
@@ -312,34 +313,34 @@ export default function JockeyApplicationForm({ user, application, mode = 'submi
                       onClick={() => handleRemoveVerificationLink(index)}
                       disabled={isSubmitting}
                     >
-                      {tr('Remove', 'Xóa')}
+                      Remove
                     </button>
                   </div>
                 ))}
               </div>
               <button className="outline-button compact-button justify-self-start" type="button" onClick={handleAddVerificationLink} disabled={isSubmitting}>
-                {tr('Add Link', 'Thêm liên kết')}
+                Add Link
               </button>
-              <span className="text-xs font-semibold text-slate-500">{tr('Enter verification links manually. Uploaded licence images will not be copied here automatically.', 'Nhập liên kết xác minh thủ công. Ảnh giấy phép đã tải lên sẽ không tự động được sao chép vào đây.')}</span>
+              <span className="text-xs font-semibold text-slate-500">Enter verification links manually. Uploaded licence images will not be copied here automatically.</span>
               {renderError('verificationLinks')}
             </div>
 
             <label className="grid gap-2 md:col-span-2">
-              <span className="text-sm font-extrabold text-brown-900">{tr('Biography', 'Tiểu sử')}</span>
+              <span className="text-sm font-extrabold text-brown-900">Biography</span>
               <textarea className={`${inputClass} min-h-28 resize-none`} name="biography" value={values.biography} onChange={handleChange} disabled={isSubmitting} />
             </label>
 
             <div className="grid gap-2 md:col-span-2">
-              <span className="text-sm font-extrabold text-brown-900">{tr('Jockey Licence File', 'Tệp giấy phép Jockey')}</span>
+              <span className="text-sm font-extrabold text-brown-900">Jockey Licence File</span>
               <div className="identity-upload-box">
                 <div>
-                  <strong>{tr('Upload licence proof', 'Tải lên bằng chứng giấy phép')}</strong>
-                  <p>{tr('Upload up to 5 images of your jockey licence for admin review.', 'Tải lên tối đa 5 ảnh giấy phép Jockey để quản trị viên xét duyệt.')}</p>
-                  <small>{tr('Supported formats: JPG, PNG, WebP.', 'Định dạng hỗ trợ: JPG, PNG, WebP.')} {values.licenseFiles.length}/5 {tr('uploaded', 'đã tải lên')}.</small>
+                  <strong>Upload licence proof</strong>
+                  <p>Upload up to 5 images of your jockey licence for admin review.</p>
+                  <small>Supported formats: JPG, PNG, WebP. {values.licenseFiles.length}/5 uploaded.</small>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <label className="outline-button compact-button cursor-pointer">
-                    {isUploadingLicense ? tr('Uploading...', 'Đang tải lên...') : tr('Choose Images', 'Chọn ảnh')}
+                    {isUploadingLicense ? 'Uploading...' : 'Choose Images'}
                     <input className="sr-only" type="file" accept="image/*" multiple onChange={handleLicenseFileChange} disabled={isSubmitting || isUploadingLicense || values.licenseFiles.length >= 5} />
                   </label>
                 </div>
@@ -351,14 +352,14 @@ export default function JockeyApplicationForm({ user, application, mode = 'submi
                       <img
                         className="h-56 w-full rounded-lg bg-white object-contain"
                         src={file.previewUrl || file.url}
-                        alt={tr(`Jockey licence preview ${index + 1}`, `Xem trước giấy phép Jockey ${index + 1}`)}
+                        alt={`Jockey licence preview ${index + 1}`}
                       />
                       <div className="mt-auto flex min-h-12 items-center justify-between gap-2 pt-3">
                         <a className="min-w-0 flex-1 truncate font-bold text-green-700 underline" href={file.url} target="_blank" rel="noreferrer">
-                          {file.name || tr(`Licence image ${index + 1}`, `Ảnh giấy phép ${index + 1}`)}
+                          {file.name || `Licence image ${index + 1}`}
                         </a>
                         <button className="outline-button danger-action compact-button w-24 shrink-0" type="button" onClick={() => handleRemoveLicense(index)} disabled={isSubmitting}>
-                          {tr('Remove', 'Xóa')}
+                          Remove
                         </button>
                       </div>
                     </div>
@@ -371,10 +372,10 @@ export default function JockeyApplicationForm({ user, application, mode = 'submi
 
           <div className="flex flex-col-reverse gap-3 border-t border-brown-700/10 pt-5 sm:flex-row sm:justify-end">
             <button className="outline-button" type="button" onClick={onCancel} disabled={isSubmitting}>
-              {tr('Cancel', 'Hủy')}
+              Cancel
             </button>
             <button className="primary-button sm:w-auto" type="submit" disabled={!isReady || isSubmitting || isUploadingLicense}>
-              {isSubmitting ? tr('Submitting...', 'Đang gửi...') : mode === 'resubmit' ? tr('Submit Again', 'Gửi lại') : tr('Submit Application', 'Gửi hồ sơ')}
+              {isSubmitting ? 'Submitting...' : mode === 'resubmit' ? 'Submit Again' : 'Submit Application'}
             </button>
           </div>
         </form>

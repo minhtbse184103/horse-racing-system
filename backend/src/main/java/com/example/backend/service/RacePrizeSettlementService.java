@@ -28,18 +28,15 @@ public class RacePrizeSettlementService {
     private final RacePrizeRepository racePrizeRepository;
     private final RegistrationRepository registrationRepository;
     private final PrizeDistributionRepository prizeDistributionRepository;
-    private final PrizePayoutService prizePayoutService;
 
     public RacePrizeSettlementService(
             RacePrizeRepository racePrizeRepository,
             RegistrationRepository registrationRepository,
-            PrizeDistributionRepository prizeDistributionRepository,
-            PrizePayoutService prizePayoutService
+            PrizeDistributionRepository prizeDistributionRepository
     ) {
         this.racePrizeRepository = racePrizeRepository;
         this.registrationRepository = registrationRepository;
         this.prizeDistributionRepository = prizeDistributionRepository;
-        this.prizePayoutService = prizePayoutService;
     }
 
     public void settlePrizes(
@@ -90,11 +87,10 @@ public class RacePrizeSettlementService {
 
         if (!distributions.isEmpty()) {
             // FLOW: Admin Approve Result
-            // ORDER: 7B/9 - Persist calculated rows, then pay Owner and Jockey wallets when possible.
-            prizeDistributionRepository.saveAll(distributions)
-                    .forEach(distribution -> prizePayoutService.payIfPossible(
-                            distribution.getPrizeDistributionId()
-                    ));
+            // ORDER: 7B/9 - Persist the calculated prize ledger. Owner/Jockey do not
+            // have wallets; PENDING now means the prize must be handled outside the
+            // spectator wallet flow.
+            prizeDistributionRepository.saveAll(distributions);
         }
     }
 

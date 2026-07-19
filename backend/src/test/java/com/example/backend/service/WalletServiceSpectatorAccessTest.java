@@ -6,6 +6,7 @@ import com.example.backend.entity.PaymentTransaction;
 import com.example.backend.entity.Role;
 import com.example.backend.entity.User;
 import com.example.backend.entity.Wallet;
+import com.example.backend.exception.ApiException;
 import com.example.backend.repository.UserRepository;
 import com.example.backend.repository.UserVerificationRepository;
 import com.example.backend.repository.WalletRepository;
@@ -20,7 +21,9 @@ import java.math.BigDecimal;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -47,20 +50,25 @@ class WalletServiceSpectatorAccessTest {
     }
 
     @Test
-    void ownerAccountCandidateCanReadWallet() {
+    void ownerAccountTypeWithSpectatorRoleCannotReadOrCreateWallet() {
         User ownerCandidate = user(8, "owner@test.local", "SPECTATOR", "OWNER");
-        Wallet wallet = wallet(81, ownerCandidate.getUserID());
         when(userRepository.findByEmail(ownerCandidate.getEmail())).thenReturn(Optional.of(ownerCandidate));
-        when(walletRepository.findByUserId(ownerCandidate.getUserID())).thenReturn(Optional.of(wallet));
 
-        var response = service.getMyWallet(ownerCandidate.getEmail());
+        ApiException readError = assertThrows(ApiException.class,
+                () -> service.getMyWallet(ownerCandidate.getEmail()));
+        ApiException depositError = assertThrows(ApiException.class,
+                () -> service.createDepositPayment(
+                        ownerCandidate.getEmail(), depositRequest(), "127.0.0.1"));
 
-        assertEquals(wallet.getWalletId(), response.getWalletId());
-        assertEquals(ownerCandidate.getUserID(), response.getUserId());
+        assertEquals(403, readError.getStatus().value());
+        assertEquals(403, depositError.getStatus().value());
+        verify(walletRepository, never()).findByUserId(any());
+        verify(walletRepository, never()).findByUserIdForUpdate(any());
+        verify(vnpayPaymentService, never()).createWalletDepositPayment(any(), any(), any());
     }
 
     @Test
-    void successfulDepositCreditsJockeyWallet() {
+    void successfulDepositCannotCreditLegacyJockeyWallet() {
         User jockey = user(9, "jockey@test.local", "JOCKEY", "JOCKEY");
         Wallet wallet = wallet(91, jockey.getUserID());
         PaymentTransaction payment = new PaymentTransaction();
@@ -71,12 +79,13 @@ class WalletServiceSpectatorAccessTest {
                 .thenReturn(Optional.of(wallet));
         when(userRepository.findById(jockey.getUserID())).thenReturn(Optional.of(jockey));
 
-        var response = service.applySuccessfulDeposit(payment);
+        ApiException error = assertThrows(ApiException.class,
+                () -> service.applySuccessfulDeposit(payment));
 
-        assertEquals(new BigDecimal("100000.00"), response.getBalance());
-        assertEquals(new BigDecimal("100000.00"), wallet.getBalance());
-        verify(walletRepository).save(wallet);
-        verify(walletTransactionRepository).save(any());
+        assertEquals(403, error.getStatus().value());
+        assertEquals(BigDecimal.ZERO.setScale(2), wallet.getBalance());
+        verify(walletRepository, never()).save(any());
+        verify(walletTransactionRepository, never()).save(any());
     }
 
     private WalletDepositRequest depositRequest() {
