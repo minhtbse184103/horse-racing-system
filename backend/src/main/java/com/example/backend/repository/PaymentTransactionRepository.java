@@ -9,12 +9,15 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
+import java.util.List;
 
 @Repository
 public interface PaymentTransactionRepository
         extends JpaRepository<PaymentTransaction, Integer> {
 
     Optional<PaymentTransaction> findByTxnRef(String txnRef);
+
+    List<PaymentTransaction> findAllByOrderByCreatedAtDesc();
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""

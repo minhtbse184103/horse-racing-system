@@ -4,6 +4,7 @@ import com.example.backend.entity.BetSettlement;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 @Repository
@@ -12,4 +13,6 @@ public interface BetSettlementRepository extends JpaRepository<BetSettlement, In
     boolean existsByBetEventId(Integer betEventId);
 
     Optional<BetSettlement> findByBetEventId(Integer betEventId);
+
+    List<BetSettlement> findAllByOrderBySettledAtDesc();
 }

@@ -8,6 +8,8 @@ import {
   Gavel,
   LayoutDashboard,
   LogOut,
+  Landmark,
+  ReceiptText,
   Settings,
   ShieldCheck,
   Trophy,
@@ -27,6 +29,8 @@ import { formatDisplayLabel } from '../../lib';
 import { tapPress } from './ui/motion';
 import { useLanguage } from '../../context/LanguageContext';
 import BettingManagement from './betting/BettingManagement';
+import AdminMoneyTransactions from './money/AdminMoneyTransactions';
+import AdminSystemWallet from './money/AdminSystemWallet';
 
 const adminNavItems = [
   {
@@ -58,6 +62,18 @@ const adminNavItems = [
     labelKey: 'bettingManagement',
     descriptionKey: 'bettingDescription',
     icon: CircleDollarSign
+  },
+  {
+    key: 'moneyTransactions',
+    labelKey: 'moneyTransactions',
+    descriptionKey: 'moneyTransactionsDescription',
+    icon: ReceiptText
+  },
+  {
+    key: 'systemWallet',
+    labelKey: 'systemWallet',
+    descriptionKey: 'systemWalletDescription',
+    icon: Landmark
   },
   {
     key: 'jockeyReviews',
@@ -124,6 +140,8 @@ export default function AdminDashboard({ currentUser, onLogout }) {
     ownerApplications: <OwnerApplicationManagement />,
     events: <TournamentWorkspace adminName={adminName} focus={eventFocus} onFocusHandled={() => setEventFocus(null)} onNavigateToResultReview={() => setActiveSection('raceResultReviews')} />,
     betting: <BettingManagement />,
+    moneyTransactions: <AdminMoneyTransactions />,
+    systemWallet: <AdminSystemWallet onOpenMoneyTransactions={() => navigateAdmin('moneyTransactions')} />,
     refereeAssignments: <RefereeAssignmentManagement />,
     raceResultReviews: <AdminRaceResultReview />,
     jockeyReviews: <JockeyReview />,

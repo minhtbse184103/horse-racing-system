@@ -190,7 +190,7 @@ VALUES
 INSERT INTO `SystemFund`
   (`systemFundID`, `balance`, `bettingFeeRevenue`, `createdAt`, `updatedAt`)
 VALUES
-  (1, 0.00, 0.00, @seed_now, @seed_now);
+  (1, 60000.00, 60000.00, DATE_SUB(@seed_now, INTERVAL 2 HOUR), @seed_now);
 
 INSERT INTO `FundTransaction`
   (`fundTransactionID`, `fundKey`, `tournamentID`, `transactionType`, `direction`, `amount`, `balanceBefore`, `balanceAfter`, `referenceType`, `referenceID`, `description`, `createdAt`)
@@ -210,7 +210,8 @@ VALUES
   (13, 'TOURNAMENT:1', 1, 'REGISTRATION_FEE', 'CREDIT', 1000000.00, 11000000.00, 12000000.00, 'PAYMENT_TRANSACTION', 13, 'Tournament registration fee REG-DEMO-016', DATE_SUB(@seed_now, INTERVAL 1 DAY)),
   (14, 'TOURNAMENT:1', 1, 'REGISTRATION_FEE', 'CREDIT', 1000000.00, 12000000.00, 13000000.00, 'PAYMENT_TRANSACTION', 14, 'Tournament registration fee REG-DEMO-017', DATE_SUB(@seed_now, INTERVAL 1 DAY)),
   (15, 'TOURNAMENT:1', 1, 'REGISTRATION_FEE', 'CREDIT', 1000000.00, 13000000.00, 14000000.00, 'PAYMENT_TRANSACTION', 15, 'Tournament registration fee REG-DEMO-018', DATE_SUB(@seed_now, INTERVAL 1 DAY)),
-  (16, 'TOURNAMENT:1', 1, 'REGISTRATION_FEE', 'CREDIT', 1000000.00, 14000000.00, 15000000.00, 'PAYMENT_TRANSACTION', 16, 'Tournament registration fee REG-DEMO-019', DATE_SUB(@seed_now, INTERVAL 1 DAY));
+  (16, 'TOURNAMENT:1', 1, 'REGISTRATION_FEE', 'CREDIT', 1000000.00, 14000000.00, 15000000.00, 'PAYMENT_TRANSACTION', 16, 'Tournament registration fee REG-DEMO-019', DATE_SUB(@seed_now, INTERVAL 1 DAY)),
+  (17, 'SYSTEM', NULL, 'BETTING_OPERATOR_FEE', 'CREDIT', 60000.00, 0.00, 60000.00, 'BET_SETTLEMENT', 1, 'Betting operator fee for Heritage Sprint settlement', DATE_SUB(@seed_now, INTERVAL 2 HOUR));
 
 INSERT INTO `RaceEntry`
   (`raceEntryID`, `raceID`, `registrationID`, `startingStall`, `status`, `assignedAt`, `assignedBy`, `cancelledAt`, `cancelledBy`, `cancellationReason`)
@@ -244,7 +245,13 @@ INSERT INTO `BetEvent`
   (`betEventID`, `raceID`, `betProductID`, `status`, `openAt`, `closeAt`, `operatorFeeRate`, `createdBy`, `settledBy`, `settledAt`, `createdAt`, `updatedAt`)
 VALUES
   (1, 7, 1, 'OPEN', DATE_SUB(@seed_now, INTERVAL 1 HOUR), DATE_ADD(@seed_now, INTERVAL 1 DAY), 0.1000, 1, NULL, NULL, @seed_now, @seed_now),
-  (2, 7, 2, 'OPEN', DATE_SUB(@seed_now, INTERVAL 1 HOUR), DATE_ADD(@seed_now, INTERVAL 1 DAY), 0.1000, 1, NULL, NULL, @seed_now, @seed_now);
+  (2, 7, 2, 'OPEN', DATE_SUB(@seed_now, INTERVAL 1 HOUR), DATE_ADD(@seed_now, INTERVAL 1 DAY), 0.1000, 1, NULL, NULL, @seed_now, @seed_now),
+  (3, 4, 1, 'SETTLED', DATE_SUB(@seed_now, INTERVAL 5 HOUR), DATE_SUB(@seed_now, INTERVAL 3 HOUR), 0.1000, 1, 1, DATE_SUB(@seed_now, INTERVAL 2 HOUR), DATE_SUB(@seed_now, INTERVAL 5 HOUR), DATE_SUB(@seed_now, INTERVAL 2 HOUR));
+
+INSERT INTO `BetSettlement`
+  (`betSettlementID`, `betEventID`, `totalStake`, `winningStake`, `losingStake`, `operatorFee`, `payoutPool`, `settledBy`, `settledAt`)
+VALUES
+  (1, 3, 600000.00, 200000.00, 400000.00, 60000.00, 540000.00, 1, DATE_SUB(@seed_now, INTERVAL 2 HOUR));
 
 INSERT INTO `BetTicket`
   (`betTicketID`, `betEventID`, `userID`, `walletID`, `raceID`, `raceEntryID`, `stake`, `estimatedOddsAtBet`, `finalOdds`, `payoutAmount`, `status`, `placedAt`, `settledAt`, `createdAt`, `updatedAt`)
@@ -329,6 +336,7 @@ UNION ALL SELECT 'RaceEntry', COUNT(*) FROM `RaceEntry`
 UNION ALL SELECT 'BetProduct', COUNT(*) FROM `BetProduct`
 UNION ALL SELECT 'BetEvent', COUNT(*) FROM `BetEvent`
 UNION ALL SELECT 'BetTicket', COUNT(*) FROM `BetTicket`
+UNION ALL SELECT 'BetSettlement', COUNT(*) FROM `BetSettlement`
 UNION ALL SELECT 'WalletTransaction', COUNT(*) FROM `WalletTransaction`
 UNION ALL SELECT 'RaceResult', COUNT(*) FROM `RaceResult`
 UNION ALL SELECT 'HorsePerformanceSummary', COUNT(*) FROM `HorsePerformanceSummary`

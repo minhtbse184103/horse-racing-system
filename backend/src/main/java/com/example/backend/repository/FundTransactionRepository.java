@@ -7,4 +7,8 @@ import java.util.List;
 
 public interface FundTransactionRepository extends JpaRepository<FundTransaction, Long> {
     List<FundTransaction> findTop50ByOrderByCreatedAtDesc();
+
+    List<FundTransaction> findAllByOrderByCreatedAtDesc();
+
+    List<FundTransaction> findTop50ByFundKeyOrderByCreatedAtDesc(String fundKey);
 }
