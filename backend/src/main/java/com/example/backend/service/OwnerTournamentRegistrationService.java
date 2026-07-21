@@ -2,16 +2,19 @@ package com.example.backend.service;
 
 import com.example.backend.constant.EventStatus;
 import com.example.backend.constant.PaymentStatus;
+import com.example.backend.constant.PrizeDistributionStatus;
 import com.example.backend.constant.RaceEntryStatus;
 import com.example.backend.constant.RegistrationStatus;
 import com.example.backend.dto.request.OwnerTournamentRegistrationRequest;
 import com.example.backend.dto.response.OwnerRegistrationPaymentResponse;
+import com.example.backend.dto.response.OwnerRaceResponse;
 import com.example.backend.dto.response.RegistrationResponse;
 import com.example.backend.dto.response.TournamentConditionResponse;
 import com.example.backend.dto.response.TournamentResponse;
 import com.example.backend.entity.Horse;
 import com.example.backend.entity.JockeyProfile;
 import com.example.backend.entity.OwnerApplication;
+import com.example.backend.entity.PrizeDistribution;
 import com.example.backend.entity.Race;
 import com.example.backend.entity.RaceEntry;
 import com.example.backend.entity.Registration;
@@ -23,7 +26,9 @@ import com.example.backend.repository.HorseRepository;
 import com.example.backend.repository.JockeyInvitationRepository;
 import com.example.backend.repository.JockeyProfileRepository;
 import com.example.backend.repository.OwnerApplicationRepository;
+import com.example.backend.repository.PrizeDistributionRepository;
 import com.example.backend.repository.RaceEntryRepository;
+import com.example.backend.repository.RaceResultRepository;
 import com.example.backend.repository.RaceRepository;
 import com.example.backend.repository.RegistrationRepository;
 import com.example.backend.repository.TournamentRepository;
@@ -67,7 +72,9 @@ public class OwnerTournamentRegistrationService {
     private final JockeyProfileRepository jockeyProfileRepository;
     private final OwnerApplicationRepository ownerApplicationRepository;
     private final JockeyInvitationRepository jockeyInvitationRepository;
+    private final PrizeDistributionRepository prizeDistributionRepository;
     private final RaceEntryRepository raceEntryRepository;
+    private final RaceResultRepository raceResultRepository;
     private final RaceRepository raceRepository;
     private final UserVerificationRepository userVerificationRepository;
     private final VnpayPaymentService vnpayPaymentService;
@@ -83,7 +90,9 @@ public class OwnerTournamentRegistrationService {
             JockeyProfileRepository jockeyProfileRepository,
             OwnerApplicationRepository ownerApplicationRepository,
             JockeyInvitationRepository jockeyInvitationRepository,
+            PrizeDistributionRepository prizeDistributionRepository,
             RaceEntryRepository raceEntryRepository,
+            RaceResultRepository raceResultRepository,
             RaceRepository raceRepository,
             UserVerificationRepository userVerificationRepository,
             VnpayPaymentService vnpayPaymentService,
@@ -97,7 +106,9 @@ public class OwnerTournamentRegistrationService {
         this.jockeyProfileRepository = jockeyProfileRepository;
         this.ownerApplicationRepository = ownerApplicationRepository;
         this.jockeyInvitationRepository = jockeyInvitationRepository;
+        this.prizeDistributionRepository = prizeDistributionRepository;
         this.raceEntryRepository = raceEntryRepository;
+        this.raceResultRepository = raceResultRepository;
         this.raceRepository = raceRepository;
         this.userVerificationRepository = userVerificationRepository;
         this.vnpayPaymentService = vnpayPaymentService;
@@ -273,6 +284,65 @@ public class OwnerTournamentRegistrationService {
                         )
                 ))
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<OwnerRaceResponse> getMyRaces() {
+        User owner = getCurrentOwner();
+        List<RaceEntryRepository.OwnerRaceProjection> ownerRaces =
+                raceEntryRepository.findOwnerRaces(owner.getUserID());
+
+        if (ownerRaces.isEmpty()) {
+            return List.of();
+        }
+
+        List<Integer> raceIds = ownerRaces.stream()
+                .map(RaceEntryRepository.OwnerRaceProjection::getRaceId)
+                .distinct()
+                .toList();
+
+        Map<Integer, Long> resultCountByRaceId =
+                raceResultRepository.countResultsByRaceIds(raceIds)
+                        .stream()
+                        .collect(Collectors.toMap(
+                                RaceResultRepository.RaceResultCountProjection::getRaceId,
+                                RaceResultRepository.RaceResultCountProjection::getResultCount
+                        ));
+
+        return ownerRaces.stream()
+                .map(race -> toOwnerRaceResponse(
+                        race,
+                        resultCountByRaceId.getOrDefault(race.getRaceId(), 0L) > 0
+                ))
+                .toList();
+    }
+
+    @Transactional
+    public void markOwnerPrizeDistributionPaid(Integer prizeDistributionId) {
+        User owner = getCurrentOwner();
+        PrizeDistribution distribution = prizeDistributionRepository
+                .findByIdForUpdate(prizeDistributionId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "Prize payout row does not exist."
+                ));
+
+        if (!owner.getUserID().equals(distribution.getOwnerId())) {
+            throw new ApiException(
+                    HttpStatus.FORBIDDEN,
+                    "Prize payout row does not belong to the current owner."
+            );
+        }
+
+        if (!PrizeDistributionStatus.PENDING.equals(distribution.getStatus())) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "Only pending prize payout rows can be marked as paid."
+            );
+        }
+
+        distribution.setStatus(PrizeDistributionStatus.PAID);
+        distribution.setDistributedAt(LocalDateTime.now());
     }
 
     private User getCurrentOwner() {
@@ -532,6 +602,36 @@ public class OwnerTournamentRegistrationService {
                         )
                 )
                 .conditions(conditions)
+                .build();
+    }
+
+    private OwnerRaceResponse toOwnerRaceResponse(
+            RaceEntryRepository.OwnerRaceProjection race,
+            boolean officialResultAvailable
+    ) {
+        return OwnerRaceResponse.builder()
+                .raceEntryId(race.getRaceEntryId())
+                .raceId(race.getRaceId())
+                .tournamentId(race.getTournamentId())
+                .tournamentName(race.getTournamentName())
+                .raceName(race.getRaceName())
+                .trackName(race.getTrackName())
+                .trackImageUrl(race.getTrackImageUrl())
+                .raceStartTime(race.getRaceStartTime())
+                .raceEndTime(race.getRaceEndTime())
+                .distance(race.getDistance())
+                .maxRunners(race.getMaxRunners())
+                .raceOrder(race.getRaceOrder())
+                .raceStatus(race.getRaceStatus())
+                .startingStall(race.getStartingStall())
+                .raceEntryStatus(race.getRaceEntryStatus())
+                .registrationId(race.getRegistrationId())
+                .registrationNo(race.getRegistrationNo())
+                .horseId(race.getHorseId())
+                .horseName(race.getHorseName())
+                .jockeyId(race.getJockeyId())
+                .jockeyName(race.getJockeyName())
+                .officialResultAvailable(officialResultAvailable)
                 .build();
     }
 }

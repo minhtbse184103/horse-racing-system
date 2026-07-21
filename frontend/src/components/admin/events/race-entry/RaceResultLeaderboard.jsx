@@ -69,7 +69,18 @@ function rankTone(position) {
   };
 }
 
-export default function RaceResultLeaderboard({ race, results, totalPrize, onClose, showCloseButton = true }) {
+export default function RaceResultLeaderboard({
+  race,
+  results,
+  totalPrize,
+  onClose,
+  showCloseButton = true,
+  onMarkOwnerPayoutPaid,
+  canMarkOwnerPayoutPaid,
+  markingPrizeDistributionId,
+  markOwnerPayoutLabel = 'Mark owner payout paid',
+  ownerPayoutUnavailableLabel = 'Only your payout can be marked'
+}) {
   const { t } = useLanguage();
 
   return (
@@ -105,6 +116,9 @@ export default function RaceResultLeaderboard({ race, results, totalPrize, onClo
         {results.map((result) => {
           const distributionStatus = String(result.distributionStatus || 'NO_PRIZE').toUpperCase();
           const tone = rankTone(result.finishPosition);
+          const canMarkPayout = typeof canMarkOwnerPayoutPaid === 'function'
+            ? canMarkOwnerPayoutPaid(result)
+            : true;
 
           return (
             <article key={result.resultId} className={`group overflow-hidden rounded-lg bg-white/95 transition hover:-translate-y-0.5 ${tone.shadow}`}>
@@ -169,6 +183,20 @@ export default function RaceResultLeaderboard({ race, results, totalPrize, onClo
                     <span className="opacity-70">{t('eventResultPrizePayoutStatus')}</span>
                     <span>{formatDistributionStatus(distributionStatus)}</span>
                   </div>
+                  {typeof onMarkOwnerPayoutPaid === 'function'
+                    && result.prizeDistributionId
+                    && distributionStatus === 'PENDING' ? (
+                    <button
+                      type="button"
+                      onClick={() => onMarkOwnerPayoutPaid(result)}
+                      disabled={!canMarkPayout || markingPrizeDistributionId === result.prizeDistributionId}
+                      className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black uppercase text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {markingPrizeDistributionId === result.prizeDistributionId
+                        ? `${t('loading')}...`
+                        : canMarkPayout ? markOwnerPayoutLabel : ownerPayoutUnavailableLabel}
+                    </button>
+                  ) : null}
                 </div>
               </div>
             </article>

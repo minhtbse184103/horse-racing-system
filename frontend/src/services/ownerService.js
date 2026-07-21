@@ -147,6 +147,19 @@ export function getOpenOwnerTournaments() {
   });
 }
 
+export function getOwnerRaces() {
+  return httpRequest('/api/owner/tournament-registrations/my-races', {
+    fallbackError: 'Khong the tai danh sach Race cua ban.'
+  });
+}
+
+export function markOwnerPrizeDistributionPaid(prizeDistributionId) {
+  return httpRequest(`/api/owner/tournament-registrations/prize-distributions/${prizeDistributionId}/paid`, {
+    method: 'PUT',
+    fallbackError: 'Khong the cap nhat trang thai nhan giai.'
+  });
+}
+
 export function getOwnerTournamentDetail(tournamentId) {
   return httpRequest(`/api/tournaments/${tournamentId}`, {
     fallbackError: 'Khong the tai dieu kien va chuong trinh Race cua Tournament.'

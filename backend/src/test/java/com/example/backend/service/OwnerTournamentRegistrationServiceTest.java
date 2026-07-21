@@ -2,6 +2,7 @@ package com.example.backend.service;
 
 import com.example.backend.constant.EventStatus;
 import com.example.backend.constant.PaymentStatus;
+import com.example.backend.constant.PrizeDistributionStatus;
 import com.example.backend.constant.RaceEntryStatus;
 import com.example.backend.constant.RegistrationStatus;
 import com.example.backend.dto.request.OwnerTournamentRegistrationRequest;
@@ -11,6 +12,7 @@ import com.example.backend.dto.response.RegistrationResponse;
 import com.example.backend.entity.Horse;
 import com.example.backend.entity.JockeyProfile;
 import com.example.backend.entity.PaymentTransaction;
+import com.example.backend.entity.PrizeDistribution;
 import com.example.backend.entity.Registration;
 import com.example.backend.entity.Role;
 import com.example.backend.entity.Tournament;
@@ -21,7 +23,9 @@ import com.example.backend.repository.HorseRepository;
 import com.example.backend.repository.JockeyInvitationRepository;
 import com.example.backend.repository.JockeyProfileRepository;
 import com.example.backend.repository.OwnerApplicationRepository;
+import com.example.backend.repository.PrizeDistributionRepository;
 import com.example.backend.repository.RaceEntryRepository;
+import com.example.backend.repository.RaceResultRepository;
 import com.example.backend.repository.RaceRepository;
 import com.example.backend.repository.RegistrationRepository;
 import com.example.backend.repository.TournamentRepository;
@@ -67,7 +71,9 @@ class OwnerTournamentRegistrationServiceTest {
     @Mock private JockeyProfileRepository jockeyProfileRepository;
     @Mock private OwnerApplicationRepository ownerApplicationRepository;
     @Mock private JockeyInvitationRepository jockeyInvitationRepository;
+    @Mock private PrizeDistributionRepository prizeDistributionRepository;
     @Mock private RaceEntryRepository raceEntryRepository;
+    @Mock private RaceResultRepository raceResultRepository;
     @Mock private RaceRepository raceRepository;
     @Mock private UserVerificationRepository userVerificationRepository;
     @Mock private VnpayPaymentService vnpayPaymentService;
@@ -86,7 +92,9 @@ class OwnerTournamentRegistrationServiceTest {
                 jockeyProfileRepository,
                 ownerApplicationRepository,
                 jockeyInvitationRepository,
+                prizeDistributionRepository,
                 raceEntryRepository,
+                raceResultRepository,
                 raceRepository,
                 userVerificationRepository,
                 vnpayPaymentService,
@@ -429,6 +437,57 @@ class OwnerTournamentRegistrationServiceTest {
         );
     }
 
+    @Test
+    void markOwnerPrizeDistributionPaidUpdatesOnlyOwnedPendingRow() {
+        User owner = user(30, "owner@example.com", "OWNER");
+        PrizeDistribution distribution = prizeDistribution(301, 30, PrizeDistributionStatus.PENDING);
+        when(userRepository.findByEmail("owner@example.com"))
+                .thenReturn(Optional.of(owner));
+        when(prizeDistributionRepository.findByIdForUpdate(301))
+                .thenReturn(Optional.of(distribution));
+
+        service.markOwnerPrizeDistributionPaid(301);
+
+        assertEquals(PrizeDistributionStatus.PAID, distribution.getStatus());
+        assertNotNull(distribution.getDistributedAt());
+    }
+
+    @Test
+    void markOwnerPrizeDistributionPaidRejectsOtherOwnerRow() {
+        User owner = user(30, "owner@example.com", "OWNER");
+        PrizeDistribution distribution = prizeDistribution(301, 99, PrizeDistributionStatus.PENDING);
+        when(userRepository.findByEmail("owner@example.com"))
+                .thenReturn(Optional.of(owner));
+        when(prizeDistributionRepository.findByIdForUpdate(301))
+                .thenReturn(Optional.of(distribution));
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.markOwnerPrizeDistributionPaid(301)
+        );
+
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
+        assertEquals(PrizeDistributionStatus.PENDING, distribution.getStatus());
+    }
+
+    @Test
+    void markOwnerPrizeDistributionPaidRejectsNonPendingRow() {
+        User owner = user(30, "owner@example.com", "OWNER");
+        PrizeDistribution distribution = prizeDistribution(301, 30, PrizeDistributionStatus.PAID);
+        when(userRepository.findByEmail("owner@example.com"))
+                .thenReturn(Optional.of(owner));
+        when(prizeDistributionRepository.findByIdForUpdate(301))
+                .thenReturn(Optional.of(distribution));
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.markOwnerPrizeDistributionPaid(301)
+        );
+
+        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
+        assertEquals(PrizeDistributionStatus.PAID, distribution.getStatus());
+    }
+
     private OwnerTournamentRegistrationRequest request() {
         OwnerTournamentRegistrationRequest request =
                 new OwnerTournamentRegistrationRequest();
@@ -446,6 +505,25 @@ class OwnerTournamentRegistrationServiceTest {
         paymentTransaction.setStatus("PENDING");
         paymentTransaction.setPayUrl("https://sandbox.test/pay");
         return paymentTransaction;
+    }
+
+    private PrizeDistribution prizeDistribution(
+            Integer prizeDistributionId,
+            Integer ownerId,
+            String status
+    ) {
+        PrizeDistribution distribution = new PrizeDistribution();
+        distribution.setPrizeDistributionId(prizeDistributionId);
+        distribution.setRaceId(10);
+        distribution.setRaceEntryId(20);
+        distribution.setRacePrizeId(30);
+        distribution.setOwnerId(ownerId);
+        distribution.setJockeyId(40);
+        distribution.setTotalPrize(BigDecimal.valueOf(1_000_000));
+        distribution.setOwnerAmount(BigDecimal.valueOf(800_000));
+        distribution.setJockeyAmount(BigDecimal.valueOf(200_000));
+        distribution.setStatus(status);
+        return distribution;
     }
 
     private void stubBaseLookups(

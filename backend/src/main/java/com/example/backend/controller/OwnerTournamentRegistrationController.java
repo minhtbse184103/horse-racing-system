@@ -2,7 +2,7 @@ package com.example.backend.controller;
 
 import com.example.backend.dto.request.OwnerTournamentRegistrationRequest;
 import com.example.backend.dto.response.OwnerRegistrationPaymentResponse;
-import com.example.backend.dto.response.RegistrationResponse;
+import com.example.backend.dto.response.OwnerRaceResponse;
 import com.example.backend.dto.response.TournamentResponse;
 import com.example.backend.service.OwnerTournamentRegistrationService;
 import jakarta.validation.Valid;
@@ -12,8 +12,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -34,6 +37,19 @@ public class OwnerTournamentRegistrationController {
     @GetMapping("/open-tournaments")
     public List<TournamentResponse> getOpenTournaments() {
         return registrationService.getOpenTournaments();
+    }
+
+    @GetMapping("/my-races")
+    public List<OwnerRaceResponse> getMyRaces() {
+        return registrationService.getMyRaces();
+    }
+
+    @PutMapping("/prize-distributions/{prizeDistributionId}/paid")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void markPrizeDistributionPaid(
+            @PathVariable Integer prizeDistributionId
+    ) {
+        registrationService.markOwnerPrizeDistributionPaid(prizeDistributionId);
     }
 
     @PostMapping

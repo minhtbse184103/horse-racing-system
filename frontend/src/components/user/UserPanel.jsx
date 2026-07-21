@@ -2,12 +2,16 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   Bell,
   CircleDollarSign,
+  CalendarDays,
+  Clock3,
   Flag,
   Gauge,
   Home,
   Medal,
   Radio,
+  Search,
   ShieldCheck,
+  SlidersHorizontal,
   Trophy,
   UserRound,
   Wallet
@@ -80,6 +84,30 @@ function raceDateTime(race, language = 'vi') {
 
 function canViewLiveRace(race) {
   return String(race?.status || '').toUpperCase() === 'IN_PROGRESS';
+}
+
+function raceStatus(race) {
+  return String(race?.status || 'UNKNOWN').toUpperCase();
+}
+
+function isUpcomingRace(race) {
+  const start = raceStart(race);
+  return start && start >= new Date() && !['COMPLETED', 'CANCELLED'].includes(raceStatus(race));
+}
+
+function getRaceImageUrl(race) {
+  return String(race?.trackImageUrl || race?.trackImagePath || '').trim();
+}
+
+function raceSearchText(race) {
+  return [
+    race?.raceName,
+    race?.trackName,
+    race?.tournamentName,
+    race?.status,
+    race?.raceOrder,
+    race?.distance
+  ].filter(Boolean).join(' ').toLowerCase();
 }
 
 function DashboardHome({ accountType, onGoProfile, races, bettingEvents, isLoading, error }) {
@@ -182,54 +210,173 @@ function PlaceholderSection({ title, message, icon }) {
 function RaceListSection({ title, races, isLoading, resultsOnly = false }) {
   const { t, language } = useLanguage();
   const [liveRaceId, setLiveRaceId] = useState(null);
+  const [query, setQuery] = useState('');
+  const [statusFilter, setStatusFilter] = useState(resultsOnly ? 'COMPLETED' : 'ALL');
   const visibleRaces = resultsOnly
     ? races.filter((race) => String(race?.status || '').toUpperCase() === 'COMPLETED')
     : races;
+  const statusOptions = useMemo(() => {
+    const values = Array.from(new Set(visibleRaces.map((race) => raceStatus(race)).filter(Boolean))).sort();
+    return ['ALL', ...values];
+  }, [visibleRaces]);
+  const filteredRaces = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    return visibleRaces.filter((race) => {
+      const matchesStatus = statusFilter === 'ALL' || raceStatus(race) === statusFilter;
+      const matchesQuery = !needle || raceSearchText(race).includes(needle);
+      return matchesStatus && matchesQuery;
+    });
+  }, [query, statusFilter, visibleRaces]);
+  const liveRaces = visibleRaces.filter(canViewLiveRace);
+  const upcomingRaces = visibleRaces.filter(isUpcomingRace);
+  const completedRaces = visibleRaces.filter((race) => raceStatus(race) === 'COMPLETED');
+  const nextRace = [...upcomingRaces].sort((left, right) => raceStart(left) - raceStart(right))[0] || null;
+  const activeLiveRace = liveRaces.find((race) => race.raceId === liveRaceId) || liveRaces[0] || null;
 
   function toggleLiveRace(raceId) {
     setLiveRaceId((current) => (current === raceId ? null : raceId));
   }
 
   return (
-    <section className="owner-panel">
-      <div className="owner-panel-header">
-        <div>
+    <section className="spectator-races-page">
+      <div className="spectator-races-hero">
+        <div className="spectator-races-hero-copy">
           <p className="eyebrow">{title}</p>
-          <h2>{title}</h2>
-          <p>{t('spectatorRaceApiData')}</p>
+          <h2>{resultsOnly ? t('spectatorNavResults') : t('spectatorUpcomingCards')}</h2>
+          <p>{resultsOnly ? t('spectatorNoRaceData', { name: title.toLowerCase() }) : t('spectatorRaceApiData')}</p>
         </div>
-        <Flag size={22} className="text-brown-500" />
+        <div className="spectator-races-hero-icon" aria-hidden="true">
+          {resultsOnly ? <Medal size={26} /> : <Flag size={26} />}
+        </div>
       </div>
+
+      <div className="spectator-race-stats">
+        <div className="spectator-race-stat-card primary">
+          <span>{resultsOnly ? t('spectatorNavResults') : t('spectatorTotalRaces')}</span>
+          <strong>{isLoading ? '...' : visibleRaces.length}</strong>
+          <small>{resultsOnly ? t('spectatorNoRaceData', { name: title.toLowerCase() }) : t('spectatorTotalRacesDesc')}</small>
+        </div>
+        <div className="spectator-race-stat-card">
+          <span>{language === 'vi' ? 'Đang trực tiếp' : 'Live now'}</span>
+          <strong>{isLoading ? '...' : liveRaces.length}</strong>
+          <small>{formatDisplayLabel('IN_PROGRESS')}</small>
+        </div>
+        <div className="spectator-race-stat-card">
+          <span>{t('spectatorUpcomingRaces')}</span>
+          <strong>{isLoading ? '...' : upcomingRaces.length}</strong>
+          <small>{nextRace ? raceDateTime(nextRace, language) : t('notUpdated')}</small>
+        </div>
+        <div className="spectator-race-stat-card">
+          <span>{t('spectatorNavResults')}</span>
+          <strong>{isLoading ? '...' : completedRaces.length}</strong>
+          <small>{formatDisplayLabel('COMPLETED')}</small>
+        </div>
+      </div>
+
+      {!resultsOnly && activeLiveRace && (
+        <section className="spectator-live-feature">
+          <div className="spectator-live-feature-header">
+            <div>
+              <p className="eyebrow">{t('eventRaceLiveShow')}</p>
+              <h3>{activeLiveRace.raceName}</h3>
+              <span>{activeLiveRace.trackName || t('spectatorTrackMissing')} · {raceDateTime(activeLiveRace, language)}</span>
+            </div>
+            <button
+              className="primary-button compact-button"
+              type="button"
+              aria-expanded={liveRaceId === activeLiveRace.raceId}
+              onClick={() => toggleLiveRace(activeLiveRace.raceId)}
+            >
+              <Radio size={15} />
+              {liveRaceId === activeLiveRace.raceId ? t('eventRaceLiveHide') : t('eventRaceLiveShow')}
+            </button>
+          </div>
+          <RaceLiveView raceId={activeLiveRace.raceId} active={liveRaceId === activeLiveRace.raceId} />
+        </section>
+      )}
+
+      <section className="spectator-race-toolbar">
+        <label className="spectator-race-search">
+          <Search size={18} />
+          <span className="sr-only">Search races</span>
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={language === 'vi' ? 'Tìm Race, Tournament, đường đua...' : 'Search Race, Tournament, track...'}
+          />
+        </label>
+        <label className="spectator-race-filter">
+          <SlidersHorizontal size={16} />
+          <span className="sr-only">Filter status</span>
+          <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+            {statusOptions.map((status) => (
+              <option key={status} value={status}>
+                {status === 'ALL' ? t('spectatorFilterAll') : formatDisplayLabel(status)}
+              </option>
+            ))}
+          </select>
+        </label>
+      </section>
+
       {isLoading ? (
-        <div className="admin-alert success" role="status">{t('spectatorLoadingRaces')}</div>
+        <div className="spectator-races-loading" role="status">
+          {[0, 1, 2].map((item) => <span key={item} />)}
+        </div>
       ) : visibleRaces.length === 0 ? (
         <EmptyState title={t('spectatorNoRaceData', { name: title.toLowerCase() })} message={t('spectatorNoMatchingRaces')} />
+      ) : filteredRaces.length === 0 ? (
+        <EmptyState title={t('spectatorNoMatchingRaces')} message={t('spectatorNoRaceData', { name: title.toLowerCase() })} />
       ) : (
-        <div className="grid gap-3 md:grid-cols-2">
-          {visibleRaces.map((race) => (
-            <article className="rounded-lg border border-brown-700/10 bg-white/70 p-4" key={race.raceId}>
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <strong className="block truncate text-brown-900">{race.raceName}</strong>
-                  <p className="mt-1 text-sm font-semibold text-slate-500">{race.trackName || t('spectatorTrackMissing')}</p>
-                  <small className="mt-2 block font-bold text-slate-500">{raceDateTime(race, language)}</small>
+        <div className="spectator-race-grid">
+          {filteredRaces.map((race) => {
+            const imageUrl = getRaceImageUrl(race);
+            const live = canViewLiveRace(race);
+
+            return (
+              <article className={live ? 'spectator-race-card live' : 'spectator-race-card'} key={race.raceId}>
+                <div className={`spectator-race-image ${imageUrl ? 'has-image' : ''}`}>
+                  {imageUrl ? <img src={imageUrl} alt={race.trackName || race.raceName} /> : <Flag size={24} />}
                 </div>
-                <StatusBadge status={race.status} />
-              </div>
-              {canViewLiveRace(race) && (
-                <button
-                  className="outline-button compact-button mt-4 inline-flex items-center gap-2"
-                  type="button"
-                  aria-expanded={liveRaceId === race.raceId}
-                  onClick={() => toggleLiveRace(race.raceId)}
-                >
-                  <Radio size={15} />
-                  {liveRaceId === race.raceId ? t('eventRaceLiveHide') : t('eventRaceLiveShow')}
-                </button>
-              )}
-              <RaceLiveView raceId={race.raceId} active={liveRaceId === race.raceId} />
-            </article>
-          ))}
+                <div className="spectator-race-body">
+                  <div className="spectator-race-title-row">
+                    <div className="min-w-0">
+                      <span className="spectator-race-kicker">{race.tournamentName || `Race #${race.raceId}`}</span>
+                      <h3>{race.raceName}</h3>
+                    </div>
+                    <StatusBadge status={race.status} />
+                  </div>
+                  <div className="spectator-race-meta">
+                    <span><CalendarDays size={15} /> {raceDateTime(race, language)}</span>
+                    <span><Flag size={15} /> {race.trackName || t('spectatorTrackMissing')}</span>
+                    <span><Trophy size={15} /> {t('spectatorRunners', { entries: race.entryCount ?? 0, max: race.maxRunners ?? 0 })}</span>
+                    <span><Clock3 size={15} /> {race.distance ? `${race.distance}m` : t('notUpdated')}</span>
+                  </div>
+                </div>
+                <div className="spectator-race-actions">
+                  {live ? (
+                    <button
+                      className="primary-button compact-button"
+                      type="button"
+                      aria-expanded={liveRaceId === race.raceId}
+                      onClick={() => toggleLiveRace(race.raceId)}
+                    >
+                      <Radio size={15} />
+                      {liveRaceId === race.raceId ? t('eventRaceLiveHide') : t('eventRaceLiveShow')}
+                    </button>
+                  ) : (
+                    <span className="spectator-race-muted-action">
+                      {resultsOnly ? t('spectatorNavResults') : formatDisplayLabel(race.status)}
+                    </span>
+                  )}
+                </div>
+                {live && liveRaceId === race.raceId && (
+                  <div className="spectator-race-live-inline">
+                    <RaceLiveView raceId={race.raceId} active />
+                  </div>
+                )}
+              </article>
+            );
+          })}
         </div>
       )}
     </section>

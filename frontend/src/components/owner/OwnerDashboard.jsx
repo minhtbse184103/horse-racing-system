@@ -1,9 +1,11 @@
 import { useState } from 'react';
+import { BarChart3, Flag, HeartPulse, RefreshCw, ScrollText, UserRound } from 'lucide-react';
 import AppShell from '../common/AppShell';
 import OwnerOverview from './OwnerOverview';
 import OwnerHorseForm from './OwnerHorseForm';
 import OwnerHorseTable from './OwnerHorseTable';
 import OwnerRegisterRace from './OwnerRegisterRace';
+import OwnerRaces from './OwnerRaces';
 import OwnerProfile from './OwnerProfile';
 import { useHorses } from '../../hooks/useHorses';
 import { useOwnerDashboard } from '../../hooks/useOwnerDashboard';
@@ -14,10 +16,11 @@ import OwnerPendingDashboard from './OwnerPendingDashboard';
 import { useLanguage } from '../../context/LanguageContext';
 
 const ownerNavItems = [
-  { key: 'overview', labelKey: 'ownerNavOverview', icon: '📊' },
-  { key: 'horses', labelKey: 'ownerNavHorses', icon: '🐎' },
-  { key: 'register', labelKey: 'ownerNavRegister', icon: '📝' },
-  { key: 'profile', labelKey: 'ownerNavProfile', icon: '👤' }
+  { key: 'overview', labelKey: 'ownerNavOverview', icon: BarChart3 },
+  { key: 'horses', labelKey: 'ownerNavHorses', icon: HeartPulse },
+  { key: 'register', labelKey: 'ownerNavRegister', icon: ScrollText },
+  { key: 'races', labelKey: 'ownerNavRaces', icon: Flag },
+  { key: 'profile', labelKey: 'ownerNavProfile', icon: UserRound }
 ];
 
 function getErrorText(error, fallback) {
@@ -25,7 +28,7 @@ function getErrorText(error, fallback) {
 }
 
 function isOwnerSection(section) {
-  return section === 'overview' || section === 'horses' || section === 'register' || section === 'profile';
+  return section === 'overview' || section === 'horses' || section === 'register' || section === 'races' || section === 'profile';
 }
 
 function hasRegistrationPaymentReturn(params) {
@@ -368,6 +371,7 @@ function ApprovedOwnerDashboard({ currentUser, onLogout, onUserUpdated }) {
       onLogout={onLogout}
       headerAction={
         <button className="refresh-button" type="button" onClick={reloadOwnerData} disabled={isLoading}>
+          <RefreshCw size={15} aria-hidden="true" />
           {isLoading ? `${t('loading')}...` : t('refresh')}
         </button>
       }
@@ -560,6 +564,10 @@ function ApprovedOwnerDashboard({ currentUser, onLogout, onUserUpdated }) {
 
       {activeSection === 'register' && (
         <OwnerRegisterRace horses={horses} onBackToHorses={() => setActiveSection('horses')} />
+      )}
+
+      {activeSection === 'races' && (
+        <OwnerRaces currentUser={currentUser} />
       )}
 
       {activeSection === 'profile' && (
