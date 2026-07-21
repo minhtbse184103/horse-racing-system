@@ -23,6 +23,7 @@ import BettingPanel from './BettingPanel';
 import StatCard from '../common/StatCard';
 import LanguageToggle from '../common/LanguageToggle';
 import RaceLiveView from '../shared/live/RaceLiveView';
+import RaceResultLeaderboard from '../admin/events/race-entry/RaceResultLeaderboard';
 import { useLanguage } from '../../context/LanguageContext';
 import { formatDate, formatDisplayLabel, getUserRole } from '../../lib';
 import { getMyOwnerApplication, submitOwnerApplication } from '../../services/ownerApplicationService';
@@ -32,7 +33,7 @@ import {
   submitJockeyVerification
 } from '../../services/jockeyVerificationService';
 import { getMyKyc, needsKycSubmission } from '../../services/kycService';
-import { getRaces } from '../../services/eventService';
+import { getRaceResults, getRaces } from '../../services/eventService';
 import { getBettingEvents } from '../../services/bettingService';
 
 const navItems = [
@@ -88,6 +89,14 @@ function canViewLiveRace(race) {
 
 function raceStatus(race) {
   return String(race?.status || 'UNKNOWN').toUpperCase();
+}
+
+function getRaceDisplayName(race) {
+  return race?.raceName || race?.name || `Race #${race?.raceId || '-'}`;
+}
+
+function getTotalRecordedPrize(results) {
+  return results.reduce((sum, result) => sum + Number(result.prizeMoney || result.totalPrize || 0), 0);
 }
 
 function isUpcomingRace(race) {
@@ -212,6 +221,10 @@ function RaceListSection({ title, races, isLoading, resultsOnly = false }) {
   const [liveRaceId, setLiveRaceId] = useState(null);
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState(resultsOnly ? 'COMPLETED' : 'ALL');
+  const [resultRace, setResultRace] = useState(null);
+  const [resultRows, setResultRows] = useState([]);
+  const [resultError, setResultError] = useState('');
+  const [isResultLoading, setIsResultLoading] = useState(false);
   const visibleRaces = resultsOnly
     ? races.filter((race) => String(race?.status || '').toUpperCase() === 'COMPLETED')
     : races;
@@ -235,6 +248,23 @@ function RaceListSection({ title, races, isLoading, resultsOnly = false }) {
 
   function toggleLiveRace(raceId) {
     setLiveRaceId((current) => (current === raceId ? null : raceId));
+  }
+
+  async function openOfficialResult(race) {
+    if (!race?.raceId) return;
+    setResultRace(race);
+    setResultRows([]);
+    setResultError('');
+    setIsResultLoading(true);
+
+    try {
+      const response = await getRaceResults(race.raceId);
+      setResultRows(Array.isArray(response) ? response : []);
+    } catch (error) {
+      setResultError(error?.message || (language === 'vi' ? 'Không thể tải kết quả Race.' : 'Unable to load race result.'));
+    } finally {
+      setIsResultLoading(false);
+    }
   }
 
   return (
@@ -353,7 +383,16 @@ function RaceListSection({ title, races, isLoading, resultsOnly = false }) {
                   </div>
                 </div>
                 <div className="spectator-race-actions">
-                  {live ? (
+                  {resultsOnly ? (
+                    <button
+                      className="primary-button compact-button"
+                      type="button"
+                      onClick={() => openOfficialResult(race)}
+                    >
+                      <Medal size={15} />
+                      {language === 'vi' ? 'Xem kết quả' : 'View result'}
+                    </button>
+                  ) : live ? (
                     <button
                       className="primary-button compact-button"
                       type="button"
@@ -377,6 +416,43 @@ function RaceListSection({ title, races, isLoading, resultsOnly = false }) {
               </article>
             );
           })}
+        </div>
+      )}
+
+      {resultRace && (
+        <div className="owner-race-result-backdrop" role="presentation" onClick={() => setResultRace(null)}>
+          <section
+            className="owner-race-result-modal spectator-race-result-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label={language === 'vi' ? 'Kết quả Race chính thức' : 'Official race result'}
+            onClick={(event) => event.stopPropagation()}
+          >
+            {isResultLoading ? (
+              <div className="admin-alert success" role="status">
+                {language === 'vi' ? 'Đang tải kết quả Race...' : 'Loading race result...'}
+              </div>
+            ) : resultError ? (
+              <div className="admin-alert error" role="alert">
+                <span>{resultError}</span>
+                <button className="table-button" type="button" onClick={() => openOfficialResult(resultRace)}>
+                  {language === 'vi' ? 'Thử lại' : 'Retry'}
+                </button>
+              </div>
+            ) : resultRows.length === 0 ? (
+              <div className="admin-alert success" role="status">
+                {language === 'vi' ? 'Chưa có kết quả chính thức cho Race này.' : 'No official result is available for this race yet.'}
+              </div>
+            ) : (
+              <RaceResultLeaderboard
+                race={{ ...resultRace, name: getRaceDisplayName(resultRace) }}
+                results={resultRows}
+                totalPrize={getTotalRecordedPrize(resultRows)}
+                onClose={() => setResultRace(null)}
+                userRole="SPECTATOR"
+              />
+            )}
+          </section>
         </div>
       )}
     </section>
