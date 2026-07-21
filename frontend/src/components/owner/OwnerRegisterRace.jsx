@@ -5,13 +5,15 @@ import {
   CalendarDays,
   Check,
   CheckCircle2,
+  ChevronDown,
+  ChevronRight,
   CircleDollarSign,
   Clock,
   Eye,
-  Filter,
   Flag,
   MapPin,
   RefreshCw,
+  Search,
   Send,
   ShieldCheck,
   Trophy,
@@ -36,7 +38,6 @@ import { formatDate, formatDisplayLabel, getHorseId, getHorseName, getUserId, ge
 import ConfirmModal from '../common/ConfirmModal';
 import { useLanguage } from '../../context/LanguageContext';
 
-const INVITATION_STATUS_OPTIONS = ['ALL', 'PENDING', 'ACCEPTED', 'APPROVED', 'REJECTED', 'CANCELLED', 'EXPIRED'];
 const OWNER_CANCELLED_INVITATION_STORAGE_KEY = 'owner_cancelled_jockey_invitations';
 const OWNER_REGISTRATION_PAYMENT_PENDING_KEY = 'owner_registration_payment_pending';
 
@@ -116,7 +117,14 @@ function getRegistrationOpenAt(tournament) {
 }
 
 function getTournamentImageUrl(tournament) {
-  const value = String(tournament?.venueImageUrl || tournament?.venueImagePath || '').trim();
+  const value = String(tournament?.venueImageSrc || tournament?.venueImageUrl || tournament?.venueImagePath || '').trim();
+  if (!value) return '';
+  if (/^(https?:|data:|blob:)/i.test(value)) return value;
+  return `${API_BASE_URL}${value.startsWith('/') ? '' : '/'}${value}`;
+}
+
+function getRaceImageUrl(race) {
+  const value = String(race?.trackImageSrc || race?.trackImageUrl || race?.trackImagePath || '').trim();
   if (!value) return '';
   if (/^(https?:|data:|blob:)/i.test(value)) return value;
   return `${API_BASE_URL}${value.startsWith('/') ? '' : '/'}${value}`;
@@ -214,19 +222,6 @@ function getHorseRegistrations(horse) {
   return Array.isArray(registrations) ? registrations : [];
 }
 
-function hasRegisteredHorse(horse) {
-  return Number(horse?.registrationCount || horse?.registrationsCount || 0) > 0
-    || getHorseRegistrations(horse).some((registration) => {
-      const status = firstDefined(
-        registration.status,
-        registration.approvalStatus,
-        registration.registrationStatus,
-        registration.paymentStatus
-      );
-      return isLockedRegistrationStatus(status);
-    });
-}
-
 function isAvailableTournament(tournament) {
   const status = String(tournament.status || '').toUpperCase();
   const deadline = getDateTime(getRegistrationDeadline(tournament));
@@ -236,13 +231,6 @@ function isAvailableTournament(tournament) {
   if (isCancelled) return false;
   if (deadline && deadline.getTime() < Date.now()) return false;
   return isOpen;
-}
-
-function getInvitationRegistrationDeadline(invitation, tournamentById) {
-  return invitation.registrationDeadline
-    ?? invitation.tournamentRegistrationDeadline
-    ?? getRegistrationDeadline(tournamentById.get(String(invitation.tournamentId)))
-    ?? null;
 }
 
 function getInvitationJockeyId(invitation) {
@@ -337,10 +325,6 @@ function isAlreadyPaidError(message) {
     || normalized.includes('already paid')
     || normalized.includes('đã được thanh toán')
     || normalized.includes('đã thanh toán');
-}
-
-function isRegistrationSummaryRow(item) {
-  return item?.rowType === 'registered-horse';
 }
 
 function isActiveHorseInvitation(invitation) {
@@ -793,7 +777,6 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
   const [ownerHorses, setOwnerHorses] = useState([]);
   const [jockeys, setJockeys] = useState([]);
   const [invitations, setInvitations] = useState([]);
-  const [statusFilter, setStatusFilter] = useState('ALL');
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
@@ -807,8 +790,12 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
   const [message, setMessage] = useState('');
   const [detailJockey, setDetailJockey] = useState(null);
   const [detailHorse, setDetailHorse] = useState(null);
+  const [detailRace, setDetailRace] = useState(null);
+  const [previewTournamentImage, setPreviewTournamentImage] = useState(null);
   const [cancelInvitationTarget, setCancelInvitationTarget] = useState(null);
   const [horseLockReasons, setHorseLockReasons] = useState({});
+  const [tournamentSearch, setTournamentSearch] = useState('');
+  const [expandedTournamentId, setExpandedTournamentId] = useState('');
   const paymentReturnHandledRef = useRef(false);
   const tournamentDetailsRef = useRef({});
   const tournamentDetailRequestsRef = useRef(new Map());
@@ -826,6 +813,17 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
     });
     return [...byId.values()];
   }, [openTournaments, tournaments]);
+  const filteredDisplayTournaments = useMemo(() => {
+    const keyword = tournamentSearch.trim().toLowerCase();
+    if (!keyword) return displayTournaments;
+
+    return displayTournaments.filter((tournament) => [
+      getTournamentName(tournament),
+      getTournamentVenue(tournament, t),
+      tournament.description,
+      tournament.status
+    ].filter(Boolean).join(' ').toLowerCase().includes(keyword));
+  }, [displayTournaments, t, tournamentSearch]);
   const availableTournaments = useMemo(() => {
     const source = openTournaments.length > 0 ? openTournaments : tournaments.filter(isAvailableTournament);
     return source.filter((tournament) => getTournamentId(tournament));
@@ -940,37 +938,6 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
     () => getRegistrationDeadline(selectedTournament) ? toDateLocalValue(getRegistrationDeadline(selectedTournament)) : '',
     [selectedTournament]
   );
-  const filteredInvitations = useMemo(() => {
-    if (statusFilter === 'ALL') return invitations;
-    return invitations.filter((invitation) => String(invitation.status || '').toUpperCase() === statusFilter);
-  }, [invitations, statusFilter]);
-  const registeredHorseSummaryRows = useMemo(() => {
-    if (statusFilter !== 'ALL') return [];
-
-    const invitationHorseIds = new Set(
-      invitations
-        .map((invitation) => getInvitationHorseId(invitation))
-        .filter((horseId) => horseId !== undefined && horseId !== null && horseId !== '')
-        .map((horseId) => String(horseId))
-    );
-
-    return ownerHorseList
-      .filter((horse) => hasRegisteredHorse(horse) && !invitationHorseIds.has(String(getHorseId(horse))))
-      .map((horse) => ({
-        rowType: 'registered-horse',
-        horseId: getHorseId(horse),
-        horseName: getHorseName(horse),
-        jockeyName: t('ownerRaceMissingInviteData'),
-        tournamentName: t('ownerRaceAlreadyRegistered'),
-        status: 'REGISTERED',
-        registrationStatus: 'REGISTERED',
-        createdAt: horse.updatedAt || horse.createdAt
-      }));
-  }, [invitations, ownerHorseList, statusFilter, t]);
-  const displayedInvitationRows = useMemo(
-    () => [...filteredInvitations, ...registeredHorseSummaryRows],
-    [filteredInvitations, registeredHorseSummaryRows]
-  );
   const payableInvitations = useMemo(() => invitations
     .filter((invitation) => isAcceptedInvitation(invitation) || hasRegisteredInvitation(invitation))
     .sort((left, right) => {
@@ -979,14 +946,15 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
       if (paidDifference !== 0) return paidDifference;
       return String(right.createdAt || '').localeCompare(String(left.createdAt || ''));
     }), [invitations]);
-  const paidInvitationCount = useMemo(
-    () => payableInvitations.filter((invitation) => isPaidStatus(getInvitationPaymentStatus(invitation))).length,
-    [payableInvitations]
-  );
-  const pendingPaymentCount = useMemo(
-    () => payableInvitations.filter(canStartInvitationPayment).length,
-    [payableInvitations]
-  );
+  const paymentByTournamentId = useMemo(() => {
+    const byTournament = new Map();
+    payableInvitations.forEach((invitation) => {
+      const tournamentId = String(getInvitationTournamentId(invitation) || '');
+      if (!tournamentId || byTournament.has(tournamentId)) return;
+      byTournament.set(tournamentId, invitation);
+    });
+    return byTournament;
+  }, [payableInvitations]);
   const inviteReady = Boolean(
     formValues.tournamentId
       && formValues.horseId
@@ -1008,6 +976,27 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
   const isRegistrationPaid = isPaidStatus(selectedPaymentStatus);
   const isRegistrationUnpaid = isUnpaidStatus(selectedPaymentStatus);
   const showPaymentResult = isPaymentFlowActive && Boolean(paymentResult || isRegistrationPaid);
+  const selectedRegistrationCode = firstDefined(
+    registrationResult?.registrationNo,
+    selectedAcceptedInvitation?.registrationNo,
+    paymentResult?.registrationId ? `#${paymentResult.registrationId}` : '',
+    selectedAcceptedInvitation?.registrationId ? `#${selectedAcceptedInvitation.registrationId}` : ''
+  );
+  const selectedInvitationStatus = selectedAcceptedInvitation?.status || '';
+  const selectedRegistrationState = isRegistrationPaid
+    ? {
+        title: t('ownerRaceStatePaid'),
+        description: t('ownerRaceStatePaidDesc')
+      }
+    : selectedAcceptedInvitation
+      ? {
+          title: t('ownerRaceStatePaymentRequired'),
+          description: t('ownerRaceStatePaymentRequiredDesc')
+        }
+      : {
+          title: t('ownerRaceStateTracked'),
+          description: t('ownerRaceStateTrackedDesc')
+        };
   const canSubmitRegistration = Boolean(
     registrationValues.tournamentId
       && registrationValues.horseId
@@ -1023,6 +1012,16 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
   useEffect(() => {
     loadPageData();
   }, []);
+
+  useEffect(() => {
+    if (isLoading || isInviteFlowActive || isPaymentFlowActive) return;
+    displayTournaments
+      .map((tournament) => String(getTournamentId(tournament) || ''))
+      .filter(Boolean)
+      .forEach((tournamentId) => {
+        loadTournamentDetail(tournamentId);
+      });
+  }, [displayTournaments, isInviteFlowActive, isLoading, isPaymentFlowActive]);
 
   useEffect(() => {
     if (!currentPendingInvitation || formValues.jockeyId) return;
@@ -1153,6 +1152,43 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
     resetFeedback();
   }
 
+  function toggleTournamentExpansion(event, tournamentId, expanded) {
+    event.preventDefault();
+    event.stopPropagation();
+    setExpandedTournamentId(expanded ? '' : tournamentId);
+  }
+
+  function openTournamentImagePreview(event, tournament, imageUrl) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!imageUrl) {
+      toggleTournamentExpansion(event, String(getTournamentId(tournament)), expandedTournamentId === String(getTournamentId(tournament)));
+      return;
+    }
+    setPreviewTournamentImage({
+      src: imageUrl,
+      title: getTournamentName(tournament) || t('ownerRaceTournamentLabel'),
+      venue: getTournamentVenue(tournament, t)
+    });
+  }
+
+  function openRaceImagePreview(event, race, tournament, imageUrl) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!imageUrl) return;
+    setPreviewTournamentImage({
+      src: imageUrl,
+      title: getRaceName(race, tournament, t),
+      venue: getRaceTrack(race, tournament, t)
+    });
+  }
+
+  function openRaceDetail(event, race, tournament, raceOrder) {
+    event.preventDefault();
+    event.stopPropagation();
+    setDetailRace({ race, tournament, raceOrder });
+  }
+
   async function goNextStep() {
     resetFeedback();
 
@@ -1208,7 +1244,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
   async function selectTournament(tournament) {
     const tournamentId = String(getTournamentId(tournament));
     setFlowMode('invite');
-    setWizardStep(1);
+    setWizardStep(2);
     setFormValues((current) => ({ ...current, tournamentId, horseId: '', jockeyId: '' }));
     setRegistrationValues((current) => ({ ...current, tournamentId, horseId: '', jockeyId: '' }));
     setFormErrors((current) => ({ ...current, tournamentId: '', horseId: '' }));
@@ -1569,39 +1605,194 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
                 <p>{t('ownerRaceNoTournamentDesc')}</p>
               </div>
             ) : (
-              <div className="tournament-card-grid">
-                {displayTournaments.map((tournament) => {
+              <div className="owner-tournament-workspace-list">
+                <div className="owner-tournament-workspace-toolbar">
+                  <label className="owner-tournament-search">
+                    <Search size={17} />
+                    <input
+                      value={tournamentSearch}
+                      onChange={(event) => setTournamentSearch(event.target.value)}
+                      placeholder={t('ownerRaceSearchTournament')}
+                    />
+                    {tournamentSearch && (
+                      <button type="button" onClick={() => setTournamentSearch('')} aria-label={t('eventCommonClear')}>
+                        <X size={14} />
+                      </button>
+                    )}
+                  </label>
+                  <button className="outline-button owner-tournament-refresh" type="button" onClick={loadPageData} disabled={isLoading}>
+                    <RefreshCw size={16} /> {t('refresh')}
+                  </button>
+                  <span className="owner-count-pill">{t('ownerRaceRows', { count: `${filteredDisplayTournaments.length} / ${displayTournaments.length}` })}</span>
+                </div>
+
+                {filteredDisplayTournaments.length === 0 ? (
+                  <div className="owner-empty-state compact-empty">
+                    <div><Search size={34} /></div>
+                    <h3>{t('ownerRaceNoTournamentMatch')}</h3>
+                    <p>{t('ownerRaceNoTournamentMatchDesc')}</p>
+                  </div>
+                ) : filteredDisplayTournaments.map((tournament) => {
                   const tournamentId = String(getTournamentId(tournament));
+                  const tournamentDetail = tournamentDetailsById[tournamentId];
+                  const tournamentForCard = tournamentDetail ? { ...tournament, ...tournamentDetail } : tournament;
+                  const tournamentRaces = getTournamentRaces(tournamentForCard);
+                  const tournamentPaymentInvitation = paymentByTournamentId.get(tournamentId);
+                  const paymentStatus = getInvitationPaymentStatus(tournamentPaymentInvitation);
+                  const hasTournamentPayment = Boolean(tournamentPaymentInvitation);
+                  const canPayTournament = hasTournamentPayment && canStartInvitationPayment(tournamentPaymentInvitation);
+                  const hasPaidTournament = hasTournamentPayment && isPaidStatus(paymentStatus);
                   const selected = String(formValues.tournamentId) === tournamentId;
-                  const imageUrl = getTournamentImageUrl(tournament);
+                  const imageUrl = getTournamentImageUrl(tournamentForCard);
                   const maxRegistrations = Number(tournament.maxRegistrations || tournament.maxRegistration || 0);
                   const approvedCount = Number(tournament.approvedRegistrationCount || tournament.registrationCount || 0);
                   const canSelectTournament = isAvailableTournament(tournament);
+                  const expanded = expandedTournamentId === tournamentId;
+                  const tournamentConditions = getTournamentConditions(tournamentForCard) || [];
 
                   return (
-                    <article className={`tournament-choice-card ${selected ? 'selected' : ''}`} key={tournamentId}>
-                      <div className="tournament-choice-media">
-                        {imageUrl ? <img src={imageUrl} alt={getTournamentName(tournament)} /> : <Flag size={36} />}
-                        <span><Clock size={13} /> {formatStatus(tournament.status || (canSelectTournament ? 'OPEN_FOR_REGISTRATION' : 'REGISTRATION_CLOSED'), t)}</span>
-                      </div>
-                      <div className="tournament-choice-body">
-                        <h3>{getTournamentName(tournament) || `${t('ownerRaceTournamentLabel')} ${tournamentId}`}</h3>
-                        <p><MapPin size={14} /> {getTournamentVenue(tournament, t)}</p>
-                        <div className="tournament-choice-stats">
+                    <article className={`owner-tournament-workspace-row ${expanded ? 'expanded' : ''} ${selected ? 'selected' : ''}`} key={tournamentId}>
+                      <div className="owner-tournament-workspace-summary">
+                        <button
+                          type="button"
+                          className="owner-tournament-expand-button"
+                          onClick={(event) => toggleTournamentExpansion(event, tournamentId, expanded)}
+                          aria-expanded={expanded}
+                          aria-label={expanded ? t('eventCommonClose') : t('ownerRaceViewDetails')}
+                        >
+                          {expanded ? <ChevronDown size={17} /> : <ChevronRight size={17} />}
+                        </button>
+
+                        <button
+                          type="button"
+                          className="owner-tournament-workspace-image"
+                          onClick={(event) => openTournamentImagePreview(event, tournamentForCard, imageUrl)}
+                          aria-label={imageUrl ? t('eventWizardImagePreviewAlt') : t('ownerRaceViewDetails')}
+                        >
+                          {imageUrl ? <img src={imageUrl} alt={getTournamentName(tournament)} /> : <Flag size={24} />}
+                        </button>
+
+                        <div className="owner-tournament-workspace-title">
+                          <span>{t('ownerRaceTournamentLabel')} #{tournamentId}</span>
+                          <h3>{getTournamentName(tournament) || `${t('ownerRaceTournamentLabel')} ${tournamentId}`}</h3>
+                          <p><MapPin size={14} /> {getTournamentVenue(tournament, t)}</p>
+                        </div>
+
+                        <div className="owner-tournament-workspace-metrics">
                           <span>{t('ownerRaceDateRange')} <strong>{formatDateRange(tournament.startDate, tournament.endDate, t)}</strong></span>
-                          <span>{t('ownerRaceDeadline')} <strong>{formatDateTime(getRegistrationDeadline(tournament), t, language)}</strong></span>
                           <span>{t('ownerRaceEntryFee')} <strong>{formatCurrency(tournament.entryFee)}</strong></span>
                           <span>{t('ownerRaceCapacity')} <strong>{maxRegistrations ? `${approvedCount} / ${t('ownerRaceSlots', { count: maxRegistrations })}` : t('ownerRaceApplications', { count: approvedCount })}</strong></span>
                         </div>
-                        <div className="tournament-choice-actions">
-                          <button type="button" className="outline-button" onClick={() => selectTournament(tournament)}>
-                            <Eye size={15} /> {t('ownerRaceViewDetails')}
-                          </button>
+
+                        <div className="owner-tournament-workspace-status">
+                          <StatusBadge status={tournament.status || (canSelectTournament ? 'OPEN_FOR_REGISTRATION' : 'REGISTRATION_CLOSED')} />
+                        </div>
+
+                        <div className="owner-tournament-workspace-actions">
                           <button type="button" className="primary-button compact-primary" onClick={() => selectTournament(tournament)} disabled={!canSelectTournament}>
-                            {selected ? t('ownerRaceSelected') : canSelectTournament ? t('ownerRaceSelectTournament') : t('ownerRaceNotOpen')}
+                            <ArrowRight size={15} /> {selected ? t('ownerRaceSelected') : canSelectTournament ? t('ownerRaceSelectTournament') : t('ownerRaceNotOpen')}
+                          </button>
+                          <button
+                            type="button"
+                            className={`outline-button tournament-payment-button ${canPayTournament ? 'payment-due' : hasPaidTournament ? 'payment-paid' : ''}`}
+                            onClick={() => hasTournamentPayment && fillRegistrationFromInvitation(tournamentPaymentInvitation)}
+                            disabled={!hasTournamentPayment || (!canPayTournament && !hasPaidTournament)}
+                            title={!hasTournamentPayment ? t('ownerRacePaymentUnavailable') : undefined}
+                          >
+                            {hasPaidTournament ? <Eye size={15} /> : <CircleDollarSign size={15} />}
+                            {hasPaidTournament ? t('ownerRaceViewPaymentDetails') : canPayTournament ? t('ownerRacePay') : t('ownerRacePaymentUnavailable')}
                           </button>
                         </div>
                       </div>
+
+                      {expanded && (
+                        <div className="owner-tournament-workspace-detail">
+                          <div className="owner-tournament-workspace-detail-grid">
+                            <span><Clock size={15} /> {t('ownerRaceRegistrationOpen')} <strong>{formatDateTime(getRegistrationOpenAt(tournamentForCard), t, language)}</strong></span>
+                            <span><Clock size={15} /> {t('ownerRaceRegistrationClose')} <strong>{formatDateTime(getRegistrationDeadline(tournamentForCard), t, language)}</strong></span>
+                            <span><Trophy size={15} /> {t('ownerRaceProgram')} <strong>{t('ownerRaceRaceTotal', { count: tournamentRaces.length || (tournament.raceCount ?? 0) })}</strong></span>
+                            <span><CheckCircle2 size={15} /> {t('ownerRaceApprovedRegistrations')} <strong>{approvedCount}</strong></span>
+                          </div>
+
+                          <div className="owner-tournament-workspace-condition-panel">
+                            <div className="owner-tournament-registration-race-preview-head">
+                              <span><ShieldCheck size={14} /> {t('ownerRaceParticipationConditions')}</span>
+                              <strong>{t('ownerRaceConditionCount', { count: tournamentConditions.length })}</strong>
+                            </div>
+                            {tournamentConditions.length === 0 ? (
+                              <p className="owner-tournament-registration-race-empty">{t('ownerRaceNoExtraConditions')}</p>
+                            ) : (
+                              <div className="owner-tournament-workspace-condition-list">
+                                {tournamentConditions.map((condition, index) => (
+                                  <span key={condition.conditionId ?? condition.id ?? `${getConditionType(condition)}-${index}`}>
+                                    <Flag size={13} /> {formatTournamentCondition(condition, t)}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          <div className="owner-tournament-workspace-race-panel" aria-label={t('ownerRaceProgram')}>
+                            <div className="owner-tournament-registration-race-preview-head">
+                              <span><Trophy size={14} /> {t('ownerRaceProgram')}</span>
+                              <strong>{t('ownerRaceRaceTotal', { count: tournamentRaces.length || (tournament.raceCount ?? 0) })}</strong>
+                            </div>
+                            {tournamentDetailLoadingById[tournamentId] && !tournamentDetail ? (
+                              <p className="owner-tournament-registration-race-empty">{t('ownerRaceTournamentDetailLoading')}</p>
+                            ) : tournamentDetailErrorsById[tournamentId] ? (
+                              <button className="owner-tournament-registration-race-retry" type="button" onClick={() => loadTournamentDetail(tournamentId, { force: true })}>
+                                <RefreshCw size={14} /> {t('ownerRaceRetryDetail')}
+                              </button>
+                            ) : tournamentRaces.length === 0 ? (
+                              <p className="owner-tournament-registration-race-empty">{t('ownerRaceNoRaceConfigured')}</p>
+                            ) : (
+                              <div className="owner-tournament-workspace-race-list">
+                                {tournamentRaces.map((race, index) => {
+                                  const raceImageUrl = getRaceImageUrl(race);
+
+                                  return (
+                                    <div
+                                      key={race.raceId ?? race.id ?? index}
+                                      role="button"
+                                      tabIndex={0}
+                                      className="owner-tournament-workspace-race-card"
+                                      onClick={(event) => openRaceDetail(event, race, tournamentForCard, race.raceOrder ?? index + 1)}
+                                      onKeyDown={(event) => {
+                                        if (event.key === 'Enter' || event.key === ' ') {
+                                          openRaceDetail(event, race, tournamentForCard, race.raceOrder ?? index + 1);
+                                        }
+                                      }}
+                                      aria-label={`${t('ownerRaceViewDetails')}: ${getRaceName(race, tournamentForCard, t)}`}
+                                    >
+                                      <button
+                                        type="button"
+                                        className={`owner-tournament-workspace-race-image ${raceImageUrl ? 'has-image' : ''}`}
+                                        onClick={(event) => openRaceImagePreview(event, race, tournamentForCard, raceImageUrl)}
+                                        disabled={!raceImageUrl}
+                                        aria-label={raceImageUrl ? t('eventWizardRaceTrackImagePreviewAlt') : t('eventWizardRaceTrackImage')}
+                                      >
+                                        {raceImageUrl ? <img src={raceImageUrl} alt={getRaceTrack(race, tournamentForCard, t)} /> : <Flag size={18} />}
+                                      </button>
+                                      <div className="owner-tournament-workspace-race-order">
+                                        {t('ownerRaceRaceOrdinal', { number: race.raceOrder ?? index + 1 })}
+                                      </div>
+                                      <div className="owner-tournament-workspace-race-main">
+                                        <strong>{getRaceName(race, tournamentForCard, t)}</strong>
+                                        <small>{getRaceTrack(race, tournamentForCard, t)} · {formatDateTime(race.raceStartTime || race.startTime, t, language)}</small>
+                                      </div>
+                                      <div className="owner-tournament-workspace-race-meta">
+                                        <span>{getRaceDistance(race, t)}</span>
+                                        <span>{t('ownerRaceSlots', { count: race.maxRunners ?? t('notUpdated') })}</span>
+                                        <StatusBadge status={race.status || 'OPEN_FOR_REGISTRATION'} />
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
                     </article>
                   );
                 })}
@@ -1994,6 +2185,19 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
                 <X size={16} /> {t('close')}
               </button>
             </div>
+            <div className="owner-tournament-registration-state">
+              <div>
+                <p className="eyebrow">{t('ownerRaceRegistrationState')}</p>
+                <h4>{selectedRegistrationState.title}</h4>
+                <small>{selectedRegistrationState.description}</small>
+              </div>
+              <div className="owner-tournament-registration-state-badges">
+                {selectedRegistrationCode && <span>{t('ownerRaceRegistrationNoLabel')} <strong>{selectedRegistrationCode}</strong></span>}
+                {selectedInvitationStatus && <span>{t('ownerRaceInvitationStatusLabel')} <StatusBadge status={selectedInvitationStatus} /></span>}
+                {selectedApprovalStatus && <span>{t('ownerRaceApprovalStatusLabel')} <StatusBadge status={selectedApprovalStatus} /></span>}
+                {selectedPaymentStatus && <span>{t('ownerRacePaymentStatusLabel')} <StatusBadge status={selectedPaymentStatus} /></span>}
+              </div>
+            </div>
             <dl className="owner-payment-result-details">
               <div><dt>{t('ownerRaceTournamentLabel')}</dt><dd>{selectedTournament ? getTournamentName(selectedTournament) : 'N/A'}</dd></div>
               <div><dt>{t('ownerRaceLocation')}</dt><dd>{selectedTournament ? getTournamentVenue(selectedTournament, t) : 'N/A'}</dd></div>
@@ -2034,6 +2238,20 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
               <div><span>{t('ownerRaceHorseLabel')}</span><strong>{selectedHorse ? getHorseName(selectedHorse) : t('notUpdated')}</strong></div>
               <div><span>Jockey</span><strong>{selectedAcceptedInvitation ? getInvitationJockeyName(selectedAcceptedInvitation) : t('notUpdated')}</strong></div>
               <div><span>{t('ownerRaceEntryFee')}</span><strong>{selectedTournament ? formatCurrency(selectedTournament.entryFee) : '0 VND'}</strong></div>
+            </div>
+
+            <div className="owner-tournament-registration-state">
+              <div>
+                <p className="eyebrow">{t('ownerRaceRegistrationState')}</p>
+                <h4>{selectedRegistrationState.title}</h4>
+                <small>{selectedRegistrationState.description}</small>
+              </div>
+              <div className="owner-tournament-registration-state-badges">
+                {selectedRegistrationCode && <span>{t('ownerRaceRegistrationNoLabel')} <strong>{selectedRegistrationCode}</strong></span>}
+                {selectedInvitationStatus && <span>{t('ownerRaceInvitationStatusLabel')} <StatusBadge status={selectedInvitationStatus} /></span>}
+                {selectedApprovalStatus && <span>{t('ownerRaceApprovalStatusLabel')} <StatusBadge status={selectedApprovalStatus} /></span>}
+                {selectedPaymentStatus && <span>{t('ownerRacePaymentStatusLabel')} <StatusBadge status={selectedPaymentStatus} /></span>}
+              </div>
             </div>
 
             <div className="registration-default-status owner-payment-status-row">
@@ -2080,170 +2298,13 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
           </section>
           ) : null}
 
-          <section className="owner-panel overview-only">
-            <div className="owner-panel-header">
-              <div>
-                <h2>{t('ownerRacePaymentReadyTitle')}</h2>
-                <p>{t('ownerRacePaymentReadyDesc')}</p>
-              </div>
-              <div className="owner-payment-summary" aria-label={t('ownerRacePaymentSummary')}>
-                <span className="owner-count-pill payment-pending-count">{t('ownerRacePendingPaymentCount', { count: pendingPaymentCount })}</span>
-                <span className="owner-count-pill payment-paid-count">{t('ownerRacePaidPaymentCount', { count: paidInvitationCount })}</span>
-              </div>
-            </div>
-
-            {isLoading ? (
-              <p className="table-empty">{t('ownerRaceLoadingAcceptedInvites')}</p>
-            ) : payableInvitations.length === 0 ? (
-              <p className="table-empty">{t('ownerRaceNoPayableInvite')}</p>
-            ) : (
-              <div className="table-wrapper">
-                <table className="user-table owner-invitation-table">
-                  <thead>
-                    <tr>
-                      <th>Jockey</th>
-                      <th>{t('ownerRaceHorseLabel')}</th>
-                      <th>{t('ownerRaceTournamentColumn')}</th>
-                      <th>{t('ownerRaceRegistrationColumn')}</th>
-                      <th>{t('ownerRacePaymentColumn')}</th>
-                      <th>{t('ownerRaceActionColumn')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {payableInvitations.map((invitation) => {
-                      const invitationId = getInvitationId(invitation);
-                      const paymentStatus = getInvitationPaymentStatus(invitation);
-                      const approvalStatus = getInvitationApprovalStatus(invitation);
-                      const hasRegistration = hasRegistrationStatus(invitation);
-                      const isInvitationPaid = isPaidStatus(paymentStatus);
-                      const canStartPayment = canStartInvitationPayment(invitation);
-
-                      return (
-                        <tr className={isInvitationPaid ? 'payment-row-paid' : canStartPayment ? 'payment-row-pending' : ''} key={invitationId || `${invitation.tournamentId}-${invitation.jockeyId}`}>
-                          <td><strong>{getInvitationJockeyName(invitation)}</strong></td>
-                          <td>{invitation.horseName || invitation.horseId || 'N/A'}</td>
-                          <td>
-                            <strong>{invitation.tournamentName || invitation.tournamentId || 'N/A'}</strong>
-                            <small className="table-subtext">{formatDateRange(invitation.tournamentStartDate, invitation.tournamentEndDate, t)}</small>
-                          </td>
-                          <td>
-                            {hasRegistration ? (
-                              <>
-                                <strong>{invitation.registrationNo || `#${invitation.registrationId}`}</strong>
-                                <small className="table-subtext">{t('ownerRaceApproval')}: {approvalStatus ? formatStatus(approvalStatus, t) : t('notUpdated')}</small>
-                              </>
-                            ) : <span className="readonly-note">{t('ownerRaceRegistrationNotCreated')}</span>}
-                          </td>
-                          <td>
-                            <StatusBadge status={paymentStatus || 'NOT_CREATED'} />
-                            <small className="table-subtext">{isInvitationPaid
-                              ? t('ownerRacePaymentCompletedHint')
-                              : canStartPayment ? t('ownerRacePaymentActionRequired') : t('ownerRacePaymentUnavailable')}</small>
-                          </td>
-                          <td>
-                            {isInvitationPaid ? (
-                              <button type="button" className="table-button payment-detail-button" onClick={() => fillRegistrationFromInvitation(invitation)}>
-                                <Eye size={15} /> {t('ownerRaceViewPaymentDetails')}
-                              </button>
-                            ) : canStartPayment ? (
-                              <button type="button" className="primary-button compact-primary payment-action-button" onClick={() => fillRegistrationFromInvitation(invitation)}>
-                                <ArrowRight size={15} /> {hasRegistration ? t('ownerRacePay') : t('ownerRaceCreateAndPay')}
-                              </button>
-                            ) : <span className="readonly-note">{t('ownerRacePaymentUnavailable')}</span>}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </section>
-
-          <section className="owner-panel overview-only">
-            <div className="owner-panel-header">
-              <div>
-                <h2>{t('ownerRaceMyInvitesTitle')}</h2>
-                <p>{t('ownerRaceMyInvitesDesc')}</p>
-              </div>
-              <div className="inline-filter-row">
-                <Filter size={16} />
-                <select className="input compact-select" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
-                  {INVITATION_STATUS_OPTIONS.map((status) => <option key={status} value={status}>{status === 'ALL' ? t('allStatuses') : formatStatus(status, t)}</option>)}
-                </select>
-                <span className="owner-count-pill">{t('ownerRaceRows', { count: `${displayedInvitationRows.length} / ${invitations.length + registeredHorseSummaryRows.length}` })}</span>
-              </div>
-            </div>
-
-            {isLoading ? (
-              <p className="table-empty">{t('ownerRaceLoadingInvites')}</p>
-            ) : displayedInvitationRows.length === 0 ? (
-              <p className="table-empty">{invitations.length === 0 && registeredHorseSummaryRows.length === 0 ? t('ownerRaceNoInvites') : t('ownerRaceNoInviteMatch')}</p>
-            ) : (
-              <div className="table-wrapper">
-                <table className="user-table owner-invitation-table">
-                  <thead>
-                    <tr>
-                      <th>Jockey</th>
-                      <th>{t('ownerRaceHorseLabel')}</th>
-                      <th>{t('ownerRaceTournamentColumn')}</th>
-                      <th>Deadline</th>
-                      <th>{t('ownerRaceInviteColumn')}</th>
-                      <th>{t('ownerRaceRegistrationColumn')}</th>
-                      <th>{t('ownerRaceActionColumn')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {displayedInvitationRows.map((invitation) => {
-                      const invitationId = getInvitationId(invitation);
-                      const isSummaryRow = isRegistrationSummaryRow(invitation);
-                      const status = String(invitation.status || '').toUpperCase();
-                      const registrationStatus = getInvitationApprovalStatus(invitation);
-                      const canCancel = status === 'PENDING';
-
-                      return (
-                        <tr key={invitationId || `${invitation.rowType || 'invitation'}-${invitation.tournamentId || 'registered'}-${invitation.horseId}-${invitation.jockeyId || 'none'}`}>
-                          <td>
-                            <strong>{getInvitationJockeyName(invitation)}</strong>
-                            <small className="table-subtext">{t('ownerRaceCreatedAt')}: {formatDate(invitation.createdAt)}</small>
-                          </td>
-                          <td>{invitation.horseName || invitation.horseId || 'N/A'}</td>
-                          <td>
-                            <strong>{invitation.tournamentName || invitation.tournamentId || 'N/A'}</strong>
-                            <small className="table-subtext">{formatDateRange(invitation.tournamentStartDate, invitation.tournamentEndDate, t)}</small>
-                          </td>
-                          <td>{formatDateTime(getInvitationRegistrationDeadline(invitation, tournamentById), t, language)}</td>
-                          <td><StatusBadge status={invitation.status} /></td>
-                          <td><StatusBadge status={invitation.registrationStatus || t('ownerRaceNone')} /></td>
-                          <td>
-                            <div className="invitation-action-group">
-                              {canCancel ? (
-                                <button type="button" className="table-button danger-action" onClick={() => handleCancel(invitation)} disabled={actingId === invitationId}>
-                                  {t('cancel')}
-                                </button>
-                              ) : isSummaryRow ? (
-                                <span className="readonly-note">{t('ownerRaceRecorded')}</span>
-                              ) : (
-                                <span className="invitation-no-action" title={t('ownerRaceNone')} aria-label={t('ownerRaceNone')}>—</span>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </section>
-
           {isInviteFlowActive && (
             <div className="owner-panel wizard-navigation">
               <button className="outline-button wizard-nav-button" type="button" onClick={clearTournamentSelection} disabled={isSaving || isRegistering}>
                 {t('cancel')}
               </button>
               <div className="wizard-navigation-actions">
-                <button className="outline-button wizard-nav-button" type="button" onClick={goPreviousStep} disabled={wizardStep <= 1 || isSaving || isRegistering}>
+                <button className="outline-button wizard-nav-button" type="button" onClick={goPreviousStep} disabled={wizardStep <= 2 || isSaving || isRegistering}>
                   {t('previous')}
                 </button>
                 {wizardStep < 3 && (
@@ -2354,6 +2415,133 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
           </div>
         );
       })()}
+
+      {detailRace && (() => {
+        const { race, tournament, raceOrder } = detailRace;
+        const raceImageUrl = getRaceImageUrl(race);
+        const racePrizes = Array.isArray(race?.prizes)
+          ? [...race.prizes].sort((left, right) => Number(left.rankPosition ?? left.rank ?? 0) - Number(right.rankPosition ?? right.rank ?? 0))
+          : [];
+        const prizeCount = racePrizes.length || Number(race?.prizeCount || 0);
+        const entryCount = Number(race?.entryCount ?? race?.entries ?? 0);
+        const maxRunners = race?.maxRunners ?? race?.capacity ?? tournament?.maxRegistrations ?? t('notUpdated');
+        return (
+          <div className="owner-race-detail-backdrop" role="presentation" onClick={() => setDetailRace(null)}>
+            <section className="owner-race-detail-modal" role="dialog" aria-modal="true" aria-labelledby="owner-race-detail-title" onClick={(event) => event.stopPropagation()}>
+              <div className="owner-race-detail-hero">
+                <div className={`owner-race-detail-image ${raceImageUrl ? 'has-image' : ''}`}>
+                  {raceImageUrl ? <img src={raceImageUrl} alt={getRaceTrack(race, tournament, t)} /> : <Flag size={32} />}
+                </div>
+                <div className="owner-race-detail-title">
+                  <p className="eyebrow">{t('ownerRaceRaceOrdinal', { number: raceOrder })}</p>
+                  <h3 id="owner-race-detail-title">{getRaceName(race, tournament, t)}</h3>
+                  <span><MapPin size={15} /> {getRaceTrack(race, tournament, t)}</span>
+                </div>
+                <StatusBadge status={race?.status || 'OPEN_FOR_REGISTRATION'} />
+                <button type="button" className="drawer-close-button" onClick={() => setDetailRace(null)} aria-label={t('eventCommonClose')}>
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="owner-race-detail-grid">
+                <article>
+                  <CalendarDays size={18} />
+                  <span>{t('ownerRaceDateTime')}</span>
+                  <strong>{formatDateTime(race?.raceStartTime || race?.startTime, t, language)}</strong>
+                </article>
+                <article>
+                  <Clock size={18} />
+                  <span>{language === 'vi' ? 'Thời gian kết thúc' : 'End time'}</span>
+                  <strong>{formatDateTime(race?.raceEndTime || race?.endTime, t, language)}</strong>
+                </article>
+                <article>
+                  <Flag size={18} />
+                  <span>{t('ownerRaceDistance')}</span>
+                  <strong>{getRaceDistance(race, t)}</strong>
+                </article>
+                <article>
+                  <Users size={18} />
+                  <span>{t('ownerRaceHorseCount')}</span>
+                  <strong>{entryCount} / {maxRunners}</strong>
+                </article>
+                <article>
+                  <Trophy size={18} />
+                  <span>{language === 'vi' ? 'Hạng giải thưởng' : 'Prize ranks'}</span>
+                  <strong>{prizeCount || t('notUpdated')}</strong>
+                </article>
+                <article>
+                  <CircleDollarSign size={18} />
+                  <span>{t('ownerRaceEntryFee')}</span>
+                  <strong>{formatCurrency(tournament?.entryFee)}</strong>
+                </article>
+              </div>
+
+              <div className="owner-race-detail-note">
+                <ShieldCheck size={16} />
+                <p>{t('ownerRaceAllTournamentsDesc')}</p>
+              </div>
+
+              <section className="owner-race-prize-detail-section">
+                <div className="owner-race-prize-detail-header">
+                  <div>
+                    <p className="eyebrow">{language === 'vi' ? 'Cấu hình giải thưởng' : 'Prize configuration'}</p>
+                    <h4>{language === 'vi' ? 'Chi tiết hạng giải' : 'Prize rank details'}</h4>
+                  </div>
+                  <span>{prizeCount ? `${prizeCount} ${language === 'vi' ? 'hạng' : 'ranks'}` : t('notUpdated')}</span>
+                </div>
+                {racePrizes.length > 0 ? (
+                  <div className="owner-race-prize-detail-list">
+                    {racePrizes.map((prize, index) => {
+                      const rank = prize.rankPosition ?? prize.rank ?? index + 1;
+                      const ownerPercent = Number(prize.ownerPercent ?? prize.ownerPercentage ?? 0);
+                      const jockeyPercent = Number(prize.jockeyPercent ?? prize.jockeyPercentage ?? 0);
+                      return (
+                        <article key={`${rank}-${prize.amount ?? index}`} className="owner-race-prize-detail-card">
+                          <div className="owner-race-prize-rank">#{rank}</div>
+                          <div>
+                            <span>{language === 'vi' ? 'Tiền thưởng' : 'Prize money'}</span>
+                            <strong>{formatCurrency(prize.amount)}</strong>
+                          </div>
+                          <div>
+                            <span>Owner</span>
+                            <strong>{ownerPercent}%</strong>
+                          </div>
+                          <div>
+                            <span>Jockey</span>
+                            <strong>{jockeyPercent}%</strong>
+                          </div>
+                        </article>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="owner-race-prize-empty">{language === 'vi' ? 'Race này chưa có thông tin hạng giải.' : 'No prize rank details configured for this Race.'}</p>
+                )}
+              </section>
+            </section>
+          </div>
+        );
+      })()}
+
+      {previewTournamentImage && (
+        <div className="owner-image-preview-backdrop" role="presentation" onClick={() => setPreviewTournamentImage(null)}>
+          <section className="owner-image-preview-modal" role="dialog" aria-modal="true" aria-labelledby="owner-tournament-image-title" onClick={(event) => event.stopPropagation()}>
+            <div className="owner-image-preview-header">
+              <div>
+                <p className="eyebrow">{t('eventWizardVenueImage')}</p>
+                <h3 id="owner-tournament-image-title">{previewTournamentImage.title}</h3>
+                <span>{previewTournamentImage.venue}</span>
+              </div>
+              <button type="button" className="drawer-close-button" onClick={() => setPreviewTournamentImage(null)} aria-label={t('close')}>
+                <X size={18} />
+              </button>
+            </div>
+            <div className="owner-image-preview-frame">
+              <img src={previewTournamentImage.src} alt={previewTournamentImage.title} />
+            </div>
+          </section>
+        </div>
+      )}
 
       {detailJockey && (() => {
         const stats = getJockeyStats(detailJockey, t);

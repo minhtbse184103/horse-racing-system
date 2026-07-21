@@ -25,7 +25,7 @@ const ownerItems = [
   { label: 'Dashboard', to: '/owner/dashboard', icon: Home, end: true },
   { label: 'My Horses', to: '/owner/dashboard#horses', icon: Trophy },
   { label: 'Register Horse', to: '/owner/dashboard#register-horse', icon: ScrollText },
-  { label: 'Race Registration', to: '/owner/dashboard#race-registration', icon: Flag },
+  { label: 'Tournament Registration', to: '/owner/dashboard#race-registration', icon: Flag },
   { label: 'Race Results', to: '/owner/dashboard#results', icon: Medal },
   { label: 'Profile', to: '/profile', icon: User }
 ];
