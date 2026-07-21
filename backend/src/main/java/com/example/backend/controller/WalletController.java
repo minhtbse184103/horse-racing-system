@@ -4,6 +4,7 @@ import com.example.backend.dto.baseResponseDTO.ApiResponse;
 import com.example.backend.dto.request.WalletDepositRequest;
 import com.example.backend.dto.response.WalletDepositResponse;
 import com.example.backend.dto.response.WalletResponse;
+import com.example.backend.dto.response.WalletTransactionResponse;
 import com.example.backend.service.WalletService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -18,6 +19,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/wallets")
@@ -37,6 +40,20 @@ public class WalletController {
         return ResponseEntity.ok(ApiResponse.<WalletResponse>builder()
                 .status(true)
                 .message("Lấy thông tin ví thành công.")
+                .data(response)
+                .build());
+    }
+
+    @GetMapping("/me/transactions")
+    @PreAuthorize("hasRole('SPECTATOR')")
+    @Operation(summary = "Xem lịch sử giao dịch ví của người dùng hiện tại")
+    public ResponseEntity<ApiResponse<List<WalletTransactionResponse>>> getMyWalletTransactions(
+            Authentication authentication
+    ) {
+        List<WalletTransactionResponse> response = walletService.getMyWalletTransactions(authentication.getName());
+        return ResponseEntity.ok(ApiResponse.<List<WalletTransactionResponse>>builder()
+                .status(true)
+                .message("Lấy lịch sử giao dịch ví thành công.")
                 .data(response)
                 .build());
     }

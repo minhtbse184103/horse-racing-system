@@ -8,7 +8,8 @@ import {
   ReceiptText,
   RefreshCw,
   Ticket,
-  Wallet
+  Wallet,
+  X
 } from 'lucide-react';
 import { formatDate, formatDisplayLabel, formatNumber } from '../../lib';
 import { getMyWallet } from '../../services/walletService';
@@ -47,17 +48,23 @@ function StatusBadge({ status }) {
 
 function ProductBadge({ code }) {
   const label = String(code || '').toUpperCase();
-  return <span className="rounded-md border border-brown-700/10 bg-cream-200 px-2.5 py-1 text-xs font-black text-brown-700">{label}</span>;
+  return <span className="bet-product-badge">{label}</span>;
+}
+
+function ticketOdds(ticket) {
+  if (ticket?.finalOdds) return Number(ticket.finalOdds).toFixed(2);
+  if (ticket?.estimatedOddsAtBet) return Number(ticket.estimatedOddsAtBet).toFixed(2);
+  return '-';
 }
 
 function PanelStat({ label, value, icon: Icon }) {
   return (
-    <div className="rounded-lg border border-brown-700/10 bg-white/75 p-4 shadow-sm">
-      <div className="flex items-center justify-between gap-3">
-        <span className="text-xs font-extrabold uppercase tracking-wide text-slate-500">{label}</span>
-        {Icon && <Icon className="text-brown-500" size={18} />}
+    <div className="spectator-bet-stat-card">
+      <div>
+        <span>{label}</span>
+        <strong>{value}</strong>
       </div>
-      <strong className="mt-2 block text-2xl font-black text-brown-900">{value}</strong>
+      {Icon && <div className="spectator-bet-stat-icon"><Icon size={18} /></div>}
     </div>
   );
 }
@@ -75,15 +82,15 @@ function BettingEventList({ events, selectedProduct, setSelectedProduct, onSelec
   }, [events, selectedProduct]);
 
   return (
-    <section className="owner-panel">
-      <div className="owner-panel-header">
+    <section className="spectator-bet-section">
+      <div className="spectator-bet-section-header">
         <div>
           <p className="eyebrow">{t('spectatorBettingEyebrow')}</p>
           <h2>{t('spectatorBettingTitle')}</h2>
           <p>{t('spectatorBettingDesc')}</p>
         </div>
         <select
-          className="rounded-lg border border-brown-700/15 bg-white px-4 py-3 text-sm font-extrabold text-brown-900 outline-none"
+          className="spectator-bet-select"
           value={selectedProduct}
           onChange={(event) => setSelectedProduct(event.target.value)}
         >
@@ -96,52 +103,52 @@ function BettingEventList({ events, selectedProduct, setSelectedProduct, onSelec
       </div>
 
       {filtered.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-brown-700/20 bg-white/60 p-8 text-center">
-          <CircleDollarSign className="mx-auto text-brown-500" size={30} />
-          <h3 className="mt-3 text-xl font-black text-brown-900">{t('spectatorNoBetEvents')}</h3>
-          <p className="mt-2 font-medium text-slate-500">{t('spectatorNoBetEventsDesc')}</p>
+        <div className="spectator-bet-empty">
+          <CircleDollarSign size={30} />
+          <h3>{t('spectatorNoBetEvents')}</h3>
+          <p>{t('spectatorNoBetEventsDesc')}</p>
         </div>
       ) : (
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="spectator-bet-event-grid">
           {filtered.map((event) => {
             const isOpen = String(event.status).toUpperCase() === 'OPEN';
             return (
-              <article key={event.betEventId} className="rounded-lg border border-brown-700/10 bg-white/75 p-5 shadow-sm">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
+              <article key={event.betEventId} className={isOpen ? 'spectator-bet-event-card open' : 'spectator-bet-event-card'}>
+                <div className="spectator-bet-event-top">
+                  <div>
+                    <div className="spectator-bet-badge-row">
                       <ProductBadge code={event.productCode} />
                       <StatusBadge status={event.status} />
                     </div>
-                    <h3 className="mt-3 truncate text-xl font-black text-brown-900">{event.raceName}</h3>
-                    <p className="mt-1 truncate text-sm font-bold text-slate-500">{event.trackName}</p>
+                    <h3>{event.raceName}</h3>
+                    <p>{event.trackName}</p>
                   </div>
-                  <div className="grid size-12 shrink-0 place-items-center rounded-lg bg-brown-900 text-gold-400">
+                  <div className="spectator-bet-event-icon">
                     <Ticket size={22} />
                   </div>
                 </div>
 
-                <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-lg bg-cream-200/60 p-3">
-                    <span className="text-xs font-extrabold uppercase text-slate-500">{t('spectatorRaceStart')}</span>
-                    <strong className="mt-1 block text-sm text-brown-900">{dateTime(event.raceStartTime)}</strong>
+                <div className="spectator-bet-event-meta">
+                  <div>
+                    <span>{t('spectatorRaceStart')}</span>
+                    <strong>{dateTime(event.raceStartTime)}</strong>
                   </div>
-                  <div className="rounded-lg bg-cream-200/60 p-3">
-                    <span className="text-xs font-extrabold uppercase text-slate-500">{t('spectatorBetClose')}</span>
-                    <strong className="mt-1 block text-sm text-brown-900">{dateTime(event.closeAt)}</strong>
+                  <div>
+                    <span>{t('spectatorBetClose')}</span>
+                    <strong>{dateTime(event.closeAt)}</strong>
                   </div>
-                  <div className="rounded-lg bg-cream-200/60 p-3">
-                    <span className="text-xs font-extrabold uppercase text-slate-500">{t('spectatorTotalPool')}</span>
-                    <strong className="mt-1 block text-sm text-brown-900">{money(event.totalStake)}</strong>
+                  <div>
+                    <span>{t('spectatorTotalPool')}</span>
+                    <strong>{money(event.totalStake)}</strong>
                   </div>
-                  <div className="rounded-lg bg-cream-200/60 p-3">
-                    <span className="text-xs font-extrabold uppercase text-slate-500">{t('spectatorDailyMax')}</span>
-                    <strong className="mt-1 block text-sm text-brown-900">{money(event.maxDailyStake)}</strong>
+                  <div>
+                    <span>{t('spectatorDailyMax')}</span>
+                    <strong>{money(event.maxDailyStake)}</strong>
                   </div>
                 </div>
 
                 <button
-                  className="primary-button owner-hero-action mt-5"
+                  className={isOpen ? 'spectator-bet-primary-action' : 'spectator-bet-primary-action disabled'}
                   type="button"
                   onClick={() => onSelect(event.betEventId)}
                   disabled={!isOpen}
@@ -166,27 +173,27 @@ function BetEventDetail({ event, wallet, selectedEntryId, setSelectedEntryId, st
   const availableBalance = Number(wallet?.availableBalance ?? 0);
 
   return (
-    <section className="owner-stack">
-      <button className="outline-button w-fit" type="button" onClick={onBack}>
+    <section className="spectator-bet-detail-page">
+      <button className="spectator-bet-back-button" type="button" onClick={onBack}>
         <ArrowLeft size={16} /> Quay lại
       </button>
 
-      <section className="owner-panel">
-        <div className="owner-panel-header">
+      <section className="spectator-bet-section">
+        <div className="spectator-bet-section-header">
           <div>
             <p className="eyebrow">Bet Slip</p>
             <h2>{event.raceName}</h2>
             <p>{event.trackName} · {dateTime(event.raceStartTime)}</p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="spectator-bet-badge-row">
             <ProductBadge code={event.productCode} />
             <StatusBadge status={event.status} />
           </div>
         </div>
 
-        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
-          <div className="min-w-0 overflow-hidden rounded-lg border border-brown-700/10 bg-white/65">
-            <div className="grid grid-cols-[5rem_minmax(0,1.2fr)_minmax(0,1fr)_9rem_8rem] gap-3 border-b border-brown-700/10 px-4 py-3 text-xs font-black uppercase text-slate-500 max-lg:hidden">
+        <div className="spectator-bet-slip-layout">
+          <div className="spectator-bet-entry-list">
+            <div className="spectator-bet-entry-head">
               <span>Stall</span>
               <span>Horse</span>
               <span>Jockey</span>
@@ -202,7 +209,7 @@ function BetEventDetail({ event, wallet, selectedEntryId, setSelectedEntryId, st
                     key={entry.raceEntryId}
                     type="button"
                     onClick={() => setSelectedEntryId(entry.raceEntryId)}
-                    className={`grid w-full gap-3 px-4 py-4 text-left transition lg:grid-cols-[5rem_minmax(0,1.2fr)_minmax(0,1fr)_9rem_8rem] ${selected ? 'bg-gold-400/12 ring-2 ring-inset ring-gold-400/40' : 'bg-white/45 hover:bg-white/80'}`}
+                    className={selected ? 'spectator-bet-entry-row selected' : 'spectator-bet-entry-row'}
                   >
                     <span className="font-black text-brown-900">#{entry.startingStall}</span>
                     <span className="min-w-0">
@@ -218,21 +225,21 @@ function BetEventDetail({ event, wallet, selectedEntryId, setSelectedEntryId, st
             </div>
           </div>
 
-          <aside className="h-fit rounded-lg border border-brown-700/10 bg-white/80 p-5 shadow-sm lg:sticky lg:top-5">
-            <div className="flex items-center justify-between gap-3">
-              <h3 className="text-xl font-black text-brown-900">Phiếu cược</h3>
-              <ReceiptText className="text-brown-500" size={22} />
+          <aside className="spectator-bet-slip-card">
+            <div className="spectator-bet-slip-title">
+              <h3>Phiếu cược</h3>
+              <ReceiptText size={22} />
             </div>
 
-            <div className="mt-4 grid gap-3">
-              <div className="rounded-lg bg-cream-200/60 p-3">
-                <span className="text-xs font-extrabold uppercase text-slate-500">Ngựa đã chọn</span>
-                <strong className="mt-1 block text-brown-900">{selectedEntry?.horseName || 'Chưa chọn'}</strong>
+            <div className="spectator-bet-slip-stack">
+              <div className="spectator-bet-slip-selected">
+                <span>Ngựa đã chọn</span>
+                <strong>{selectedEntry?.horseName || 'Chưa chọn'}</strong>
               </div>
               <label className="grid gap-2">
                 <span className="text-sm font-extrabold text-brown-900">Stake</span>
                 <input
-                  className="rounded-lg border border-brown-700/15 bg-white px-4 py-3 text-sm font-bold text-brown-900 outline-none focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20"
+                  className="spectator-bet-stake-input"
                   type="number"
                   min={event.minStake || 10000}
                   step="10000"
@@ -243,26 +250,26 @@ function BetEventDetail({ event, wallet, selectedEntryId, setSelectedEntryId, st
                 />
                 <FieldError>{formError}</FieldError>
               </label>
-              <div className="grid gap-2 rounded-lg border border-brown-700/10 bg-white/70 p-3 text-sm font-bold text-slate-600">
+              <div className="spectator-bet-slip-summary">
                 <span className="flex justify-between gap-3"><span>Ví khả dụng</span><strong>{money(availableBalance)}</strong></span>
                 <span className="flex justify-between gap-3"><span>Min stake</span><strong>{money(event.minStake)}</strong></span>
                 <span className="flex justify-between gap-3"><span>Daily max</span><strong>{money(event.maxDailyStake)}</strong></span>
                 <span className="flex justify-between gap-3"><span>Estimated odds</span><strong>{selectedEntry?.estimatedOdds ? Number(selectedEntry.estimatedOdds).toFixed(2) : '-'}</strong></span>
                 <span className="flex justify-between gap-3"><span>Estimated payout</span><strong>{money(estimatedPayout)}</strong></span>
               </div>
-              <div className="flex gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-xs font-bold text-amber-800">
+              <div className="spectator-bet-warning">
                 <AlertTriangle size={16} />
                 <span>Odds chỉ là ước tính. Payout cuối cùng được tính tự động khi Admin công bố kết quả.</span>
               </div>
               <button
-                className="primary-button owner-hero-action"
+                className="spectator-bet-primary-action"
                 type="button"
                 onClick={onSubmit}
                 disabled={isSubmitting || String(event.status).toUpperCase() !== 'OPEN'}
               >
                 {isSubmitting ? 'Đang đặt cược...' : 'Đặt cược'}
               </button>
-              <button className="outline-button" type="button" onClick={() => setSelectedEntryId('')} disabled={isSubmitting}>
+              <button className="spectator-bet-secondary-action" type="button" onClick={() => setSelectedEntryId('')} disabled={isSubmitting}>
                 Xóa lựa chọn
               </button>
             </div>
@@ -284,6 +291,168 @@ function canCancelTicket(ticket) {
     && Date.now() < closeAt.getTime();
 }
 
+function TicketDetailField({ label, value, emphasis = false }) {
+  return (
+    <div className={emphasis ? 'spectator-ticket-detail-field emphasis' : 'spectator-ticket-detail-field'}>
+      <span>{label}</span>
+      <strong>{value || 'Chưa cập nhật'}</strong>
+    </div>
+  );
+}
+
+function RaceDetailSummary({ event }) {
+  return (
+    <div className="spectator-ticket-race-summary">
+      <div className="spectator-ticket-race-summary-header">
+        <div>
+          <p className="eyebrow">Race details</p>
+          <h4>{event.raceName || 'Race chưa cập nhật'}</h4>
+          <p>{event.trackName || 'Đường đua chưa cập nhật'} · {dateTime(event.raceStartTime)}</p>
+        </div>
+        <StatusBadge status={event.status} />
+      </div>
+
+      <div className="spectator-ticket-race-metrics">
+        <TicketDetailField label="Betting opens" value={dateTime(event.openAt)} />
+        <TicketDetailField label="Betting closes" value={dateTime(event.closeAt)} />
+        <TicketDetailField label="Total pool" value={money(event.totalStake)} emphasis />
+        <TicketDetailField label="Daily max" value={money(event.maxDailyStake)} />
+      </div>
+
+      <div className="spectator-ticket-race-entry-list">
+        <div className="spectator-ticket-race-entry-head">
+          <span>Stall</span>
+          <span>Horse</span>
+          <span>Jockey</span>
+          <span>Pool</span>
+          <span>Odds</span>
+        </div>
+        {(event.entries || []).length === 0 ? (
+          <div className="spectator-bet-empty compact">Race này chưa có entry để hiển thị.</div>
+        ) : event.entries.map((entry) => (
+          <div key={entry.raceEntryId} className="spectator-ticket-race-entry-row">
+            <strong>#{entry.startingStall || '-'}</strong>
+            <span className="min-w-0">
+              <strong className="block truncate text-brown-900">{entry.horseName || 'N/A'}</strong>
+              <small className="block truncate font-bold text-slate-500">Owner: {entry.ownerName || 'N/A'}</small>
+            </span>
+            <span className="truncate font-bold text-slate-600">{entry.jockeyName || 'N/A'}</span>
+            <strong>{money(entry.poolStake)}</strong>
+            <strong>{entry.estimatedOdds ? Number(entry.estimatedOdds).toFixed(2) : '-'}</strong>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function TicketDetailDialog({ ticket, cancellingTicketId, onCancelTicket, onClose }) {
+  const isCancelling = Number(cancellingTicketId) === Number(ticket.betTicketId);
+  const [raceDetail, setRaceDetail] = useState(null);
+  const [raceError, setRaceError] = useState('');
+  const [isRaceLoading, setIsRaceLoading] = useState(false);
+
+  async function handleCancel(event) {
+    event.stopPropagation();
+    await onCancelTicket(ticket);
+    onClose();
+  }
+
+  async function openRaceDetails() {
+    if (!ticket?.betEventId || isRaceLoading) return;
+    if (raceDetail) {
+      setRaceDetail(null);
+      return;
+    }
+    setIsRaceLoading(true);
+    setRaceError('');
+    try {
+      setRaceDetail(await getBettingEvent(ticket.betEventId));
+    } catch (err) {
+      setRaceError(err.message || 'Không thể tải thông tin Race.');
+    } finally {
+      setIsRaceLoading(false);
+    }
+  }
+
+  return (
+    <div className="spectator-ticket-detail-backdrop" role="presentation" onClick={onClose}>
+      <section
+        className="spectator-ticket-detail-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="spectator-ticket-detail-title"
+        onClick={(event) => event.stopPropagation()}
+      >
+        <div className="spectator-ticket-detail-header">
+          <div>
+            <p className="eyebrow">Ticket details</p>
+            <h3 id="spectator-ticket-detail-title">Ticket #{ticket.betTicketId}</h3>
+            <p>{ticket.raceName || 'Race chưa cập nhật'} · Stall {ticket.startingStall || '-'}</p>
+          </div>
+          <button className="spectator-ticket-detail-close" type="button" onClick={onClose} aria-label="Close ticket details">
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="spectator-ticket-detail-status-row">
+          <ProductBadge code={ticket.productCode} />
+          <StatusBadge status={ticket.status} />
+          <StatusBadge status={ticket.betEventStatus} />
+        </div>
+
+        <div className="spectator-ticket-detail-grid">
+          <button
+            className="spectator-ticket-detail-field spectator-ticket-race-link emphasis"
+            type="button"
+            onClick={openRaceDetails}
+            disabled={!ticket?.betEventId || isRaceLoading}
+          >
+            <span>Race</span>
+            <strong>{ticket.raceName || 'Chưa cập nhật'}</strong>
+            <small>{isRaceLoading ? 'Đang tải Race...' : raceDetail ? 'Ẩn Race details' : 'Click để xem Race details'}</small>
+          </button>
+          <TicketDetailField label="Horse" value={ticket.horseName} emphasis />
+          <TicketDetailField label="Starting stall" value={ticket.startingStall ? `#${ticket.startingStall}` : '-'} />
+          <TicketDetailField label="Product" value={ticket.productName || ticket.productCode} />
+          <TicketDetailField label="Stake" value={money(ticket.stake)} emphasis />
+          <TicketDetailField label="Odds" value={ticketOdds(ticket)} />
+          <TicketDetailField label="Payout" value={money(ticket.payoutAmount)} emphasis />
+          <TicketDetailField label="Placed at" value={dateTime(ticket.placedAt)} />
+          <TicketDetailField label="Betting closes" value={dateTime(ticket.bettingCloseAt)} />
+          <TicketDetailField label="Settled at" value={dateTime(ticket.settledAt)} />
+        </div>
+
+        {raceError && <div className="admin-alert error" role="alert">{raceError}</div>}
+        {raceDetail && <RaceDetailSummary event={raceDetail} />}
+
+        <div className="spectator-ticket-detail-note">
+          <ReceiptText size={18} />
+          <p>
+            Ticket này theo dõi event cược cho Race đã chọn. Trạng thái payout cuối cùng sẽ được cập nhật sau khi kết quả Race được hệ thống settle.
+          </p>
+        </div>
+
+        <div className="spectator-ticket-detail-actions">
+          <button className="spectator-bet-secondary-action" type="button" onClick={onClose}>
+            Đóng
+          </button>
+          {canCancelTicket(ticket) && (
+            <button
+              className="spectator-bet-danger-action"
+              type="button"
+              onClick={handleCancel}
+              disabled={isCancelling}
+            >
+              {isCancelling ? 'Đang hủy...' : 'Hủy ticket'}
+            </button>
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function MyTickets({
   tickets,
   statusFilter,
@@ -294,6 +463,7 @@ function MyTickets({
   onCancelTicket
 }) {
   const { t } = useLanguage();
+  const [selectedTicket, setSelectedTicket] = useState(null);
   const filtered = useMemo(() => tickets.filter((ticket) => {
     const status = String(ticket.status || '').toUpperCase();
     const product = String(ticket.productCode || '').toUpperCase();
@@ -301,26 +471,33 @@ function MyTickets({
       && (productFilter === 'ALL' || product === productFilter);
   }), [tickets, statusFilter, productFilter]);
 
+  function handleTicketKeyDown(event, ticket) {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      setSelectedTicket(ticket);
+    }
+  }
+
   return (
-    <section className="owner-panel">
-      <div className="owner-panel-header">
+    <section className="spectator-bet-section">
+      <div className="spectator-bet-section-header">
         <div>
           <p className="eyebrow">{t('spectatorTicketsEyebrow')}</p>
           <h2>{t('spectatorTicketsTitle')}</h2>
           <p>{t('spectatorTicketsDesc')}</p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <select className="rounded-lg border border-brown-700/15 bg-white px-4 py-3 text-sm font-extrabold text-brown-900" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+        <div className="spectator-bet-filter-row">
+          <select className="spectator-bet-select" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
             {ticketStatuses.map((status) => <option key={status} value={status}>{status === 'ALL' ? t('spectatorFilterAll') : formatDisplayLabel(status)}</option>)}
           </select>
-          <select className="rounded-lg border border-brown-700/15 bg-white px-4 py-3 text-sm font-extrabold text-brown-900" value={productFilter} onChange={(event) => setProductFilter(event.target.value)}>
+          <select className="spectator-bet-select" value={productFilter} onChange={(event) => setProductFilter(event.target.value)}>
             {productOptions.map((product) => <option key={product} value={product}>{product === 'ALL' ? t('spectatorFilterAll') : product}</option>)}
           </select>
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-lg border border-brown-700/10 bg-white/70">
-        <div className="grid grid-cols-[5rem_minmax(0,1fr)_7rem_8rem_8rem_8rem_8rem_7rem] gap-3 border-b border-brown-700/10 px-4 py-3 text-xs font-black uppercase text-slate-500 max-xl:hidden">
+      <div className="spectator-ticket-list">
+        <div className="spectator-ticket-head">
           <span>{t('spectatorTicketColumn')}</span>
           <span>{t('spectatorRaceHorseColumn')}</span>
           <span>{t('spectatorProductColumn')}</span>
@@ -330,11 +507,19 @@ function MyTickets({
           <span>{t('spectatorStatusColumn')}</span>
           <span>Thao tác</span>
         </div>
-        <div className="divide-y divide-brown-700/10">
+        <div className="spectator-ticket-body">
           {filtered.length === 0 ? (
-            <div className="p-8 text-center font-bold text-slate-500">{t('spectatorNoTickets')}</div>
+            <div className="spectator-bet-empty compact">{t('spectatorNoTickets')}</div>
           ) : filtered.map((ticket) => (
-            <div key={ticket.betTicketId} className="grid gap-3 px-4 py-4 xl:grid-cols-[5rem_minmax(0,1fr)_7rem_8rem_8rem_8rem_8rem_7rem]">
+            <div
+              key={ticket.betTicketId}
+              className="spectator-ticket-row"
+              role="button"
+              tabIndex={0}
+              aria-label={`Open betting ticket #${ticket.betTicketId} details`}
+              onClick={() => setSelectedTicket(ticket)}
+              onKeyDown={(event) => handleTicketKeyDown(event, ticket)}
+            >
               <strong className="text-brown-900">#{ticket.betTicketId}</strong>
               <span className="min-w-0">
                 <strong className="block truncate text-brown-900">{ticket.raceName}</strong>
@@ -342,14 +527,18 @@ function MyTickets({
               </span>
               <ProductBadge code={ticket.productCode} />
               <strong>{money(ticket.stake)}</strong>
-              <strong>{ticket.finalOdds ? Number(ticket.finalOdds).toFixed(2) : ticket.estimatedOddsAtBet ? Number(ticket.estimatedOddsAtBet).toFixed(2) : '-'}</strong>
+              <strong>{ticketOdds(ticket)}</strong>
               <strong>{money(ticket.payoutAmount)}</strong>
               <StatusBadge status={ticket.status} />
               {canCancelTicket(ticket) ? (
                 <button
-                  className="outline-button danger-action compact-button"
+                  className="spectator-bet-danger-action"
                   type="button"
-                  onClick={() => onCancelTicket(ticket)}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onCancelTicket(ticket);
+                  }}
+                  onKeyDown={(event) => event.stopPropagation()}
                   disabled={Number(cancellingTicketId) === Number(ticket.betTicketId)}
                 >
                   {Number(cancellingTicketId) === Number(ticket.betTicketId) ? 'Đang hủy...' : 'Hủy'}
@@ -361,6 +550,15 @@ function MyTickets({
           ))}
         </div>
       </div>
+
+      {selectedTicket && (
+        <TicketDetailDialog
+          ticket={selectedTicket}
+          cancellingTicketId={cancellingTicketId}
+          onCancelTicket={onCancelTicket}
+          onClose={() => setSelectedTicket(null)}
+        />
+      )}
     </section>
   );
 }
@@ -369,6 +567,7 @@ export default function BettingPanel() {
   const { t } = useLanguage();
   const [events, setEvents] = useState([]);
   const [selectedEvent, setSelectedEvent] = useState(null);
+  const [activeView, setActiveView] = useState('events');
   const [tickets, setTickets] = useState([]);
   const [wallet, setWallet] = useState(null);
   const [selectedProduct, setSelectedProduct] = useState('ALL');
@@ -503,21 +702,45 @@ export default function BettingPanel() {
   }), [events, tickets, wallet]);
 
   return (
-    <section className="owner-stack">
-      <section className="owner-stats-grid">
+    <section className="spectator-betting-page">
+      <section className="spectator-betting-hero">
+        <div>
+          <p className="eyebrow">{t('spectatorBettingEyebrow')}</p>
+          <h2>{t('spectatorBettingTitle')}</h2>
+          <p>{t('spectatorBettingDesc')}</p>
+        </div>
+        <button className="refresh-button" type="button" onClick={loadData} disabled={isLoading}>
+          <RefreshCw size={17} /> {t('spectatorRefresh')}
+        </button>
+      </section>
+
+      <section className="spectator-bet-stat-grid">
         <PanelStat label={t('spectatorOpenEvents')} value={stats.open} icon={Clock} />
         <PanelStat label={t('spectatorMyTickets')} value={stats.tickets} icon={ReceiptText} />
         <PanelStat label={t('spectatorPendingSettle')} value={stats.placed} icon={Ticket} />
         <PanelStat label={t('spectatorAvailableWallet')} value={money(stats.balance)} icon={Wallet} />
       </section>
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex flex-wrap gap-2">
-          <button className={selectedEvent ? 'outline-button' : 'primary-button'} type="button" onClick={() => setSelectedEvent(null)}>{t('spectatorEvents')}</button>
-          <button className="outline-button" type="button" onClick={() => setSelectedEvent(null)}>{t('spectatorMyTickets')}</button>
-        </div>
-        <button className="refresh-button" type="button" onClick={loadData} disabled={isLoading}>
-          <RefreshCw size={17} /> {t('spectatorRefresh')}
+      <div className="spectator-bet-view-tabs">
+        <button
+          className={activeView === 'events' && !selectedEvent ? 'active' : ''}
+          type="button"
+          onClick={() => {
+            setSelectedEvent(null);
+            setActiveView('events');
+          }}
+        >
+          {t('spectatorEvents')}
+        </button>
+        <button
+          className={activeView === 'tickets' && !selectedEvent ? 'active' : ''}
+          type="button"
+          onClick={() => {
+            setSelectedEvent(null);
+            setActiveView('tickets');
+          }}
+        >
+          {t('spectatorMyTickets')}
         </button>
       </div>
 
@@ -539,13 +762,14 @@ export default function BettingPanel() {
           onSubmit={submitBet}
         />
       ) : (
-        <>
+        activeView === 'events' ? (
           <BettingEventList
             events={events}
             selectedProduct={selectedProduct}
             setSelectedProduct={setSelectedProduct}
             onSelect={selectEvent}
           />
+        ) : (
           <MyTickets
             tickets={tickets}
             statusFilter={ticketStatus}
@@ -555,7 +779,7 @@ export default function BettingPanel() {
             cancellingTicketId={cancellingTicketId}
             onCancelTicket={cancelTicket}
           />
-        </>
+        )
       )}
     </section>
   );

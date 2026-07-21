@@ -7,6 +7,7 @@ import com.example.backend.enums.KycStatus;
 import com.example.backend.dto.request.WalletDepositRequest;
 import com.example.backend.dto.response.WalletDepositResponse;
 import com.example.backend.dto.response.WalletResponse;
+import com.example.backend.dto.response.WalletTransactionResponse;
 import com.example.backend.entity.PaymentTransaction;
 import com.example.backend.entity.User;
 import com.example.backend.entity.Wallet;
@@ -25,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Locale;
 
 @Service
@@ -55,6 +57,25 @@ public class WalletService {
                         "Ví chưa được mở. Vui lòng hoàn tất xác minh KYC."
                 ));
         return mapToResponse(wallet);
+    }
+
+    @Transactional(readOnly = true)
+    public List<WalletTransactionResponse> getMyWalletTransactions(String email) {
+        // Lấy lịch sử ví của chính spectator đang đăng nhập.
+        User user = getUserByEmail(email);
+        validateWalletAllowedRole(user);
+        Wallet wallet = walletRepository.findByUserId(user.getUserID())
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "Ví chưa được mở. Vui lòng hoàn tất xác minh KYC."
+                ));
+        ensureWalletActive(wallet);
+
+        return walletTransactionRepository.findByUserIdOrderByCreatedAtDesc(user.getUserID())
+                .stream()
+                .filter(transaction -> wallet.getWalletId().equals(transaction.getWalletId()))
+                .map(this::mapTransactionToResponse)
+                .toList();
     }
 
     @Transactional
@@ -237,6 +258,24 @@ public class WalletService {
                 .currency(wallet.getCurrency())
                 .status(wallet.getStatus())
                 .updatedAt(wallet.getUpdatedAt())
+                .build();
+    }
+
+    private WalletTransactionResponse mapTransactionToResponse(WalletTransaction transaction) {
+        return WalletTransactionResponse.builder()
+                .walletTransactionId(transaction.getWalletTransactionId())
+                .walletId(transaction.getWalletId())
+                .userId(transaction.getUserId())
+                .type(transaction.getType())
+                .amount(transaction.getAmount())
+                .balanceBefore(transaction.getBalanceBefore())
+                .balanceAfter(transaction.getBalanceAfter())
+                .lockedBefore(transaction.getLockedBefore())
+                .lockedAfter(transaction.getLockedAfter())
+                .referenceType(transaction.getReferenceType())
+                .referenceId(transaction.getReferenceId())
+                .description(transaction.getDescription())
+                .createdAt(transaction.getCreatedAt())
                 .build();
     }
 

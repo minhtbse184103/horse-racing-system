@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, CircleDollarSign, CreditCard, ExternalLink, RefreshCw, ShieldCheck, Wallet, X } from 'lucide-react';
+import { ArrowDownLeft, ArrowRight, ArrowUpRight, CircleDollarSign, CreditCard, ExternalLink, RefreshCw, ShieldCheck, Wallet, X } from 'lucide-react';
 import { getUserRole } from '../../lib';
 import { useLanguage } from '../../context/LanguageContext';
 import { confirmVnpayReturn } from '../../services/paymentService';
-import { createWalletDeposit, getMyWallet } from '../../services/walletService';
+import { createWalletDeposit, getMyWallet, getMyWalletTransactions } from '../../services/walletService';
 import { createKycSession, getMyKyc } from '../../services/kycService';
 
 const ALLOWED_ROLES = new Set(['SPECTATOR']);
@@ -21,6 +21,170 @@ function normalizeAmount(value) {
   return Number.isFinite(number) ? Math.round(number) : 0;
 }
 
+function formatWalletDate(value) {
+  if (!value) return 'Chưa cập nhật';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  });
+}
+
+function walletTransactionLabel(type) {
+  const normalized = String(type || '').toUpperCase();
+  const labels = {
+    DEPOSIT: 'Nạp tiền',
+    BET_LOCK: 'Khóa tiền cược',
+    BET_REFUND: 'Hoàn tiền cược',
+    BET_WIN: 'Thắng cược',
+    BET_LOST: 'Thua cược',
+    PRIZE_PAYOUT: 'Nhận tiền giải'
+  };
+  return labels[normalized] || normalized || 'Giao dịch';
+}
+
+function walletTransactionDirection(type) {
+  const normalized = String(type || '').toUpperCase();
+  if (['DEPOSIT', 'BET_WIN', 'BET_REFUND', 'PRIZE_PAYOUT'].includes(normalized)) return 'credit';
+  if (['BET_LOCK', 'BET_LOST'].includes(normalized)) return 'debit';
+  return 'neutral';
+}
+
+function walletTransactionGroup(type) {
+  const normalized = String(type || '').toUpperCase();
+  if (normalized === 'DEPOSIT') return 'TOPUP';
+  if (normalized.startsWith('BET_')) return 'BETTING';
+  return 'OTHER';
+}
+
+function WalletTransactionHistory({ transactions }) {
+  const [filter, setFilter] = useState('ALL');
+  const summary = useMemo(() => transactions.reduce((total, transaction) => {
+    const amount = Number(transaction.amount || 0);
+    const type = String(transaction.type || '').toUpperCase();
+    if (type === 'DEPOSIT') total.topUp += amount;
+    if (['BET_LOCK', 'BET_LOST'].includes(type)) total.betOut += amount;
+    if (['BET_REFUND', 'BET_WIN'].includes(type)) total.betIn += amount;
+    return total;
+  }, {
+    topUp: 0,
+    betOut: 0,
+    betIn: 0
+  }), [transactions]);
+  const filteredTransactions = useMemo(() => {
+    if (filter === 'ALL') return transactions;
+    return transactions.filter((transaction) => walletTransactionGroup(transaction.type) === filter);
+  }, [filter, transactions]);
+
+  if (!transactions?.length) {
+    return (
+      <section className="owner-panel wallet-transaction-panel">
+        <div className="owner-panel-header">
+          <div>
+            <p className="eyebrow">Wallet ledger</p>
+            <h2>Lịch sử giao dịch ví</h2>
+            <p>Chưa có giao dịch nạp tiền hoặc betting nào được ghi nhận.</p>
+          </div>
+          <CreditCard size={22} />
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="owner-panel wallet-transaction-panel">
+      <div className="owner-panel-header">
+        <div>
+          <p className="eyebrow">Wallet ledger</p>
+          <h2>Lịch sử giao dịch ví</h2>
+          <p>Theo dõi nạp tiền, khóa tiền cược, hoàn tiền và kết quả betting.</p>
+        </div>
+        <CreditCard size={22} />
+      </div>
+
+      <div className="wallet-transaction-summary-grid">
+        <div>
+          <span>Nạp tiền</span>
+          <strong>{formatVnd(summary.topUp)}</strong>
+        </div>
+        <div>
+          <span>Betting trừ/khóa</span>
+          <strong>{formatVnd(summary.betOut)}</strong>
+        </div>
+        <div>
+          <span>Betting hoàn/thắng</span>
+          <strong>{formatVnd(summary.betIn)}</strong>
+        </div>
+        <div>
+          <span>Tổng giao dịch</span>
+          <strong>{transactions.length}</strong>
+        </div>
+      </div>
+
+      <div className="wallet-transaction-filter-row" aria-label="Wallet transaction filters">
+        {[
+          ['ALL', 'Tất cả'],
+          ['TOPUP', 'Nạp tiền'],
+          ['BETTING', 'Betting']
+        ].map(([value, label]) => (
+          <button
+            className={filter === value ? 'active' : ''}
+            key={value}
+            type="button"
+            onClick={() => setFilter(value)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      <div className="wallet-transaction-list">
+        <div className="wallet-transaction-head">
+          <span>Thời gian</span>
+          <span>Loại</span>
+          <span>Số tiền</span>
+          <span>Balance</span>
+          <span>Locked</span>
+          <span>Nội dung</span>
+        </div>
+        {filteredTransactions.length === 0 ? (
+          <div className="wallet-transaction-empty">
+            Không có giao dịch phù hợp với bộ lọc này.
+          </div>
+        ) : filteredTransactions.map((transaction) => {
+          const direction = walletTransactionDirection(transaction.type);
+          const Icon = direction === 'credit' ? ArrowDownLeft : ArrowUpRight;
+          return (
+            <article className="wallet-transaction-row" key={transaction.walletTransactionId}>
+              <span className="wallet-transaction-time">{formatWalletDate(transaction.createdAt)}</span>
+              <span className={`wallet-transaction-type ${direction}`}>
+                <Icon size={15} />
+                {walletTransactionLabel(transaction.type)}
+              </span>
+              <strong className={`wallet-transaction-amount ${direction}`}>
+                {direction === 'debit' ? '-' : '+'}{formatVnd(transaction.amount)}
+              </strong>
+              <span className="wallet-transaction-balance">
+                {formatVnd(transaction.balanceBefore)} → {formatVnd(transaction.balanceAfter)}
+              </span>
+              <span className="wallet-transaction-balance">
+                {formatVnd(transaction.lockedBefore)} → {formatVnd(transaction.lockedAfter)}
+              </span>
+              <span className="wallet-transaction-description" title={transaction.description || ''}>
+                {transaction.description || `${transaction.referenceType || 'Reference'} #${transaction.referenceId || '-'}`}
+              </span>
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 export default function WalletTransferPanel({ currentUser, role: roleOverride }) {
   const { t } = useLanguage();
   const role = String(roleOverride || getUserRole(currentUser) || '').toUpperCase();
@@ -33,6 +197,7 @@ export default function WalletTransferPanel({ currentUser, role: roleOverride })
   const [isDepositOpen, setIsDepositOpen] = useState(false);
   const [kyc, setKyc] = useState(null);
   const [startingKyc, setStartingKyc] = useState(false);
+  const [transactions, setTransactions] = useState([]);
 
   const amountValue = useMemo(() => normalizeAmount(amount), [amount]);
   const canSubmit = ALLOWED_ROLES.has(role) && amountValue >= MIN_TOP_UP_AMOUNT && !submitting;
@@ -42,9 +207,14 @@ export default function WalletTransferPanel({ currentUser, role: roleOverride })
     setLoading(true);
     setError('');
     try {
-      const [walletResult, kycResult] = await Promise.allSettled([getMyWallet(), getMyKyc()]);
+      const [walletResult, kycResult, transactionResult] = await Promise.allSettled([
+        getMyWallet(),
+        getMyKyc(),
+        getMyWalletTransactions()
+      ]);
       setWallet(walletResult.status === 'fulfilled' ? walletResult.value : null);
       if (kycResult.status === 'fulfilled') setKyc(kycResult.value);
+      setTransactions(transactionResult.status === 'fulfilled' ? transactionResult.value || [] : []);
       if (walletResult.status === 'rejected' && kycResult.status === 'rejected') {
         throw walletResult.reason;
       }
@@ -284,6 +454,8 @@ export default function WalletTransferPanel({ currentUser, role: roleOverride })
           </div>
         </div>
       </section>
+
+      {wallet && <WalletTransactionHistory transactions={transactions} />}
 
       {isDepositOpen && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-brown-950/45 p-4">
