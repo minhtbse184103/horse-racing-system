@@ -49,7 +49,7 @@ public class AdminHorseService {
     }
 
     @Transactional(readOnly = true)
-    public List<HorseResponse> getH orses() {
+    public List<HorseResponse> getHorses() {
         return getHorses(null);
     }
 
