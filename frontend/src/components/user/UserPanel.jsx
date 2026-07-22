@@ -20,7 +20,6 @@ import OwnerApplicationForm from '../profile/OwnerApplicationForm';
 import JockeyApplicationForm from '../profile/JockeyApplicationForm';
 import WalletTransferPanel from '../payment/WalletTransferPanel';
 import BettingPanel from './BettingPanel';
-import StatCard from '../common/StatCard';
 import LanguageToggle from '../common/LanguageToggle';
 import RaceLiveView from '../shared/live/RaceLiveView';
 import RaceResultLeaderboard from '../admin/events/race-entry/RaceResultLeaderboard';
@@ -119,7 +118,7 @@ function raceSearchText(race) {
   ].filter(Boolean).join(' ').toLowerCase();
 }
 
-function DashboardHome({ accountType, onGoProfile, races, bettingEvents, isLoading, error }) {
+function DashboardHome({ accountType, onGoProfile, onNavigate, races, bettingEvents, isLoading, error }) {
   const { t, language } = useLanguage();
   const isSpectator = accountType === 'SPECTATOR';
   const professionalLabel = accountType === 'OWNER' ? 'Owner' : 'Jockey';
@@ -133,69 +132,206 @@ function DashboardHome({ accountType, onGoProfile, races, bettingEvents, isLoadi
     .sort((left, right) => raceStart(left) - raceStart(right));
   const todayRaces = races.filter((race) => raceStart(race)?.toDateString() === now.toDateString());
   const openBettingEvents = bettingEvents.filter((event) => String(event?.status || '').toUpperCase() === 'OPEN');
+  const liveRaces = races.filter(canViewLiveRace);
+  const completedRaces = races.filter((race) => raceStatus(race) === 'COMPLETED');
+  const nextRace = upcomingRaces[0] || null;
+  const featuredBettingEvent = openBettingEvents[0] || null;
+  const heroTitle = isSpectator ? t('spectatorDashboardTitle') : `Complete your ${professionalLabel} application`;
+  const heroDescription = isSpectator
+    ? t('spectatorDashboardDesc')
+    : `Your account is active. Submit the required ${professionalLabel} documents and wait for administrator approval to unlock professional features.`;
+  const metricCards = [
+    {
+      label: t('spectatorTotalRaces'),
+      value: isLoading ? '...' : races.length,
+      detail: t('spectatorTotalRacesDesc'),
+      icon: Flag,
+      tone: 'primary'
+    },
+    {
+      label: t('spectatorUpcomingRaces'),
+      value: isLoading ? '...' : upcomingRaces.length,
+      detail: t('spectatorUpcomingRacesDesc'),
+      icon: CalendarDays,
+      tone: 'gold'
+    },
+    {
+      label: t('spectatorTodayRaces'),
+      value: isLoading ? '...' : todayRaces.length,
+      detail: t('spectatorTodayRacesDesc'),
+      icon: Clock3,
+      tone: 'teal'
+    },
+    {
+      label: isSpectator ? t('spectatorOpenBetting') : 'Application',
+      value: isLoading ? '...' : isSpectator ? openBettingEvents.length : 'Required',
+      detail: isSpectator ? t('spectatorOpenBettingDesc') : `${professionalLabel} access requires admin approval`,
+      icon: isSpectator ? CircleDollarSign : ShieldCheck,
+      tone: 'blue'
+    }
+  ];
 
   return (
-    <section className="owner-stack">
+    <section className="spectator-overview-page">
       {error && <div className="admin-alert error" role="alert">{error}</div>}
-      <section className="owner-stats-grid">
-        <StatCard label={t('spectatorTotalRaces')} value={isLoading ? '...' : races.length} description={t('spectatorTotalRacesDesc')} highlight />
-        <StatCard label={t('spectatorUpcomingRaces')} value={isLoading ? '...' : upcomingRaces.length} description={t('spectatorUpcomingRacesDesc')} />
-        <StatCard label={t('spectatorTodayRaces')} value={isLoading ? '...' : todayRaces.length} description={t('spectatorTodayRacesDesc')} />
-        {isSpectator
-          ? <StatCard label={t('spectatorOpenBetting')} value={isLoading ? '...' : openBettingEvents.length} description={t('spectatorOpenBettingDesc')} />
-          : <StatCard label="Application" value="Required" description={`${professionalLabel} access requires admin approval`} />}
-      </section>
 
-      <section className="owner-overview-grid">
-        <div className="owner-panel hero-owner-panel">
-          <div>
-            <p className="eyebrow">{isSpectator ? t('spectatorDashboard') : `${professionalLabel} Onboarding`}</p>
-            <h2>{isSpectator ? t('spectatorDashboardTitle') : `Complete your ${professionalLabel} application`}</h2>
-            <p>
-              {isSpectator
-                ? t('spectatorDashboardDesc')
-                : `Your account is active. Submit the required ${professionalLabel} documents and wait for administrator approval to unlock professional features.`}
-            </p>
-          </div>
-          <div className="owner-shortcut-actions">
-            <button className="primary-button owner-hero-action" type="button" onClick={onGoProfile}>
-              {isSpectator ? t('spectatorViewProfile') : `Open ${professionalLabel} Application`}
+      <section className="spectator-overview-hero">
+        <div className="spectator-overview-hero-copy">
+          <span className="spectator-overview-kicker">
+            <Gauge size={15} aria-hidden="true" />
+            {isSpectator ? t('spectatorDashboard') : `${professionalLabel} Onboarding`}
+          </span>
+          <h2>{heroTitle}</h2>
+          <p>{heroDescription}</p>
+
+          <div className="spectator-overview-action-row" aria-label="Spectator quick actions">
+            <button className="spectator-overview-action primary" type="button" onClick={() => onNavigate?.('races')}>
+              <span><Radio size={18} aria-hidden="true" /></span>
+              <strong>{t('spectatorNavRaces')}</strong>
+              <small>{liveRaces.length} live · {upcomingRaces.length} upcoming</small>
             </button>
+            {isSpectator ? (
+              <button className="spectator-overview-action" type="button" onClick={() => onNavigate?.('betting')}>
+                <span><CircleDollarSign size={18} aria-hidden="true" /></span>
+                <strong>{t('spectatorNavBetting')}</strong>
+                <small>{openBettingEvents.length} open events</small>
+              </button>
+            ) : (
+              <button className="spectator-overview-action" type="button" onClick={onGoProfile}>
+                <span><ShieldCheck size={18} aria-hidden="true" /></span>
+                <strong>Open {professionalLabel} Application</strong>
+                <small>Submit documents for review</small>
+              </button>
+            )}
           </div>
         </div>
 
-        <div className="owner-panel compact-panel">
-          <div className="owner-panel-header">
+        <aside className="spectator-overview-live-card">
+          <span className="spectator-overview-kicker">
+            <Radio size={15} aria-hidden="true" />
+            Live desk
+          </span>
+          <strong>{isLoading ? '...' : liveRaces.length}</strong>
+          <p>Race đang chạy trực tiếp trong hệ thống.</p>
+          <button className="spectator-overview-mini-action" type="button" onClick={() => onNavigate?.('races')}>
+            View live races
+          </button>
+        </aside>
+      </section>
+
+      <section className="spectator-overview-metrics" aria-label="Spectator dashboard metrics">
+        {metricCards.map(({ label, value, detail, icon: Icon, tone }) => (
+          <article className={`spectator-overview-metric-card ${tone}`} key={label}>
+            <div className="spectator-overview-metric-icon">
+              <Icon size={19} aria-hidden="true" />
+            </div>
+            <div className="min-w-0">
+              <span>{label}</span>
+              <strong>{value}</strong>
+              <small>{detail}</small>
+            </div>
+          </article>
+        ))}
+      </section>
+
+      <section className="spectator-overview-grid">
+        <article className="spectator-overview-panel">
+          <header className="spectator-overview-panel-header">
             <div>
-              <p className="eyebrow">{t('spectatorUpcomingCards')}</p>
-              <h2>{t('spectatorRaceHighlights')}</h2>
+              <span className="spectator-overview-kicker">{t('spectatorUpcomingCards')}</span>
+              <h3>{t('spectatorRaceHighlights')}</h3>
               <p>{t('spectatorRaceHighlightsDesc')}</p>
             </div>
+            <button className="spectator-overview-secondary-action" type="button" onClick={() => onNavigate?.('races')}>
+              View all
+            </button>
+          </header>
+
+          <div className="spectator-overview-race-list">
+            {isLoading ? (
+              <div className="spectator-overview-loading" role="status">{t('spectatorLoadingRaces')}</div>
+            ) : upcomingRaces.length === 0 ? (
+              <EmptyState title={t('spectatorNoUpcomingRaces')} message={t('spectatorNoUpcomingRacesDesc')} />
+            ) : (
+              upcomingRaces.slice(0, 4).map((race, index) => (
+                <button className="spectator-overview-race-row" type="button" onClick={() => onNavigate?.('races')} key={race.raceId}>
+                  <span className="spectator-overview-race-order">#{index + 1}</span>
+                  <span className="spectator-overview-race-main">
+                    <strong>{getRaceDisplayName(race)}</strong>
+                    <small>{race.trackName || t('spectatorTrackMissing')} · {raceDateTime(race, language)}</small>
+                  </span>
+                  <span className={`status-badge ${String(race.status || '').toLowerCase().replaceAll('_', '-')}`}>
+                    {formatDisplayLabel(race.status)}
+                  </span>
+                </button>
+              ))
+            )}
           </div>
-          {isLoading ? (
-            <div className="admin-alert success" role="status">{t('spectatorLoadingRaces')}</div>
-          ) : upcomingRaces.length === 0 ? (
-            <EmptyState title={t('spectatorNoUpcomingRaces')} message={t('spectatorNoUpcomingRacesDesc')} />
-          ) : (
-            <div className="grid gap-3">
-            {upcomingRaces.slice(0, 3).map((race) => (
-              <div className="rounded-lg border border-brown-700/10 bg-white/70 p-4" key={race.raceId}>
-                <div className="flex items-start gap-3">
-                  <div className="grid size-14 shrink-0 place-items-center rounded-lg bg-brown-900 text-2xl text-gold-400">🏁</div>
-                  <div className="min-w-0">
-                    <strong className="block truncate text-brown-900">{race.raceName}</strong>
-                    <small className="mt-1 block font-bold text-slate-500">{raceDateTime(race, language)}</small>
-                    <small className="mt-1 block truncate font-semibold text-slate-500">
-                      {race.trackName || t('spectatorTrackMissing')} · {t('spectatorRunners', { entries: race.entryCount ?? 0, max: race.maxRunners ?? 0 })}
-                    </small>
-                  </div>
-                </div>
-              </div>
-            ))}
+        </article>
+
+        <aside className="spectator-overview-panel spectator-overview-side-panel">
+          <div className="spectator-overview-panel-header compact">
+            <div>
+              <span className="spectator-overview-kicker">Operations</span>
+              <h3>Next best actions</h3>
             </div>
-          )}
-        </div>
+          </div>
+
+          <div className="spectator-overview-next-list">
+            <button type="button" onClick={() => onNavigate?.('results')}>
+              <Medal size={18} aria-hidden="true" />
+              <span>
+                <strong>{t('spectatorNavResults')}</strong>
+                <small>{completedRaces.length} completed races</small>
+              </span>
+            </button>
+            {isSpectator && (
+              <button type="button" onClick={() => onNavigate?.('wallet')}>
+                <Wallet size={18} aria-hidden="true" />
+                <span>
+                  <strong>{t('wallet')}</strong>
+                  <small>Manage deposit and wallet ledger</small>
+                </span>
+              </button>
+            )}
+            <button type="button" onClick={onGoProfile}>
+              <UserRound size={18} aria-hidden="true" />
+              <span>
+                <strong>{t('spectatorViewProfile')}</strong>
+                <small>Account, identity and application status</small>
+              </span>
+            </button>
+          </div>
+
+          <div className="spectator-overview-betting-card">
+            <span className="spectator-overview-kicker">{isSpectator ? 'Betting queue' : 'Account readiness'}</span>
+            <h4>{isSpectator ? (featuredBettingEvent?.raceName || 'No open betting event') : `${professionalLabel} application`}</h4>
+            <p>
+              {isSpectator
+                ? (featuredBettingEvent ? `Pool status: ${formatDisplayLabel(featuredBettingEvent.status)}` : 'Open betting events will appear here when available.')
+                : 'Professional access unlocks after Admin approval.'}
+            </p>
+            <button className="spectator-overview-mini-action" type="button" onClick={() => isSpectator ? onNavigate?.('betting') : onGoProfile()}>
+              {isSpectator ? t('spectatorNavBetting') : `Open ${professionalLabel} Application`}
+            </button>
+          </div>
+        </aside>
       </section>
+
+      {nextRace && (
+        <section className="spectator-overview-timeline" aria-label="Next race spotlight">
+          <div>
+            <span className="spectator-overview-kicker">Next race</span>
+            <h3>{getRaceDisplayName(nextRace)}</h3>
+            <p>{nextRace.trackName || t('spectatorTrackMissing')} · {raceDateTime(nextRace, language)}</p>
+          </div>
+          <div className="spectator-overview-timeline-stats">
+            <span>{t('spectatorRunners', { entries: nextRace.entryCount ?? 0, max: nextRace.maxRunners ?? 0 })}</span>
+            <span>{nextRace.distance ? `${nextRace.distance}m` : 'Distance N/A'}</span>
+            <span>{formatDisplayLabel(nextRace.status)}</span>
+          </div>
+        </section>
+      )}
     </section>
   );
 }
@@ -998,6 +1134,7 @@ export default function UserPanel({ user, onLogout }) {
         <DashboardHome
           accountType={accountType}
           onGoProfile={() => setActiveSection('profile')}
+          onNavigate={setActiveSection}
           races={races}
           bettingEvents={bettingEvents}
           isLoading={isLoadingDashboard}
