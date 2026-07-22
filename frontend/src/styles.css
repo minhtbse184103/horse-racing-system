@@ -6003,6 +6003,10 @@ select {
   margin-top: 16px;
 }
 
+.jockey-profile-overview-section {
+  margin-top: 16px;
+}
+
 .jockey-detail-section {
   display: grid;
   gap: 10px;
@@ -6038,6 +6042,19 @@ select {
   color: var(--slate-500);
   font-size: 0.86rem;
   font-weight: 760;
+  overflow-wrap: anywhere;
+}
+
+.jockey-detail-biography {
+  margin: 0;
+  border: 1px solid rgba(108, 63, 36, 0.1);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.62);
+  padding: 12px;
+  color: var(--slate-600);
+  font-size: 0.9rem;
+  font-weight: 760;
+  line-height: 1.55;
 }
 
 .jockey-detail-split {

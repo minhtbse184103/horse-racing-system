@@ -24,7 +24,7 @@ import com.example.backend.service.OwnerService;
 import jakarta.validation.Valid;
 
 @RestController
-@RequestMapping({"/api/horses", "/api/owner/horses"})
+@RequestMapping("/api/owner/horses")
 @PreAuthorize("hasRole('OWNER')")
 public class OwnerHorseController {
     private final OwnerService ownerService;
@@ -36,11 +36,6 @@ public class OwnerHorseController {
     // Lấy danh sách toàn bộ ngựa thuộc owner đang đăng nhập.
     @GetMapping
     public List<HorseResponse> getMyHorses() {
-        return ownerService.getMyHorses();
-    }
-
-    @GetMapping("/my")
-    public List<HorseResponse> getMyHorsesNewApi() {
         return ownerService.getMyHorses();
     }
 

@@ -83,7 +83,7 @@ export async function getOwnerDashboard() {
 }
 
 export async function getOwnerHorses() {
-  const horses = await httpRequest('/api/horses/my', {
+  const horses = await httpRequest('/api/owner/horses', {
     fallbackError: 'Khong the tai danh sach ngua.'
   });
 
@@ -91,7 +91,7 @@ export async function getOwnerHorses() {
 }
 
 export async function getOwnerHorseById(horseId) {
-  const horse = await httpRequest(`/api/horses/${horseId}`, {
+  const horse = await httpRequest(`/api/owner/horses/${horseId}`, {
     fallbackError: 'Khong the tai chi tiet ngua.'
   });
 
@@ -99,7 +99,7 @@ export async function getOwnerHorseById(horseId) {
 }
 
 export async function createHorse(payload) {
-  const horse = await httpRequest('/api/horses', {
+  const horse = await httpRequest('/api/owner/horses', {
     method: 'POST',
     body: toHorseFormData(payload),
     fallbackError: 'Khong the them ngua.'
@@ -109,7 +109,7 @@ export async function createHorse(payload) {
 }
 
 export async function updateHorse(horseId, payload) {
-  const horse = await httpRequest(`/api/horses/${horseId}`, {
+  const horse = await httpRequest(`/api/owner/horses/${horseId}`, {
     method: 'PUT',
     body: {
       horseName: String(payload.horseName || '').trim(),
@@ -129,7 +129,7 @@ export async function updateHorse(horseId, payload) {
 }
 
 export async function deleteHorse(horseId) {
-  return httpRequest(`/api/horses/${horseId}`, {
+  return httpRequest(`/api/owner/horses/${horseId}`, {
     method: 'DELETE',
     fallbackError: 'Khong the xoa ngua.'
   });

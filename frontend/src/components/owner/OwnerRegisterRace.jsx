@@ -479,12 +479,19 @@ function getJockeyDropdownLabel(jockey) {
 
 function getJockeyStats(jockey, t) {
   const source = getPerformanceSource(jockey);
+  const profile = jockey?.profile || jockey?.jockeyProfile || {};
   const totalRaces = toNumber(firstDefined(source.totalRaces, jockey?.totalRaces, jockey?.raceCount));
   const wins = toNumber(firstDefined(source.top1Count, source.winCount, jockey?.top1Count, jockey?.totalWins));
   const top3Total = getTop3Count(source) || toNumber(firstDefined(jockey?.top3Count));
 
   return {
-    license: firstDefined(jockey?.licenceType, jockey?.licenseType, jockey?.profile?.licenceType, jockey?.verificationStatus, t?.('notUpdated') || 'Not updated'),
+    license: firstDefined(jockey?.licenseNo, jockey?.licenceNo, jockey?.licenseNumber, profile.licenseNo, profile.licenceNo, jockey?.licenceType, jockey?.licenseType, profile.licenceType, t?.('notUpdated') || 'Not updated'),
+    ranking: firstDefined(jockey?.ranking, profile.ranking, t?.('notUpdated') || 'Not updated'),
+    status: firstDefined(jockey?.status, profile.status, jockey?.verificationStatus, t?.('notUpdated') || 'Not updated'),
+    email: firstDefined(jockey?.email, profile.email, t?.('notUpdated') || 'Not updated'),
+    phone: firstDefined(jockey?.phone, jockey?.phoneNumber, profile.phone, profile.phoneNumber, t?.('notUpdated') || 'Not updated'),
+    weight: firstDefined(jockey?.weight, profile.weight),
+    biography: firstDefined(jockey?.biography, profile.biography, t?.('notUpdated') || 'Not updated'),
     totalRaces,
     wins,
     winRate: firstDefined(source.winRate, jockey?.winRate, calculateRate(wins, totalRaces)),
@@ -1967,15 +1974,13 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
                       <div className="registration-horse-actions">
                         {selected && <span className="registration-horse-selected-badge"><CheckCircle2 size={15} /> {t('ownerRaceSelectedHorse')}</span>}
                         {!selected && (
-                        <button className="primary-button compact-primary" type="button" onClick={() => selectHorse(horse)} disabled={disabled} title={reasonText || undefined}>
-                          {t('ownerRaceSelectHorse')}
-                        </button>
-                        )}
-                        {selected && (
-                          <button className="outline-button" type="button" onClick={() => setDetailHorse(horse)}>
-                            <Eye size={15} /> {t('ownerRaceViewProfile')}
+                          <button className="primary-button compact-primary" type="button" onClick={() => selectHorse(horse)} disabled={disabled} title={reasonText || undefined}>
+                            {t('ownerRaceSelectHorse')}
                           </button>
                         )}
+                        <button className="outline-button" type="button" onClick={() => setDetailHorse(horse)}>
+                          <Eye size={15} /> {t('ownerRaceViewProfile')}
+                        </button>
                       </div>
                     </article>
                   );
@@ -2580,21 +2585,38 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
                 <div>
                   <p className="eyebrow">{t('ownerRaceJockeyDetail')}</p>
                   <h3 id="jockey-detail-title">{getJockeyName(detailJockey)}</h3>
-                  <span><ShieldCheck size={14} /> {stats.license}</span>
+                  <span><ShieldCheck size={14} /> {formatDisplayLabel(stats.status)}</span>
                 </div>
                 <button type="button" className="drawer-close-button" onClick={() => setDetailJockey(null)} aria-label={t('ownerRaceCloseJockeyDetail')}>
                   <X size={18} />
                 </button>
               </div>
 
+              <section className="jockey-detail-section jockey-profile-overview-section">
+                <h4>{t('ownerRaceProfileInfo')}</h4>
+                <div className="jockey-detail-list">
+                  <div><strong>{t('ownerRaceLicense')}</strong><span>{stats.license}</span></div>
+                  <div><strong>{language === 'vi' ? 'Xếp hạng' : 'Ranking'}</strong><span>{stats.ranking}</span></div>
+                  <div><strong>{t('status')}</strong><span>{formatDisplayLabel(stats.status)}</span></div>
+                  <div><strong>Email</strong><span>{stats.email}</span></div>
+                  <div><strong>{language === 'vi' ? 'Số điện thoại' : 'Phone'}</strong><span>{stats.phone}</span></div>
+                  <div><strong>{t('ownerRaceWeight')}</strong><span>{stats.weight ? `${stats.weight} kg` : t('notUpdated')}</span></div>
+                </div>
+              </section>
+
               <div className="jockey-detail-metric-grid">
                 <span>{t('ownerRaceTotalRace')} <strong>{stats.totalRaces}</strong></span>
                 <span>{t('ownerRaceWins')} <strong>{stats.wins}</strong></span>
                 <span>{t('ownerRaceWinRate')} <strong>{formatPercent(stats.winRate, t)}</strong></span>
                 <span>{t('ownerRaceTop3Rate')} <strong>{formatPercent(stats.top3Rate, t)}</strong></span>
-                <span>{t('ownerRaceLicense')} <strong>{stats.license}</strong></span>
+                <span>{language === 'vi' ? 'Xếp hạng' : 'Ranking'} <strong>{stats.ranking}</strong></span>
                 <span>{t('ownerRaceViolation')} <strong>{stats.violationCount} / DQ {stats.disqualifiedCount}</strong></span>
               </div>
+
+              <section className="jockey-detail-section">
+                <h4>{language === 'vi' ? 'Giới thiệu' : 'Biography'}</h4>
+                <p className="jockey-detail-biography">{stats.biography}</p>
+              </section>
 
               <section className="jockey-detail-section">
                 <h4>{t('ownerRaceRecentHistory')}</h4>
