@@ -98,6 +98,15 @@ export async function getOwnerHorseById(horseId) {
   return normalizeHorse(horse);
 }
 
+export async function getPublicJockeyProfile(jockeyId) {
+  const response = await httpRequest(`/api/public/jockeys/${jockeyId}`, {
+    auth: false,
+    fallbackError: 'Khong the tai chi tiet jockey.'
+  });
+
+  return response?.data || response;
+}
+
 export async function createHorse(payload) {
   const horse = await httpRequest('/api/owner/horses', {
     method: 'POST',
