@@ -1,6 +1,7 @@
 package com.example.backend.controller;
 
 import com.example.backend.dto.request.OwnerTournamentRegistrationRequest;
+import com.example.backend.dto.response.OwnerEntryFeeTransactionResponse;
 import com.example.backend.dto.response.OwnerRegistrationPaymentResponse;
 import com.example.backend.dto.response.OwnerRaceResponse;
 import com.example.backend.dto.response.TournamentResponse;
@@ -42,6 +43,11 @@ public class OwnerTournamentRegistrationController {
     @GetMapping("/my-races")
     public List<OwnerRaceResponse> getMyRaces() {
         return registrationService.getMyRaces();
+    }
+
+    @GetMapping("/payment-transactions")
+    public List<OwnerEntryFeeTransactionResponse> getPaymentTransactions() {
+        return registrationService.getEntryFeeTransactions();
     }
 
     @PutMapping("/prize-distributions/{prizeDistributionId}/paid")

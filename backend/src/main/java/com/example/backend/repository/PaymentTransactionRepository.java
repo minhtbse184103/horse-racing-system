@@ -19,6 +19,11 @@ public interface PaymentTransactionRepository
 
     List<PaymentTransaction> findAllByOrderByCreatedAtDesc();
 
+    List<PaymentTransaction> findByUserIdAndPurposeOrderByCreatedAtDesc(
+            Integer userId,
+            String purpose
+    );
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
             select paymentTransaction

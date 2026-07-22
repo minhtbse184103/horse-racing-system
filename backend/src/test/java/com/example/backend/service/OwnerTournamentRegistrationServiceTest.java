@@ -1,11 +1,13 @@
 package com.example.backend.service;
 
 import com.example.backend.constant.EventStatus;
+import com.example.backend.constant.PaymentPurpose;
 import com.example.backend.constant.PaymentStatus;
 import com.example.backend.constant.PrizeDistributionStatus;
 import com.example.backend.constant.RaceEntryStatus;
 import com.example.backend.constant.RegistrationStatus;
 import com.example.backend.dto.request.OwnerTournamentRegistrationRequest;
+import com.example.backend.dto.response.OwnerEntryFeeTransactionResponse;
 import com.example.backend.dto.response.OwnerRegistrationPaymentResponse;
 import com.example.backend.dto.response.PaymentTransactionResponse;
 import com.example.backend.dto.response.RegistrationResponse;
@@ -23,6 +25,7 @@ import com.example.backend.repository.HorseRepository;
 import com.example.backend.repository.JockeyInvitationRepository;
 import com.example.backend.repository.JockeyProfileRepository;
 import com.example.backend.repository.OwnerApplicationRepository;
+import com.example.backend.repository.PaymentTransactionRepository;
 import com.example.backend.repository.PrizeDistributionRepository;
 import com.example.backend.repository.RaceEntryRepository;
 import com.example.backend.repository.RaceResultRepository;
@@ -70,6 +73,7 @@ class OwnerTournamentRegistrationServiceTest {
     @Mock private UserRepository userRepository;
     @Mock private JockeyProfileRepository jockeyProfileRepository;
     @Mock private OwnerApplicationRepository ownerApplicationRepository;
+    @Mock private PaymentTransactionRepository paymentTransactionRepository;
     @Mock private JockeyInvitationRepository jockeyInvitationRepository;
     @Mock private PrizeDistributionRepository prizeDistributionRepository;
     @Mock private RaceEntryRepository raceEntryRepository;
@@ -91,6 +95,7 @@ class OwnerTournamentRegistrationServiceTest {
                 userRepository,
                 jockeyProfileRepository,
                 ownerApplicationRepository,
+                paymentTransactionRepository,
                 jockeyInvitationRepository,
                 prizeDistributionRepository,
                 raceEntryRepository,
@@ -438,6 +443,83 @@ class OwnerTournamentRegistrationServiceTest {
     }
 
     @Test
+    void getEntryFeeTransactionsReturnsOnlyCurrentOwnerRegistrationFeePayments() {
+        User owner = user(30, "owner@example.com", "OWNER");
+        Registration registration = paidRegistration();
+        Tournament tournament = openTournament();
+        Horse horse = activeHorse();
+        JockeyProfile jockeyProfile = JockeyProfile.builder()
+                .jockeyId(40)
+                .fullName("Jockey Full Name")
+                .weight(BigDecimal.valueOf(55))
+                .build();
+        PaymentTransaction paymentTransaction = paymentTransaction();
+        paymentTransaction.setUserId(30);
+        paymentTransaction.setPurpose(PaymentPurpose.REGISTRATION_FEE);
+        paymentTransaction.setProvider("VNPAY");
+        paymentTransaction.setAmount(BigDecimal.valueOf(1_000_000));
+        paymentTransaction.setCurrency("VND");
+        paymentTransaction.setProviderTransactionNo("VNP-123");
+        paymentTransaction.setResponseCode("00");
+        paymentTransaction.setCreatedAt(LocalDateTime.now().minusMinutes(10));
+        paymentTransaction.setPaidAt(LocalDateTime.now().minusMinutes(5));
+
+        when(userRepository.findByEmail("owner@example.com"))
+                .thenReturn(Optional.of(owner));
+        when(paymentTransactionRepository.findByUserIdAndPurposeOrderByCreatedAtDesc(
+                30,
+                PaymentPurpose.REGISTRATION_FEE
+        )).thenReturn(List.of(paymentTransaction));
+        when(registrationRepository.findById(77)).thenReturn(Optional.of(registration));
+        when(tournamentRepository.findById(10)).thenReturn(Optional.of(tournament));
+        when(horseRepository.findById(20)).thenReturn(Optional.of(horse));
+        when(jockeyProfileRepository.findById(40)).thenReturn(Optional.of(jockeyProfile));
+
+        List<OwnerEntryFeeTransactionResponse> result =
+                service.getEntryFeeTransactions();
+
+        assertEquals(1, result.size());
+        OwnerEntryFeeTransactionResponse transaction = result.getFirst();
+        assertEquals(501, transaction.getPaymentTransactionId());
+        assertEquals(77, transaction.getRegistrationId());
+        assertEquals("REG-T10-PAID", transaction.getRegistrationNo());
+        assertEquals(10, transaction.getTournamentId());
+        assertEquals("Summer Cup", transaction.getTournamentName());
+        assertEquals(20, transaction.getHorseId());
+        assertEquals("Lightning", transaction.getHorseName());
+        assertEquals(40, transaction.getJockeyId());
+        assertEquals("Jockey Full Name", transaction.getJockeyName());
+        assertEquals(BigDecimal.valueOf(1_000_000), transaction.getAmount());
+        assertEquals("VNPAY", transaction.getProvider());
+        assertEquals("REG-77-TEST", transaction.getTxnRef());
+        assertEquals("VNP-123", transaction.getProviderTransactionNo());
+        assertEquals("00", transaction.getResponseCode());
+        assertEquals(PaymentStatus.PAID, transaction.getRegistrationPaymentStatus());
+        assertEquals(RegistrationStatus.APPROVED, transaction.getRegistrationApprovalStatus());
+    }
+
+    @Test
+    void getEntryFeeTransactionsReturnsEmptyListWhenOwnerHasNoPayments() {
+        User owner = user(30, "owner@example.com", "OWNER");
+        when(userRepository.findByEmail("owner@example.com"))
+                .thenReturn(Optional.of(owner));
+        when(paymentTransactionRepository.findByUserIdAndPurposeOrderByCreatedAtDesc(
+                30,
+                PaymentPurpose.REGISTRATION_FEE
+        )).thenReturn(List.of());
+
+        List<OwnerEntryFeeTransactionResponse> result =
+                service.getEntryFeeTransactions();
+
+        assertTrue(result.isEmpty());
+        verify(paymentTransactionRepository)
+                .findByUserIdAndPurposeOrderByCreatedAtDesc(
+                        30,
+                        PaymentPurpose.REGISTRATION_FEE
+                );
+    }
+
+    @Test
     void markOwnerPrizeDistributionPaidUpdatesOnlyOwnedPendingRow() {
         User owner = user(30, "owner@example.com", "OWNER");
         PrizeDistribution distribution = prizeDistribution(301, 30, PrizeDistributionStatus.PENDING);
@@ -505,6 +587,19 @@ class OwnerTournamentRegistrationServiceTest {
         paymentTransaction.setStatus("PENDING");
         paymentTransaction.setPayUrl("https://sandbox.test/pay");
         return paymentTransaction;
+    }
+
+    private Registration paidRegistration() {
+        Registration registration = new Registration();
+        registration.setRegistrationId(77);
+        registration.setRegistrationNo("REG-T10-PAID");
+        registration.setTournamentId(10);
+        registration.setHorseId(20);
+        registration.setOwnerId(30);
+        registration.setJockeyId(40);
+        registration.setPaymentStatus(PaymentStatus.PAID);
+        registration.setApprovalStatus(RegistrationStatus.APPROVED);
+        return registration;
     }
 
     private PrizeDistribution prizeDistribution(

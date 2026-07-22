@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { BarChart3, Flag, HeartPulse, RefreshCw, ScrollText, UserRound } from 'lucide-react';
+import { BarChart3, Flag, HeartPulse, ReceiptText, RefreshCw, ScrollText, UserRound } from 'lucide-react';
 import AppShell from '../common/AppShell';
 import OwnerOverview from './OwnerOverview';
 import OwnerHorseForm from './OwnerHorseForm';
 import OwnerHorseTable from './OwnerHorseTable';
 import OwnerRegisterRace from './OwnerRegisterRace';
 import OwnerRaces from './OwnerRaces';
+import OwnerMoneyTransactions from './OwnerMoneyTransactions';
 import OwnerProfile from './OwnerProfile';
 import { useHorses } from '../../hooks/useHorses';
 import { useOwnerDashboard } from '../../hooks/useOwnerDashboard';
@@ -20,6 +21,7 @@ const ownerNavItems = [
   { key: 'horses', labelKey: 'ownerNavHorses', icon: HeartPulse },
   { key: 'register', labelKey: 'ownerNavRegister', icon: ScrollText },
   { key: 'races', labelKey: 'ownerNavRaces', icon: Flag },
+  { key: 'transactions', labelKey: 'ownerNavTransactions', icon: ReceiptText },
   { key: 'profile', labelKey: 'ownerNavProfile', icon: UserRound }
 ];
 
@@ -28,7 +30,12 @@ function getErrorText(error, fallback) {
 }
 
 function isOwnerSection(section) {
-  return section === 'overview' || section === 'horses' || section === 'register' || section === 'races' || section === 'profile';
+  return section === 'overview'
+    || section === 'horses'
+    || section === 'register'
+    || section === 'races'
+    || section === 'transactions'
+    || section === 'profile';
 }
 
 function hasRegistrationPaymentReturn(params) {
@@ -568,6 +575,10 @@ function ApprovedOwnerDashboard({ currentUser, onLogout, onUserUpdated }) {
 
       {activeSection === 'races' && (
         <OwnerRaces currentUser={currentUser} />
+      )}
+
+      {activeSection === 'transactions' && (
+        <OwnerMoneyTransactions />
       )}
 
       {activeSection === 'profile' && (

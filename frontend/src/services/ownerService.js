@@ -153,6 +153,12 @@ export function getOwnerRaces() {
   });
 }
 
+export function getOwnerEntryFeeTransactions() {
+  return httpRequest('/api/owner/tournament-registrations/payment-transactions', {
+    fallbackError: 'Khong the tai lich su thanh toan phi tham gia.'
+  });
+}
+
 export function markOwnerPrizeDistributionPaid(prizeDistributionId) {
   return httpRequest(`/api/owner/tournament-registrations/prize-distributions/${prizeDistributionId}/paid`, {
     method: 'PUT',

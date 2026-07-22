@@ -1,11 +1,13 @@
 package com.example.backend.service;
 
 import com.example.backend.constant.EventStatus;
+import com.example.backend.constant.PaymentPurpose;
 import com.example.backend.constant.PaymentStatus;
 import com.example.backend.constant.PrizeDistributionStatus;
 import com.example.backend.constant.RaceEntryStatus;
 import com.example.backend.constant.RegistrationStatus;
 import com.example.backend.dto.request.OwnerTournamentRegistrationRequest;
+import com.example.backend.dto.response.OwnerEntryFeeTransactionResponse;
 import com.example.backend.dto.response.OwnerRegistrationPaymentResponse;
 import com.example.backend.dto.response.OwnerRaceResponse;
 import com.example.backend.dto.response.RegistrationResponse;
@@ -14,6 +16,7 @@ import com.example.backend.dto.response.TournamentResponse;
 import com.example.backend.entity.Horse;
 import com.example.backend.entity.JockeyProfile;
 import com.example.backend.entity.OwnerApplication;
+import com.example.backend.entity.PaymentTransaction;
 import com.example.backend.entity.PrizeDistribution;
 import com.example.backend.entity.Race;
 import com.example.backend.entity.RaceEntry;
@@ -26,6 +29,7 @@ import com.example.backend.repository.HorseRepository;
 import com.example.backend.repository.JockeyInvitationRepository;
 import com.example.backend.repository.JockeyProfileRepository;
 import com.example.backend.repository.OwnerApplicationRepository;
+import com.example.backend.repository.PaymentTransactionRepository;
 import com.example.backend.repository.PrizeDistributionRepository;
 import com.example.backend.repository.RaceEntryRepository;
 import com.example.backend.repository.RaceResultRepository;
@@ -71,6 +75,7 @@ public class OwnerTournamentRegistrationService {
     private final UserRepository userRepository;
     private final JockeyProfileRepository jockeyProfileRepository;
     private final OwnerApplicationRepository ownerApplicationRepository;
+    private final PaymentTransactionRepository paymentTransactionRepository;
     private final JockeyInvitationRepository jockeyInvitationRepository;
     private final PrizeDistributionRepository prizeDistributionRepository;
     private final RaceEntryRepository raceEntryRepository;
@@ -89,6 +94,7 @@ public class OwnerTournamentRegistrationService {
             UserRepository userRepository,
             JockeyProfileRepository jockeyProfileRepository,
             OwnerApplicationRepository ownerApplicationRepository,
+            PaymentTransactionRepository paymentTransactionRepository,
             JockeyInvitationRepository jockeyInvitationRepository,
             PrizeDistributionRepository prizeDistributionRepository,
             RaceEntryRepository raceEntryRepository,
@@ -105,6 +111,7 @@ public class OwnerTournamentRegistrationService {
         this.userRepository = userRepository;
         this.jockeyProfileRepository = jockeyProfileRepository;
         this.ownerApplicationRepository = ownerApplicationRepository;
+        this.paymentTransactionRepository = paymentTransactionRepository;
         this.jockeyInvitationRepository = jockeyInvitationRepository;
         this.prizeDistributionRepository = prizeDistributionRepository;
         this.raceEntryRepository = raceEntryRepository;
@@ -314,6 +321,20 @@ public class OwnerTournamentRegistrationService {
                         race,
                         resultCountByRaceId.getOrDefault(race.getRaceId(), 0L) > 0
                 ))
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<OwnerEntryFeeTransactionResponse> getEntryFeeTransactions() {
+        User owner = getCurrentOwner();
+
+        return paymentTransactionRepository
+                .findByUserIdAndPurposeOrderByCreatedAtDesc(
+                        owner.getUserID(),
+                        PaymentPurpose.REGISTRATION_FEE
+                )
+                .stream()
+                .map(this::toEntryFeeTransactionResponse)
                 .toList();
     }
 
@@ -563,6 +584,58 @@ public class OwnerTournamentRegistrationService {
                 .assignedRaceName(race != null ? race.getRaceName() : null)
                 .createdAt(registration.getCreatedAt())
                 .updatedAt(registration.getUpdatedAt())
+                .build();
+    }
+
+    private OwnerEntryFeeTransactionResponse toEntryFeeTransactionResponse(
+            PaymentTransaction paymentTransaction
+    ) {
+        Registration registration = paymentTransaction.getRegistrationId() == null
+                ? null
+                : registrationRepository
+                .findById(paymentTransaction.getRegistrationId())
+                .orElse(null);
+
+        Tournament tournament = registration == null
+                ? null
+                : tournamentRepository
+                .findById(registration.getTournamentId())
+                .orElse(null);
+
+        Horse horse = registration == null
+                ? null
+                : horseRepository
+                .findById(registration.getHorseId())
+                .orElse(null);
+
+        JockeyProfile jockeyProfile = registration == null
+                || registration.getJockeyId() == null
+                ? null
+                : jockeyProfileRepository
+                .findById(registration.getJockeyId())
+                .orElse(null);
+
+        return OwnerEntryFeeTransactionResponse.builder()
+                .paymentTransactionId(paymentTransaction.getPaymentTransactionId())
+                .registrationId(paymentTransaction.getRegistrationId())
+                .registrationNo(registration != null ? registration.getRegistrationNo() : null)
+                .tournamentId(registration != null ? registration.getTournamentId() : null)
+                .tournamentName(tournament != null ? tournament.getTournamentName() : null)
+                .horseId(registration != null ? registration.getHorseId() : null)
+                .horseName(horse != null ? horse.getHorseName() : null)
+                .jockeyId(registration != null ? registration.getJockeyId() : null)
+                .jockeyName(jockeyProfile != null ? jockeyProfile.getFullName() : null)
+                .amount(paymentTransaction.getAmount())
+                .currency(paymentTransaction.getCurrency())
+                .provider(paymentTransaction.getProvider())
+                .txnRef(paymentTransaction.getTxnRef())
+                .providerTransactionNo(paymentTransaction.getProviderTransactionNo())
+                .status(paymentTransaction.getStatus())
+                .responseCode(paymentTransaction.getResponseCode())
+                .registrationPaymentStatus(registration != null ? registration.getPaymentStatus() : null)
+                .registrationApprovalStatus(registration != null ? registration.getApprovalStatus() : null)
+                .createdAt(paymentTransaction.getCreatedAt())
+                .paidAt(paymentTransaction.getPaidAt())
                 .build();
     }
 
