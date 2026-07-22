@@ -1039,6 +1039,370 @@ select {
   z-index: 1;
 }
 
+.owner-overview-page {
+  display: grid;
+  gap: 18px;
+  min-width: 0;
+}
+
+.owner-overview-hero-panel,
+.owner-overview-metric-card,
+.owner-overview-readiness-panel,
+.owner-overview-next-panel {
+  border: 1px solid rgba(108, 63, 36, 0.1);
+  border-radius: 22px;
+  background: rgba(255, 252, 247, 0.88);
+  box-shadow: 0 18px 46px rgba(43, 23, 16, 0.08);
+}
+
+.owner-overview-hero-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+  gap: 18px;
+  align-items: stretch;
+  overflow: hidden;
+  padding: 22px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(255, 247, 232, 0.92)),
+    radial-gradient(circle at 82% 18%, rgba(217, 164, 65, 0.2), transparent 30%);
+}
+
+.owner-overview-hero-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: center;
+  border-radius: 18px;
+  padding: 22px;
+  background:
+    linear-gradient(145deg, rgba(43, 23, 16, 0.96), rgba(108, 63, 36, 0.88)),
+    radial-gradient(circle at 85% 15%, rgba(217, 164, 65, 0.28), transparent 32%);
+  color: white;
+}
+
+.owner-overview-kicker {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  gap: 7px;
+  border-radius: 999px;
+  color: #a95f2f;
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.owner-overview-hero-copy .owner-overview-kicker {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.82);
+  padding: 7px 10px;
+}
+
+.owner-overview-hero-copy h2 {
+  max-width: 760px;
+  margin: 18px 0 0;
+  font-size: clamp(2.25rem, 4vw, 4.25rem);
+  font-weight: 950;
+  letter-spacing: -0.065em;
+  line-height: 0.95;
+}
+
+.owner-overview-hero-copy p {
+  max-width: 760px;
+  margin: 18px 0 0;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 1rem;
+  font-weight: 650;
+  line-height: 1.7;
+}
+
+.owner-overview-hero-actions {
+  display: grid;
+  gap: 12px;
+}
+
+.owner-overview-workflow-button {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) 18px;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  border: 1px solid rgba(108, 63, 36, 0.12);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.78);
+  padding: 14px;
+  color: #2b1710;
+  text-align: left;
+  box-shadow: 0 10px 24px rgba(43, 23, 16, 0.06);
+  transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+}
+
+.owner-overview-workflow-button:hover {
+  transform: translateY(-1px);
+  border-color: rgba(217, 164, 65, 0.45);
+  background: #fff;
+  box-shadow: 0 16px 34px rgba(43, 23, 16, 0.1);
+}
+
+.owner-overview-workflow-button:focus-visible {
+  outline: 3px solid rgba(217, 164, 65, 0.35);
+  outline-offset: 3px;
+}
+
+.owner-overview-workflow-button.primary {
+  border-color: rgba(108, 63, 36, 0.2);
+  background: linear-gradient(135deg, #8a4b26, #aa662f);
+  color: white;
+}
+
+.owner-overview-workflow-button.primary small {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.owner-overview-workflow-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 14px;
+  background: rgba(217, 164, 65, 0.14);
+  color: #7a431f;
+}
+
+.owner-overview-workflow-button.primary .owner-overview-workflow-icon {
+  background: rgba(255, 255, 255, 0.16);
+  color: white;
+}
+
+.owner-overview-workflow-button strong,
+.owner-overview-workflow-button small {
+  display: block;
+  min-width: 0;
+}
+
+.owner-overview-workflow-button strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.96rem;
+  font-weight: 950;
+}
+
+.owner-overview-workflow-button small {
+  margin-top: 3px;
+  color: #657083;
+  font-size: 0.78rem;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.owner-overview-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.owner-overview-metric-card {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 14px;
+  min-width: 0;
+  padding: 18px;
+}
+
+.owner-overview-metric-card.primary {
+  border-color: rgba(217, 164, 65, 0.42);
+  background: linear-gradient(135deg, #fff, #fff7e8);
+}
+
+.owner-overview-metric-card.accent {
+  border-color: rgba(9, 124, 103, 0.18);
+  background: linear-gradient(135deg, #fff, #effdf8);
+}
+
+.owner-overview-metric-icon {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border-radius: 14px;
+  background: #f8ebd8;
+  color: #85461f;
+}
+
+.owner-overview-metric-card.accent .owner-overview-metric-icon {
+  background: #dff8ee;
+  color: #06765f;
+}
+
+.owner-overview-metric-card span,
+.owner-overview-metric-card p {
+  color: #657083;
+}
+
+.owner-overview-metric-card span {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.72rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.owner-overview-metric-card strong {
+  display: block;
+  margin-top: 8px;
+  color: #2b1710;
+  font-size: clamp(1.9rem, 3vw, 2.45rem);
+  font-weight: 950;
+  letter-spacing: -0.055em;
+  line-height: 1;
+}
+
+.owner-overview-metric-card p {
+  margin: 8px 0 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.owner-overview-operations-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.75fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.owner-overview-readiness-panel,
+.owner-overview-next-panel {
+  padding: 20px;
+}
+
+.owner-overview-panel-heading h3 {
+  margin: 8px 0 0;
+  color: #2b1710;
+  font-size: clamp(1.35rem, 2.4vw, 1.9rem);
+  font-weight: 950;
+  letter-spacing: -0.045em;
+}
+
+.owner-overview-panel-heading p {
+  margin: 8px 0 0;
+  color: #657083;
+  font-weight: 700;
+  line-height: 1.55;
+}
+
+.owner-overview-readiness-list,
+.owner-overview-next-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.owner-overview-readiness-row {
+  display: grid;
+  grid-template-columns: minmax(160px, 0.7fr) minmax(0, 1fr) 48px;
+  gap: 14px;
+  align-items: center;
+  border: 1px solid rgba(108, 63, 36, 0.08);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.72);
+  padding: 14px;
+}
+
+.owner-overview-readiness-row span,
+.owner-overview-readiness-row small {
+  color: #657083;
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+.owner-overview-readiness-row strong {
+  display: block;
+  margin-top: 2px;
+  color: #2b1710;
+  font-size: 1rem;
+  font-weight: 950;
+}
+
+.owner-overview-readiness-track {
+  height: 9px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #ece5da;
+}
+
+.owner-overview-readiness-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+}
+
+.owner-overview-readiness-track .success {
+  background: #059669;
+}
+
+.owner-overview-readiness-track .gold {
+  background: #d9a441;
+}
+
+.owner-overview-readiness-track .brown {
+  background: #85461f;
+}
+
+.owner-overview-next-list button {
+  display: grid;
+  grid-template-columns: 38px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  width: 100%;
+  border: 1px solid rgba(108, 63, 36, 0.1);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.72);
+  padding: 14px;
+  color: #2b1710;
+  text-align: left;
+  transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
+}
+
+.owner-overview-next-list button:hover {
+  transform: translateY(-1px);
+  border-color: rgba(217, 164, 65, 0.38);
+  background: #fff;
+}
+
+.owner-overview-next-list button:focus-visible {
+  outline: 3px solid rgba(217, 164, 65, 0.32);
+  outline-offset: 3px;
+}
+
+.owner-overview-next-list svg {
+  margin-top: 2px;
+  color: #8a4b26;
+}
+
+.owner-overview-next-list strong,
+.owner-overview-next-list small {
+  display: block;
+  min-width: 0;
+}
+
+.owner-overview-next-list strong {
+  font-weight: 950;
+}
+
+.owner-overview-next-list small {
+  margin-top: 4px;
+  color: #657083;
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
 .owner-panel-header {
   justify-content: space-between;
   align-items: flex-start;
@@ -7984,6 +8348,23 @@ select {
     grid-template-columns: 1fr;
   }
 
+  .owner-overview-hero-panel,
+  .owner-overview-operations-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .owner-overview-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .owner-overview-readiness-row {
+    grid-template-columns: 1fr;
+  }
+
+  .owner-overview-readiness-row small {
+    text-align: right;
+  }
+
   .horse-meta-grid,
   .owner-race-card-info {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -8028,6 +8409,30 @@ select {
 }
 
 @media (max-width: 560px) {
+  .owner-overview-hero-panel,
+  .owner-overview-hero-copy,
+  .owner-overview-readiness-panel,
+  .owner-overview-next-panel {
+    border-radius: 18px;
+    padding: 16px;
+  }
+
+  .owner-overview-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .owner-overview-workflow-button {
+    grid-template-columns: 38px minmax(0, 1fr);
+  }
+
+  .owner-overview-workflow-button > svg {
+    display: none;
+  }
+
+  .owner-overview-hero-copy h2 {
+    font-size: clamp(2rem, 12vw, 3.2rem);
+  }
+
   .owner-main {
     padding: 14px;
   }
