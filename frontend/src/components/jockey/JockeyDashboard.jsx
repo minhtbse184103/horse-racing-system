@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { ArrowRight, Award, CalendarCheck2, ClipboardList, FileBadge2, Inbox, Medal, ShieldCheck, Trophy, UserRound } from 'lucide-react';
 import defaultJockeyAvatar from '../../assets/default-jockey-avatar.svg';
 import AppShell from '../common/AppShell';
 import ConfirmModal from '../common/ConfirmModal';
@@ -409,6 +410,8 @@ function getWinRate(profile) {
   if (!totalRaces || totalRaces < 1) return '0%';
   return `${Math.round((totalWins / totalRaces) * 100)}%`;
 }
+
+const jockeyOverviewIcons = [Trophy, Award, ShieldCheck, Inbox];
 
 function getProfileNotice(profile, isLoadingProfile) {
   if (isLoadingProfile) return null;
@@ -1294,80 +1297,139 @@ function ApprovedJockeyDashboard({ currentUser, onLogout, onUserUpdated }) {
       {profileNotice && activeSection !== 'profile' && <div className={`admin-alert ${profileNotice.type}`} role="alert">{profileNotice.text}</div>}
 
       {activeSection === 'overview' && (
-        <section className="jockey-dashboard">
-          <section className="jockey-hero-panel">
-            <div className="jockey-hero-copy">
-              <p className="eyebrow">{t('jockeyDashboardEyebrow')}</p>
+        <section className="jockey-overview-page">
+          <section className="jockey-overview-hero">
+            <div className="jockey-overview-identity">
+              <span className="jockey-overview-kicker">
+                <Medal size={15} aria-hidden="true" />
+                {t('jockeyDashboardEyebrow')}
+              </span>
               <h2>{t('jockeyHeroTitle')}</h2>
               <p>{t('jockeyHeroDescription')}</p>
-              <div className="owner-shortcut-actions">
-                <button className="primary-button owner-hero-action" type="button" onClick={() => setActiveSection('invitations')}>
-                  {t('jockeyViewInvitations')}
+
+              <div className="jockey-overview-action-grid">
+                <button className="jockey-overview-action primary" type="button" onClick={() => setActiveSection('invitations')}>
+                  <span><Inbox size={18} aria-hidden="true" /></span>
+                  <strong>{t('jockeyViewInvitations')}</strong>
+                  <small>{pendingInvitationCount} pending</small>
+                  <ArrowRight size={17} aria-hidden="true" />
                 </button>
-                <button className="outline-button owner-hero-action" type="button" onClick={() => setActiveSection('profile')}>
-                  {t('jockeyOpenProfile')}
+                <button className="jockey-overview-action" type="button" onClick={() => setActiveSection('profile')}>
+                  <span><UserRound size={18} aria-hidden="true" /></span>
+                  <strong>{t('jockeyOpenProfile')}</strong>
+                  <small>{profileCompletion}% complete</small>
+                  <ArrowRight size={17} aria-hidden="true" />
                 </button>
               </div>
             </div>
-          </section>
 
-          <section className="jockey-stat-grid">
-            {jockeyStats.map((stat) => (
-              <article className="jockey-stat-card" key={stat.label}>
-                <span>{stat.label}</span>
-                <strong>{stat.value}</strong>
-                <small>{stat.detail}</small>
-              </article>
-            ))}
-          </section>
-
-          <section className="jockey-overview-grid">
-            <div className="owner-panel jockey-inbox-panel">
-              <div className="owner-panel-header">
+            <aside className="jockey-overview-profile-card">
+              <div className="jockey-overview-avatar">
+                <img src={profile?.imgUrl || defaultJockeyAvatar} alt={jockeyName} />
+              </div>
+              <div>
+                <span className={`status-badge ${statusClass(profile?.status || (isProfileActive ? 'ACTIVE' : 'PENDING'))}`}>
+                  {profile ? formatDisplayLabel(profile.status) : t('jockeyStatMissing')}
+                </span>
+                <h3>{profile?.fullName || jockeyName}</h3>
+                <p>{profile?.email || currentUser?.email || t('notUpdated')}</p>
+              </div>
+              <div className="jockey-overview-completion">
                 <div>
-                  <p className="eyebrow">{t('jockeyInbox')}</p>
-                  <h2>{t('jockeyLatestInvitations')}</h2>
+                  <span>Profile readiness</span>
+                  <strong>{profileCompletion}%</strong>
+                </div>
+                <div className="jockey-overview-completion-track" aria-hidden="true">
+                  <span style={{ width: `${profileCompletion}%` }} />
+                </div>
+              </div>
+            </aside>
+          </section>
+
+          <section className="jockey-overview-metric-grid" aria-label="Jockey overview metrics">
+            {jockeyStats.map((stat, index) => {
+              const Icon = jockeyOverviewIcons[index] || Trophy;
+              return (
+                <article className={`jockey-overview-metric-card tone-${index}`} key={stat.label}>
+                  <div className="jockey-overview-metric-icon">
+                    <Icon size={20} aria-hidden="true" />
+                  </div>
+                  <div className="min-w-0">
+                    <span>{stat.label}</span>
+                    <strong>{stat.value}</strong>
+                    <small>{stat.detail}</small>
+                  </div>
+                </article>
+              );
+            })}
+          </section>
+
+          <section className="jockey-overview-workspace-grid">
+            <article className="jockey-overview-panel jockey-overview-inbox">
+              <header className="jockey-overview-panel-header">
+                <div>
+                  <span className="jockey-overview-kicker">{t('jockeyInbox')}</span>
+                  <h3>{t('jockeyLatestInvitations')}</h3>
                   <p>{t('jockeyLatestInvitationsDesc')}</p>
                 </div>
-                <button className="outline-button compact-button" type="button" onClick={() => setActiveSection('invitations')}>
+                <button className="jockey-overview-secondary-action" type="button" onClick={() => setActiveSection('invitations')}>
                   {t('jockeyViewAll')}
+                  <ArrowRight size={16} aria-hidden="true" />
                 </button>
-              </div>
-              <div className="jockey-invitation-preview-list">
+              </header>
+
+              <div className="jockey-overview-invitation-list">
                 {latestInvitations.length === 0 ? (
-                  <p className="table-empty">{t('jockeyNoInvitations')}</p>
+                  <div className="jockey-overview-empty">
+                    <CalendarCheck2 size={22} aria-hidden="true" />
+                    <strong>{t('jockeyNoInvitations')}</strong>
+                  </div>
                 ) : latestInvitations.map((invitation) => (
-                  <article className="jockey-invitation-preview" key={invitation.invitationId || `${invitation.tournamentId}-${invitation.horseId}`}>
-                    <div>
+                  <button className="jockey-overview-invitation-row" type="button" onClick={() => openInvitationDetail(invitation)} key={invitation.invitationId || `${invitation.tournamentId}-${invitation.horseId}`}>
+                    <span className="jockey-overview-invitation-main">
                       <strong>{invitation.tournamentName || `Tournament ${invitation.tournamentId || ''}`}</strong>
-                      <span>{invitation.horseName || invitation.horseId || 'N/A'} · {formatTournamentDateRange(invitation)}</span>
-                    </div>
+                      <small>{invitation.horseName || invitation.horseId || 'N/A'} · {formatTournamentDateRange(invitation)}</small>
+                    </span>
                     <span className={`status-badge ${statusClass(invitation.status)}`}>
                       {formatDisplayLabel(invitation.status)}
                     </span>
-                  </article>
+                  </button>
                 ))}
               </div>
-            </div>
+            </article>
 
-            <div className="owner-panel jockey-checklist-panel">
-              <div className="owner-panel-header">
+            <article className="jockey-overview-panel jockey-overview-priority">
+              <header className="jockey-overview-panel-header">
                 <div>
-                  <p className="eyebrow">{t('jockeyNextSteps')}</p>
-                  <h2>{t('jockeyPriorityTasks')}</h2>
+                  <span className="jockey-overview-kicker">{t('jockeyNextSteps')}</span>
+                  <h3>{t('jockeyPriorityTasks')}</h3>
                 </div>
+              </header>
+
+              <div className="jockey-overview-task-list">
+                <button type="button" onClick={() => setActiveSection('profile')}>
+                  <FileBadge2 size={18} aria-hidden="true" />
+                  <span>
+                    <strong>{t('jockeyProfileVerified')}</strong>
+                    <small>{profileCompletion}% profile readiness</small>
+                  </span>
+                </button>
+                <button type="button" onClick={() => setActiveSection('invitations')}>
+                  <ClipboardList size={18} aria-hidden="true" />
+                  <span>
+                    <strong>{t('jockeyCheckPending', { count: pendingInvitationCount })}</strong>
+                    <small>{acceptedInvitationCount} accepted invitation(s)</small>
+                  </span>
+                </button>
+                <button type="button" onClick={() => setActiveSection('races')}>
+                  <Trophy size={18} aria-hidden="true" />
+                  <span>
+                    <strong>Your Races</strong>
+                    <small>View assigned RaceEntry history and official results.</small>
+                  </span>
+                </button>
               </div>
-              <div className="jockey-checklist">
-                <div>
-                  <span>✓</span>
-                  <p>{t('jockeyProfileVerified')}</p>
-                </div>
-                <div>
-                  <span>{pendingInvitationCount > 0 ? '!' : '✓'}</span>
-                  <p>{t('jockeyCheckPending', { count: pendingInvitationCount })}</p>
-                </div>
-              </div>
-            </div>
+            </article>
           </section>
         </section>
       )}

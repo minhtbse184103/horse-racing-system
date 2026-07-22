@@ -6994,6 +6994,439 @@ select {
   align-items: start;
 }
 
+.jockey-overview-page {
+  display: grid;
+  gap: 22px;
+  width: 100%;
+  min-width: 0;
+}
+
+.jockey-overview-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.72fr);
+  gap: 18px;
+  align-items: stretch;
+}
+
+.jockey-overview-identity,
+.jockey-overview-profile-card,
+.jockey-overview-panel,
+.jockey-overview-metric-card {
+  border: 1px solid rgba(108, 63, 36, 0.12);
+  background: rgba(255, 252, 247, 0.95);
+  box-shadow: 0 18px 46px rgba(43, 23, 16, 0.08);
+}
+
+.jockey-overview-identity {
+  display: grid;
+  align-content: space-between;
+  min-height: 300px;
+  border-radius: 28px;
+  padding: 28px;
+  background:
+    linear-gradient(135deg, rgba(255, 252, 247, 0.97), rgba(255, 243, 224, 0.88)),
+    radial-gradient(circle at 92% 18%, rgba(217, 164, 65, 0.18), transparent 34%);
+}
+
+.jockey-overview-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  color: var(--brown-700);
+  font-size: 0.76rem;
+  font-weight: 950;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.jockey-overview-identity h2 {
+  max-width: 760px;
+  margin: 18px 0 0;
+  color: var(--brown-950);
+  font-size: clamp(2.05rem, 4vw, 3.45rem);
+  line-height: 0.98;
+}
+
+.jockey-overview-identity p {
+  max-width: 720px;
+  margin: 16px 0 0;
+  color: var(--slate-600);
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.jockey-overview-action-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 28px;
+}
+
+.jockey-overview-action,
+.jockey-overview-secondary-action,
+.jockey-overview-task-list button,
+.jockey-overview-invitation-row {
+  border: 0;
+  font: inherit;
+  cursor: pointer;
+}
+
+.jockey-overview-action {
+  display: grid;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
+  gap: 2px 12px;
+  align-items: center;
+  min-width: 0;
+  min-height: 74px;
+  border: 1px solid rgba(108, 63, 36, 0.14);
+  border-radius: 18px;
+  background: #fff;
+  color: var(--brown-900);
+  padding: 14px;
+  text-align: left;
+  box-shadow: 0 14px 28px rgba(43, 23, 16, 0.06);
+  transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.jockey-overview-action:hover,
+.jockey-overview-task-list button:hover,
+.jockey-overview-invitation-row:hover {
+  transform: translateY(-1px);
+  border-color: rgba(160, 94, 48, 0.28);
+  box-shadow: 0 18px 34px rgba(43, 23, 16, 0.1);
+}
+
+.jockey-overview-action.primary {
+  border-color: rgba(92, 50, 28, 0.32);
+  background: linear-gradient(135deg, #4a2416, #8a4b25);
+  color: #fff;
+  box-shadow: 0 18px 34px rgba(74, 36, 22, 0.24);
+}
+
+.jockey-overview-action > span {
+  grid-row: 1 / span 2;
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 14px;
+  background: rgba(217, 164, 65, 0.14);
+  color: var(--brown-700);
+}
+
+.jockey-overview-action.primary > span {
+  background: rgba(255, 255, 255, 0.18);
+  color: #f8d886;
+}
+
+.jockey-overview-action.primary strong {
+  color: #fff;
+}
+
+.jockey-overview-action strong,
+.jockey-overview-action small {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jockey-overview-action small {
+  color: var(--slate-500);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.jockey-overview-action.primary small {
+  color: rgba(255, 255, 255, 0.74);
+}
+
+.jockey-overview-profile-card {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+  min-width: 0;
+  border-radius: 28px;
+  padding: 18px;
+}
+
+.jockey-overview-avatar {
+  overflow: hidden;
+  aspect-ratio: 16 / 10;
+  border: 1px solid rgba(108, 63, 36, 0.12);
+  border-radius: 20px;
+  background: var(--cream-200);
+}
+
+.jockey-overview-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.jockey-overview-profile-card h3,
+.jockey-overview-profile-card p {
+  margin: 0;
+}
+
+.jockey-overview-profile-card h3 {
+  margin-top: 12px;
+  color: var(--brown-950);
+  font-size: 1.28rem;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.jockey-overview-profile-card p {
+  margin-top: 5px;
+  color: var(--slate-500);
+  font-weight: 760;
+  overflow-wrap: anywhere;
+}
+
+.jockey-overview-completion {
+  display: grid;
+  gap: 10px;
+  border-radius: 18px;
+  background: rgba(255, 248, 238, 0.88);
+  padding: 14px;
+}
+
+.jockey-overview-completion > div:first-child {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.jockey-overview-completion span {
+  color: var(--slate-500);
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.jockey-overview-completion strong {
+  color: var(--brown-950);
+  font-size: 1.2rem;
+}
+
+.jockey-overview-completion-track {
+  overflow: hidden;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(108, 63, 36, 0.1);
+}
+
+.jockey-overview-completion-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #0f766e, #d9a441);
+}
+
+.jockey-overview-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.jockey-overview-metric-card {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+  min-width: 0;
+  border-radius: 22px;
+  padding: 18px;
+}
+
+.jockey-overview-metric-icon {
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 16px;
+  background: rgba(160, 94, 48, 0.1);
+  color: var(--brown-700);
+}
+
+.jockey-overview-metric-card.tone-1 .jockey-overview-metric-icon {
+  background: rgba(217, 164, 65, 0.16);
+  color: #9a650e;
+}
+
+.jockey-overview-metric-card.tone-2 .jockey-overview-metric-icon {
+  background: rgba(15, 118, 110, 0.1);
+  color: #0f766e;
+}
+
+.jockey-overview-metric-card.tone-3 .jockey-overview-metric-icon {
+  background: rgba(37, 99, 235, 0.09);
+  color: #1d4ed8;
+}
+
+.jockey-overview-metric-card span,
+.jockey-overview-metric-card small {
+  display: block;
+  color: var(--slate-500);
+  font-weight: 820;
+}
+
+.jockey-overview-metric-card span {
+  font-size: 0.73rem;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.jockey-overview-metric-card strong {
+  display: block;
+  margin: 7px 0 4px;
+  color: var(--brown-950);
+  font-size: clamp(1.45rem, 2vw, 2rem);
+  line-height: 1;
+}
+
+.jockey-overview-metric-card small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.78rem;
+}
+
+.jockey-overview-workspace-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.18fr) minmax(300px, 0.82fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.jockey-overview-panel {
+  min-width: 0;
+  border-radius: 26px;
+  overflow: hidden;
+}
+
+.jockey-overview-panel-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  border-bottom: 1px solid rgba(108, 63, 36, 0.1);
+  padding: 22px;
+}
+
+.jockey-overview-panel-header h3,
+.jockey-overview-panel-header p {
+  margin: 0;
+}
+
+.jockey-overview-panel-header h3 {
+  margin-top: 8px;
+  color: var(--brown-950);
+  font-size: 1.35rem;
+}
+
+.jockey-overview-panel-header p {
+  margin-top: 6px;
+  color: var(--slate-500);
+  line-height: 1.5;
+}
+
+.jockey-overview-secondary-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex: 0 0 auto;
+  min-height: 42px;
+  border: 1px solid rgba(108, 63, 36, 0.14);
+  border-radius: 14px;
+  background: #fff;
+  color: var(--brown-800);
+  padding: 0 14px;
+  font-weight: 900;
+}
+
+.jockey-overview-invitation-list,
+.jockey-overview-task-list {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+}
+
+.jockey-overview-invitation-row,
+.jockey-overview-task-list button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  min-width: 0;
+  border: 1px solid rgba(108, 63, 36, 0.1);
+  border-radius: 18px;
+  background: rgba(255, 248, 238, 0.58);
+  color: var(--brown-900);
+  padding: 15px;
+  text-align: left;
+  transition: transform 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.jockey-overview-invitation-main {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.jockey-overview-invitation-main strong,
+.jockey-overview-invitation-main small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.jockey-overview-invitation-main small,
+.jockey-overview-task-list small {
+  color: var(--slate-500);
+  font-weight: 760;
+}
+
+.jockey-overview-empty {
+  display: grid;
+  place-items: center;
+  gap: 10px;
+  min-height: 180px;
+  border: 1px dashed rgba(108, 63, 36, 0.18);
+  border-radius: 20px;
+  background: rgba(255, 248, 238, 0.44);
+  color: var(--slate-500);
+  text-align: center;
+}
+
+.jockey-overview-task-list button {
+  justify-content: flex-start;
+  background: #fff;
+}
+
+.jockey-overview-task-list button > svg {
+  flex: 0 0 auto;
+  color: var(--brown-700);
+}
+
+.jockey-overview-task-list button > span {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.jockey-overview-task-list strong,
+.jockey-overview-task-list small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .jockey-invitation-preview-list,
 .jockey-checklist,
 .jockey-invitation-list {
@@ -7419,12 +7852,15 @@ select {
 }
 
 @media (max-width: 1180px) {
-  .jockey-stat-grid {
+  .jockey-stat-grid,
+  .jockey-overview-metric-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .jockey-hero-panel,
+  .jockey-overview-hero,
   .jockey-overview-grid,
+  .jockey-overview-workspace-grid,
   .jockey-invitation-card {
     grid-template-columns: 1fr;
   }
@@ -7437,6 +7873,9 @@ select {
 
 @media (max-width: 640px) {
   .jockey-hero-panel,
+  .jockey-overview-identity,
+  .jockey-overview-profile-card,
+  .jockey-overview-panel-header,
   .jockey-invitations-panel {
     padding: 18px;
     border-radius: 22px;
@@ -7447,10 +7886,34 @@ select {
   }
 
   .jockey-stat-grid,
+  .jockey-overview-action-grid,
+  .jockey-overview-metric-grid,
   .jockey-invitation-summary-grid,
   .jockey-detail-grid,
   .jockey-profile-summary {
     grid-template-columns: 1fr;
+  }
+
+  .jockey-overview-identity {
+    min-height: 0;
+  }
+
+  .jockey-overview-action {
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+  }
+
+  .jockey-overview-panel-header,
+  .jockey-overview-invitation-row {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .jockey-overview-secondary-action {
+    width: 100%;
+  }
+
+  .jockey-overview-metric-card {
+    padding: 16px;
   }
 
   .jockey-detail-grid .wide {
