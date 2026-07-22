@@ -2,6 +2,20 @@ import { useState } from 'react';
 import { Loader2, Save } from 'lucide-react';
 import { Field, inputClass, ProductBadge, StatusBadge } from './bettingUi';
 
+const moneyInputFormatter = new Intl.NumberFormat('vi-VN', {
+  maximumFractionDigits: 0
+});
+
+function formatMoneyInputValue(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? moneyInputFormatter.format(number) : '';
+}
+
+function parseMoneyInputValue(value) {
+  const digits = String(value || '').replace(/\D/g, '');
+  return digits ? Number(digits) : '';
+}
+
 export default function ProductEditor({ product, onSave }) {
   const [form, setForm] = useState(() => ({
     name: product.name || '',
@@ -75,10 +89,30 @@ export default function ProductEditor({ product, onSave }) {
           </select>
         </Field>
         <Field label="Min stake">
-          <input type="number" min="10000" step="10000" className={inputClass} value={form.minStake} onChange={(event) => update('minStake', event.target.value)} />
+          <span className="relative block">
+            <input
+              type="text"
+              inputMode="numeric"
+              className={`${inputClass} w-full pr-16`}
+              value={formatMoneyInputValue(form.minStake)}
+              onChange={(event) => update('minStake', parseMoneyInputValue(event.target.value))}
+              aria-label="Min stake"
+            />
+            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-black text-slate-500">VND</span>
+          </span>
         </Field>
         <Field label="Max daily stake">
-          <input type="number" min="10000" step="10000" className={inputClass} value={form.maxDailyStake} onChange={(event) => update('maxDailyStake', event.target.value)} />
+          <span className="relative block">
+            <input
+              type="text"
+              inputMode="numeric"
+              className={`${inputClass} w-full pr-16`}
+              value={formatMoneyInputValue(form.maxDailyStake)}
+              onChange={(event) => update('maxDailyStake', parseMoneyInputValue(event.target.value))}
+              aria-label="Max daily stake"
+            />
+            <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-black text-slate-500">VND</span>
+          </span>
         </Field>
         <Field label="Operator fee (%)">
           <input type="number" min="0" max="50" step="0.1" className={inputClass} value={form.operatorFeeRate} onChange={(event) => update('operatorFeeRate', event.target.value)} />
