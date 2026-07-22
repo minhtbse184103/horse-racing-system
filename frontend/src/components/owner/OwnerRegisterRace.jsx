@@ -279,6 +279,12 @@ function hasRegistrationStatus(invitation) {
   );
 }
 
+function findInvitationByRegistrationId(invitations, registrationId) {
+  const targetId = String(registrationId || '');
+  if (!targetId) return null;
+  return invitations.find((invitation) => String(invitation?.registrationId || '') === targetId) || null;
+}
+
 function isPaidStatus(status) {
   return String(status || '').toUpperCase() === 'PAID';
 }
@@ -1054,7 +1060,18 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
         setFlowMode('payment');
         setWizardStep(4);
         setMessage(result?.success ? t('ownerRacePaymentConfirmSuccess') : t('ownerRacePaymentConfirmFailed'));
-        await loadPageData();
+        const pageData = await loadPageData();
+        const paidInvitation = findInvitationByRegistrationId(pageData?.invitations || [], result?.registrationId);
+        if (paidInvitation) {
+          await restoreRegistrationSelectionFromInvitation(paidInvitation, { preserveFeedback: true });
+          setRegistrationResult((current) => ({
+            ...(current || {}),
+            registrationId: result?.registrationId,
+            registrationNo: paidInvitation.registrationNo || current?.registrationNo,
+            paymentStatus: getInvitationPaymentStatus(paidInvitation) || result?.registrationPaymentStatus || current?.paymentStatus,
+            approvalStatus: getInvitationApprovalStatus(paidInvitation) || result?.registrationApprovalStatus || current?.approvalStatus
+          }));
+        }
       } catch (err) {
         paymentReturnHandledRef.current = false;
         setRegistrationSubmitError(getErrorText(err, t('ownerRacePaymentConfirmError')));
@@ -1127,9 +1144,18 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
       setOpenTournaments(Array.isArray(openTournamentData) ? openTournamentData : []);
       setOwnerHorses(Array.isArray(ownerHorseData) ? ownerHorseData : []);
       setJockeys((Array.isArray(userData) ? userData : []).filter((user) => getUserRole(user) === 'JOCKEY' && String(user.status || '').toUpperCase() === 'ACTIVE'));
-      setInvitations(applyOwnerCancelledInvitationOverrides(Array.isArray(invitationData) ? invitationData : []));
+      const normalizedInvitations = applyOwnerCancelledInvitationOverrides(Array.isArray(invitationData) ? invitationData : []);
+      setInvitations(normalizedInvitations);
+      return {
+        tournaments: Array.isArray(tournamentData) ? tournamentData : [],
+        openTournaments: Array.isArray(openTournamentData) ? openTournamentData : [],
+        ownerHorses: Array.isArray(ownerHorseData) ? ownerHorseData : [],
+        jockeys: (Array.isArray(userData) ? userData : []).filter((user) => getUserRole(user) === 'JOCKEY' && String(user.status || '').toUpperCase() === 'ACTIVE'),
+        invitations: normalizedInvitations
+      };
     } catch (err) {
       setLoadError(getErrorText(err, t('ownerRaceLoadError')));
+      return null;
     } finally {
       setIsLoading(false);
     }
@@ -1294,8 +1320,10 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
     resetFeedback();
   }
 
-  async function fillRegistrationFromInvitation(invitation) {
+  async function restoreRegistrationSelectionFromInvitation(invitation, { preserveFeedback = false } = {}) {
     const tournamentId = String(getInvitationTournamentId(invitation));
+    if (!tournamentId) return;
+
     setFlowMode('payment');
     setFormValues((current) => ({
       ...current,
@@ -1309,8 +1337,12 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
     });
     setWizardStep(4);
     setRegistrationErrors({});
-    resetFeedback();
+    if (!preserveFeedback) resetFeedback();
     await loadTournamentDetail(tournamentId);
+  }
+
+  async function fillRegistrationFromInvitation(invitation) {
+    await restoreRegistrationSelectionFromInvitation(invitation);
   }
 
   function validateRegistrationForm(tournamentDetail = selectedTournament, detailReady = isSelectedTournamentDetailReady) {
