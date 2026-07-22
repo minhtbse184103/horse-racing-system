@@ -69,6 +69,14 @@ export async function getAdminJockeyProfile(jockeyId) {
   return normalizeJockeyProfile(profile);
 }
 
+export async function getAdminJockeyCompletedRaces(jockeyId) {
+  const response = await httpRequest(`/api/admin/jockeys/${jockeyId}/completed-races`, {
+    fallbackError: 'Khong the tai lich su Race cua Jockey.'
+  });
+
+  return Array.isArray(response) ? response : [];
+}
+
 export async function getJockeyProfilesPendingOnly() {
   const response = await httpRequest('/api/admin/jockeys/verifications/pending', {
     fallbackError: 'Khong the tai ho so jockey dang cho duyet.'

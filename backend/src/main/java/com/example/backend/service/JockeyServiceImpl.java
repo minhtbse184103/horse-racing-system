@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.example.backend.constant.PaymentStatus;
 import com.example.backend.constant.RegistrationStatus;
+import com.example.backend.constant.EventStatus;
 import com.example.backend.dto.request.JockeyProfileRequest;
 import com.example.backend.dto.response.HorseResponse;
 import com.example.backend.dto.response.JockeyInvitationDetailResponse;
@@ -129,6 +130,21 @@ public class JockeyServiceImpl implements JockeyService {
         return mapProfileToResponse(profile, jockey);
     }
 
+    @Transactional(readOnly = true)
+    @Override
+    public List<JockeyRaceResponse> getAdminCompletedRaces(Integer jockeyId) {
+        User jockey = userRepository.findById(jockeyId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Nài ngựa không tồn tại."));
+
+        if (jockey.getRole() == null || !ROLE_JOCKEY.equals(jockey.getRole().getRoleName())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "User is not a jockey.");
+        }
+
+        return getJockeyRaceResponses(jockeyId).stream()
+                .filter(race -> EventStatus.COMPLETED.equals(race.getRaceStatus()))
+                .toList();
+    }
+
     // Tạo hồ sơ jockey mới.
     @Transactional
     @Override
@@ -201,6 +217,10 @@ public class JockeyServiceImpl implements JockeyService {
     @Override
     public List<JockeyRaceResponse> getMyRaces() {
         Integer jockeyId = getCurrentJockey().getUserID();
+        return getJockeyRaceResponses(jockeyId);
+    }
+
+    private List<JockeyRaceResponse> getJockeyRaceResponses(Integer jockeyId) {
         List<RaceEntryRepository.JockeyRaceProjection> jockeyRaces =
                 raceEntryRepository.findJockeyRaces(jockeyId);
 

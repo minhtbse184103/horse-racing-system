@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
-import { BadgeCheck, Eye, FileText, Image, Link2, RefreshCw, Search, X, XCircle } from 'lucide-react';
+import { BadgeCheck, ChevronDown, Eye, FileText, History, Image, Link2, RefreshCw, Search, Trophy, X, XCircle } from 'lucide-react';
 import UrlImagePreview from '../../common/UrlImagePreview';
 import {
   approveJockeyProfile,
+  getAdminJockeyCompletedRaces,
   getJockeyProfilesUnderReview,
   rejectJockeyProfile
 } from '../../../services/adminProfileReviewService';
+import { formatDisplayLabel } from '../../../lib';
 
 const PAGE_SIZE = 6;
 
@@ -46,6 +48,11 @@ function formatDate(value) {
   if (!value) return 'Not updated';
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString('vi-VN');
+}
+
+function formatSchedule(start, end) {
+  if (!start && !end) return 'Not updated';
+  return `${formatDate(start)} - ${formatDate(end)}`;
 }
 
 function getStatusLabel(status) {
@@ -98,6 +105,112 @@ function EmptyState() {
   );
 }
 
+function JockeyRaceHistoryModal({
+  profile,
+  races,
+  expandedRaceId,
+  setExpandedRaceId,
+  isLoading,
+  error,
+  onRetry,
+  onClose
+}) {
+  if (!profile) return null;
+
+  return (
+    <div className="fixed inset-0 z-[85] grid place-items-center bg-brown-900/60 p-4 backdrop-blur-sm" role="presentation" onMouseDown={onClose}>
+      <section
+        className="flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-lg border border-white/70 bg-cream-100 shadow-[0_32px_90px_rgba(43,23,16,0.46)]"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="jockey-race-history-title"
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <header className="flex shrink-0 flex-col gap-4 border-b border-brown-700/10 bg-[linear-gradient(135deg,rgba(255,248,238,0.96),rgba(247,234,216,0.82))] px-5 py-5 md:flex-row md:items-start md:justify-between">
+          <div className="min-w-0">
+            <p className="text-xs font-extrabold uppercase tracking-widest text-brown-500">Completed race history</p>
+            <h1 id="jockey-race-history-title" className="mt-2 truncate text-3xl font-black md:text-4xl">
+              {displayValue(profile.fullName)}
+            </h1>
+            <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-slate-500">
+              Completed RaceEntry records for this Jockey. Future, READY, IN_PROGRESS and PENDING_REVIEW races are excluded.
+            </p>
+          </div>
+          <button className="grid size-10 shrink-0 place-items-center rounded-lg border border-brown-700/10 bg-white text-brown-700 shadow-sm transition hover:bg-cream-200" type="button" onClick={onClose} aria-label="Close race history">
+            <X size={18} />
+          </button>
+        </header>
+
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
+          {error && (
+            <div className="admin-alert error" role="alert">
+              {error}
+              <button type="button" className="table-button" onClick={onRetry}>Retry</button>
+            </div>
+          )}
+
+          {isLoading ? (
+            <div className="rounded-lg border border-dashed border-brown-700/20 bg-white/70 p-8 text-center">
+              <RefreshCw className="mx-auto animate-spin text-brown-700" size={24} />
+              <h3 className="mt-4 text-xl font-black text-brown-900">Loading completed races...</h3>
+            </div>
+          ) : races.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-brown-700/20 bg-white/70 p-8 text-center">
+              <div className="mx-auto grid size-12 place-items-center rounded-lg bg-cream-200 text-brown-700"><Trophy size={22} /></div>
+              <h3 className="mt-4 text-xl font-black text-brown-900">No completed races yet</h3>
+              <p className="mx-auto mt-2 max-w-xl font-medium text-slate-500">
+                This Jockey has no Race records with COMPLETED status.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {races.map((race) => {
+                const isExpanded = String(expandedRaceId) === String(race.raceEntryId);
+                return (
+                  <article className="overflow-hidden rounded-lg border border-brown-700/10 bg-white/85 shadow-[0_10px_26px_rgba(78,44,25,0.07)]" key={race.raceEntryId || `${race.raceId}-${race.registrationId}`}>
+                    <button
+                      type="button"
+                      className="flex w-full flex-col gap-3 px-4 py-4 text-left transition hover:bg-cream-100/70 md:grid md:grid-cols-[minmax(0,1.35fr)_minmax(0,1fr)_auto] md:items-center"
+                      onClick={() => setExpandedRaceId(isExpanded ? null : race.raceEntryId)}
+                    >
+                      <span className="min-w-0">
+                        <span className="block text-xs font-extrabold uppercase tracking-wide text-brown-500">{race.tournamentName || `Tournament #${race.tournamentId}`}</span>
+                        <strong className="mt-1 block truncate text-lg font-black text-brown-900">{race.raceName || `Race #${race.raceId}`}</strong>
+                        <small className="mt-1 block truncate font-semibold text-slate-500">{race.trackName || 'Track not updated'}</small>
+                      </span>
+                      <span className="grid gap-1 text-sm font-bold text-slate-500">
+                        <span>{formatSchedule(race.raceStartTime, race.raceEndTime)}</span>
+                        <span>Horse: <strong className="text-brown-900">{race.horseName || 'N/A'}</strong></span>
+                      </span>
+                      <span className="flex items-center gap-3 md:justify-end">
+                        <span className="status-badge completed">{formatDisplayLabel(race.raceStatus || 'COMPLETED')}</span>
+                        <ChevronDown className={`text-brown-700 transition ${isExpanded ? 'rotate-180' : ''}`} size={18} />
+                      </span>
+                    </button>
+
+                    {isExpanded && (
+                      <div className="grid gap-3 border-t border-brown-700/10 bg-cream-50/70 px-4 py-4 md:grid-cols-2 xl:grid-cols-4">
+                        <InfoCard label="RaceEntry" value={race.raceEntryId ? `#${race.raceEntryId}` : ''} />
+                        <InfoCard label="Registration" value={race.registrationNo || (race.registrationId ? `#${race.registrationId}` : '')} />
+                        <InfoCard label="Starting stall" value={race.startingStall || '-'} />
+                        <InfoCard label="RaceEntry status" value={formatDisplayLabel(race.raceEntryStatus || 'ASSIGNED')} />
+                        <InfoCard label="Owner" value={race.ownerName} />
+                        <InfoCard label="Horse" value={race.horseName} />
+                        <InfoCard label="Distance" value={race.distance ? `${race.distance}m` : ''} />
+                        <InfoCard label="Max runners" value={race.maxRunners} />
+                      </div>
+                    )}
+                  </article>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function RejectModal({ profile, reason, setReason, isLoading, onCancel, onConfirm }) {
   if (!profile) return null;
 
@@ -143,6 +256,11 @@ export default function JockeyReview() {
   const [message, setMessage] = useState('');
   const [rejectTarget, setRejectTarget] = useState(null);
   const [rejectReason, setRejectReason] = useState('');
+  const [raceHistoryProfile, setRaceHistoryProfile] = useState(null);
+  const [raceHistory, setRaceHistory] = useState([]);
+  const [raceHistoryError, setRaceHistoryError] = useState('');
+  const [isRaceHistoryLoading, setIsRaceHistoryLoading] = useState(false);
+  const [expandedRaceId, setExpandedRaceId] = useState(null);
 
   async function loadProfiles() {
     setIsLoading(true);
@@ -247,6 +365,25 @@ export default function JockeyReview() {
     }
   }
 
+  async function openRaceHistory(profile) {
+    if (!profile?.jockeyId) return;
+
+    setRaceHistoryProfile(profile);
+    setRaceHistory([]);
+    setRaceHistoryError('');
+    setExpandedRaceId(null);
+    setIsRaceHistoryLoading(true);
+
+    try {
+      const data = await getAdminJockeyCompletedRaces(profile.jockeyId);
+      setRaceHistory(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setRaceHistoryError(err.message || 'Cannot load completed race history.');
+    } finally {
+      setIsRaceHistoryLoading(false);
+    }
+  }
+
   const selectedLicenseUrls = selectedProfile ? getValidImageUrls(selectedProfile) : [];
   const selectedVerificationLinks = selectedProfile ? getVerificationLinks(selectedProfile) : [];
   const selectedIsPending = selectedProfile ? canReview(selectedProfile) : false;
@@ -335,10 +472,16 @@ export default function JockeyReview() {
                     <td className="px-4 py-4 font-bold text-slate-500">{formatDate(profile.submittedAt)}</td>
                     <td className="px-4 py-4"><StatusBadge status={profile.status} /></td>
                     <td className="px-4 py-4 text-right">
-                      <button className="inline-flex items-center gap-2 rounded-lg border border-brown-700/15 bg-white px-3 py-2 font-extrabold text-brown-700 transition hover:bg-cream-200" type="button" onClick={() => setSelectedProfile(profile)}>
-                        <Eye size={16} />
-                        View details
-                      </button>
+                      <div className="flex flex-wrap justify-end gap-2">
+                        <button className="inline-flex items-center gap-2 rounded-lg border border-brown-700/15 bg-white px-3 py-2 font-extrabold text-brown-700 transition hover:bg-cream-200" type="button" onClick={() => setSelectedProfile(profile)}>
+                          <Eye size={16} />
+                          View details
+                        </button>
+                        <button className="inline-flex items-center gap-2 rounded-lg border border-brown-700/15 bg-white px-3 py-2 font-extrabold text-brown-700 transition hover:bg-cream-200" type="button" onClick={() => openRaceHistory(profile)}>
+                          <History size={16} />
+                          Race history
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -495,6 +638,22 @@ export default function JockeyReview() {
           setRejectReason('');
         }}
         onConfirm={handleReject}
+      />
+
+      <JockeyRaceHistoryModal
+        profile={raceHistoryProfile}
+        races={raceHistory}
+        expandedRaceId={expandedRaceId}
+        setExpandedRaceId={setExpandedRaceId}
+        isLoading={isRaceHistoryLoading}
+        error={raceHistoryError}
+        onRetry={() => openRaceHistory(raceHistoryProfile)}
+        onClose={() => {
+          setRaceHistoryProfile(null);
+          setRaceHistory([]);
+          setRaceHistoryError('');
+          setExpandedRaceId(null);
+        }}
       />
     </section>
   );
