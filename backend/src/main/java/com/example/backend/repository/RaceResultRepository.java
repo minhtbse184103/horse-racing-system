@@ -37,9 +37,13 @@ public interface RaceResultRepository extends JpaRepository<RaceResult, Integer>
         long getResultCount();
     }
 
-    // FLOW: Admin Tournament Workspace Read
-    // ORDER: 5E/7 - Repository counts official RaceResult rows for workspace result state.
-    // Purpose: count official approved RaceResult rows by Race for result/watchdog display in the workspace aggregate.
+    // LUỒNG: Jockey xem My Races
+    // BẢNG: RaceResult, RaceEntry.
+    // Mục đích: sau khi findJockeyRaces trả về race ID, đếm số dòng official result của các race đó.
+    // Cách xử lý: RaceResult nối tới Race thông qua RaceEntry; count lớn hơn 0 nghĩa là đã có kết quả chính thức.
+    // LUỒNG: Admin đọc Tournament Workspace
+    // ORDER: 5E/7 - Repository đếm các dòng RaceResult chính thức để xác định trạng thái kết quả trong workspace.
+    // Mục đích: đếm RaceResult đã được duyệt theo Race để hiển thị result/watchdog trong dữ liệu tổng hợp workspace.
     @Query("""
         select entry.raceId as raceId, count(result) as resultCount
         from RaceResult result

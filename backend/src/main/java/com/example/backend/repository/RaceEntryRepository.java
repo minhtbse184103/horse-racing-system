@@ -157,6 +157,18 @@ public interface RaceEntryRepository
         String getJockeyName();
     }
 
+    // LUỒNG: Jockey xem My Races
+    // BẢNG:
+    // - RaceEntry: dòng phân công jockey vào một race cụ thể, gồm startingStall và trạng thái entry.
+    // - Registration: nối RaceEntry với horse, owner và jockey.
+    // - Race: lịch chạy, track, distance, thứ tự race và trạng thái vòng đời.
+    // - Tournament: tên tournament và ngữ cảnh cha của race.
+    // - Horse: tên horse hiển thị trong danh sách race của jockey.
+    // - User owner: thông tin owner hiển thị cạnh horse.
+    // - User jockey: tài khoản jockey, được lọc bằng registration.jockeyId.
+    // - JockeyProfile: tên hồ sơ tùy chọn; nếu thiếu thì fallback sang User.username.
+    // Mục đích: dựng màn Jockey "My Races" bằng một projection thay vì load từng bảng riêng lẻ.
+    // Cách xử lý: trả về mọi RaceEntry có Registration thuộc jockey hiện tại, race mới nhất lên trước.
     @Query("""
         select entry.raceEntryId as raceEntryId,
                race.raceId as raceId,
