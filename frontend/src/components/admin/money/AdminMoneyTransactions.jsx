@@ -16,7 +16,8 @@ import {
   Wallet,
   X
 } from 'lucide-react';
-import { formatDisplayLabel, formatNumber } from '../../../lib';
+import { formatDisplayLabel } from '../../../lib';
+import { formatVndCurrency } from '../../../lib/eventFormatters';
 import { getAdminMoneyTransactions } from '../../../services/adminMoneyTransactionService';
 
 const SOURCE_OPTIONS = ['ALL', 'PAYMENT', 'WALLET', 'FUND', 'BET_SETTLEMENT'];
@@ -36,7 +37,7 @@ const TYPE_OPTIONS = [
 ];
 
 function money(value) {
-  return `${formatNumber(Number(value || 0))} VND`;
+  return formatVndCurrency(value);
 }
 
 function dateTime(value) {

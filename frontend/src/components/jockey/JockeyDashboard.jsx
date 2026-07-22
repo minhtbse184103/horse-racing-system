@@ -4,6 +4,7 @@ import AppShell from '../common/AppShell';
 import ConfirmModal from '../common/ConfirmModal';
 import JockeyPendingDashboard from './JockeyPendingDashboard';
 import JockeyProfileView from './JockeyProfileView';
+import JockeyRaces from './JockeyRaces';
 import {
   acceptJockeyInvitation,
   createJockeyProfile,
@@ -17,12 +18,14 @@ import {
 } from '../../services/jockeyService';
 
 import { formatDate, formatDisplayLabel, getUserRole } from '../../lib';
+import { formatVndCurrency } from '../../lib/eventFormatters';
 import { useLanguage } from '../../context/LanguageContext';
 
 const jockeyNavItems = [
   { key: 'overview', labelKey: 'jockeyNavOverview', icon: '📊' },
   { key: 'profile', labelKey: 'jockeyNavProfile', icon: '🧑‍✈️' },
-  { key: 'invitations', labelKey: 'jockeyNavInvitations', icon: '✉️' }
+  { key: 'invitations', labelKey: 'jockeyNavInvitations', icon: '✉️' },
+  { key: 'races', label: 'Your Races', icon: '🏁' }
 ];
 
 const INVITATION_TABS = [
@@ -60,7 +63,7 @@ function getErrorText(error, fallback) {
 }
 
 function isJockeySection(section) {
-  return section === 'overview' || section === 'profile' || section === 'invitations';
+  return section === 'overview' || section === 'profile' || section === 'invitations' || section === 'races';
 }
 
 function isMissingProfileError(error) {
@@ -338,7 +341,7 @@ function InvitationDetailModal({
               <div><dt>Thời gian</dt><dd>{formatTournamentDateRange(invitation)}</dd></div>
               <div><dt>Địa điểm</dt><dd>{tournament.track || 'Chưa có dữ liệu'}</dd></div>
               <div><dt>Hạn đăng ký</dt><dd>{formatDate(registrationDeadline)}</dd></div>
-              <div><dt>Phí đăng ký của owner</dt><dd>{tournament.fee == null ? 'Chưa có dữ liệu' : `${Number(tournament.fee).toLocaleString('vi-VN')} VND`}</dd></div>
+              <div><dt>Phí đăng ký của owner</dt><dd>{tournament.fee == null ? 'Chưa có dữ liệu' : formatVndCurrency(tournament.fee)}</dd></div>
               <div className="wide"><dt>Điều kiện tham gia</dt><dd>{formatRequirement(tournament.requirement)}</dd></div>
             </dl>
           </section>
@@ -1407,6 +1410,12 @@ function ApprovedJockeyDashboard({ currentUser, onLogout, onUserUpdated }) {
             </div>
             {renderInvitationList()}
           </section>
+        </section>
+      )}
+
+      {activeSection === 'races' && (
+        <section className="jockey-section">
+          <JockeyRaces />
         </section>
       )}
 

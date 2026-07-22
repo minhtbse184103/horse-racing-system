@@ -37,6 +37,7 @@ import API_BASE_URL from '../../configs/apiConfig';
 import { formatDate, formatDisplayLabel, getHorseId, getHorseName, getUserId, getUserRole } from '../../lib';
 import ConfirmModal from '../common/ConfirmModal';
 import { useLanguage } from '../../context/LanguageContext';
+import { formatVndCurrency } from '../../lib/eventFormatters';
 
 const OWNER_CANCELLED_INVITATION_STORAGE_KEY = 'owner_cancelled_jockey_invitations';
 const OWNER_REGISTRATION_PAYMENT_PENDING_KEY = 'owner_registration_payment_pending';
@@ -51,10 +52,6 @@ function isRegistrationPaymentReturn(params) {
     return false;
   }
 }
-
-const vndFormatter = new Intl.NumberFormat('vi-VN', {
-  maximumFractionDigits: 0
-});
 
 function getInvitationId(invitation) {
   return invitation?.invitationId ?? invitation?.invitationID ?? invitation?.id ?? '';
@@ -196,8 +193,7 @@ function formatDateTime(value, t, language = 'vi') {
 }
 
 function formatCurrency(value) {
-  const amount = Number(value);
-  return `${vndFormatter.format(Number.isFinite(amount) ? amount : 0)} VND`;
+  return formatVndCurrency(value);
 }
 
 function formatDateRange(startDate, endDate, t) {
@@ -2237,7 +2233,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
               <div><span>{t('ownerRaceTournamentLabel')}</span><strong>{selectedTournament ? getTournamentName(selectedTournament) : t('notUpdated')}</strong></div>
               <div><span>{t('ownerRaceHorseLabel')}</span><strong>{selectedHorse ? getHorseName(selectedHorse) : t('notUpdated')}</strong></div>
               <div><span>Jockey</span><strong>{selectedAcceptedInvitation ? getInvitationJockeyName(selectedAcceptedInvitation) : t('notUpdated')}</strong></div>
-              <div><span>{t('ownerRaceEntryFee')}</span><strong>{selectedTournament ? formatCurrency(selectedTournament.entryFee) : '0 VND'}</strong></div>
+              <div><span>{t('ownerRaceEntryFee')}</span><strong>{formatCurrency(selectedTournament?.entryFee)}</strong></div>
             </div>
 
             <div className="owner-tournament-registration-state">

@@ -2,8 +2,10 @@ package com.example.backend.service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
@@ -19,6 +21,7 @@ import com.example.backend.dto.response.JockeyInvitationDetailResponse;
 import com.example.backend.dto.response.JockeyInvitationResponse;
 import com.example.backend.dto.response.JockeyVerificationFileResponse;
 import com.example.backend.dto.response.JockeyProfileResponse;
+import com.example.backend.dto.response.JockeyRaceResponse;
 import com.example.backend.dto.response.TournamentDetailResponse;
 import com.example.backend.entity.Horse;
 import com.example.backend.entity.JockeyInvitation;
@@ -34,6 +37,8 @@ import com.example.backend.repository.JockeyInvitationRepository;
 import com.example.backend.repository.JockeyProfileRepository;
 import com.example.backend.repository.JockeyVerificationFileRepository;
 import com.example.backend.repository.JockeyVerificationRepository;
+import com.example.backend.repository.RaceEntryRepository;
+import com.example.backend.repository.RaceResultRepository;
 import com.example.backend.repository.RegistrationRepository;
 import com.example.backend.repository.TournamentRepository;
 import com.example.backend.repository.UserRepository;
@@ -53,6 +58,8 @@ public class JockeyServiceImpl implements JockeyService {
     private final JockeyVerificationRepository jockeyVerificationRepository;
     private final JockeyVerificationFileRepository jockeyVerificationFileRepository;
     private final RegistrationRepository registrationRepository;
+    private final RaceEntryRepository raceEntryRepository;
+    private final RaceResultRepository raceResultRepository;
     private final HorseRepository horseRepository;
     private final UserRepository userRepository;
     private final TournamentRepository tournamentRepository;
@@ -67,6 +74,8 @@ public class JockeyServiceImpl implements JockeyService {
             JockeyVerificationRepository jockeyVerificationRepository,
             JockeyVerificationFileRepository jockeyVerificationFileRepository,
             RegistrationRepository registrationRepository,
+            RaceEntryRepository raceEntryRepository,
+            RaceResultRepository raceResultRepository,
             HorseRepository horseRepository,
             UserRepository userRepository,
             TournamentRepository tournamentRepository,
@@ -79,6 +88,8 @@ public class JockeyServiceImpl implements JockeyService {
         this.jockeyVerificationRepository = jockeyVerificationRepository;
         this.jockeyVerificationFileRepository = jockeyVerificationFileRepository;
         this.registrationRepository = registrationRepository;
+        this.raceEntryRepository = raceEntryRepository;
+        this.raceResultRepository = raceResultRepository;
         this.horseRepository = horseRepository;
         this.userRepository = userRepository;
         this.tournamentRepository = tournamentRepository;
@@ -182,6 +193,39 @@ public class JockeyServiceImpl implements JockeyService {
         return jockeyInvitationRepository.findByJockeyIdOrderByCreatedAtDesc(jockeyId)
                 .stream()
                 .map(jockeyInvitationService::toResponse)
+                .toList();
+    }
+
+    // Lấy danh sách RaceEntry mà jockey hiện tại đã được phân công.
+    @Transactional(readOnly = true)
+    @Override
+    public List<JockeyRaceResponse> getMyRaces() {
+        Integer jockeyId = getCurrentJockey().getUserID();
+        List<RaceEntryRepository.JockeyRaceProjection> jockeyRaces =
+                raceEntryRepository.findJockeyRaces(jockeyId);
+
+        if (jockeyRaces.isEmpty()) {
+            return List.of();
+        }
+
+        List<Integer> raceIds = jockeyRaces.stream()
+                .map(RaceEntryRepository.JockeyRaceProjection::getRaceId)
+                .distinct()
+                .toList();
+
+        Map<Integer, Long> resultCountByRaceId =
+                raceResultRepository.countResultsByRaceIds(raceIds)
+                        .stream()
+                        .collect(Collectors.toMap(
+                                RaceResultRepository.RaceResultCountProjection::getRaceId,
+                                RaceResultRepository.RaceResultCountProjection::getResultCount
+                        ));
+
+        return jockeyRaces.stream()
+                .map(race -> toJockeyRaceResponse(
+                        race,
+                        resultCountByRaceId.getOrDefault(race.getRaceId(), 0L) > 0
+                ))
                 .toList();
     }
 
@@ -383,6 +427,38 @@ public class JockeyServiceImpl implements JockeyService {
                 && registrationRepository.countByRegistrationIdInAndStatusIn(
                         registrationIds,
                         List.of(RegistrationStatus.PENDING, RegistrationStatus.APPROVED)) > 0;
+    }
+
+    private JockeyRaceResponse toJockeyRaceResponse(
+            RaceEntryRepository.JockeyRaceProjection race,
+            boolean officialResultAvailable
+    ) {
+        return JockeyRaceResponse.builder()
+                .raceEntryId(race.getRaceEntryId())
+                .raceId(race.getRaceId())
+                .tournamentId(race.getTournamentId())
+                .tournamentName(race.getTournamentName())
+                .raceName(race.getRaceName())
+                .trackName(race.getTrackName())
+                .trackImageUrl(race.getTrackImageUrl())
+                .raceStartTime(race.getRaceStartTime())
+                .raceEndTime(race.getRaceEndTime())
+                .distance(race.getDistance())
+                .maxRunners(race.getMaxRunners())
+                .raceOrder(race.getRaceOrder())
+                .raceStatus(race.getRaceStatus())
+                .startingStall(race.getStartingStall())
+                .raceEntryStatus(race.getRaceEntryStatus())
+                .registrationId(race.getRegistrationId())
+                .registrationNo(race.getRegistrationNo())
+                .horseId(race.getHorseId())
+                .horseName(race.getHorseName())
+                .ownerId(race.getOwnerId())
+                .ownerName(race.getOwnerName())
+                .jockeyId(race.getJockeyId())
+                .jockeyName(race.getJockeyName())
+                .officialResultAvailable(officialResultAvailable)
+                .build();
     }
 
     // Chuyển entity JockeyProfile sang DTO.

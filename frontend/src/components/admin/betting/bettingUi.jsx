@@ -1,4 +1,5 @@
-import { formatDisplayLabel, formatNumber } from '../../../lib';
+import { formatDisplayLabel } from '../../../lib';
+import { formatVndCurrency } from '../../../lib/eventFormatters';
 
 export const eventStatuses = ['ALL', 'DRAFT', 'OPEN', 'CLOSED', 'SETTLED', 'CANCELLED'];
 
@@ -18,7 +19,7 @@ const statusStyles = {
 export const inputClass = 'min-h-11 rounded-xl border border-brown-200 bg-white px-3.5 py-2.5 text-sm font-bold text-brown-950 outline-none transition placeholder:text-slate-400 focus:border-brown-500 focus:ring-4 focus:ring-gold-400/20';
 
 export function money(value) {
-  return `${formatNumber(Number(value || 0))} VND`;
+  return formatVndCurrency(value);
 }
 
 export function dateTime(value) {

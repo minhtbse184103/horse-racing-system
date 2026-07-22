@@ -11,10 +11,11 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { formatDisplayLabel, formatNumber } from '../../../lib';
+import { formatVndCurrency } from '../../../lib/eventFormatters';
 import { getAdminSystemWallet } from '../../../services/adminSystemWalletService';
 
 function money(value) {
-  return `${formatNumber(Number(value || 0))} VND`;
+  return formatVndCurrency(value);
 }
 
 function dateTime(value) {

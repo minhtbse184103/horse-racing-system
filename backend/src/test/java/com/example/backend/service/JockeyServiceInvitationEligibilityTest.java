@@ -13,6 +13,8 @@ import com.example.backend.repository.JockeyInvitationRepository;
 import com.example.backend.repository.JockeyProfileRepository;
 import com.example.backend.repository.JockeyVerificationFileRepository;
 import com.example.backend.repository.JockeyVerificationRepository;
+import com.example.backend.repository.RaceEntryRepository;
+import com.example.backend.repository.RaceResultRepository;
 import com.example.backend.repository.RegistrationRepository;
 import com.example.backend.repository.TournamentRepository;
 import com.example.backend.repository.UserRepository;
@@ -48,6 +50,8 @@ class JockeyServiceInvitationEligibilityTest {
     @Mock private JockeyVerificationRepository jockeyVerificationRepository;
     @Mock private JockeyVerificationFileRepository jockeyVerificationFileRepository;
     @Mock private RegistrationRepository registrationRepository;
+    @Mock private RaceEntryRepository raceEntryRepository;
+    @Mock private RaceResultRepository raceResultRepository;
     @Mock private HorseRepository horseRepository;
     @Mock private UserRepository userRepository;
     @Mock private TournamentRepository tournamentRepository;
@@ -66,6 +70,8 @@ class JockeyServiceInvitationEligibilityTest {
                 jockeyVerificationRepository,
                 jockeyVerificationFileRepository,
                 registrationRepository,
+                raceEntryRepository,
+                raceResultRepository,
                 horseRepository,
                 userRepository,
                 tournamentRepository,

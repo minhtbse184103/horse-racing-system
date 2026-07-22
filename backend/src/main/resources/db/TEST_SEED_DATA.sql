@@ -144,21 +144,21 @@ VALUES
   (5, 1, 5, 4, 5,    'REG-DEMO-005', 'UNPAID', 'REJECTED',  'Health document requires clearer verification.', DATE_SUB(@seed_now, INTERVAL 3 DAY), DATE_SUB(@seed_now, INTERVAL 1 DAY), 1, DATE_SUB(@seed_now, INTERVAL 3 DAY), DATE_SUB(@seed_now, INTERVAL 1 DAY)),
   (6, 2, 6, 4, 6,    'REG-DEMO-006', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 160 DAY), DATE_SUB(@seed_now, INTERVAL 155 DAY), 1, DATE_SUB(@seed_now, INTERVAL 160 DAY), DATE_SUB(@seed_now, INTERVAL 118 DAY)),
   (7, 1, 1, 2, 5,    'REG-DEMO-007', 'UNPAID', 'CANCELLED', NULL, DATE_SUB(@seed_now, INTERVAL 20 DAY), NULL, NULL, DATE_SUB(@seed_now, INTERVAL 20 DAY), DATE_SUB(@seed_now, INTERVAL 18 DAY)),
-  -- Dedicated registrations for Race 6 (Live Test Race). Each row below
-  -- is used once by one ASSIGNED RaceEntry so Unity receives a full
-  -- six-runner lineup without any registration having two ASSIGNED entries.
+  -- Dedicated registrations for Race 6 (Live Test Race). Only one
+  -- Registration per Owner/Jockey pair is assigned as a RaceEntry so Owner
+  -- and Jockey "Your Races" pages do not show duplicate assignments.
   (8, 1, 1, 2, 5,    'REG-DEMO-008', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now, 1, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now),
   (9, 1, 2, 2, 6,    'REG-DEMO-009', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now, 1, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now),
   (10, 1, 3, 3, 5,   'REG-DEMO-010', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now, 1, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now),
   (11, 1, 4, 3, 6,   'REG-DEMO-011', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now, 1, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now),
-  (12, 1, 5, 4, 5,   'REG-DEMO-012', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now, 1, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now),
+  (12, 1, 5, 4, 7,   'REG-DEMO-012', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now, 1, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now),
   (13, 1, 6, 4, 6,   'REG-DEMO-013', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now, 1, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now),
   (14, 1, 1, 2, 5,   'REG-DEMO-014', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now, 1, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now),
   (15, 1, 2, 2, 6,   'REG-DEMO-015', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now, 1, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now),
   (16, 1, 3, 3, 5,   'REG-DEMO-016', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now, 1, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now),
   (17, 1, 4, 3, 6,   'REG-DEMO-017', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now, 1, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now),
   (18, 1, 5, 4, 5,   'REG-DEMO-018', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now, 1, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now),
-  (19, 1, 6, 4, 6,   'REG-DEMO-019', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now, 1, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now);
+  (19, 1, 6, 4, 7,   'REG-DEMO-019', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now, 1, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now);
 
 INSERT INTO `PaymentTransaction`
   (`paymentTransactionID`, `userID`, `registrationID`, `walletID`, `purpose`, `provider`, `amount`, `currency`, `txnRef`, `providerTransactionNo`, `status`, `payUrl`, `responseCode`, `rawResponse`, `createdAt`, `paidAt`, `updatedAt`)
@@ -219,21 +219,16 @@ VALUES
   (1, 1, 4, 1, 'ASSIGNED',  DATE_SUB(@seed_now, INTERVAL 2 DAY), 1, NULL, NULL, NULL),
   (2, 2, 3, 2, 'CANCELLED', DATE_SUB(@seed_now, INTERVAL 2 DAY), 1, DATE_SUB(@seed_now, INTERVAL 1 DAY), 1, 'Owner requested reassignment before race start.'),
   (3, 4, 6, 3, 'ASSIGNED',  DATE_SUB(@seed_now, INTERVAL 130 DAY), 1, NULL, NULL, NULL),
-  -- Race 6 (Live Test Race) entries: six active stalls for Unity's
-  -- maximum supported race size. Each RaceEntry uses a dedicated
-  -- registration from 8 through 13 above.
+  -- Race 6 (Live Test Race) entries: three active stalls for the minimum
+  -- launchable race. Each owner and jockey appears once in this race.
   (4, 6, 8, 1, 'ASSIGNED',  @seed_now, 1, NULL, NULL, NULL),
-  (5, 6, 9, 2, 'ASSIGNED',  @seed_now, 1, NULL, NULL, NULL),
-  (6, 6, 10, 3, 'ASSIGNED', @seed_now, 1, NULL, NULL, NULL),
-  (7, 6, 11, 4, 'ASSIGNED', @seed_now, 1, NULL, NULL, NULL),
-  (8, 6, 12, 5, 'ASSIGNED', @seed_now, 1, NULL, NULL, NULL),
-  (9, 6, 13, 6, 'ASSIGNED', @seed_now, 1, NULL, NULL, NULL),
+  (5, 6, 11, 2, 'ASSIGNED', @seed_now, 1, NULL, NULL, NULL),
+  (6, 6, 12, 3, 'ASSIGNED', @seed_now, 1, NULL, NULL, NULL),
+  -- Race 7 (Betting Demo Sprint) entries: three unique owner/jockey
+  -- assignments for betting tickets and race result display.
   (10, 7, 14, 1, 'ASSIGNED', @seed_now, 1, NULL, NULL, NULL),
-  (11, 7, 15, 2, 'ASSIGNED', @seed_now, 1, NULL, NULL, NULL),
-  (12, 7, 16, 3, 'ASSIGNED', @seed_now, 1, NULL, NULL, NULL),
-  (13, 7, 17, 4, 'ASSIGNED', @seed_now, 1, NULL, NULL, NULL),
-  (14, 7, 18, 5, 'ASSIGNED', @seed_now, 1, NULL, NULL, NULL),
-  (15, 7, 19, 6, 'ASSIGNED', @seed_now, 1, NULL, NULL, NULL);
+  (11, 7, 17, 2, 'ASSIGNED', @seed_now, 1, NULL, NULL, NULL),
+  (12, 7, 19, 3, 'ASSIGNED', @seed_now, 1, NULL, NULL, NULL);
 
 INSERT INTO `BetProduct`
   (`betProductID`, `code`, `name`, `description`, `minStake`, `maxDailyStake`, `operatorFeeRate`, `active`, `createdAt`, `updatedAt`)

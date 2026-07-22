@@ -6,6 +6,7 @@ import com.example.backend.dto.request.JockeyProfileRequest;
 import com.example.backend.dto.response.JockeyInvitationDetailResponse;
 import com.example.backend.dto.response.JockeyInvitationResponse;
 import com.example.backend.dto.response.JockeyProfileResponse;
+import com.example.backend.dto.response.JockeyRaceResponse;
 
 public interface JockeyService {
     // Lấy hồ sơ jockey của tài khoản đang đăng nhập.
@@ -25,6 +26,9 @@ public interface JockeyService {
 
     // Lấy danh sách lời mời được gửi cho jockey.
     List<JockeyInvitationResponse> getMyInvitations();
+
+    // Lấy danh sách RaceEntry đã được phân công cho jockey hiện tại.
+    List<JockeyRaceResponse> getMyRaces();
 
     // Lấy chi tiết lời mời kèm thông tin giải đấu và ngựa được mời.
     JockeyInvitationDetailResponse getMyInvitationDetail(Integer invitationId);

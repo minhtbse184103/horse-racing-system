@@ -13,13 +13,9 @@ import {
 import { getOwnerEntryFeeTransactions } from '../../services/ownerService';
 import { useLanguage } from '../../context/LanguageContext';
 import { formatDisplayLabel } from '../../lib';
+import { formatVndCurrency } from '../../lib/eventFormatters';
 
 const STATUS_OPTIONS = ['ALL', 'PENDING', 'SUCCESS', 'FAILED'];
-
-function formatVnd(value) {
-  const amount = Number(value || 0);
-  return `${(Number.isFinite(amount) ? amount : 0).toLocaleString('vi-VN')} VND`;
-}
 
 function formatDateTime(value, language = 'vi') {
   if (!value) return language === 'vi' ? 'Chưa cập nhật' : 'Not updated';
@@ -193,7 +189,7 @@ export default function OwnerMoneyTransactions() {
           <span className="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
             <CheckCircle2 size={15} /> {copy.paidAmount}
           </span>
-          <strong className="mt-3 block text-2xl font-black text-brown-950">{formatVnd(summary.paidAmount)}</strong>
+          <strong className="mt-3 block text-2xl font-black text-brown-950">{formatVndCurrency(summary.paidAmount)}</strong>
           <small className="mt-1 block font-bold text-emerald-700">{summary.successCount} SUCCESS</small>
         </article>
         <article className="rounded-lg border border-brown-700/10 bg-white/85 p-5 shadow-sm">
@@ -302,7 +298,7 @@ export default function OwnerMoneyTransactions() {
                 </div>
                 <div>
                   <span className="text-xs font-black uppercase tracking-wide text-slate-500">{copy.amount}</span>
-                  <strong className="mt-1 block text-lg font-black text-brown-950">{formatVnd(transaction.amount)}</strong>
+                  <strong className="mt-1 block text-lg font-black text-brown-950">{formatVndCurrency(transaction.amount)}</strong>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-black uppercase ring-1 ${getPaymentStatusClass(transaction.status)}`}>
@@ -361,7 +357,7 @@ export default function OwnerMoneyTransactions() {
             <div className="mt-5 grid gap-4 md:grid-cols-2">
               <Field label={copy.paymentStatus} value={getPaymentStatusLabel(selectedTransaction.status, language)} />
               <Field label={copy.approvalStatus} value={formatDisplayLabel(selectedTransaction.registrationApprovalStatus)} />
-              <Field label={copy.amount} value={formatVnd(selectedTransaction.amount)} />
+              <Field label={copy.amount} value={formatVndCurrency(selectedTransaction.amount)} />
               <Field label={copy.provider} value={selectedTransaction.provider} />
               <Field label={copy.horse} value={selectedTransaction.horseName} />
               <Field label={copy.jockey} value={selectedTransaction.jockeyName} />

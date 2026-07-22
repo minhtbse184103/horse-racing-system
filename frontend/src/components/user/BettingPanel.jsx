@@ -11,7 +11,8 @@ import {
   Wallet,
   X
 } from 'lucide-react';
-import { formatDate, formatDisplayLabel, formatNumber } from '../../lib';
+import { formatDate, formatDisplayLabel } from '../../lib';
+import { formatVndCurrency } from '../../lib/eventFormatters';
 import { getMyWallet } from '../../services/walletService';
 import {
   cancelBetTicket,
@@ -26,7 +27,7 @@ const ticketStatuses = ['ALL', 'PLACED', 'WON', 'LOST', 'REFUNDED', 'VOID'];
 const productOptions = ['ALL', 'WIN', 'PLACE'];
 
 function money(value) {
-  return `${formatNumber(Number(value || 0))} VND`;
+  return formatVndCurrency(value);
 }
 
 function dateTime(value) {

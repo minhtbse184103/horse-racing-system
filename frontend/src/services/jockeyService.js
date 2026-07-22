@@ -36,6 +36,12 @@ export function getJockeyInvitations() {
   });
 }
 
+export function getJockeyRaces() {
+  return httpRequest('/api/jockey/my-races', {
+    fallbackError: 'Không thể tải danh sách Race của bạn.'
+  });
+}
+
 export function getJockeyInvitationDetail(invitationId) {
   return httpRequest(`/api/jockey/invitations/${invitationId}`, {
     fallbackError: 'Khong the tai chi tiet loi moi jockey.'

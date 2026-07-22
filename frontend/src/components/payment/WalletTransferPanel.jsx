@@ -5,17 +5,11 @@ import { useLanguage } from '../../context/LanguageContext';
 import { confirmVnpayReturn } from '../../services/paymentService';
 import { createWalletDeposit, getMyWallet, getMyWalletTransactions } from '../../services/walletService';
 import { createKycSession, getMyKyc } from '../../services/kycService';
+import { formatVndCurrency } from '../../lib/eventFormatters';
 
 const ALLOWED_ROLES = new Set(['SPECTATOR']);
 const MIN_TOP_UP_AMOUNT = 10000;
 const QUICK_AMOUNTS = [100000, 200000, 500000, 1000000];
-function formatVnd(value) {
-  const number = Number(value || 0);
-  return Number.isFinite(number)
-    ? `${number.toLocaleString('vi-VN')} VND`
-    : '0 VND';
-}
-
 function normalizeAmount(value) {
   const number = Number(value);
   return Number.isFinite(number) ? Math.round(number) : 0;
@@ -109,15 +103,15 @@ function WalletTransactionHistory({ transactions }) {
       <div className="wallet-transaction-summary-grid">
         <div>
           <span>Nạp tiền</span>
-          <strong>{formatVnd(summary.topUp)}</strong>
+          <strong>{formatVndCurrency(summary.topUp)}</strong>
         </div>
         <div>
           <span>Betting trừ/khóa</span>
-          <strong>{formatVnd(summary.betOut)}</strong>
+          <strong>{formatVndCurrency(summary.betOut)}</strong>
         </div>
         <div>
           <span>Betting hoàn/thắng</span>
-          <strong>{formatVnd(summary.betIn)}</strong>
+          <strong>{formatVndCurrency(summary.betIn)}</strong>
         </div>
         <div>
           <span>Tổng giao dịch</span>
@@ -166,13 +160,13 @@ function WalletTransactionHistory({ transactions }) {
                 {walletTransactionLabel(transaction.type)}
               </span>
               <strong className={`wallet-transaction-amount ${direction}`}>
-                {direction === 'debit' ? '-' : '+'}{formatVnd(transaction.amount)}
+                {direction === 'debit' ? '-' : '+'}{formatVndCurrency(transaction.amount)}
               </strong>
               <span className="wallet-transaction-balance">
-                {formatVnd(transaction.balanceBefore)} → {formatVnd(transaction.balanceAfter)}
+                {formatVndCurrency(transaction.balanceBefore)} → {formatVndCurrency(transaction.balanceAfter)}
               </span>
               <span className="wallet-transaction-balance">
-                {formatVnd(transaction.lockedBefore)} → {formatVnd(transaction.lockedAfter)}
+                {formatVndCurrency(transaction.lockedBefore)} → {formatVndCurrency(transaction.lockedAfter)}
               </span>
               <span className="wallet-transaction-description" title={transaction.description || ''}>
                 {transaction.description || `${transaction.referenceType || 'Reference'} #${transaction.referenceId || '-'}`}
@@ -437,7 +431,7 @@ export default function WalletTransferPanel({ currentUser, role: roleOverride })
           <span className="flex items-center gap-2 text-xs font-black uppercase text-slate-500">
             <Wallet size={15} /> {t('walletBalance')}
           </span>
-          <strong className="mt-3 block text-3xl font-black text-brown-900">{formatVnd(wallet?.balance)}</strong>
+          <strong className="mt-3 block text-3xl font-black text-brown-900">{formatVndCurrency(wallet?.balance)}</strong>
         </div>
 
         <div className="mt-5 rounded-lg border border-brown-700/10 bg-cream-200/70 p-4">
@@ -510,7 +504,7 @@ export default function WalletTransferPanel({ currentUser, role: roleOverride })
                   onClick={() => setAmount(String(quickAmount))}
                   disabled={submitting}
                 >
-                  {formatVnd(quickAmount)}
+                  {formatVndCurrency(quickAmount)}
                 </button>
               ))}
             </div>
@@ -523,7 +517,7 @@ export default function WalletTransferPanel({ currentUser, role: roleOverride })
                 </div>
                 <div className="text-right">
                   <span className="text-xs font-black uppercase text-slate-500">{t('walletTotal')}</span>
-                  <strong className="mt-1 block text-brown-900">{formatVnd(amountValue)}</strong>
+                  <strong className="mt-1 block text-brown-900">{formatVndCurrency(amountValue)}</strong>
                 </div>
               </div>
             </div>

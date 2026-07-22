@@ -131,6 +131,71 @@ public interface RaceEntryRepository
             @Param("ownerId") Integer ownerId
     );
 
+    interface JockeyRaceProjection {
+        Integer getRaceEntryId();
+        Integer getRaceId();
+        Integer getTournamentId();
+        String getTournamentName();
+        String getRaceName();
+        String getTrackName();
+        String getTrackImageUrl();
+        java.time.LocalDateTime getRaceStartTime();
+        java.time.LocalDateTime getRaceEndTime();
+        Integer getDistance();
+        Integer getMaxRunners();
+        Integer getRaceOrder();
+        String getRaceStatus();
+        Integer getStartingStall();
+        String getRaceEntryStatus();
+        Integer getRegistrationId();
+        String getRegistrationNo();
+        Integer getHorseId();
+        String getHorseName();
+        Integer getOwnerId();
+        String getOwnerName();
+        Integer getJockeyId();
+        String getJockeyName();
+    }
+
+    @Query("""
+        select entry.raceEntryId as raceEntryId,
+               race.raceId as raceId,
+               tournament.tournamentId as tournamentId,
+               tournament.tournamentName as tournamentName,
+               race.raceName as raceName,
+               race.trackName as trackName,
+               race.trackImageUrl as trackImageUrl,
+               race.raceStartTime as raceStartTime,
+               race.raceEndTime as raceEndTime,
+               race.distance as distance,
+               race.maxRunners as maxRunners,
+               race.raceOrder as raceOrder,
+               race.status as raceStatus,
+               entry.startingStall as startingStall,
+               entry.status as raceEntryStatus,
+               registration.registrationId as registrationId,
+               registration.registrationNo as registrationNo,
+               horse.horseId as horseId,
+               horse.horseName as horseName,
+               owner.userID as ownerId,
+               owner.username as ownerName,
+               jockey.userID as jockeyId,
+               coalesce(jockeyProfile.fullName, jockey.username) as jockeyName
+        from RaceEntry entry
+        join Registration registration on registration.registrationId = entry.registrationId
+        join Race race on race.raceId = entry.raceId
+        join Tournament tournament on tournament.tournamentId = race.tournamentId
+        join Horse horse on horse.horseId = registration.horseId
+        join User owner on owner.userID = registration.ownerId
+        join User jockey on jockey.userID = registration.jockeyId
+        left join JockeyProfile jockeyProfile on jockeyProfile.jockeyId = jockey.userID
+        where registration.jockeyId = :jockeyId
+        order by race.raceStartTime desc, race.raceOrder asc
+        """)
+    List<JockeyRaceProjection> findJockeyRaces(
+            @Param("jockeyId") Integer jockeyId
+    );
+
     interface RaceEntryCountProjection {
         Integer getRaceId();
         long getEntryCount();
