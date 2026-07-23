@@ -12,4 +12,8 @@ public interface WalletTransactionRepository
     List<WalletTransaction> findAllByOrderByCreatedAtDesc();
 
     List<WalletTransaction> findByUserIdOrderByCreatedAtDesc(Integer userId);
+
+    List<WalletTransaction> findByWalletIdOrderByCreatedAtDesc(Integer walletId);
+
+    List<WalletTransaction> findByWalletIdAndTypeOrderByCreatedAtDesc(Integer walletId, String type);
 }

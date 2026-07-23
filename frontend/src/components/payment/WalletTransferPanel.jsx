@@ -32,7 +32,7 @@ function walletTransactionLabel(type) {
   const normalized = String(type || '').toUpperCase();
   const labels = {
     DEPOSIT: 'Nạp tiền',
-    BET_LOCK: 'Khóa tiền cược',
+    BET_LOCK: 'Đặt cược',
     BET_REFUND: 'Hoàn tiền cược',
     BET_WIN: 'Thắng cược',
     BET_LOST: 'Thua cược',
@@ -48,15 +48,7 @@ function walletTransactionDirection(type) {
   return 'neutral';
 }
 
-function walletTransactionGroup(type) {
-  const normalized = String(type || '').toUpperCase();
-  if (normalized === 'DEPOSIT') return 'TOPUP';
-  if (normalized.startsWith('BET_')) return 'BETTING';
-  return 'OTHER';
-}
-
-function WalletTransactionHistory({ transactions }) {
-  const [filter, setFilter] = useState('ALL');
+function WalletTransactionHistory({ transactions, filter, loading, onFilterChange }) {
   const summary = useMemo(() => transactions.reduce((total, transaction) => {
     const amount = Number(transaction.amount || 0);
     const type = String(transaction.type || '').toUpperCase();
@@ -69,25 +61,7 @@ function WalletTransactionHistory({ transactions }) {
     betOut: 0,
     betIn: 0
   }), [transactions]);
-  const filteredTransactions = useMemo(() => {
-    if (filter === 'ALL') return transactions;
-    return transactions.filter((transaction) => walletTransactionGroup(transaction.type) === filter);
-  }, [filter, transactions]);
-
-  if (!transactions?.length) {
-    return (
-      <section className="owner-panel wallet-transaction-panel">
-        <div className="owner-panel-header">
-          <div>
-            <p className="eyebrow">Wallet ledger</p>
-            <h2>Lịch sử giao dịch ví</h2>
-            <p>Chưa có giao dịch nạp tiền hoặc betting nào được ghi nhận.</p>
-          </div>
-          <CreditCard size={22} />
-        </div>
-      </section>
-    );
-  }
+  const filteredTransactions = transactions;
 
   return (
     <section className="owner-panel wallet-transaction-panel">
@@ -122,14 +96,18 @@ function WalletTransactionHistory({ transactions }) {
       <div className="wallet-transaction-filter-row" aria-label="Wallet transaction filters">
         {[
           ['ALL', 'Tất cả'],
-          ['TOPUP', 'Nạp tiền'],
-          ['BETTING', 'Betting']
+          ['DEPOSIT', 'Nạp tiền'],
+          ['BET_LOCK', 'Đặt cược'],
+          ['BET_REFUND', 'Hoàn cược'],
+          ['BET_WIN', 'Thắng cược'],
+          ['BET_LOST', 'Thua cược']
         ].map(([value, label]) => (
           <button
             className={filter === value ? 'active' : ''}
             key={value}
             type="button"
-            onClick={() => setFilter(value)}
+            onClick={() => onFilterChange(value)}
+            disabled={loading}
           >
             {label}
           </button>
@@ -192,6 +170,8 @@ export default function WalletTransferPanel({ currentUser, role: roleOverride })
   const [kyc, setKyc] = useState(null);
   const [startingKyc, setStartingKyc] = useState(false);
   const [transactions, setTransactions] = useState([]);
+  const [transactionFilter, setTransactionFilter] = useState('ALL');
+  const [transactionsLoading, setTransactionsLoading] = useState(false);
 
   const amountValue = useMemo(() => normalizeAmount(amount), [amount]);
   const canSubmit = ALLOWED_ROLES.has(role) && amountValue >= MIN_TOP_UP_AMOUNT && !submitting;
@@ -222,6 +202,21 @@ export default function WalletTransferPanel({ currentUser, role: roleOverride })
   useEffect(() => {
     loadWallet();
   }, [role]);
+
+  async function handleTransactionFilterChange(type) {
+    setTransactionFilter(type);
+    setTransactionsLoading(true);
+    setError('');
+    try {
+      const result = await getMyWalletTransactions(type === 'ALL' ? '' : type);
+      setTransactions(Array.isArray(result) ? result : []);
+    } catch (err) {
+      setTransactions([]);
+      setError(err.message || 'Không thể tải lịch sử giao dịch ví.');
+    } finally {
+      setTransactionsLoading(false);
+    }
+  }
 
   useEffect(() => {
     if (!ALLOWED_ROLES.has(role)) return undefined;
@@ -449,7 +444,14 @@ export default function WalletTransferPanel({ currentUser, role: roleOverride })
         </div>
       </section>
 
-      {wallet && <WalletTransactionHistory transactions={transactions} />}
+      {wallet && (
+        <WalletTransactionHistory
+          transactions={transactions}
+          filter={transactionFilter}
+          loading={transactionsLoading}
+          onFilterChange={handleTransactionFilterChange}
+        />
+      )}
 
       {isDepositOpen && (
         <div className="fixed inset-0 z-50 grid place-items-center bg-brown-950/45 p-4">

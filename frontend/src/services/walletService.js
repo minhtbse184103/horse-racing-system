@@ -11,8 +11,9 @@ export async function getMyWallet() {
   return unwrapApiResponse(response);
 }
 
-export async function getMyWalletTransactions() {
-  const response = await httpRequest('/api/wallets/me/transactions', {
+export async function getMyWalletTransactions(type = '') {
+  const query = type ? `?type=${encodeURIComponent(type)}` : '';
+  const response = await httpRequest(`/api/wallets/me/transactions${query}`, {
     fallbackError: 'Unable to load wallet transactions.'
   });
   return unwrapApiResponse(response);

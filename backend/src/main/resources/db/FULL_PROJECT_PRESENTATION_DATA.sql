@@ -102,6 +102,11 @@ INSERT INTO `Wallet`
 VALUES
   (1, 12, 2000000.00, 0.00, 'VND', 'ACTIVE', @seed_now, @seed_now);
 
+INSERT INTO `WalletTransaction`
+  (`walletID`, `userID`, `type`, `amount`, `balanceBefore`, `balanceAfter`, `lockedBefore`, `lockedAfter`, `referenceType`, `referenceID`, `description`, `createdAt`)
+VALUES
+  (1, 12, 'DEPOSIT', 2000000.00, 0.00, 2000000.00, 0.00, 0.00, NULL, NULL, 'Initial presentation wallet balance', @seed_now);
+
 INSERT INTO `Horse`
   (`horseID`, `ownerID`, `horseName`, `age`, `dayOfBirth`, `weight`, `colour`, `sex`, `breeding`, `trainer`, `healthCertExpiry`, `healthCertificateUrl`, `officialHorseProfileUrl`, `status`, `rejectionReason`, `createdAt`, `updatedAt`)
 VALUES

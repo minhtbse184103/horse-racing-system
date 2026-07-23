@@ -18,6 +18,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -48,9 +49,13 @@ public class WalletController {
     @PreAuthorize("hasRole('SPECTATOR')")
     @Operation(summary = "Xem lịch sử giao dịch ví của người dùng hiện tại")
     public ResponseEntity<ApiResponse<List<WalletTransactionResponse>>> getMyWalletTransactions(
-            Authentication authentication
+            Authentication authentication,
+            @RequestParam(required = false) String type
     ) {
-        List<WalletTransactionResponse> response = walletService.getMyWalletTransactions(authentication.getName());
+        List<WalletTransactionResponse> response = walletService.getMyWalletTransactions(
+                authentication.getName(),
+                type
+        );
         return ResponseEntity.ok(ApiResponse.<List<WalletTransactionResponse>>builder()
                 .status(true)
                 .message("Lấy lịch sử giao dịch ví thành công.")

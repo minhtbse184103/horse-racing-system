@@ -28,6 +28,7 @@ import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -37,6 +38,14 @@ public class WalletService {
     private static final String VND = "VND";
     private static final String SPECTATOR = "SPECTATOR";
     private static final BigDecimal MIN_DEPOSIT_AMOUNT = new BigDecimal("10000.00");
+    private static final Set<String> SUPPORTED_TRANSACTION_TYPES = Set.of(
+            WalletTransactionType.DEPOSIT,
+            WalletTransactionType.BET_LOCK,
+            WalletTransactionType.BET_LOST,
+            WalletTransactionType.BET_WIN,
+            WalletTransactionType.BET_REFUND,
+            WalletTransactionType.PRIZE_PAYOUT
+    );
 
     private final UserRepository userRepository;
     private final WalletRepository walletRepository;
@@ -60,7 +69,7 @@ public class WalletService {
     }
 
     @Transactional(readOnly = true)
-    public List<WalletTransactionResponse> getMyWalletTransactions(String email) {
+    public List<WalletTransactionResponse> getMyWalletTransactions(String email, String type) {
         // Lấy lịch sử ví của chính spectator đang đăng nhập.
         User user = getUserByEmail(email);
         validateWalletAllowedRole(user);
@@ -71,11 +80,27 @@ public class WalletService {
                 ));
         ensureWalletActive(wallet);
 
-        return walletTransactionRepository.findByUserIdOrderByCreatedAtDesc(user.getUserID())
+        String normalizedType = normalizeTransactionType(type);
+        List<WalletTransaction> transactions = normalizedType == null
+                ? walletTransactionRepository.findByWalletIdOrderByCreatedAtDesc(wallet.getWalletId())
+                : walletTransactionRepository.findByWalletIdAndTypeOrderByCreatedAtDesc(
+                        wallet.getWalletId(), normalizedType);
+
+        return transactions
                 .stream()
-                .filter(transaction -> wallet.getWalletId().equals(transaction.getWalletId()))
                 .map(this::mapTransactionToResponse)
                 .toList();
+    }
+
+    private String normalizeTransactionType(String type) {
+        if (type == null || type.isBlank()) {
+            return null;
+        }
+        String normalizedType = type.trim().toUpperCase(Locale.ROOT);
+        if (!SUPPORTED_TRANSACTION_TYPES.contains(normalizedType)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Unsupported wallet transaction type.");
+        }
+        return normalizedType;
     }
 
     @Transactional
