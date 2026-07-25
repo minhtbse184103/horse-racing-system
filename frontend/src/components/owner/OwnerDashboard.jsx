@@ -570,7 +570,11 @@ function ApprovedOwnerDashboard({ currentUser, onLogout, onUserUpdated }) {
       )}
 
       {activeSection === 'register' && (
-        <OwnerRegisterRace horses={horses} onBackToHorses={() => setActiveSection('horses')} />
+        <OwnerRegisterRace
+          horses={horses}
+          onBackToHorses={() => setActiveSection('horses')}
+          onViewTransactions={() => setActiveSection('transactions')}
+        />
       )}
 
       {activeSection === 'races' && (

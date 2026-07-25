@@ -30,4 +30,5 @@ public class JockeyInvitationResponse {
     private String registrationStatus;
     private String paymentStatus;
     private String approvalStatus;
+    private String rejectionReason;
 }

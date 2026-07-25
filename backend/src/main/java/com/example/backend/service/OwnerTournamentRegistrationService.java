@@ -56,7 +56,6 @@ public class OwnerTournamentRegistrationService {
 
     private static final String ACTIVE = "ACTIVE";
     private static final String ROLE_OWNER = "OWNER";
-    private static final String ROLE_JOCKEY = "JOCKEY";
     private static final String INVITATION_ACCEPTED = "ACCEPTED";
 
     private static final List<String> ACTIVE_REGISTRATION_STATUSES = List.of(
@@ -130,10 +129,17 @@ public class OwnerTournamentRegistrationService {
     ) {
         User owner = getCurrentOwner();
         Tournament tournament = getTournament(request.getTournamentId());
-        validateTournamentOpen(tournament);
+        eligibilityService.validateSubmissionWindow(tournament);
 
-        Horse horse = getOwnedActiveHorse(request.getHorseId(), owner.getUserID());
-        User jockey = getActiveJockeyWithProfile(request.getJockeyId());
+        Horse horse = getOwnedHorse(request.getHorseId(), owner.getUserID());
+        User jockey = getJockey(request.getJockeyId());
+
+        eligibilityService.validateLoadedParticipants(
+                tournament,
+                horse,
+                owner,
+                jockey
+        );
 
         validateAcceptedInvitation(tournament, horse, owner, jockey);
 
@@ -144,12 +150,6 @@ public class OwnerTournamentRegistrationService {
                 jockey
         );
         if (existingRegistration != null) {
-            eligibilityService.validateParticipationRequirements(
-                    tournament,
-                    horse.getHorseId(),
-                    owner.getUserID(),
-                    jockey.getUserID()
-            );
             return createPaymentResponseForExistingRegistration(
                     existingRegistration,
                     tournament,
@@ -157,13 +157,8 @@ public class OwnerTournamentRegistrationService {
             );
         }
 
-        eligibilityService.validateNewSubmission(
-                tournament,
-                horse.getHorseId(),
-                owner.getUserID(),
-                jockey.getUserID()
-        );
-        availabilityService.validatePaidRegistrationCanBeCreated(
+        eligibilityService.validateNewSubmissionCapacity(tournament);
+        availabilityService.validateOwnerRegistrationCanBeCreated(
                 tournament,
                 horse,
                 owner,
@@ -404,76 +399,20 @@ public class OwnerTournamentRegistrationService {
                 ));
     }
 
-    private Horse getOwnedActiveHorse(Integer horseId, Integer ownerId) {
-        Horse horse = horseRepository.findByHorseIdAndOwnerId(horseId, ownerId)
+    private Horse getOwnedHorse(Integer horseId, Integer ownerId) {
+        return horseRepository.findByHorseIdAndOwnerId(horseId, ownerId)
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
                         "Horse does not exist or does not belong to the current owner."
                 ));
-
-        if (!ACTIVE.equalsIgnoreCase(horse.getStatus())) {
-            throw new ApiException(HttpStatus.CONFLICT, "Horse must be ACTIVE.");
-        }
-
-        return horse;
     }
 
-    private User getActiveJockeyWithProfile(Integer jockeyId) {
-        User jockey = userRepository.findById(jockeyId)
+    private User getJockey(Integer jockeyId) {
+        return userRepository.findById(jockeyId)
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
                         "Jockey does not exist."
                 ));
-
-        if (jockey.getRole() == null
-                || !ROLE_JOCKEY.equalsIgnoreCase(jockey.getRole().getRoleName())) {
-            throw new ApiException(HttpStatus.CONFLICT, "Selected user is not a JOCKEY.");
-        }
-
-        if (!ACTIVE.equalsIgnoreCase(jockey.getStatus())) {
-            throw new ApiException(HttpStatus.CONFLICT, "Jockey account is not ACTIVE.");
-        }
-
-        jockeyProfileRepository.findById(jockeyId)
-                .orElseThrow(() -> new ApiException(
-                        HttpStatus.NOT_FOUND,
-                        "Jockey profile does not exist."
-                ));
-
-        return jockey;
-    }
-
-    private void validateTournamentOpen(Tournament tournament) {
-        LocalDateTime now = LocalDateTime.now();
-
-        if (!EventStatus.OPEN_FOR_REGISTRATION.equals(tournament.getStatus())) {
-            throw new ApiException(
-                    HttpStatus.CONFLICT,
-                    "Tournament is not open for registration."
-            );
-        }
-
-        if (tournament.getRegistrationOpenAt() == null
-                || tournament.getRegistrationCloseAt() == null) {
-            throw new ApiException(
-                    HttpStatus.CONFLICT,
-                    "Tournament registration window is not configured."
-            );
-        }
-
-        if (now.isBefore(tournament.getRegistrationOpenAt())) {
-            throw new ApiException(
-                    HttpStatus.CONFLICT,
-                    "Tournament registration has not opened yet."
-            );
-        }
-
-        if (now.isAfter(tournament.getRegistrationCloseAt())) {
-            throw new ApiException(
-                    HttpStatus.CONFLICT,
-                    "Tournament registration is closed."
-            );
-        }
     }
 
     private void validateAcceptedInvitation(

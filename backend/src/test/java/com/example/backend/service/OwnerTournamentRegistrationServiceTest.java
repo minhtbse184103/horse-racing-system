@@ -59,6 +59,7 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -145,6 +146,7 @@ class OwnerTournamentRegistrationServiceTest {
         when(horseRepository.findById(20)).thenReturn(Optional.of(horse));
         when(userRepository.findById(30)).thenReturn(Optional.of(owner));
         when(userRepository.findById(40)).thenReturn(Optional.of(jockey));
+        stubJockeyProfile();
         when(raceEntryRepository.findByRegistrationIdAndStatus(
                 77, RaceEntryStatus.ASSIGNED
         )).thenReturn(Optional.empty());
@@ -183,12 +185,14 @@ class OwnerTournamentRegistrationServiceTest {
         assertEquals(RegistrationStatus.PENDING, registrationResponse.getApprovalStatus());
         assertEquals(PaymentStatus.UNPAID, registrationResponse.getPaymentStatus());
         assertEquals("https://sandbox.test/pay", response.getPaymentUrl());
-        verify(eligibilityService).validateNewSubmission(
+        verify(eligibilityService).validateSubmissionWindow(tournament);
+        verify(eligibilityService).validateLoadedParticipants(
                 tournament,
-                horse.getHorseId(),
-                owner.getUserID(),
-                jockey.getUserID()
+                horse,
+                owner,
+                jockey
         );
+        verify(eligibilityService).validateNewSubmissionCapacity(tournament);
     }
 
     @Test
@@ -219,6 +223,7 @@ class OwnerTournamentRegistrationServiceTest {
         when(horseRepository.findById(20)).thenReturn(Optional.of(horse));
         when(userRepository.findById(30)).thenReturn(Optional.of(owner));
         when(userRepository.findById(40)).thenReturn(Optional.of(jockey));
+        stubJockeyProfile();
         when(raceEntryRepository.findByRegistrationIdAndStatus(
                 77, RaceEntryStatus.ASSIGNED
         )).thenReturn(Optional.empty());
@@ -241,13 +246,18 @@ class OwnerTournamentRegistrationServiceTest {
                 service.submitRegistration(request, "127.0.0.1");
 
         assertEquals("https://sandbox.test/pay", response.getPaymentUrl());
-        verify(eligibilityService).validateParticipationRequirements(
+        verify(eligibilityService).validateSubmissionWindow(tournament);
+        verify(eligibilityService).validateLoadedParticipants(
                 tournament,
-                horse.getHorseId(),
-                owner.getUserID(),
-                jockey.getUserID()
+                horse,
+                owner,
+                jockey
         );
-        verify(eligibilityService, never()).validateNewSubmission(any(), any(), any(), any());
+        verify(eligibilityService, never()).validateNewSubmissionCapacity(any());
+        verify(registrationRepository, never())
+                .countByTournamentIdAndHorseIdAndStatusInExcludingRegistration(
+                        any(), any(), any(), any()
+                );
         verify(registrationRepository, never()).save(any());
     }
 
@@ -365,6 +375,10 @@ class OwnerTournamentRegistrationServiceTest {
                 .thenReturn(Optional.of(owner));
         when(tournamentRepository.findById(10))
                 .thenReturn(Optional.of(tournament));
+        doThrow(new ApiException(
+                HttpStatus.CONFLICT,
+                "Tournament is not open for registration."
+        )).when(eligibilityService).validateSubmissionWindow(tournament);
 
         ApiException exception = assertThrows(
                 ApiException.class,
@@ -377,6 +391,38 @@ class OwnerTournamentRegistrationServiceTest {
                 exception.getMessage()
         );
         verify(horseRepository, never()).findByHorseIdAndOwnerId(any(), any());
+        verify(registrationRepository, never()).save(any());
+    }
+
+    @Test
+    void submitRejectsOwnerWithAnotherActiveRegistrationInSameTournament() {
+        OwnerTournamentRegistrationRequest request = request();
+        User owner = user(30, "owner@example.com", "OWNER");
+        User jockey = user(40, "jockey@example.com", "JOCKEY");
+        Tournament tournament = openTournament();
+        Horse horse = activeHorse();
+
+        stubBaseLookups(owner, jockey, tournament, horse);
+        when(jockeyInvitationRepository.existsByTournamentIdAndHorseIdAndOwnerIdAndJockeyIdAndStatus(
+                10, 20, 30, 40, "ACCEPTED"
+        )).thenReturn(true);
+        when(registrationRepository.countByTournamentIdAndOwnerIdAndStatusInExcludingRegistration(
+                eq(10),
+                eq(30),
+                any(Collection.class),
+                eq(null)
+        )).thenReturn(1L);
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.submitRegistration(request, "127.0.0.1")
+        );
+
+        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
+        assertEquals(
+                "Owner already has an active registration in this tournament.",
+                exception.getMessage()
+        );
         verify(registrationRepository, never()).save(any());
     }
 
@@ -635,6 +681,9 @@ class OwnerTournamentRegistrationServiceTest {
                 .thenReturn(Optional.of(horse));
         when(userRepository.findById(40))
                 .thenReturn(Optional.of(jockey));
+    }
+
+    private void stubJockeyProfile() {
         when(jockeyProfileRepository.findById(40))
                 .thenReturn(Optional.of(JockeyProfile.builder()
                         .jockeyId(40)

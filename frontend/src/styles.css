@@ -4242,6 +4242,180 @@ select {
   line-height: 1.4;
 }
 
+.registration-horse-card .registration-horse-eligibility-summary {
+  display: block;
+  color: var(--slate-500);
+  font-size: 0.7rem;
+  font-weight: 850;
+  line-height: 1.35;
+}
+
+.registration-horse-eligibility-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  width: fit-content;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: #714728;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 900;
+  line-height: 1.35;
+  text-align: left;
+  text-decoration: underline;
+  text-decoration-color: rgba(113, 71, 40, 0.35);
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.registration-horse-eligibility-toggle:hover {
+  color: var(--brown-900);
+  text-decoration-color: currentColor;
+}
+
+.registration-horse-eligibility-toggle:focus-visible {
+  border-radius: 5px;
+  outline: 3px solid rgba(0, 84, 75, 0.2);
+  outline-offset: 3px;
+}
+
+.registration-horse-eligibility-toggle svg {
+  flex: 0 0 auto;
+  transition: transform 160ms ease;
+}
+
+.registration-horse-eligibility-toggle svg.is-expanded {
+  transform: rotate(180deg);
+}
+
+.registration-horse-checklist {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 8px;
+  margin: 4px 0 0;
+  border-top: 1px solid rgba(108, 63, 36, 0.1);
+  padding: 12px 0 0;
+  list-style: none;
+}
+
+.registration-horse-check {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 9px;
+  align-items: start;
+  min-width: 0;
+  border: 1px solid rgba(108, 63, 36, 0.1);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.78);
+  padding: 10px;
+}
+
+.registration-horse-check.passed {
+  border-color: rgba(46, 125, 50, 0.18);
+  background: rgba(237, 249, 239, 0.78);
+}
+
+.registration-horse-check.failed {
+  border-color: rgba(176, 42, 42, 0.2);
+  background: rgba(255, 242, 242, 0.82);
+}
+
+.registration-horse-check.unknown {
+  border-color: rgba(154, 104, 29, 0.22);
+  background: rgba(255, 248, 230, 0.84);
+}
+
+.registration-horse-check-icon {
+  display: inline-flex;
+  margin-top: 1px;
+}
+
+.registration-horse-check.passed .registration-horse-check-icon {
+  color: #2e7d32;
+}
+
+.registration-horse-check.failed .registration-horse-check-icon {
+  color: #b02a2a;
+}
+
+.registration-horse-check.unknown .registration-horse-check-icon {
+  color: #9a681d;
+}
+
+.registration-horse-check-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.registration-horse-card .registration-horse-check-copy strong,
+.registration-horse-card .registration-horse-check-copy small {
+  grid-area: auto;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.registration-horse-card .registration-horse-check-copy strong {
+  color: var(--brown-900);
+  font-size: 0.78rem;
+  font-weight: 950;
+  line-height: 1.3;
+}
+
+.registration-horse-card .registration-horse-check-copy small {
+  color: var(--slate-500);
+  font-size: 0.7rem;
+  font-weight: 750;
+  line-height: 1.45;
+}
+
+.registration-horse-check-state {
+  border-radius: 999px;
+  padding: 4px 7px;
+  font-size: 0.64rem;
+  font-weight: 950;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.registration-horse-check.passed .registration-horse-check-state {
+  background: rgba(46, 125, 50, 0.12);
+  color: #2e7d32;
+}
+
+.registration-horse-check.failed .registration-horse-check-state {
+  background: rgba(176, 42, 42, 0.12);
+  color: #b02a2a;
+}
+
+.registration-horse-check.unknown .registration-horse-check-state {
+  background: rgba(154, 104, 29, 0.12);
+  color: #875710;
+}
+
+@media (max-width: 760px) {
+  .owner-application-style .registration-horse-card {
+    grid-template-columns: 1fr;
+  }
+
+  .owner-application-style .registration-horse-header {
+    display: none;
+  }
+
+  .owner-application-style .registration-horse-eligibility,
+  .owner-application-style .registration-horse-actions,
+  .registration-horse-checklist {
+    grid-column: 1 / -1;
+  }
+
+  .registration-horse-checklist {
+    grid-template-columns: 1fr;
+  }
+}
+
 .registration-horse-card.unavailable .registration-horse-status,
 .registration-horse-card.has-active-invite .registration-horse-status,
 .registration-horse-card.participated .registration-horse-status {
@@ -4928,6 +5102,50 @@ select {
   min-width: 0;
 }
 
+.owner-tournament-workflow-status {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-size: 0.72rem;
+  font-weight: 900;
+  line-height: 1.3;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.owner-tournament-workflow-status.tone-neutral {
+  border-color: rgba(100, 116, 139, 0.2);
+  background: rgba(241, 245, 249, 0.88);
+  color: #475569;
+}
+
+.owner-tournament-workflow-status.tone-waiting {
+  border-color: rgba(217, 164, 65, 0.32);
+  background: rgba(255, 248, 231, 0.92);
+  color: #8a5a12;
+}
+
+.owner-tournament-workflow-status.tone-info {
+  border-color: rgba(0, 84, 75, 0.22);
+  background: rgba(230, 247, 245, 0.9);
+  color: #00695f;
+}
+
+.owner-tournament-workflow-status.tone-success {
+  border-color: rgba(46, 125, 50, 0.22);
+  background: rgba(232, 253, 244, 0.88);
+  color: #276a2b;
+}
+
+.owner-tournament-workflow-status.tone-danger {
+  border-color: rgba(198, 53, 43, 0.2);
+  background: rgba(255, 239, 237, 0.9);
+  color: #a62f27;
+}
+
 .owner-tournament-workspace-actions {
   display: grid;
   grid-column: 4;
@@ -4958,17 +5176,38 @@ select {
   text-overflow: ellipsis;
 }
 
-.owner-tournament-workspace-actions .tournament-payment-button {
+.owner-tournament-workspace-actions .tournament-workflow-primary,
+.owner-tournament-workspace-actions .tournament-workflow-button {
   min-height: 42px;
   max-height: none;
-  white-space: normal;
   line-height: 1.25;
   text-align: center;
+  white-space: normal;
 }
 
-.owner-tournament-workspace-actions .tournament-payment-button:disabled {
-  overflow: visible;
-  text-overflow: clip;
+.tournament-workflow-button.tone-waiting {
+  border-color: rgba(217, 164, 65, 0.42);
+  background: rgba(255, 248, 231, 0.88);
+  color: #8a5a12;
+}
+
+.tournament-workflow-button.tone-info,
+.tournament-workflow-button.tone-success {
+  border-color: rgba(0, 84, 75, 0.24);
+  background: rgba(232, 253, 244, 0.7);
+  color: #00695f;
+}
+
+.tournament-workflow-button.tone-danger {
+  border-color: rgba(198, 53, 43, 0.24);
+  background: rgba(255, 239, 237, 0.78);
+  color: #a62f27;
+}
+
+.tournament-workflow-button.tone-neutral {
+  border-color: rgba(100, 116, 139, 0.24);
+  background: rgba(248, 250, 252, 0.82);
+  color: #475569;
 }
 
 .owner-tournament-workspace-actions .outline-button svg,
@@ -4982,6 +5221,102 @@ select {
   border-top: 1px solid rgba(108, 63, 36, 0.1);
   background: rgba(255, 252, 247, 0.72);
   padding: 14px 16px 16px 146px;
+}
+
+.owner-tournament-workflow-detail {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+  border: 1px solid rgba(0, 84, 75, 0.16);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.7);
+  padding: 14px;
+}
+
+.owner-tournament-workflow-detail.tone-danger {
+  border-color: rgba(198, 53, 43, 0.2);
+  background: rgba(255, 247, 246, 0.82);
+}
+
+.owner-tournament-workflow-detail.tone-waiting {
+  border-color: rgba(217, 164, 65, 0.3);
+  background: rgba(255, 251, 240, 0.84);
+}
+
+.owner-tournament-workflow-detail-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.owner-tournament-workflow-detail-head h4 {
+  margin: 3px 0 4px;
+  color: var(--brown-900);
+  font-size: 1rem;
+  font-weight: 950;
+}
+
+.owner-tournament-workflow-detail-head small {
+  color: var(--slate-500);
+  font-size: 0.82rem;
+  font-weight: 760;
+}
+
+.owner-tournament-workflow-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 8px;
+}
+
+.owner-tournament-workflow-detail-grid > span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+  border: 1px solid rgba(108, 63, 36, 0.09);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.74);
+  padding: 9px 10px;
+  color: var(--slate-500);
+  font-size: 0.72rem;
+  font-weight: 850;
+}
+
+.owner-tournament-workflow-detail-grid strong {
+  color: var(--brown-900);
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+.owner-tournament-workflow-reason {
+  border-left: 3px solid #c6352b;
+  border-radius: 8px;
+  background: rgba(255, 239, 237, 0.76);
+  padding: 10px 12px;
+}
+
+.owner-tournament-workflow-reason strong {
+  color: #a62f27;
+  font-size: 0.76rem;
+  text-transform: uppercase;
+}
+
+.owner-tournament-workflow-reason p {
+  margin: 4px 0 0;
+  color: var(--brown-900);
+  font-size: 0.84rem;
+  font-weight: 760;
+  overflow-wrap: anywhere;
+}
+
+.owner-registration-readonly.tone-danger {
+  border-color: rgba(198, 53, 43, 0.2);
+}
+
+.owner-registration-rejection-reason dd {
+  color: #a62f27;
 }
 
 .owner-tournament-registration-state {
@@ -5288,18 +5623,6 @@ select {
   text-align: center;
 }
 
-.tournament-payment-button.payment-due {
-  border-color: rgba(217, 164, 65, 0.42);
-  background: rgba(255, 248, 231, 0.88);
-  color: #8a5a12;
-}
-
-.tournament-payment-button.payment-paid {
-  border-color: rgba(46, 125, 50, 0.24);
-  background: rgba(232, 253, 244, 0.7);
-  color: #276a2b;
-}
-
 .jockey-invitation-confirm-summary {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -5320,6 +5643,11 @@ select {
   .owner-payment-result-close {
     grid-column: 1 / -1;
     width: 100%;
+  }
+
+  .owner-tournament-workflow-detail-head {
+    display: grid;
+    grid-template-columns: 1fr;
   }
 
   .owner-payment-result-details,
@@ -5530,6 +5858,193 @@ select {
     var(--cream-100);
   padding: 18px;
   box-shadow: 0 30px 90px rgba(43, 23, 16, 0.34);
+}
+
+.owner-invitation-detail-modal {
+  display: grid;
+  gap: 16px;
+  width: min(720px, 100%);
+  max-height: min(88vh, 760px);
+  overflow-y: auto;
+  border: 1px solid rgba(108, 63, 36, 0.16);
+  border-radius: 24px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(255, 248, 237, 0.97)),
+    var(--cream-100);
+  padding: 20px;
+  box-shadow: 0 30px 90px rgba(43, 23, 16, 0.34);
+}
+
+.owner-invitation-detail-header {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 14px;
+  border-bottom: 1px solid rgba(108, 63, 36, 0.1);
+  padding-bottom: 15px;
+}
+
+.owner-invitation-detail-header h3 {
+  margin: 3px 0 4px;
+  color: var(--brown-900);
+  font-size: 1.2rem;
+  font-weight: 950;
+}
+
+.owner-invitation-detail-header > div:nth-child(2) > span {
+  color: var(--slate-500);
+  font-size: 0.82rem;
+  font-weight: 720;
+}
+
+.owner-invitation-detail-icon {
+  display: grid;
+  width: 46px;
+  height: 46px;
+  place-items: center;
+  border-radius: 14px;
+  background: rgba(217, 164, 65, 0.18);
+  color: var(--brown-700);
+}
+
+.owner-invitation-detail-state {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border: 1px solid rgba(217, 164, 65, 0.28);
+  border-radius: 16px;
+  background: rgba(255, 248, 231, 0.76);
+  padding: 13px 14px;
+}
+
+.owner-invitation-detail-state.tone-danger {
+  border-color: rgba(198, 53, 43, 0.2);
+  background: rgba(255, 239, 237, 0.72);
+}
+
+.owner-invitation-detail-state.tone-success,
+.owner-invitation-detail-state.tone-info {
+  border-color: rgba(0, 84, 75, 0.2);
+  background: rgba(232, 253, 244, 0.72);
+}
+
+.owner-invitation-detail-state strong {
+  color: var(--brown-900);
+  font-size: 0.94rem;
+}
+
+.owner-invitation-detail-state p {
+  margin: 4px 0 0;
+  color: var(--slate-500);
+  font-size: 0.82rem;
+  font-weight: 740;
+}
+
+.owner-invitation-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+
+.owner-invitation-detail-grid > div {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+  border: 1px solid rgba(108, 63, 36, 0.1);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.68);
+  padding: 12px;
+}
+
+.owner-invitation-detail-grid dt,
+.owner-invitation-detail-message span {
+  color: var(--slate-500);
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.owner-invitation-detail-grid dd {
+  margin: 0;
+  color: var(--brown-900);
+  font-size: 0.86rem;
+  font-weight: 850;
+  overflow-wrap: anywhere;
+}
+
+.owner-invitation-detail-message {
+  border-left: 3px solid var(--gold-400);
+  border-radius: 10px;
+  background: rgba(255, 248, 238, 0.76);
+  padding: 12px 14px;
+}
+
+.owner-invitation-detail-message p {
+  margin: 5px 0 0;
+  color: var(--brown-900);
+  font-size: 0.86rem;
+  font-weight: 760;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.owner-invitation-detail-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  border-top: 1px solid rgba(108, 63, 36, 0.1);
+  padding-top: 14px;
+}
+
+.owner-invitation-detail-footer .outline-button,
+.owner-invitation-detail-footer .table-button {
+  width: auto;
+  min-width: 118px;
+  margin: 0;
+  justify-content: center;
+}
+
+@media (max-width: 680px) {
+  .owner-invitation-detail-modal {
+    max-height: 92vh;
+    border-radius: 18px;
+    padding: 16px;
+  }
+
+  .owner-invitation-detail-header {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+  }
+
+  .owner-invitation-detail-header > .status-badge {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    justify-self: start;
+  }
+
+  .owner-invitation-detail-header > .drawer-close-button {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .owner-invitation-detail-state,
+  .owner-invitation-detail-footer {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .owner-invitation-detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .owner-invitation-detail-footer .outline-button,
+  .owner-invitation-detail-footer .table-button {
+    width: 100%;
+  }
 }
 
 .owner-race-detail-hero {

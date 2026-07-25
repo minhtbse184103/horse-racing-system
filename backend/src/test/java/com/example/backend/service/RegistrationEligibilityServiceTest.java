@@ -4,6 +4,7 @@ import com.example.backend.constant.ConditionOperator;
 import com.example.backend.constant.ConditionType;
 import com.example.backend.constant.EventStatus;
 import com.example.backend.entity.Horse;
+import com.example.backend.entity.JockeyProfile;
 import com.example.backend.entity.Role;
 import com.example.backend.entity.Tournament;
 import com.example.backend.entity.TournamentCondition;
@@ -35,6 +36,10 @@ import java.util.stream.Stream;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -248,6 +253,72 @@ class RegistrationEligibilityServiceTest {
         );
     }
 
+    @Test
+    void loadedParticipantEntitiesAreValidatedWithoutFetchingThemAgain() {
+        Tournament tournament = openTournament();
+        Horse horse = activeHorse();
+        User owner = activeOwner();
+        User jockey = activeJockey();
+
+        when(conditionRepository.findByTournamentIdOrderByConditionIdAsc(10))
+                .thenReturn(List.of());
+        when(jockeyProfileRepository.findById(40))
+                .thenReturn(Optional.of(JockeyProfile.builder()
+                        .jockeyId(40)
+                        .build()));
+
+        assertDoesNotThrow(() -> service.validateLoadedParticipants(
+                tournament,
+                horse,
+                owner,
+                jockey
+        ));
+
+        verifyNoInteractions(userRepository, horseRepository);
+        verify(jockeyProfileRepository).findById(40);
+    }
+
+    @Test
+    void newSubmissionLeavesDuplicateParticipantChecksToAvailabilityService() {
+        Tournament tournament = openTournament();
+        Horse horse = activeHorse();
+        stubOwnerAndHorse(horse);
+        when(conditionRepository.findByTournamentIdOrderByConditionIdAsc(10))
+                .thenReturn(List.of());
+
+        assertDoesNotThrow(() -> service.validateNewSubmission(
+                tournament,
+                20,
+                30,
+                null
+        ));
+
+        verify(registrationRepository, never())
+                .existsActiveRegistration(any(), any(), any(), any());
+        verify(registrationRepository)
+                .countByTournamentIdAndApprovalStatusIn(any(), any());
+    }
+
+    @Test
+    void newSubmissionCapacityRejectsFullTournament() {
+        Tournament tournament = openTournament();
+        when(registrationRepository.countByTournamentIdAndApprovalStatusIn(
+                any(),
+                any()
+        )).thenReturn(20L);
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.validateNewSubmissionCapacity(tournament)
+        );
+
+        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
+        assertEquals(
+                "Tournament has reached its registration capacity.",
+                exception.getMessage()
+        );
+    }
+
     private static Stream<Arguments> numericOperatorCases() {
         return Stream.of(
                 Arguments.of(ConditionOperator.EQ, "480", "480.00", true),
@@ -315,6 +386,19 @@ class RegistrationEligibilityServiceTest {
         owner.setStatus("ACTIVE");
         owner.setRole(ownerRole);
         return owner;
+    }
+
+    private User activeJockey() {
+        Role jockeyRole = new Role();
+        jockeyRole.setRoleName("JOCKEY");
+
+        User jockey = new User();
+        jockey.setUserID(40);
+        jockey.setEmail("jockey@example.com");
+        jockey.setUsername("jockey");
+        jockey.setStatus("ACTIVE");
+        jockey.setRole(jockeyRole);
+        return jockey;
     }
 
     private TournamentCondition genderCondition(String value) {

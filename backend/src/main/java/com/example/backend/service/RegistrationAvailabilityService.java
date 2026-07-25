@@ -59,7 +59,7 @@ public class RegistrationAvailabilityService {
         validateJockeyOverlappingAvailability(jockeyId, tournament, null, excludedInvitationId);
     }
 
-    public void validatePaidRegistrationCanBeCreated(
+    public void validateOwnerRegistrationCanBeCreated(
             Tournament tournament,
             Horse horse,
             User owner,

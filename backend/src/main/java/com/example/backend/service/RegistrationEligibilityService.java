@@ -50,24 +50,16 @@ public class RegistrationEligibilityService {
                 jockeyId
         );
 
-        boolean duplicateActiveRegistration =
-                registrationRepository.existsActiveRegistration(
-                        tournament.getTournamentId(),
-                        horseId,
-                        List.of(
-                                RegistrationStatus.PENDING,
-                                RegistrationStatus.APPROVED
-                        ),
-                        null
-                );
+        validateNewSubmissionCapacity(tournament);
+    }
 
-        if (duplicateActiveRegistration) {
-            throw new ApiException(
-                    HttpStatus.CONFLICT,
-                    "Horse already has an active registration in this tournament."
-            );
-        }
-
+    /**
+     * Capacity belongs to eligibility, while participant exclusivity and
+     * overlapping schedules belong to RegistrationAvailabilityService.
+     * Keeping those responsibilities separate avoids running the same
+     * duplicate-horse query twice during a new submission.
+     */
+    public void validateNewSubmissionCapacity(Tournament tournament) {
         long activeRegistrationCount =
                 registrationRepository
                         .countByTournamentIdAndApprovalStatusIn(
@@ -104,14 +96,40 @@ public class RegistrationEligibilityService {
         User owner = getUser(ownerId, "Owner");
         Horse horse = getHorse(horseId);
 
-        validateOwner(owner);
-        validateHorseOwnership(horse, ownerId);
-        validateHorse(horse, tournament);
-        validateConditions(horse, tournament);
+        validateOwnerAndHorse(tournament, horse, owner);
 
         if (jockeyId != null) {
             validateJockey(jockeyId);
         }
+    }
+
+    /**
+     * Validates entities already loaded by an orchestrating service. The
+     * submission window is deliberately separate so callers can fail fast
+     * before loading participants.
+     */
+    public void validateLoadedParticipants(
+            Tournament tournament,
+            Horse horse,
+            User owner,
+            User jockey
+    ) {
+        validateOwnerAndHorse(tournament, horse, owner);
+
+        if (jockey != null) {
+            validateJockey(jockey);
+        }
+    }
+
+    private void validateOwnerAndHorse(
+            Tournament tournament,
+            Horse horse,
+            User owner
+    ) {
+        validateOwner(owner);
+        validateHorseOwnership(horse, owner.getUserID());
+        validateHorse(horse, tournament);
+        validateConditions(horse, tournament);
     }
 
     public void validateForApproval(
@@ -142,10 +160,7 @@ public class RegistrationEligibilityService {
         User owner = getUser(registration.getOwnerId(), "Owner");
         Horse horse = getHorse(registration.getHorseId());
 
-        validateOwner(owner);
-        validateHorseOwnership(horse, registration.getOwnerId());
-        validateHorse(horse, tournament);
-        validateConditions(horse, tournament);
+        validateOwnerAndHorse(tournament, horse, owner);
 
         if (registration.getJockeyId() != null) {
             validateJockey(registration.getJockeyId());
@@ -182,7 +197,7 @@ public class RegistrationEligibilityService {
         }
     }
 
-    private void validateSubmissionWindow(Tournament tournament) {
+    public void validateSubmissionWindow(Tournament tournament) {
         LocalDateTime now = LocalDateTime.now();
 
         if (!EventStatus.OPEN_FOR_REGISTRATION.equals(
@@ -314,6 +329,10 @@ public class RegistrationEligibilityService {
     private void validateJockey(Integer jockeyId) {
         User jockey = getUser(jockeyId, "Jockey");
 
+        validateJockey(jockey);
+    }
+
+    private void validateJockey(User jockey) {
         if (jockey.getRole() == null
                 || !"JOCKEY".equalsIgnoreCase(
                 jockey.getRole().getRoleName())) {
@@ -331,7 +350,7 @@ public class RegistrationEligibilityService {
         }
 
         jockeyProfileRepository
-                .findById(jockeyId)
+                .findById(jockey.getUserID())
                 .orElseThrow(() -> new ApiException(
                         HttpStatus.NOT_FOUND,
                         "Jockey profile does not exist."

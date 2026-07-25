@@ -39,7 +39,7 @@ import ConfirmModal from '../common/ConfirmModal';
 import { useLanguage } from '../../context/LanguageContext';
 import { formatVndCurrency } from '../../lib/eventFormatters';
 
-const OWNER_CANCELLED_INVITATION_STORAGE_KEY = 'owner_cancelled_jockey_invitations';
+const LEGACY_OWNER_CANCELLED_INVITATION_STORAGE_KEY = 'owner_cancelled_jockey_invitations';
 const OWNER_REGISTRATION_PAYMENT_PENDING_KEY = 'owner_registration_payment_pending';
 
 function isRegistrationPaymentReturn(params) {
@@ -55,42 +55,6 @@ function isRegistrationPaymentReturn(params) {
 
 function getInvitationId(invitation) {
   return invitation?.invitationId ?? invitation?.invitationID ?? invitation?.id ?? '';
-}
-
-function readOwnerCancelledInvitationIds() {
-  if (typeof window === 'undefined') return new Set();
-
-  try {
-    const parsed = JSON.parse(window.localStorage.getItem(OWNER_CANCELLED_INVITATION_STORAGE_KEY) || '[]');
-    return new Set(Array.isArray(parsed) ? parsed.map((value) => String(value)) : []);
-  } catch {
-    return new Set();
-  }
-}
-
-function storeOwnerCancelledInvitationId(invitationId) {
-  if (typeof window === 'undefined' || !invitationId) return;
-
-  const ids = readOwnerCancelledInvitationIds();
-  ids.add(String(invitationId));
-  window.localStorage.setItem(OWNER_CANCELLED_INVITATION_STORAGE_KEY, JSON.stringify([...ids]));
-}
-
-function applyOwnerCancelledInvitationOverrides(invitations) {
-  const cancelledIds = readOwnerCancelledInvitationIds();
-  if (!cancelledIds.size) return invitations;
-
-  return invitations.map((invitation) => {
-    const invitationId = getInvitationId(invitation);
-    if (!cancelledIds.has(String(invitationId))) return invitation;
-
-    return {
-      ...invitation,
-      status: 'CANCELLED',
-      registrationStatus: invitation.registrationStatus === 'PENDING' ? 'CANCELLED' : invitation.registrationStatus,
-      respondedAt: invitation.respondedAt || new Date().toISOString()
-    };
-  });
 }
 
 function getTournamentId(tournament) {
@@ -317,8 +281,197 @@ function isAcceptedInvitation(invitation) {
   return ['ACCEPTED', 'APPROVED'].includes(String(invitation?.status || '').toUpperCase());
 }
 
-function hasRegisteredInvitation(invitation) {
-  return hasRegistrationStatus(invitation);
+function getEffectiveInvitationStatus(invitation) {
+  const aliases = {
+    APPROVED: 'ACCEPTED',
+    CANCELED: 'CANCELLED',
+    DECLINED: 'REJECTED'
+  };
+  const rawStatus = String(invitation?.status || '').toUpperCase();
+  const status = aliases[rawStatus] || rawStatus;
+  const expiry = getDateTime(invitation?.expiredAt);
+
+  if (status === 'PENDING' && expiry && expiry.getTime() <= Date.now()) return 'EXPIRED';
+  return status;
+}
+
+const TOURNAMENT_WORKFLOW_CONFIG = {
+  NO_INVITATION: {
+    statusKey: 'ownerRaceWorkflowNoInvitation',
+    descriptionKey: 'ownerRaceWorkflowNoInvitationDesc',
+    tone: 'neutral'
+  },
+  INVITATION_PENDING: {
+    statusKey: 'ownerRaceWorkflowInvitationPending',
+    descriptionKey: 'ownerRaceWorkflowInvitationPendingDesc',
+    actionKey: 'ownerRaceWorkflowViewInvitation',
+    actionType: 'view-invitation',
+    tone: 'waiting'
+  },
+  INVITATION_REJECTED: {
+    statusKey: 'ownerRaceWorkflowInvitationRejected',
+    descriptionKey: 'ownerRaceWorkflowInvitationRejectedDesc',
+    actionKey: 'ownerRaceWorkflowInviteAnotherJockey',
+    actionType: 'restart-invitation',
+    tone: 'danger'
+  },
+  INVITATION_EXPIRED: {
+    statusKey: 'ownerRaceWorkflowInvitationExpired',
+    descriptionKey: 'ownerRaceWorkflowInvitationExpiredDesc',
+    actionKey: 'ownerRaceWorkflowResendInvitation',
+    actionType: 'restart-invitation',
+    tone: 'neutral'
+  },
+  INVITATION_CANCELLED: {
+    statusKey: 'ownerRaceWorkflowInvitationCancelled',
+    descriptionKey: 'ownerRaceWorkflowInvitationCancelledDesc',
+    actionKey: 'ownerRaceWorkflowInviteJockey',
+    actionType: 'restart-invitation',
+    tone: 'neutral'
+  },
+  INVITATION_ACCEPTED: {
+    statusKey: 'ownerRaceWorkflowInvitationAccepted',
+    descriptionKey: 'ownerRaceWorkflowInvitationAcceptedDesc',
+    actionKey: 'ownerRaceWorkflowCreateAndPay',
+    actionType: 'payment',
+    tone: 'info'
+  },
+  PAYMENT_UNPAID: {
+    statusKey: 'ownerRaceWorkflowPaymentUnpaid',
+    descriptionKey: 'ownerRaceWorkflowPaymentUnpaidDesc',
+    actionKey: 'ownerRaceWorkflowPayNow',
+    actionType: 'payment',
+    tone: 'waiting'
+  },
+  PAYMENT_FAILED: {
+    statusKey: 'ownerRaceWorkflowPaymentFailed',
+    descriptionKey: 'ownerRaceWorkflowPaymentFailedDesc',
+    actionKey: 'ownerRaceWorkflowRetryPayment',
+    actionType: 'payment',
+    tone: 'danger'
+  },
+  PAYMENT_FAILED_CANCELLED: {
+    statusKey: 'ownerRaceWorkflowPaymentFailedCancelled',
+    descriptionKey: 'ownerRaceWorkflowPaymentFailedCancelledDesc',
+    actionKey: 'ownerRaceWorkflowViewDetails',
+    actionType: 'registration-details',
+    tone: 'danger'
+  },
+  PAID_PENDING_APPROVAL: {
+    statusKey: 'ownerRaceWorkflowPaidPendingApproval',
+    descriptionKey: 'ownerRaceWorkflowPaidPendingApprovalDesc',
+    actionKey: 'ownerRaceWorkflowViewRegistration',
+    actionType: 'registration-details',
+    tone: 'waiting'
+  },
+  REGISTRATION_APPROVED: {
+    statusKey: 'ownerRaceWorkflowRegistrationApproved',
+    descriptionKey: 'ownerRaceWorkflowRegistrationApprovedDesc',
+    actionKey: 'ownerRaceWorkflowViewRegistration',
+    actionType: 'registration-details',
+    tone: 'success'
+  },
+  REGISTRATION_REJECTED: {
+    statusKey: 'ownerRaceWorkflowRegistrationRejected',
+    descriptionKey: 'ownerRaceWorkflowRegistrationRejectedDesc',
+    actionKey: 'ownerRaceWorkflowViewRejectionReason',
+    actionType: 'registration-details',
+    tone: 'danger'
+  },
+  REGISTRATION_CANCELLED: {
+    statusKey: 'ownerRaceWorkflowRegistrationCancelled',
+    descriptionKey: 'ownerRaceWorkflowRegistrationCancelledDesc',
+    actionKey: 'ownerRaceWorkflowViewDetails',
+    actionType: 'registration-details',
+    tone: 'danger'
+  },
+  PAYMENT_REFUNDED: {
+    statusKey: 'ownerRaceWorkflowPaymentRefunded',
+    descriptionKey: 'ownerRaceWorkflowPaymentRefundedDesc',
+    actionKey: 'ownerRaceWorkflowViewTransaction',
+    actionType: 'transactions',
+    tone: 'info'
+  },
+  UNKNOWN: {
+    statusKey: 'ownerRaceWorkflowUnknown',
+    descriptionKey: 'ownerRaceWorkflowUnknownDesc',
+    actionKey: 'ownerRaceWorkflowViewDetails',
+    actionType: 'workflow-details',
+    tone: 'neutral'
+  }
+};
+
+function getTournamentWorkflowKind(invitation) {
+  if (!invitation) return 'NO_INVITATION';
+
+  const invitationStatus = getEffectiveInvitationStatus(invitation);
+  const approvalStatus = getInvitationApprovalStatus(invitation);
+  const paymentStatus = getInvitationPaymentStatus(invitation);
+  const hasLinkedRegistration = Boolean(invitation?.registrationId || invitation?.registrationNo);
+
+  if (!hasLinkedRegistration) {
+    if (invitationStatus === 'REJECTED') return 'INVITATION_REJECTED';
+    if (invitationStatus === 'EXPIRED') return 'INVITATION_EXPIRED';
+    if (invitationStatus === 'CANCELLED') return 'INVITATION_CANCELLED';
+  }
+
+  if (hasRegistrationStatus(invitation)) {
+    if (approvalStatus === 'REJECTED') return 'REGISTRATION_REJECTED';
+    if (paymentStatus === 'REFUNDED') return 'PAYMENT_REFUNDED';
+    if (paymentStatus === 'FAILED' && approvalStatus === 'CANCELLED') return 'PAYMENT_FAILED_CANCELLED';
+    if (approvalStatus === 'CANCELLED') return 'REGISTRATION_CANCELLED';
+    if (paymentStatus === 'PAID' && approvalStatus === 'APPROVED') return 'REGISTRATION_APPROVED';
+    if (paymentStatus === 'PAID') return 'PAID_PENDING_APPROVAL';
+    if (paymentStatus === 'FAILED') return 'PAYMENT_FAILED';
+    if (paymentStatus === 'UNPAID') return 'PAYMENT_UNPAID';
+  }
+
+  if (invitationStatus === 'ACCEPTED') return 'INVITATION_ACCEPTED';
+  if (invitationStatus === 'PENDING') return 'INVITATION_PENDING';
+  if (invitationStatus === 'REJECTED') return 'INVITATION_REJECTED';
+  if (invitationStatus === 'EXPIRED') return 'INVITATION_EXPIRED';
+  if (invitationStatus === 'CANCELLED') return 'INVITATION_CANCELLED';
+  return 'UNKNOWN';
+}
+
+function getTournamentWorkflowState(invitation, t) {
+  const kind = getTournamentWorkflowKind(invitation);
+  const config = TOURNAMENT_WORKFLOW_CONFIG[kind] || TOURNAMENT_WORKFLOW_CONFIG.UNKNOWN;
+  return {
+    ...config,
+    kind,
+    label: t(config.statusKey),
+    description: t(config.descriptionKey),
+    actionLabel: config.actionKey ? t(config.actionKey) : ''
+  };
+}
+
+function getTournamentWorkflowRank(invitation) {
+  const invitationStatus = getEffectiveInvitationStatus(invitation);
+  const approvalStatus = getInvitationApprovalStatus(invitation);
+  const paymentStatus = getInvitationPaymentStatus(invitation);
+  const hasRegistration = hasRegistrationStatus(invitation);
+
+  if (['REJECTED', 'CANCELLED', 'EXPIRED'].includes(invitationStatus)) return 100;
+  if (['REJECTED', 'CANCELLED'].includes(approvalStatus) || paymentStatus === 'REFUNDED') return 100;
+  if (hasRegistration && ['PENDING', 'APPROVED'].includes(approvalStatus)) return 400;
+  if (hasRegistration && paymentStatus === 'PAID' && !approvalStatus) return 350;
+  if (hasRegistration && ['UNPAID', 'FAILED'].includes(paymentStatus) && !approvalStatus) return 340;
+  if (!hasRegistration && invitationStatus === 'ACCEPTED') return 300;
+  if (!hasRegistration && invitationStatus === 'PENDING') return 250;
+  return 100;
+}
+
+function isNewerTournamentWorkflow(candidate, current) {
+  const candidateRank = getTournamentWorkflowRank(candidate);
+  const currentRank = getTournamentWorkflowRank(current);
+  if (candidateRank !== currentRank) return candidateRank > currentRank;
+
+  const candidateCreatedAt = getDateTime(candidate?.createdAt)?.getTime() || 0;
+  const currentCreatedAt = getDateTime(current?.createdAt)?.getTime() || 0;
+  if (candidateCreatedAt !== currentCreatedAt) return candidateCreatedAt > currentCreatedAt;
+
+  return Number(getInvitationId(candidate) || 0) > Number(getInvitationId(current) || 0);
 }
 
 function isAlreadyPaidError(message) {
@@ -621,11 +774,36 @@ function evaluateNumericCondition(actualValue, condition) {
 
 function getHorseTournamentEligibility(horse, tournament, t, detailReady = true) {
   const reasons = [];
+  const checks = [];
+
+  const addCheck = ({ key, label, status, detail, reason = '' }) => {
+    checks.push({ key, label, status, detail });
+    if (status !== 'passed' && reason && !reasons.includes(reason)) reasons.push(reason);
+  };
+
   if (!horse || !tournament || !detailReady) {
-    return { eligible: false, reasons: [t('ownerRaceEligibilityDetailRequired')] };
+    const reason = t('ownerRaceEligibilityDetailRequired');
+    addCheck({
+      key: 'tournament-details',
+      label: t('ownerRaceEligibilityCheckData'),
+      status: 'unknown',
+      detail: reason,
+      reason
+    });
+    return { eligible: false, reasons, checks };
   }
 
-  if (!isActiveHorse(horse)) reasons.push(t('ownerRaceValidationHorseActive'));
+  const active = isActiveHorse(horse);
+  const activeReason = active ? '' : t('ownerRaceValidationHorseActive');
+  addCheck({
+    key: 'horse-status',
+    label: t('ownerRaceConditionHorseActiveTitle'),
+    status: active ? 'passed' : 'failed',
+    detail: active
+      ? t('ownerRaceEligibilityCheckStatusPassed', { status: formatDisplayLabel(horse.status || 'ACTIVE') })
+      : activeReason,
+    reason: activeReason
+  });
 
   const tournamentStart = getDateTime(tournament.startDate);
   const healthExpiry = getDateTime(
@@ -634,41 +812,146 @@ function getHorseTournamentEligibility(horse, tournament, t, detailReady = true)
       ?? horse.healthCertificateExpiry
   );
   if (!tournamentStart) {
-    reasons.push(t('ownerRaceEligibilityTournamentStartMissing'));
+    const reason = t('ownerRaceEligibilityTournamentStartMissing');
+    addCheck({
+      key: 'health-certificate',
+      label: t('ownerRaceConditionHealthTitle'),
+      status: 'unknown',
+      detail: reason,
+      reason
+    });
   } else if (!healthExpiry) {
-    reasons.push(t('ownerRaceEligibilityHealthMissing'));
+    const reason = t('ownerRaceEligibilityHealthMissing');
+    addCheck({
+      key: 'health-certificate',
+      label: t('ownerRaceConditionHealthTitle'),
+      status: 'failed',
+      detail: reason,
+      reason
+    });
   } else if (healthExpiry.getTime() < tournamentStart.getTime()) {
-    reasons.push(t('ownerRaceEligibilityHealthExpired', {
+    const reason = t('ownerRaceEligibilityHealthExpired', {
       expiry: formatDate(healthExpiry),
       start: formatDate(tournamentStart)
-    }));
+    });
+    addCheck({
+      key: 'health-certificate',
+      label: t('ownerRaceConditionHealthTitle'),
+      status: 'failed',
+      detail: reason,
+      reason
+    });
+  } else {
+    addCheck({
+      key: 'health-certificate',
+      label: t('ownerRaceConditionHealthTitle'),
+      status: 'passed',
+      detail: t('ownerRaceEligibilityCheckHealthPassed', {
+        expiry: formatDate(healthExpiry),
+        start: formatDate(tournamentStart)
+      })
+    });
   }
 
   const horseAge = toStrictNumber(horse.age);
   const horseWeight = toStrictNumber(horse.weight);
-  if (horseAge === null || horseAge < 0) reasons.push(t('ownerRaceEligibilityAgeMissing'));
-  if (horseWeight === null) reasons.push(t('ownerRaceEligibilityWeightMissing'));
 
   const conditions = getTournamentConditions(tournament);
   if (!conditions) {
-    reasons.push(t('ownerRaceEligibilityConditionsMissing'));
-    return { eligible: false, reasons };
+    const ageReason = horseAge === null || horseAge < 0 ? t('ownerRaceEligibilityAgeMissing') : '';
+    addCheck({
+      key: 'horse-age',
+      label: t('ownerRaceConditionAge'),
+      status: ageReason ? 'failed' : 'passed',
+      detail: ageReason || t('ownerRaceEligibilityCheckProfileValue', {
+        actual: `${formatConditionNumber(horseAge)} ${t('ownerRaceYears')}`
+      }),
+      reason: ageReason
+    });
+
+    const weightReason = horseWeight === null ? t('ownerRaceEligibilityWeightMissing') : '';
+    addCheck({
+      key: 'horse-weight',
+      label: t('ownerRaceConditionWeight'),
+      status: weightReason ? 'failed' : 'passed',
+      detail: weightReason || t('ownerRaceEligibilityCheckProfileValue', {
+        actual: `${formatConditionNumber(horseWeight)} kg`
+      }),
+      reason: weightReason
+    });
+
+    const reason = t('ownerRaceEligibilityConditionsMissing');
+    addCheck({
+      key: 'tournament-conditions',
+      label: t('ownerRaceEligibilityCheckData'),
+      status: 'unknown',
+      detail: reason,
+      reason
+    });
+    return { eligible: false, reasons, checks };
   }
 
-  conditions.forEach((condition) => {
+  const conditionTypes = new Set(conditions.map(getConditionType));
+  if (!conditionTypes.has('AGE')) {
+    const reason = horseAge === null || horseAge < 0 ? t('ownerRaceEligibilityAgeMissing') : '';
+    addCheck({
+      key: 'horse-age',
+      label: t('ownerRaceConditionAge'),
+      status: reason ? 'failed' : 'passed',
+      detail: reason || t('ownerRaceEligibilityCheckProfileValue', {
+        actual: `${formatConditionNumber(horseAge)} ${t('ownerRaceYears')}`
+      }),
+      reason
+    });
+  }
+
+  if (!conditionTypes.has('WEIGHT')) {
+    const reason = horseWeight === null ? t('ownerRaceEligibilityWeightMissing') : '';
+    addCheck({
+      key: 'horse-weight',
+      label: t('ownerRaceConditionWeight'),
+      status: reason ? 'failed' : 'passed',
+      detail: reason || t('ownerRaceEligibilityCheckProfileValue', {
+        actual: `${formatConditionNumber(horseWeight)} kg`
+      }),
+      reason
+    });
+  }
+
+  conditions.forEach((condition, index) => {
     const type = getConditionType(condition);
     const requirement = formatTournamentCondition(condition, t);
+    const conditionKey = condition.conditionId ?? condition.id ?? `${type || 'unknown'}-${index}`;
     if (type === 'AGE' || type === 'WEIGHT') {
       const actual = type === 'AGE' ? horseAge : horseWeight;
+      const missing = actual === null || (type === 'AGE' && actual < 0);
       const result = evaluateNumericCondition(actual, condition);
-      if (!result.configured) {
-        reasons.push(t('ownerRaceEligibilityConditionInvalid', { condition: requirement }));
-      } else if (!result.valid && actual !== null) {
-        reasons.push(t(
+      let status = 'passed';
+      let reason = '';
+      if (missing) {
+        status = 'failed';
+        reason = t(type === 'AGE' ? 'ownerRaceEligibilityAgeMissing' : 'ownerRaceEligibilityWeightMissing');
+      } else if (!result.configured) {
+        status = 'unknown';
+        reason = t('ownerRaceEligibilityConditionInvalid', { condition: requirement });
+      } else if (!result.valid) {
+        status = 'failed';
+        reason = t(
           type === 'AGE' ? 'ownerRaceEligibilityAgeMismatch' : 'ownerRaceEligibilityWeightMismatch',
           { actual: formatConditionNumber(actual), condition: requirement }
-        ));
+        );
       }
+
+      addCheck({
+        key: `condition-${conditionKey}`,
+        label: type === 'AGE' ? t('ownerRaceConditionAge') : t('ownerRaceConditionWeight'),
+        status,
+        detail: reason || t('ownerRaceEligibilityCheckComparison', {
+          actual: `${formatConditionNumber(actual)} ${type === 'AGE' ? t('ownerRaceYears') : 'kg'}`,
+          requirement
+        }),
+        reason
+      });
       return;
     }
 
@@ -676,25 +959,50 @@ function getHorseTournamentEligibility(horse, tournament, t, detailReady = true)
       const operator = getConditionOperator(condition);
       const expected = String(condition?.value || '').trim().toUpperCase();
       const actual = String(horse.sex || '').trim().toUpperCase();
+      let status = 'passed';
+      let reason = '';
       if (operator !== 'EQ' || !expected) {
-        reasons.push(t('ownerRaceEligibilityConditionInvalid', { condition: requirement }));
-      } else if (expected === 'ANY') {
-        return;
-      } else if (!actual) {
-        reasons.push(t('ownerRaceEligibilityGenderMissing'));
-      } else if (actual !== expected) {
-        reasons.push(t('ownerRaceEligibilityGenderMismatch', {
+        status = 'unknown';
+        reason = t('ownerRaceEligibilityConditionInvalid', { condition: requirement });
+      } else if (expected !== 'ANY' && !actual) {
+        status = 'failed';
+        reason = t('ownerRaceEligibilityGenderMissing');
+      } else if (expected !== 'ANY' && actual !== expected) {
+        status = 'failed';
+        reason = t('ownerRaceEligibilityGenderMismatch', {
           actual: formatDisplayLabel(horse.sex),
           expected: formatDisplayLabel(condition.value)
-        }));
+        });
       }
+
+      addCheck({
+        key: `condition-${conditionKey}`,
+        label: t('ownerRaceConditionGender'),
+        status,
+        detail: reason || t('ownerRaceEligibilityCheckComparison', {
+          actual: formatDisplayLabel(horse.sex, t('notUpdated')),
+          requirement
+        }),
+        reason
+      });
       return;
     }
 
-    reasons.push(t('ownerRaceEligibilityUnsupportedCondition', { type: type || t('notUpdated') }));
+    const reason = t('ownerRaceEligibilityUnsupportedCondition', { type: type || t('notUpdated') });
+    addCheck({
+      key: `condition-${conditionKey}`,
+      label: t('ownerRaceConditionUnknown'),
+      status: 'unknown',
+      detail: reason,
+      reason
+    });
   });
 
-  return { eligible: reasons.length === 0, reasons };
+  return {
+    eligible: checks.every((check) => check.status === 'passed'),
+    reasons,
+    checks
+  };
 }
 
 function validateInvitationForm(formValues, horses, selectedTournament, detailReady, invitations = [], horseLockReasons = {}, t) {
@@ -770,7 +1078,7 @@ function StepItem({ number, label, complete, active }) {
   );
 }
 
-export default function OwnerRegisterRace({ horses, onBackToHorses }) {
+export default function OwnerRegisterRace({ horses, onBackToHorses, onViewTransactions }) {
   const { language, t } = useLanguage();
   const [wizardStep, setWizardStep] = useState(1);
   const [flowMode, setFlowMode] = useState(null);
@@ -801,10 +1109,14 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
   const [detailHorse, setDetailHorse] = useState(null);
   const [detailRace, setDetailRace] = useState(null);
   const [previewTournamentImage, setPreviewTournamentImage] = useState(null);
+  const [detailInvitation, setDetailInvitation] = useState(null);
   const [cancelInvitationTarget, setCancelInvitationTarget] = useState(null);
   const [horseLockReasons, setHorseLockReasons] = useState({});
   const [tournamentSearch, setTournamentSearch] = useState('');
   const [expandedTournamentId, setExpandedTournamentId] = useState('');
+  const [expandedEligibilityHorseId, setExpandedEligibilityHorseId] = useState('');
+  const [selectedWorkflowInvitationId, setSelectedWorkflowInvitationId] = useState('');
+  const [workflowClock, setWorkflowClock] = useState(() => Date.now());
   const paymentReturnHandledRef = useRef(false);
   const tournamentDetailsRef = useRef({});
   const tournamentDetailRequestsRef = useRef(new Map());
@@ -896,7 +1208,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
       String(getInvitationTournamentId(invitation)) === String(formValues.tournamentId)
       && String(getInvitationHorseId(invitation)) === String(formValues.horseId)
     ));
-  }, [formValues.horseId, formValues.tournamentId, invitations]);
+  }, [formValues.horseId, formValues.tournamentId, invitations, workflowClock]);
   const activeInvitationsForSelection = useMemo(
     () => invitationsForSelection.filter(isActiveHorseInvitation),
     [invitationsForSelection]
@@ -931,13 +1243,16 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
     ));
   }, [invitations, registrationValues.horseId, registrationValues.tournamentId]);
   const selectedAcceptedInvitation = useMemo(
-    () => acceptedJockeyInvitations.find((invitation) => String(getInvitationJockeyId(invitation)) === String(registrationValues.jockeyId)) || null,
-    [acceptedJockeyInvitations, registrationValues.jockeyId]
+    () => acceptedJockeyInvitations.find((invitation) => (
+      selectedWorkflowInvitationId
+      && String(getInvitationId(invitation)) === String(selectedWorkflowInvitationId)
+    )) || acceptedJockeyInvitations.find((invitation) => String(getInvitationJockeyId(invitation)) === String(registrationValues.jockeyId)) || null,
+    [acceptedJockeyInvitations, registrationValues.jockeyId, selectedWorkflowInvitationId]
   );
   const currentPendingInvitation = useMemo(() => {
     if (!formValues.tournamentId || !formValues.horseId) return null;
     return invitations.find((invitation) => (
-      String(invitation.status || '').toUpperCase() === 'PENDING'
+      getEffectiveInvitationStatus(invitation) === 'PENDING'
       && String(getInvitationTournamentId(invitation)) === String(formValues.tournamentId)
       && String(getInvitationHorseId(invitation)) === String(formValues.horseId)
     )) || null;
@@ -947,23 +1262,18 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
     () => getRegistrationDeadline(selectedTournament) ? toDateLocalValue(getRegistrationDeadline(selectedTournament)) : '',
     [selectedTournament]
   );
-  const payableInvitations = useMemo(() => invitations
-    .filter((invitation) => isAcceptedInvitation(invitation) || hasRegisteredInvitation(invitation))
-    .sort((left, right) => {
-      const paidDifference = Number(isPaidStatus(getInvitationPaymentStatus(left)))
-        - Number(isPaidStatus(getInvitationPaymentStatus(right)));
-      if (paidDifference !== 0) return paidDifference;
-      return String(right.createdAt || '').localeCompare(String(left.createdAt || ''));
-    }), [invitations]);
-  const paymentByTournamentId = useMemo(() => {
+  const workflowByTournamentId = useMemo(() => {
     const byTournament = new Map();
-    payableInvitations.forEach((invitation) => {
+    invitations.forEach((invitation) => {
       const tournamentId = String(getInvitationTournamentId(invitation) || '');
-      if (!tournamentId || byTournament.has(tournamentId)) return;
-      byTournament.set(tournamentId, invitation);
+      if (!tournamentId) return;
+      const current = byTournament.get(tournamentId);
+      if (!current || isNewerTournamentWorkflow(invitation, current)) {
+        byTournament.set(tournamentId, invitation);
+      }
     });
     return byTournament;
-  }, [payableInvitations]);
+  }, [invitations, workflowClock]);
   const inviteReady = Boolean(
     formValues.tournamentId
       && formValues.horseId
@@ -984,7 +1294,25 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
     || '';
   const isRegistrationPaid = isPaidStatus(selectedPaymentStatus);
   const isRegistrationUnpaid = isUnpaidStatus(selectedPaymentStatus);
-  const showPaymentResult = isPaymentFlowActive && Boolean(paymentResult || isRegistrationPaid);
+  const selectedRegistrationWorkflow = getTournamentWorkflowState(selectedAcceptedInvitation ? {
+    ...selectedAcceptedInvitation,
+    paymentStatus: selectedPaymentStatus || getInvitationPaymentStatus(selectedAcceptedInvitation),
+    approvalStatus: selectedApprovalStatus || getInvitationApprovalStatus(selectedAcceptedInvitation)
+  } : null, t);
+  const isReadOnlyRegistrationState = [
+    'PAYMENT_FAILED_CANCELLED',
+    'REGISTRATION_REJECTED',
+    'REGISTRATION_CANCELLED',
+    'PAYMENT_REFUNDED',
+    'UNKNOWN'
+  ].includes(selectedRegistrationWorkflow.kind);
+  const showPaymentResult = isPaymentFlowActive && Boolean(
+    paymentResult || (isRegistrationPaid && !isReadOnlyRegistrationState)
+  );
+  const showReadOnlyRegistration = isPaymentFlowActive
+    && !showPaymentResult
+    && Boolean(selectedAcceptedInvitation && hasRegistrationStatus(selectedAcceptedInvitation))
+    && !canStartInvitationPayment(selectedAcceptedInvitation);
   const selectedRegistrationCode = firstDefined(
     registrationResult?.registrationNo,
     selectedAcceptedInvitation?.registrationNo,
@@ -992,20 +1320,10 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
     selectedAcceptedInvitation?.registrationId ? `#${selectedAcceptedInvitation.registrationId}` : ''
   );
   const selectedInvitationStatus = selectedAcceptedInvitation?.status || '';
-  const selectedRegistrationState = isRegistrationPaid
-    ? {
-        title: t('ownerRaceStatePaid'),
-        description: t('ownerRaceStatePaidDesc')
-      }
-    : selectedAcceptedInvitation
-      ? {
-          title: t('ownerRaceStatePaymentRequired'),
-          description: t('ownerRaceStatePaymentRequiredDesc')
-        }
-      : {
-          title: t('ownerRaceStateTracked'),
-          description: t('ownerRaceStateTrackedDesc')
-        };
+  const selectedRegistrationState = {
+    title: selectedRegistrationWorkflow.label,
+    description: selectedRegistrationWorkflow.description
+  };
   const canSubmitRegistration = Boolean(
     registrationValues.tournamentId
       && registrationValues.horseId
@@ -1020,6 +1338,11 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
 
   useEffect(() => {
     loadPageData();
+  }, []);
+
+  useEffect(() => {
+    const timerId = window.setInterval(() => setWorkflowClock(Date.now()), 60_000);
+    return () => window.clearInterval(timerId);
   }, []);
 
   useEffect(() => {
@@ -1137,6 +1460,12 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
     setLoadError('');
 
     try {
+      try {
+        window.localStorage.removeItem(LEGACY_OWNER_CANCELLED_INVITATION_STORAGE_KEY);
+      } catch {
+        // Server invitation status is authoritative even when storage is unavailable.
+      }
+
       const [tournamentData, userData, invitationData] = await Promise.all([
         getTournaments(),
         getAllUsers(),
@@ -1151,7 +1480,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
       setOpenTournaments(Array.isArray(openTournamentData) ? openTournamentData : []);
       setOwnerHorses(Array.isArray(ownerHorseData) ? ownerHorseData : []);
       setJockeys((Array.isArray(userData) ? userData : []).filter((user) => getUserRole(user) === 'JOCKEY' && String(user.status || '').toUpperCase() === 'ACTIVE'));
-      const normalizedInvitations = applyOwnerCancelledInvitationOverrides(Array.isArray(invitationData) ? invitationData : []);
+      const normalizedInvitations = Array.isArray(invitationData) ? invitationData : [];
       setInvitations(normalizedInvitations);
       return {
         tournaments: Array.isArray(tournamentData) ? tournamentData : [],
@@ -1272,8 +1601,10 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
 
   async function selectTournament(tournament) {
     const tournamentId = String(getTournamentId(tournament));
+    setSelectedWorkflowInvitationId('');
     setFlowMode('invite');
     setWizardStep(2);
+    setExpandedEligibilityHorseId('');
     setFormValues((current) => ({ ...current, tournamentId, horseId: '', jockeyId: '' }));
     setRegistrationValues((current) => ({ ...current, tournamentId, horseId: '', jockeyId: '' }));
     setFormErrors((current) => ({ ...current, tournamentId: '', horseId: '' }));
@@ -1317,12 +1648,14 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
 
   function clearTournamentSelection() {
     setFlowMode(null);
+    setSelectedWorkflowInvitationId('');
     setFormValues(emptyInvitationForm());
     setRegistrationValues(emptyRegistrationForm());
     setFormErrors({});
     setRegistrationErrors({});
     setDetailJockey(null);
     setDetailHorse(null);
+    setDetailInvitation(null);
     setWizardStep(1);
     resetFeedback();
   }
@@ -1331,6 +1664,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
     const tournamentId = String(getInvitationTournamentId(invitation));
     if (!tournamentId) return;
 
+    setSelectedWorkflowInvitationId(String(getInvitationId(invitation) || ''));
     setFlowMode('payment');
     setFormValues((current) => ({
       ...current,
@@ -1350,6 +1684,65 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
 
   async function fillRegistrationFromInvitation(invitation) {
     await restoreRegistrationSelectionFromInvitation(invitation);
+  }
+
+  async function restoreInvitationSelectionFromInvitation(invitation, { restart = false } = {}) {
+    const tournamentId = String(getInvitationTournamentId(invitation) || '');
+    const horseId = String(getInvitationHorseId(invitation) || '');
+    if (!tournamentId) return;
+
+    setSelectedWorkflowInvitationId(String(getInvitationId(invitation) || ''));
+    setFlowMode('invite');
+    setWizardStep(2);
+    setExpandedEligibilityHorseId('');
+    setFormValues({
+      tournamentId,
+      horseId,
+      jockeyId: restart ? '' : String(getInvitationJockeyId(invitation) || ''),
+      expiredAt: '',
+      message: ''
+    });
+    setRegistrationValues({ tournamentId, horseId, jockeyId: '' });
+    setFormErrors({});
+    setRegistrationErrors({});
+    resetFeedback();
+    await loadTournamentDetail(tournamentId);
+  }
+
+  async function handleTournamentWorkflowAction(invitation, workflow) {
+    if (!invitation || !workflow) return;
+
+    if (workflow.actionType === 'restart-invitation') {
+      await restoreInvitationSelectionFromInvitation(invitation, { restart: true });
+      return;
+    }
+    if (workflow.actionType === 'view-invitation') {
+      setDetailInvitation(invitation);
+      return;
+    }
+    if (workflow.actionType === 'transactions') {
+      if (onViewTransactions) {
+        onViewTransactions();
+        return;
+      }
+      await fillRegistrationFromInvitation(invitation);
+      return;
+    }
+    if (workflow.actionType === 'payment' || workflow.actionType === 'registration-details') {
+      await fillRegistrationFromInvitation(invitation);
+      return;
+    }
+
+    if (workflow.actionType === 'workflow-details') {
+      setDetailInvitation(invitation);
+      return;
+    }
+
+    if (hasRegistrationStatus(invitation) || isAcceptedInvitation(invitation)) {
+      await fillRegistrationFromInvitation(invitation);
+      return;
+    }
+    setDetailInvitation(invitation);
   }
 
   function validateRegistrationForm(tournamentDetail = selectedTournament, detailReady = isSelectedTournamentDetailReady) {
@@ -1466,7 +1859,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
       return;
     }
     if (!canStartInvitationPayment(selectedAcceptedInvitation)) {
-      setRegistrationSubmitError(t('ownerRacePaymentUnavailable'));
+      setRegistrationSubmitError(getTournamentWorkflowState(selectedAcceptedInvitation, t).description);
       return;
     }
     setRegistrationSubmitError('');
@@ -1529,7 +1922,6 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
 
     try {
       await cancelOwnerInvitation(invitationId);
-      storeOwnerCancelledInvitationId(invitationId);
       setInvitations((current) => current.map((item) => (
         String(getInvitationId(item)) === String(invitationId)
           ? {
@@ -1672,11 +2064,9 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
                   const tournamentDetail = tournamentDetailsById[tournamentId];
                   const tournamentForCard = tournamentDetail ? { ...tournament, ...tournamentDetail } : tournament;
                   const tournamentRaces = getTournamentRaces(tournamentForCard);
-                  const tournamentPaymentInvitation = paymentByTournamentId.get(tournamentId);
-                  const paymentStatus = getInvitationPaymentStatus(tournamentPaymentInvitation);
-                  const hasTournamentPayment = Boolean(tournamentPaymentInvitation);
-                  const canPayTournament = hasTournamentPayment && canStartInvitationPayment(tournamentPaymentInvitation);
-                  const hasPaidTournament = hasTournamentPayment && isPaidStatus(paymentStatus);
+                  const tournamentWorkflowInvitation = workflowByTournamentId.get(tournamentId) || null;
+                  const tournamentWorkflow = getTournamentWorkflowState(tournamentWorkflowInvitation, t);
+                  const hasTournamentWorkflow = Boolean(tournamentWorkflowInvitation);
                   const selected = String(formValues.tournamentId) === tournamentId;
                   const imageUrl = getTournamentImageUrl(tournamentForCard);
                   const maxRegistrations = Number(tournament.maxRegistrations || tournament.maxRegistration || 0);
@@ -1721,22 +2111,48 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
 
                         <div className="owner-tournament-workspace-status">
                           <StatusBadge status={tournament.status || (canSelectTournament ? 'OPEN_FOR_REGISTRATION' : 'REGISTRATION_CLOSED')} />
+                          <span className={`owner-tournament-workflow-status tone-${tournamentWorkflow.tone}`}>
+                            {tournamentWorkflow.label}
+                          </span>
                         </div>
 
                         <div className="owner-tournament-workspace-actions">
-                          <button type="button" className="primary-button compact-primary" onClick={() => selectTournament(tournament)} disabled={!canSelectTournament}>
-                            <ArrowRight size={15} /> {selected ? t('ownerRaceSelected') : canSelectTournament ? t('ownerRaceSelectTournament') : t('ownerRaceNotOpen')}
-                          </button>
                           <button
                             type="button"
-                            className={`outline-button tournament-payment-button ${canPayTournament ? 'payment-due' : hasPaidTournament ? 'payment-paid' : ''}`}
-                            onClick={() => hasTournamentPayment && fillRegistrationFromInvitation(tournamentPaymentInvitation)}
-                            disabled={!hasTournamentPayment || (!canPayTournament && !hasPaidTournament)}
-                            title={!hasTournamentPayment ? t('ownerRacePaymentUnavailable') : undefined}
+                            className="primary-button compact-primary tournament-workflow-primary"
+                            onClick={() => {
+                              if (hasTournamentWorkflow) {
+                                setExpandedTournamentId(tournamentId);
+                                loadTournamentDetail(tournamentId);
+                                return;
+                              }
+                              selectTournament(tournament);
+                            }}
+                            disabled={!hasTournamentWorkflow && !canSelectTournament}
                           >
-                            {hasPaidTournament ? <Eye size={15} /> : <CircleDollarSign size={15} />}
-                            {hasPaidTournament ? t('ownerRaceViewPaymentDetails') : canPayTournament ? t('ownerRacePay') : t('ownerRacePaymentUnavailable')}
+                            {hasTournamentWorkflow ? <Eye size={15} /> : <ArrowRight size={15} />}
+                            {hasTournamentWorkflow
+                              ? t('ownerRaceWorkflowViewProgress')
+                              : selected
+                                ? t('ownerRaceSelected')
+                                : canSelectTournament
+                                  ? t('ownerRaceSelectTournament')
+                                  : t('ownerRaceNotOpen')}
                           </button>
+                          {hasTournamentWorkflow && tournamentWorkflow.actionLabel && (
+                            <button
+                              type="button"
+                              className={`outline-button tournament-workflow-button tone-${tournamentWorkflow.tone}`}
+                              onClick={() => handleTournamentWorkflowAction(tournamentWorkflowInvitation, tournamentWorkflow)}
+                            >
+                              {['payment', 'transactions'].includes(tournamentWorkflow.actionType)
+                                ? <CircleDollarSign size={15} />
+                                : tournamentWorkflow.actionType === 'restart-invitation'
+                                  ? <Send size={15} />
+                                  : <Eye size={15} />}
+                              {tournamentWorkflow.actionLabel}
+                            </button>
+                          )}
                         </div>
                       </div>
 
@@ -1748,6 +2164,44 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
                             <span><Trophy size={15} /> {t('ownerRaceProgram')} <strong>{t('ownerRaceRaceTotal', { count: tournamentRaces.length || (tournament.raceCount ?? 0) })}</strong></span>
                             <span><CheckCircle2 size={15} /> {t('ownerRaceApprovedRegistrations')} <strong>{approvedCount}</strong></span>
                           </div>
+
+                          {hasTournamentWorkflow && (
+                            <div className={`owner-tournament-workflow-detail tone-${tournamentWorkflow.tone}`}>
+                              <div className="owner-tournament-workflow-detail-head">
+                                <div>
+                                  <p className="eyebrow">{t('ownerRaceWorkflowProgressTitle')}</p>
+                                  <h4>{tournamentWorkflow.label}</h4>
+                                  <small>{tournamentWorkflow.description}</small>
+                                </div>
+                                <span className={`owner-tournament-workflow-status tone-${tournamentWorkflow.tone}`}>
+                                  {tournamentWorkflow.label}
+                                </span>
+                              </div>
+                              <div className="owner-tournament-workflow-detail-grid">
+                                <span>{t('ownerRaceHorseLabel')} <strong>{tournamentWorkflowInvitation.horseName || `#${getInvitationHorseId(tournamentWorkflowInvitation) || 'N/A'}`}</strong></span>
+                                <span>Jockey <strong>{getInvitationJockeyName(tournamentWorkflowInvitation)}</strong></span>
+                                <span>{t('ownerRaceInvitationStatusLabel')} <StatusBadge status={getEffectiveInvitationStatus(tournamentWorkflowInvitation) || 'UNKNOWN'} /></span>
+                                {tournamentWorkflowInvitation.registrationNo && (
+                                  <span>{t('ownerRaceRegistrationNoLabel')} <strong>{tournamentWorkflowInvitation.registrationNo}</strong></span>
+                                )}
+                                {getInvitationApprovalStatus(tournamentWorkflowInvitation) && (
+                                  <span>{t('ownerRaceApprovalStatusLabel')} <StatusBadge status={getInvitationApprovalStatus(tournamentWorkflowInvitation)} /></span>
+                                )}
+                                {getInvitationPaymentStatus(tournamentWorkflowInvitation) && (
+                                  <span>{t('ownerRacePaymentStatusLabel')} <StatusBadge status={getInvitationPaymentStatus(tournamentWorkflowInvitation)} /></span>
+                                )}
+                                {tournamentWorkflowInvitation.expiredAt && (
+                                  <span>{t('ownerRaceWorkflowInvitationDeadline')} <strong>{formatDateTime(tournamentWorkflowInvitation.expiredAt, t, language)}</strong></span>
+                                )}
+                              </div>
+                              {tournamentWorkflowInvitation.rejectionReason && (
+                                <div className="owner-tournament-workflow-reason">
+                                  <strong>{t('ownerRaceWorkflowRejectionReason')}</strong>
+                                  <p>{tournamentWorkflowInvitation.rejectionReason}</p>
+                                </div>
+                              )}
+                            </div>
+                          )}
 
                           <div className="owner-tournament-workspace-condition-panel">
                             <div className="owner-tournament-registration-race-preview-head">
@@ -1958,10 +2412,22 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
                   const selected = String(formValues.horseId) === horseId;
                   const lockReason = selectedTournament ? getHorseTournamentLockReason(horse, selectedTournament, invitations, horseLockReasons, t) : '';
                   const eligibility = getHorseTournamentEligibility(horse, selectedTournament, t, isSelectedTournamentDetailReady);
+                  const participationChecks = [
+                    ...eligibility.checks,
+                    {
+                      key: 'participation-availability',
+                      label: t('ownerRaceEligibilityCheckAvailability'),
+                      status: lockReason ? 'failed' : 'passed',
+                      detail: lockReason || t('ownerRaceEligibilityCheckAvailabilityPassed')
+                    }
+                  ];
                   const participationReasons = [...new Set([...eligibility.reasons, ...(lockReason ? [lockReason] : [])])];
                   const canParticipate = isSelectedTournamentDetailReady && eligibility.eligible && !lockReason;
                   const disabled = !canParticipate;
                   const reasonText = participationReasons.join(' ');
+                  const passedCheckCount = participationChecks.filter((check) => check.status === 'passed').length;
+                  const checklistId = `horse-eligibility-${String(getTournamentId(selectedTournament) || 'none')}-${horseId}`;
+                  const eligibilityExpanded = expandedEligibilityHorseId === horseId;
 
                   return (
                     <article className={`registration-horse-card ${selected ? 'selected' : ''} ${canParticipate ? 'eligible' : 'unavailable'}`} key={horseId} title={reasonText || undefined}>
@@ -1969,7 +2435,26 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
                       <strong>{getHorseName(horse) || `Horse ${horseId}`}</strong>
                       <small>{horse.breeding || t('notUpdated')} · {horse.age ?? '?'} {t('ownerRaceYears')} · {horse.weight ?? '?'} kg</small>
                       <div className={`registration-horse-eligibility ${canParticipate ? 'eligible' : 'ineligible'}`}>
-                        <span>{canParticipate ? <CheckCircle2 size={14} /> : <XCircle size={14} />} {canParticipate ? t('ownerRaceEligible') : t('ownerRaceNotEligible')}</span>
+                        <span className="registration-horse-eligibility-badge">
+                          {canParticipate ? <CheckCircle2 size={14} /> : <XCircle size={14} />}
+                          {canParticipate ? t('ownerRaceEligible') : t('ownerRaceNotEligible')}
+                        </span>
+                        <small className="registration-horse-eligibility-summary">
+                          {t('ownerRaceEligibilitySummary', {
+                            passed: passedCheckCount,
+                            total: participationChecks.length
+                          })}
+                        </small>
+                        <button
+                          type="button"
+                          className="registration-horse-eligibility-toggle"
+                          aria-expanded={eligibilityExpanded}
+                          aria-controls={checklistId}
+                          onClick={() => setExpandedEligibilityHorseId((current) => current === horseId ? '' : horseId)}
+                        >
+                          {eligibilityExpanded ? t('ownerRaceEligibilityHideDetails') : t('ownerRaceEligibilityShowDetails')}
+                          <ChevronDown className={eligibilityExpanded ? 'is-expanded' : ''} size={15} />
+                        </button>
                       </div>
                       <div className="registration-horse-actions">
                         {selected && <span className="registration-horse-selected-badge"><CheckCircle2 size={15} /> {t('ownerRaceSelectedHorse')}</span>}
@@ -1982,6 +2467,32 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
                           <Eye size={15} /> {t('ownerRaceViewProfile')}
                         </button>
                       </div>
+                      {eligibilityExpanded && (
+                        <ul className="registration-horse-checklist" id={checklistId}>
+                          {participationChecks.map((check) => (
+                            <li className={`registration-horse-check ${check.status}`} key={check.key}>
+                              <span className="registration-horse-check-icon" aria-hidden="true">
+                                {check.status === 'passed'
+                                  ? <CheckCircle2 size={17} />
+                                  : check.status === 'failed'
+                                    ? <XCircle size={17} />
+                                    : <Clock size={17} />}
+                              </span>
+                              <span className="registration-horse-check-copy">
+                                <strong>{check.label}</strong>
+                                <small>{check.detail}</small>
+                              </span>
+                              <span className="registration-horse-check-state">
+                                {check.status === 'passed'
+                                  ? t('ownerRaceEligibilityStatusPassed')
+                                  : check.status === 'failed'
+                                    ? t('ownerRaceEligibilityStatusFailed')
+                                    : t('ownerRaceEligibilityStatusUnknown')}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
                     </article>
                   );
                 })}
@@ -2212,7 +2723,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
                 <h2>{isRegistrationPaid ? t('ownerRacePaymentCompletedTitle') : t('ownerRacePaymentFailedTitle')}</h2>
                 <p>{isRegistrationPaid
                   ? t('ownerRacePaymentCompletedDesc')
-                  : paymentResult.message || t('ownerRacePaymentFailedDesc')}</p>
+                  : paymentResult?.message || t('ownerRacePaymentFailedDesc')}</p>
               </div>
               <button className="outline-button compact-button owner-payment-result-close" type="button" onClick={clearTournamentSelection} disabled={isRegistering}>
                 <X size={16} /> {t('close')}
@@ -2242,6 +2753,61 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
               <div><dt>{t('ownerRaceApproval')}</dt><dd><StatusBadge status={selectedApprovalStatus || 'PENDING'} /></dd></div>
               {paymentResult?.txnRef && <div className="owner-payment-result-transaction"><dt>{t('ownerRaceTransactionCode')}</dt><dd>{paymentResult.txnRef}</dd></div>}
             </dl>
+          </section>
+          ) : showReadOnlyRegistration ? (
+          <section className={`owner-panel owner-payment-result owner-registration-readonly tone-${selectedRegistrationWorkflow.tone}`}>
+            <div className="owner-payment-result-header">
+              <div className={`owner-payment-result-icon ${selectedRegistrationWorkflow.tone === 'danger' ? 'failed' : 'success'}`}>
+                {selectedRegistrationWorkflow.tone === 'danger' ? <XCircle size={32} /> : <ShieldCheck size={32} />}
+              </div>
+              <div className="owner-payment-result-copy" aria-live="polite">
+                <p className="eyebrow">{t('ownerRaceRegistrationDetailsEyebrow')}</p>
+                <h2>{selectedRegistrationState.title}</h2>
+                <p>{selectedRegistrationState.description}</p>
+              </div>
+              <button className="outline-button compact-button owner-payment-result-close" type="button" onClick={clearTournamentSelection}>
+                <X size={16} /> {t('close')}
+              </button>
+            </div>
+
+            <div className="owner-tournament-registration-state">
+              <div>
+                <p className="eyebrow">{t('ownerRaceRegistrationState')}</p>
+                <h4>{selectedRegistrationState.title}</h4>
+                <small>{selectedRegistrationState.description}</small>
+              </div>
+              <div className="owner-tournament-registration-state-badges">
+                {selectedRegistrationCode && <span>{t('ownerRaceRegistrationNoLabel')} <strong>{selectedRegistrationCode}</strong></span>}
+                {selectedInvitationStatus && <span>{t('ownerRaceInvitationStatusLabel')} <StatusBadge status={selectedInvitationStatus} /></span>}
+                {selectedApprovalStatus && <span>{t('ownerRaceApprovalStatusLabel')} <StatusBadge status={selectedApprovalStatus} /></span>}
+                {selectedPaymentStatus && <span>{t('ownerRacePaymentStatusLabel')} <StatusBadge status={selectedPaymentStatus} /></span>}
+              </div>
+            </div>
+
+            <dl className="owner-payment-result-details">
+              <div><dt>{t('ownerRaceTournamentLabel')}</dt><dd>{selectedTournament ? getTournamentName(selectedTournament) : 'N/A'}</dd></div>
+              <div><dt>{t('ownerRaceLocation')}</dt><dd>{selectedTournament ? getTournamentVenue(selectedTournament, t) : 'N/A'}</dd></div>
+              <div><dt>{t('ownerRaceDateTime')}</dt><dd>{selectedTournament ? formatDateRange(selectedTournament.startDate, selectedTournament.endDate, t) : 'N/A'}</dd></div>
+              <div><dt>{t('ownerRaceHorseLabel')} / Jockey</dt><dd>{selectedHorse ? getHorseName(selectedHorse) : 'N/A'} / {getInvitationJockeyName(selectedAcceptedInvitation)}</dd></div>
+              <div><dt>{t('ownerRaceRegistrationCode')}</dt><dd>{selectedAcceptedInvitation?.registrationNo || (selectedAcceptedInvitation?.registrationId ? `#${selectedAcceptedInvitation.registrationId}` : 'N/A')}</dd></div>
+              <div><dt>{t('ownerRaceAmount')}</dt><dd>{formatCurrency(selectedTournament?.entryFee)}</dd></div>
+              <div><dt>{t('ownerRacePayment')}</dt><dd>{selectedPaymentStatus ? <StatusBadge status={selectedPaymentStatus} /> : t('notUpdated')}</dd></div>
+              <div><dt>{t('ownerRaceApproval')}</dt><dd>{selectedApprovalStatus ? <StatusBadge status={selectedApprovalStatus} /> : t('notUpdated')}</dd></div>
+              {(selectedAcceptedInvitation?.rejectionReason || selectedRegistrationWorkflow.kind === 'REGISTRATION_REJECTED') && (
+                <div className="owner-payment-result-transaction owner-registration-rejection-reason">
+                  <dt>{t('ownerRaceWorkflowRejectionReason')}</dt>
+                  <dd>{selectedAcceptedInvitation?.rejectionReason || t('ownerRaceWorkflowNoRejectionReason')}</dd>
+                </div>
+              )}
+            </dl>
+
+            {selectedRegistrationWorkflow.kind === 'PAYMENT_REFUNDED' && onViewTransactions && (
+              <div className="admin-form-actions tournament-modal-actions">
+                <button className="outline-button" type="button" onClick={onViewTransactions}>
+                  <CircleDollarSign size={16} /> {t('ownerRaceWorkflowViewTransaction')}
+                </button>
+              </div>
+            )}
           </section>
           ) : isPaymentFlowActive && hasAcceptedInvitation && canStartInvitationPayment(selectedAcceptedInvitation) ? (
           <form className={`owner-panel owner-form flow-only ${wizardStep === 4 ? '' : 'wizard-step-hidden'}`} onSubmit={handleRegistrationSubmit} noValidate>
@@ -2391,6 +2957,100 @@ export default function OwnerRegisterRace({ horses, onBackToHorses }) {
           </section>
         </aside>
       </div>
+
+      {detailInvitation && (() => {
+        const invitationTournament = tournamentById.get(String(getInvitationTournamentId(detailInvitation))) || null;
+        const invitationHorse = ownerHorseList.find((horse) => String(getHorseId(horse)) === String(getInvitationHorseId(detailInvitation))) || null;
+        const invitationJockey = jockeys.find((jockey) => String(getUserId(jockey)) === String(getInvitationJockeyId(detailInvitation))) || null;
+        const invitationStatus = getEffectiveInvitationStatus(detailInvitation) || 'UNKNOWN';
+        const invitationWorkflow = getTournamentWorkflowState(detailInvitation, t);
+
+        return (
+          <div className="owner-race-detail-backdrop" role="presentation" onClick={() => setDetailInvitation(null)}>
+            <section className="owner-invitation-detail-modal" role="dialog" aria-modal="true" aria-labelledby="owner-invitation-detail-title" onClick={(event) => event.stopPropagation()}>
+              <div className="owner-invitation-detail-header">
+                <div className="owner-invitation-detail-icon"><Send size={24} /></div>
+                <div>
+                  <p className="eyebrow">{t('ownerRaceInvitationDetailTitle')}</p>
+                  <h3 id="owner-invitation-detail-title">
+                    {getTournamentName(invitationTournament) || detailInvitation.tournamentName || `${t('ownerRaceTournamentLabel')} #${getInvitationTournamentId(detailInvitation) || ''}`}
+                  </h3>
+                  <span>{t('ownerRaceInvitationDetailDesc')}</span>
+                </div>
+                <StatusBadge status={invitationStatus} />
+                <button type="button" className="drawer-close-button" onClick={() => setDetailInvitation(null)} aria-label={t('close')}>
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className={`owner-invitation-detail-state tone-${invitationWorkflow.tone}`}>
+                <div>
+                  <strong>{invitationWorkflow.label}</strong>
+                  <p>{invitationWorkflow.description}</p>
+                </div>
+                <StatusBadge status={invitationStatus} />
+              </div>
+
+              <dl className="owner-invitation-detail-grid">
+                <div>
+                  <dt>{t('ownerRaceInvitationIdLabel')}</dt>
+                  <dd>#{getInvitationId(detailInvitation) || 'N/A'}</dd>
+                </div>
+                <div>
+                  <dt>{t('ownerRaceTournamentLabel')}</dt>
+                  <dd>{getTournamentName(invitationTournament) || detailInvitation.tournamentName || 'N/A'}</dd>
+                </div>
+                <div>
+                  <dt>{t('ownerRaceHorseLabel')}</dt>
+                  <dd>{invitationHorse ? getHorseName(invitationHorse) : detailInvitation.horseName || `#${getInvitationHorseId(detailInvitation) || 'N/A'}`}</dd>
+                </div>
+                <div>
+                  <dt>Jockey</dt>
+                  <dd>{invitationJockey ? getJockeyName(invitationJockey) : getInvitationJockeyName(detailInvitation)}</dd>
+                </div>
+                <div>
+                  <dt>{t('ownerRaceInvitationSentAt')}</dt>
+                  <dd>{formatDateTime(detailInvitation.createdAt, t, language)}</dd>
+                </div>
+                <div>
+                  <dt>{t('ownerRaceWorkflowInvitationDeadline')}</dt>
+                  <dd>{formatDateTime(detailInvitation.expiredAt, t, language)}</dd>
+                </div>
+                {detailInvitation.respondedAt && (
+                  <div>
+                    <dt>{t('ownerRaceInvitationRespondedAt')}</dt>
+                    <dd>{formatDateTime(detailInvitation.respondedAt, t, language)}</dd>
+                  </div>
+                )}
+              </dl>
+
+              <div className="owner-invitation-detail-message">
+                <span>{t('ownerRaceMessage')}</span>
+                <p>{detailInvitation.message || t('ownerRaceInvitationMessageEmpty')}</p>
+              </div>
+
+              <footer className="owner-invitation-detail-footer">
+                <button type="button" className="outline-button" onClick={() => setDetailInvitation(null)}>
+                  {t('close')}
+                </button>
+                {invitationStatus === 'PENDING' && (
+                  <button
+                    type="button"
+                    className="table-button danger-action"
+                    onClick={() => {
+                      const invitation = detailInvitation;
+                      setDetailInvitation(null);
+                      handleCancel(invitation);
+                    }}
+                  >
+                    {t('ownerRaceCancelInvite')}
+                  </button>
+                )}
+              </footer>
+            </section>
+          </div>
+        );
+      })()}
 
       {detailHorse && (() => {
         const stats = getHorseStats(detailHorse);

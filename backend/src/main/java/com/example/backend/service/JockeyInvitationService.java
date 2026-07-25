@@ -73,6 +73,7 @@ public class JockeyInvitationService {
                 .registrationStatus(registration != null ? registration.getStatus() : null)
                 .paymentStatus(registration != null ? registration.getPaymentStatus() : null)
                 .approvalStatus(registration != null ? registration.getApprovalStatus() : null)
+                .rejectionReason(registration != null ? registration.getRejectionReason() : null)
                 .build();
     }
 }
