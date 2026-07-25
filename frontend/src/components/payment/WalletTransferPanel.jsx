@@ -28,19 +28,6 @@ function formatWalletDate(value) {
   });
 }
 
-function walletTransactionLabel(type) {
-  const normalized = String(type || '').toUpperCase();
-  const labels = {
-    DEPOSIT: 'Nạp tiền',
-    BET_LOCK: 'Khóa tiền cược',
-    BET_REFUND: 'Hoàn tiền cược',
-    BET_WIN: 'Thắng cược',
-    BET_LOST: 'Thua cược',
-    PRIZE_PAYOUT: 'Nhận tiền giải'
-  };
-  return labels[normalized] || normalized || 'Giao dịch';
-}
-
 function walletTransactionDirection(type) {
   const normalized = String(type || '').toUpperCase();
   if (['DEPOSIT', 'BET_WIN', 'BET_REFUND', 'PRIZE_PAYOUT'].includes(normalized)) return 'credit';
@@ -157,7 +144,7 @@ function WalletTransactionHistory({ transactions }) {
               <span className="wallet-transaction-time">{formatWalletDate(transaction.createdAt)}</span>
               <span className={`wallet-transaction-type ${direction}`}>
                 <Icon size={15} />
-                {walletTransactionLabel(transaction.type)}
+                {String(transaction.type || 'UNKNOWN').toUpperCase()}
               </span>
               <strong className={`wallet-transaction-amount ${direction}`}>
                 {direction === 'debit' ? '-' : '+'}{formatVndCurrency(transaction.amount)}
