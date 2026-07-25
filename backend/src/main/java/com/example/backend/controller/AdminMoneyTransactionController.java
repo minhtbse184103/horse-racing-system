@@ -18,7 +18,7 @@ import java.util.List;
 @RequestMapping("/api/admin/money-transactions")
 @RequiredArgsConstructor
 @PreAuthorize("hasRole('ADMIN')")
-public class AdminMoneyTransactionController {
+public class    AdminMoneyTransactionController {
 
     private final AdminMoneyTransactionService adminMoneyTransactionService;
 

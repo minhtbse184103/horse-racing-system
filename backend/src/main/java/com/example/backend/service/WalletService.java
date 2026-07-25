@@ -32,7 +32,7 @@ import java.util.Locale;
 @Service
 @RequiredArgsConstructor
 @Slf4j
-public class WalletService {
+public class    WalletService {
 
     private static final String VND = "VND";
     private static final String SPECTATOR = "SPECTATOR";
