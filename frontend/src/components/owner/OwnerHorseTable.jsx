@@ -92,10 +92,6 @@ export default function OwnerHorseTable({ horses, isLoading, onViewHorse, onEdit
                     </span>
                   </div>
                   <div className="horse-meta-grid">
-                    <span>{t('ownerHorseBreeding')}</span>
-                    <strong>{horse.breeding || t('notUpdated')}</strong>
-                    <span>{t('ownerHorseSex')}</span>
-                    <strong>{getOwnerHorseSexLabel(horse.sex, t)}</strong>
                     <span>{t('ownerHorseColour')}</span>
                     <strong>{horse.colour || t('notUpdated')}</strong>
                     <span>{t('ownerHorseAge')}</span>
@@ -104,17 +100,11 @@ export default function OwnerHorseTable({ horses, isLoading, onViewHorse, onEdit
                     <strong>{horse.weight ? `${horse.weight} kg` : t('notUpdated')}</strong>
                     <span>{t('ownerHorseTrainer')}</span>
                     <strong>{horse.trainer || t('notUpdated')}</strong>
-                    <span>{t('ownerHorseHealthCertExpiryShort')}</span>
-                    <strong>{formatDate(horse.healthCertificateExpiryDate || horse.healthCertExpiry)}</strong>
-                    <span>{t('ownerHorseCreatedAt')}</span>
-                    <strong>{formatDate(horse.createdAt || horse.submittedAt)}</strong>
-                    <span>{t('ownerHorseRegistrationCount')}</span>
-                    <strong>{formatNumber(horse.registrationCount)}</strong>
                   </div>
                   <div className="horse-flags">
-                    <span className={horse.participated ? 'flag-badge success' : 'flag-badge'}>
+                    {/* <span className={horse.participated ? 'flag-badge success' : 'flag-badge'}>
                       {horse.participated ? t('ownerHorseHasRaceHistory') : t('ownerHorseNoRaceHistory')}
-                    </span>
+                    </span> */}
                     {horse.status === 'PENDING' && <span className="flag-badge">{t('ownerHorsePendingApproval')}</span>}
                     {horse.rejectionReason && <span className="flag-badge danger">{t('ownerHorseRejectedPrefix')}: {horse.rejectionReason}</span>}
                   </div>

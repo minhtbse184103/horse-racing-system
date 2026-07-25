@@ -11,6 +11,7 @@ import LandingPage from './pages/LandingPage';
 import { useAuth } from './hooks/useAuth';
 import { getUserRole } from './lib';
 import WalletTransferPanel from './components/payment/WalletTransferPanel';
+import OwnerHorseDetailPage from './components/owner/OwnerHorseDetailPage';
 
 function getInitialPage() {
   if (window.location.pathname === '/register') return 'register';
@@ -24,6 +25,10 @@ export default function App() {
   const userRole = getUserRole(user);
   const accountType = String(user?.accountType || userRole || '').toUpperCase();
   const currentPath = window.location.pathname;
+
+  const ownerHorseDetailMatch = currentPath.match(
+  /^\/owner\/horses\/([^/]+)\/detail\/?$/
+);
 
   useEffect(() => {
     function handlePopState() {
@@ -66,6 +71,18 @@ export default function App() {
       </main>
     );
   }
+
+  if (
+    user &&
+    ownerHorseDetailMatch &&
+    (accountType === 'OWNER' || userRole === 'OWNER')
+) {
+    return (
+      <OwnerHorseDetailPage
+        horseId={ownerHorseDetailMatch[1]}
+      />
+    );
+}
 
   if (userRole === 'ADMIN') {
     return <AdminDashboard currentUser={user} onLogout={handleLogout} />;

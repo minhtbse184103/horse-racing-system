@@ -159,27 +159,28 @@ function ApprovedOwnerDashboard({ currentUser, onLogout, onUserUpdated }) {
     setMessage('');
   }
 
-  async function handleViewHorse(horse) {
+  function handleViewHorse(horse) {
     const horseId = getHorseId(horse);
 
     if (!horseId) {
-      setHorseDetailError(t('ownerHorseMissingId'));
+      setPageError('Không tìm thấy ID ngựa.');
       return;
     }
 
-    setIsLoadingHorseDetail(true);
-    setHorseDetailError('');
-    setSelectedHorse(horse);
-    setPageError('');
-    setHorseFormError('');
+    const detailUrl = `/owner/horses/${encodeURIComponent(
+      horseId
+    )}/detail`;
 
-    try {
-      const detail = await getOwnerHorseById(horseId);
-      setSelectedHorse(detail);
-    } catch (err) {
-      setHorseDetailError(getErrorText(err, t('ownerHorseDetailLoadError')));
-    } finally {
-      setIsLoadingHorseDetail(false);
+    const detailWindow = window.open(
+      detailUrl,
+      `horse-detail-${horseId}`,
+      'width=1400,height=900,left=80,top=40,resizable=yes,scrollbars=yes'
+    );
+
+    if (!detailWindow) {
+      setPageError(
+        'Trình duyệt đang chặn cửa sổ mới. Hãy cho phép popup cho trang web này.'
+      );
     }
   }
 
