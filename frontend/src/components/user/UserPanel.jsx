@@ -45,14 +45,17 @@ const navItems = [
   { key: 'wallet', labelKey: 'wallet', icon: Wallet, accountTypes: ['SPECTATOR'] }
 ];
 
+function formatLocalizedStatus(t, status) {
+  const key = `status_${String(status || 'NOT_SUBMITTED').toUpperCase()}`;
+  const translated = t(key);
+  return translated === key ? formatDisplayLabel(status || 'NOT_SUBMITTED') : translated;
+}
+
 function StatusBadge({ status }) {
   const { t } = useLanguage();
   const normalized = String(status || 'not-registered').toLowerCase().replace(/\s+/g, '-');
-  const key = `status_${String(status || 'NOT_SUBMITTED').toUpperCase()}`;
-  const translated = t(key);
-  const label = translated === key ? formatDisplayLabel(status || 'NOT_SUBMITTED') : translated;
 
-  return <span className={`status-badge ${normalized}`}>{label}</span>;
+  return <span className={`status-badge ${normalized}`}>{formatLocalizedStatus(t, status)}</span>;
 }
 
 function getKycStatus(kyc) {
@@ -188,13 +191,13 @@ function DashboardHome({ accountType, onGoProfile, onNavigate, races, bettingEve
             <button className="spectator-overview-action primary" type="button" onClick={() => onNavigate?.('races')}>
               <span><Radio size={18} aria-hidden="true" /></span>
               <strong>{t('spectatorNavRaces')}</strong>
-              <small>{liveRaces.length} live · {upcomingRaces.length} upcoming</small>
+              <small>{t('spectatorLiveUpcomingSummary', { live: liveRaces.length, upcoming: upcomingRaces.length })}</small>
             </button>
             {isSpectator ? (
               <button className="spectator-overview-action" type="button" onClick={() => onNavigate?.('betting')}>
                 <span><CircleDollarSign size={18} aria-hidden="true" /></span>
                 <strong>{t('spectatorNavBetting')}</strong>
-                <small>{openBettingEvents.length} open events</small>
+                <small>{t('spectatorOpenEventsSummary', { count: openBettingEvents.length })}</small>
               </button>
             ) : (
               <button className="spectator-overview-action" type="button" onClick={onGoProfile}>
@@ -209,12 +212,12 @@ function DashboardHome({ accountType, onGoProfile, onNavigate, races, bettingEve
         <aside className="spectator-overview-live-card">
           <span className="spectator-overview-kicker">
             <Radio size={15} aria-hidden="true" />
-            Live desk
+            {t('spectatorLiveDesk')}
           </span>
           <strong>{isLoading ? '...' : liveRaces.length}</strong>
-          <p>Race đang chạy trực tiếp trong hệ thống.</p>
+          <p>{t('spectatorLiveDeskDesc')}</p>
           <button className="spectator-overview-mini-action" type="button" onClick={() => onNavigate?.('races')}>
-            View live races
+            {t('spectatorViewLiveRaces')}
           </button>
         </aside>
       </section>
@@ -243,7 +246,7 @@ function DashboardHome({ accountType, onGoProfile, onNavigate, races, bettingEve
               <p>{t('spectatorRaceHighlightsDesc')}</p>
             </div>
             <button className="spectator-overview-secondary-action" type="button" onClick={() => onNavigate?.('races')}>
-              View all
+              {t('spectatorViewAll')}
             </button>
           </header>
 
@@ -261,7 +264,7 @@ function DashboardHome({ accountType, onGoProfile, onNavigate, races, bettingEve
                     <small>{race.trackName || t('spectatorTrackMissing')} · {raceDateTime(race, language)}</small>
                   </span>
                   <span className={`status-badge ${String(race.status || '').toLowerCase().replaceAll('_', '-')}`}>
-                    {formatDisplayLabel(race.status)}
+                    {formatLocalizedStatus(t, race.status)}
                   </span>
                 </button>
               ))
@@ -272,8 +275,8 @@ function DashboardHome({ accountType, onGoProfile, onNavigate, races, bettingEve
         <aside className="spectator-overview-panel spectator-overview-side-panel">
           <div className="spectator-overview-panel-header compact">
             <div>
-              <span className="spectator-overview-kicker">Operations</span>
-              <h3>Next best actions</h3>
+              <span className="spectator-overview-kicker">{t('spectatorOperations')}</span>
+              <h3>{t('spectatorNextActions')}</h3>
             </div>
           </div>
 
@@ -282,7 +285,7 @@ function DashboardHome({ accountType, onGoProfile, onNavigate, races, bettingEve
               <Medal size={18} aria-hidden="true" />
               <span>
                 <strong>{t('spectatorNavResults')}</strong>
-                <small>{completedRaces.length} completed races</small>
+                <small>{t('spectatorCompletedRaces', { count: completedRaces.length })}</small>
               </span>
             </button>
             {isSpectator && (
@@ -290,7 +293,7 @@ function DashboardHome({ accountType, onGoProfile, onNavigate, races, bettingEve
                 <Wallet size={18} aria-hidden="true" />
                 <span>
                   <strong>{t('wallet')}</strong>
-                  <small>Manage deposit and wallet ledger</small>
+                  <small>{t('spectatorWalletActionDesc')}</small>
                 </span>
               </button>
             )}
@@ -298,17 +301,17 @@ function DashboardHome({ accountType, onGoProfile, onNavigate, races, bettingEve
               <UserRound size={18} aria-hidden="true" />
               <span>
                 <strong>{t('spectatorViewProfile')}</strong>
-                <small>Account, identity and application status</small>
+                <small>{t('spectatorProfileActionDesc')}</small>
               </span>
             </button>
           </div>
 
           <div className="spectator-overview-betting-card">
-            <span className="spectator-overview-kicker">{isSpectator ? 'Betting queue' : 'Account readiness'}</span>
-            <h4>{isSpectator ? (featuredBettingEvent?.raceName || 'No open betting event') : `${professionalLabel} application`}</h4>
+            <span className="spectator-overview-kicker">{isSpectator ? t('spectatorBettingQueue') : 'Account readiness'}</span>
+            <h4>{isSpectator ? (featuredBettingEvent?.raceName || t('spectatorNoOpenBetting')) : `${professionalLabel} application`}</h4>
             <p>
               {isSpectator
-                ? (featuredBettingEvent ? `Pool status: ${formatDisplayLabel(featuredBettingEvent.status)}` : 'Open betting events will appear here when available.')
+                ? (featuredBettingEvent ? t('spectatorPoolStatus', { status: formatLocalizedStatus(t, featuredBettingEvent.status) }) : t('spectatorOpenBettingHint'))
                 : 'Professional access unlocks after Admin approval.'}
             </p>
             <button className="spectator-overview-mini-action" type="button" onClick={() => isSpectator ? onNavigate?.('betting') : onGoProfile()}>
@@ -321,14 +324,14 @@ function DashboardHome({ accountType, onGoProfile, onNavigate, races, bettingEve
       {nextRace && (
         <section className="spectator-overview-timeline" aria-label="Next race spotlight">
           <div>
-            <span className="spectator-overview-kicker">Next race</span>
+            <span className="spectator-overview-kicker">{t('spectatorNextRace')}</span>
             <h3>{getRaceDisplayName(nextRace)}</h3>
             <p>{nextRace.trackName || t('spectatorTrackMissing')} · {raceDateTime(nextRace, language)}</p>
           </div>
           <div className="spectator-overview-timeline-stats">
             <span>{t('spectatorRunners', { entries: nextRace.entryCount ?? 0, max: nextRace.maxRunners ?? 0 })}</span>
-            <span>{nextRace.distance ? `${nextRace.distance}m` : 'Distance N/A'}</span>
-            <span>{formatDisplayLabel(nextRace.status)}</span>
+            <span>{nextRace.distance ? `${nextRace.distance}m` : t('spectatorDistanceMissing')}</span>
+            <span>{formatLocalizedStatus(t, nextRace.status)}</span>
           </div>
         </section>
       )}
@@ -409,7 +412,7 @@ function RaceListSection({ title, races, isLoading, resultsOnly = false }) {
         <div className="spectator-races-hero-copy">
           <p className="eyebrow">{title}</p>
           <h2>{resultsOnly ? t('spectatorNavResults') : t('spectatorUpcomingCards')}</h2>
-          <p>{resultsOnly ? t('spectatorNoRaceData', { name: title.toLowerCase() }) : t('spectatorRaceApiData')}</p>
+          <p>{resultsOnly ? t('spectatorResultsDesc') : t('spectatorRaceApiData')}</p>
         </div>
         <div className="spectator-races-hero-icon" aria-hidden="true">
           {resultsOnly ? <Medal size={26} /> : <Flag size={26} />}
@@ -420,12 +423,12 @@ function RaceListSection({ title, races, isLoading, resultsOnly = false }) {
         <div className="spectator-race-stat-card primary">
           <span>{resultsOnly ? t('spectatorNavResults') : t('spectatorTotalRaces')}</span>
           <strong>{isLoading ? '...' : visibleRaces.length}</strong>
-          <small>{resultsOnly ? t('spectatorNoRaceData', { name: title.toLowerCase() }) : t('spectatorTotalRacesDesc')}</small>
+          <small>{resultsOnly ? t('spectatorResultsDesc') : t('spectatorTotalRacesDesc')}</small>
         </div>
         <div className="spectator-race-stat-card">
-          <span>{language === 'vi' ? 'Đang trực tiếp' : 'Live now'}</span>
+          <span>{t('spectatorLiveNow')}</span>
           <strong>{isLoading ? '...' : liveRaces.length}</strong>
-          <small>{formatDisplayLabel('IN_PROGRESS')}</small>
+          <small>{formatLocalizedStatus(t, 'IN_PROGRESS')}</small>
         </div>
         <div className="spectator-race-stat-card">
           <span>{t('spectatorUpcomingRaces')}</span>
@@ -435,7 +438,7 @@ function RaceListSection({ title, races, isLoading, resultsOnly = false }) {
         <div className="spectator-race-stat-card">
           <span>{t('spectatorNavResults')}</span>
           <strong>{isLoading ? '...' : completedRaces.length}</strong>
-          <small>{formatDisplayLabel('COMPLETED')}</small>
+          <small>{formatLocalizedStatus(t, 'COMPLETED')}</small>
         </div>
       </div>
 
@@ -464,20 +467,20 @@ function RaceListSection({ title, races, isLoading, resultsOnly = false }) {
       <section className="spectator-race-toolbar">
         <label className="spectator-race-search">
           <Search size={18} />
-          <span className="sr-only">Search races</span>
+          <span className="sr-only">{t('spectatorSearchRaces')}</span>
           <input
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder={language === 'vi' ? 'Tìm Race, Tournament, đường đua...' : 'Search Race, Tournament, track...'}
+            placeholder={t('spectatorSearchPlaceholder')}
           />
         </label>
         <label className="spectator-race-filter">
           <SlidersHorizontal size={16} />
-          <span className="sr-only">Filter status</span>
+          <span className="sr-only">{t('spectatorFilterStatus')}</span>
           <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
             {statusOptions.map((status) => (
               <option key={status} value={status}>
-                {status === 'ALL' ? t('spectatorFilterAll') : formatDisplayLabel(status)}
+                {status === 'ALL' ? t('spectatorFilterAll') : formatLocalizedStatus(t, status)}
               </option>
             ))}
           </select>
@@ -526,7 +529,7 @@ function RaceListSection({ title, races, isLoading, resultsOnly = false }) {
                       onClick={() => openOfficialResult(race)}
                     >
                       <Medal size={15} />
-                      {language === 'vi' ? 'Xem kết quả' : 'View result'}
+                      {t('spectatorViewResult')}
                     </button>
                   ) : live ? (
                     <button
@@ -540,7 +543,7 @@ function RaceListSection({ title, races, isLoading, resultsOnly = false }) {
                     </button>
                   ) : (
                     <span className="spectator-race-muted-action">
-                      {resultsOnly ? t('spectatorNavResults') : formatDisplayLabel(race.status)}
+                      {resultsOnly ? t('spectatorNavResults') : formatLocalizedStatus(t, race.status)}
                     </span>
                   )}
                 </div>

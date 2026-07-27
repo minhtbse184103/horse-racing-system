@@ -49,6 +49,12 @@ function statusClass(status) {
   return 'open_for_registration';
 }
 
+function formatLocalizedStatus(t, status) {
+  const key = `status_${String(status || 'N/A').toUpperCase()}`;
+  const translated = t(key);
+  return translated === key ? formatDisplayLabel(status) : translated;
+}
+
 export default function JockeyRaces() {
   const { language, t } = useLanguage();
   const [races, setRaces] = useState([]);
@@ -61,26 +67,22 @@ export default function JockeyRaces() {
   const [isResultLoading, setIsResultLoading] = useState(false);
 
   const copy = {
-    eyebrow: language === 'vi' ? 'Race của tôi' : 'Your races',
-    title: language === 'vi' ? 'Race đã được phân công' : 'Assigned race entries',
-    desc: language === 'vi'
-      ? 'Theo dõi các Race mà Owner đã đăng ký bạn làm Jockey và Admin đã xếp RaceEntry chính thức.'
-      : 'Track races where an Owner registered you as the Jockey and Admin assigned the official RaceEntry.',
-    search: language === 'vi' ? 'Tìm theo Tournament, Race, Horse, Owner...' : 'Search Tournament, Race, Horse, Owner...',
-    emptyTitle: language === 'vi' ? 'Chưa có Race được phân công' : 'No assigned races yet',
-    emptyDesc: language === 'vi'
-      ? 'Sau khi Registration được duyệt và phân công RaceEntry, Race sẽ xuất hiện tại đây.'
-      : 'After a Registration is approved and assigned as a RaceEntry, races will appear here.',
-    noResult: language === 'vi' ? 'Chưa có kết quả chính thức' : 'No official result yet',
-    viewResult: language === 'vi' ? 'Xem kết quả' : 'View result',
-    loadError: language === 'vi' ? 'Không thể tải danh sách Race của bạn.' : 'Unable to load your races.',
-    resultLoadError: language === 'vi' ? 'Không thể tải kết quả Race.' : 'Unable to load race results.',
-    retry: language === 'vi' ? 'Tải lại' : 'Retry',
-    raceEntry: 'RaceEntry',
-    registeredHorse: language === 'vi' ? 'Horse đã đăng ký' : 'Registered horse',
-    owner: 'Owner',
-    raceTime: language === 'vi' ? 'Lịch Race' : 'Race schedule',
-    stall: language === 'vi' ? 'Chuồng xuất phát' : 'Starting stall'
+    eyebrow: t('jockeyRacesEyebrow'),
+    title: t('jockeyRacesTitle'),
+    desc: t('jockeyRacesDescription'),
+    search: t('jockeyRacesSearch'),
+    emptyTitle: t('jockeyRacesEmptyTitle'),
+    emptyDesc: t('jockeyRacesEmptyDescription'),
+    noResult: t('jockeyRacesNoResult'),
+    viewResult: t('jockeyRacesViewResult'),
+    loadError: t('jockeyRacesLoadError'),
+    resultLoadError: t('jockeyRacesResultLoadError'),
+    retry: t('jockeyRacesRetry'),
+    raceEntry: t('jockeyRacesEntry'),
+    registeredHorse: t('jockeyRacesRegisteredHorse'),
+    owner: t('jockeyRacesOwner'),
+    raceTime: t('jockeyRacesSchedule'),
+    stall: t('jockeyRacesStartingStall')
   };
 
   async function loadRaces() {
@@ -190,8 +192,8 @@ export default function JockeyRaces() {
                   <span><Flag size={15} /> {copy.stall} <strong>{race.startingStall || '-'}</strong></span>
                 </div>
                 <div className="owner-race-card-state">
-                  <span className={`status-badge ${statusClass(status)}`}>{formatDisplayLabel(status)}</span>
-                  <small>{copy.raceEntry}: {formatDisplayLabel(race.raceEntryStatus || 'ASSIGNED')}</small>
+                  <span className={`status-badge ${statusClass(status)}`}>{formatLocalizedStatus(t, status)}</span>
+                  <small>{copy.raceEntry}: {formatLocalizedStatus(t, race.raceEntryStatus || 'ASSIGNED')}</small>
                 </div>
                 <div className="owner-race-card-actions">
                   <button type="button" className="primary-button compact-primary" onClick={() => openResults(race)} disabled={!canViewResult}>
