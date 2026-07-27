@@ -255,7 +255,6 @@ public class RaceService {
         }
 
         validateRaceDoesNotOverlapOnTrack(
-                tournament.getTournamentId(),
                 null,
                 trackName,
                 request.getRaceStartTime(),
@@ -365,7 +364,6 @@ public class RaceService {
         }
 
         validateRaceDoesNotOverlapOnTrack(
-                tournament.getTournamentId(),
                 raceId,
                 trackName,
                 request.getRaceStartTime(),
@@ -867,25 +865,22 @@ public class RaceService {
     }
 
     private void validateRaceDoesNotOverlapOnTrack(
-            Integer tournamentId,
             Integer raceId,
             String trackName,
             LocalDateTime startTime,
             LocalDateTime endTime
     ) {
         // FLOW: Admin Edit Tournament Program
-        // ORDER: 6B.3/8 - Validation helper rejects same-track schedule overlap inside the Tournament.
-        // Validation: Race schedules may overlap across tracks, but not within the same Tournament and same track.
+        // ORDER: 6B.3/8 - Validation helper rejects same-track schedule overlap across the whole system.
+        // Validation: Race schedules may overlap across different tracks, but not on the same track across all Tournaments.
         boolean overlaps = raceId == null
                 ? raceRepository.existsOverlappingRaceOnTrack(
-                        tournamentId,
                         trackName,
                         startTime,
                         endTime,
                         EventStatus.CANCELLED
                 )
                 : raceRepository.existsOverlappingRaceOnTrackExcludingRace(
-                        tournamentId,
                         raceId,
                         trackName,
                         startTime,

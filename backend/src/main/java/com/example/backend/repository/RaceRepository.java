@@ -71,14 +71,12 @@ public interface RaceRepository extends JpaRepository<Race, Integer> {
     @Query("""
             select count(race) > 0
             from Race race
-            where race.tournamentId = :tournamentId
-              and lower(race.trackName) = lower(:trackName)
+            where lower(race.trackName) = lower(:trackName)
               and race.status <> :cancelledStatus
               and race.raceStartTime < :endTime
               and race.raceEndTime > :startTime
             """)
     boolean existsOverlappingRaceOnTrack(
-            @Param("tournamentId") Integer tournamentId,
             @Param("trackName") String trackName,
             @Param("startTime") LocalDateTime startTime,
             @Param("endTime") LocalDateTime endTime,
@@ -88,15 +86,13 @@ public interface RaceRepository extends JpaRepository<Race, Integer> {
     @Query("""
             select count(race) > 0
             from Race race
-            where race.tournamentId = :tournamentId
-              and race.raceId <> :raceId
+            where race.raceId <> :raceId
               and lower(race.trackName) = lower(:trackName)
               and race.status <> :cancelledStatus
               and race.raceStartTime < :endTime
               and race.raceEndTime > :startTime
             """)
     boolean existsOverlappingRaceOnTrackExcludingRace(
-            @Param("tournamentId") Integer tournamentId,
             @Param("raceId") Integer raceId,
             @Param("trackName") String trackName,
             @Param("startTime") LocalDateTime startTime,

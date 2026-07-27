@@ -196,14 +196,13 @@ class RaceServiceTest {
     }
 
     @Test
-    void createRaceRejectsSameTrackOverlap() {
+    void createRaceRejectsSameTrackOverlapAcrossTournaments() {
         CreateRaceRequest request = createRequest();
 
         stubAdmin();
         when(tournamentRepository.findByIdForUpdate(12))
                 .thenReturn(Optional.of(tournament()));
         when(raceRepository.existsOverlappingRaceOnTrack(
-                12,
                 "Test 1",
                 request.getRaceStartTime(),
                 request.getRaceEndTime(),
@@ -247,7 +246,6 @@ class RaceServiceTest {
         assertEquals("Race test 2", response.getRaceName());
         assertEquals("Test 2", response.getTrackName());
         verify(raceRepository).existsOverlappingRaceOnTrack(
-                12,
                 "Test 2",
                 request.getRaceStartTime(),
                 request.getRaceEndTime(),
@@ -256,7 +254,7 @@ class RaceServiceTest {
     }
 
     @Test
-    void updateRaceRejectsSameTrackOverlapExcludingSelf() {
+    void updateRaceRejectsSameTrackOverlapAcrossTournamentsExcludingSelf() {
         Race race = race();
         UpdateRaceRequest request = updateRequest();
 
@@ -266,7 +264,6 @@ class RaceServiceTest {
         when(tournamentRepository.findByIdForUpdate(12))
                 .thenReturn(Optional.of(tournament()));
         when(raceRepository.existsOverlappingRaceOnTrackExcludingRace(
-                12,
                 8,
                 "Test 1",
                 request.getRaceStartTime(),
@@ -322,7 +319,6 @@ class RaceServiceTest {
         when(tournamentRepository.findByIdForUpdate(12))
                 .thenReturn(Optional.of(tournament()));
         when(raceRepository.existsOverlappingRaceOnTrack(
-                12,
                 "Test 1",
                 request.getRaceStartTime(),
                 request.getRaceEndTime(),

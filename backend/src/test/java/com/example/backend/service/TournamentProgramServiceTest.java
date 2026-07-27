@@ -188,6 +188,32 @@ class TournamentProgramServiceTest {
     }
 
     @Test
+    void createTournamentProgramRejectsExistingSameTrackOverlapAcrossTournaments() {
+        CreateTournamentProgramRequest request = validProgramRequest();
+        CreateTournamentProgramRaceRequest firstRace = request.getRaces().getFirst();
+
+        stubAdmin();
+        when(raceRepository.existsOverlappingRaceOnTrack(
+                firstRace.getTrackName(),
+                firstRace.getRaceStartTime(),
+                firstRace.getRaceEndTime(),
+                EventStatus.CANCELLED
+        )).thenReturn(true);
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.createTournamentProgram(request, "admin@example.com")
+        );
+
+        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
+        assertEquals(
+                "Race schedule overlaps with another race on the same track.",
+                exception.getMessage()
+        );
+        verifyNoProgramSave();
+    }
+
+    @Test
     void createTournamentProgramAllowsDifferentTrackOverlap() {
         CreateTournamentProgramRequest request = validProgramRequest();
         request.getRaces().get(1).setRaceStartTime(
@@ -225,6 +251,18 @@ class TournamentProgramServiceTest {
         );
 
         assertEquals(2, response.getRaceCount());
+        verify(raceRepository).existsOverlappingRaceOnTrack(
+                request.getRaces().get(0).getTrackName(),
+                request.getRaces().get(0).getRaceStartTime(),
+                request.getRaces().get(0).getRaceEndTime(),
+                EventStatus.CANCELLED
+        );
+        verify(raceRepository).existsOverlappingRaceOnTrack(
+                request.getRaces().get(1).getTrackName(),
+                request.getRaces().get(1).getRaceStartTime(),
+                request.getRaces().get(1).getRaceEndTime(),
+                EventStatus.CANCELLED
+        );
         verify(raceRepository, org.mockito.Mockito.times(2)).save(any(Race.class));
     }
 

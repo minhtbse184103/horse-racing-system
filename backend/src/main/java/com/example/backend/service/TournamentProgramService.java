@@ -114,7 +114,7 @@ public class TournamentProgramService {
     ) {
         // FLOW: Admin Create Tournament Program
         // ORDER: 7A/8 - Service validates the submitted Race list before any Race rows are saved.
-        // Validation: Race list cannot be empty; Race names and raceOrder values are unique inside the program; same-track schedules cannot overlap.
+        // Validation: Race list cannot be empty; Race names and raceOrder values are unique inside the program; same-track schedules cannot overlap inside the payload or against existing Races.
         if (requests == null || requests.isEmpty()) {
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
@@ -168,6 +168,7 @@ public class TournamentProgramService {
         }
 
         validateProgramRaceOverlaps(drafts);
+        validateProgramRacesDoNotOverlapExistingSchedules(drafts);
         return drafts;
     }
 
@@ -200,6 +201,24 @@ public class TournamentProgramService {
                             "Race schedule overlaps with another race on the same track."
                     );
                 }
+            }
+        }
+    }
+
+    private void validateProgramRacesDoNotOverlapExistingSchedules(
+            List<ProgramRaceDraft> races
+    ) {
+        for (ProgramRaceDraft race : races) {
+            if (raceRepository.existsOverlappingRaceOnTrack(
+                    race.trackName(),
+                    race.request().getRaceStartTime(),
+                    race.request().getRaceEndTime(),
+                    EventStatus.CANCELLED
+            )) {
+                throw new ApiException(
+                        HttpStatus.CONFLICT,
+                        "Race schedule overlaps with another race on the same track."
+                );
             }
         }
     }
