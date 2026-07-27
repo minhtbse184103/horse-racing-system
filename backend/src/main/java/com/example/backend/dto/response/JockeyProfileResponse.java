@@ -19,6 +19,7 @@ public class JockeyProfileResponse {
     private String biography;
     private Integer totalRaces;
     private Integer totalWins;
+    private JockeyPerformanceResponse performance;
     private String trainerName;
     private String trainerEmail;
     private String academyStableAddress;

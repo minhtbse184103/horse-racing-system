@@ -16,6 +16,38 @@ function displayValue(value) {
   return value === null || value === undefined || value === '' ? 'Not updated' : String(value);
 }
 
+function calculateRate(part, total) {
+  const totalValue = Number(total);
+  if (!totalValue) return null;
+  return (Number(part || 0) / totalValue) * 100;
+}
+
+function formatPercent(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return 'Not updated';
+  return `${number.toFixed(number % 1 === 0 ? 0 : 1)}%`;
+}
+
+function getHorsePerformance(horse) {
+  const performance = horse?.performance || {};
+  const totalRaces = Number(performance.totalRaces || 0);
+  const top1 = Number(performance.top1Count || 0);
+  const top2 = Number(performance.top2Count || 0);
+  const top3 = Number(performance.top3Count || 0);
+  const podium = top1 + top2 + top3;
+
+  return {
+    totalRaces,
+    top1,
+    top2,
+    top3,
+    winRate: calculateRate(top1, totalRaces),
+    top3Rate: calculateRate(podium, totalRaces),
+    violationCount: Number(performance.violationCount || 0),
+    disqualifiedCount: Number(performance.disqualifiedCount || 0)
+  };
+}
+
 function getStatusLabel(status) {
   const normalized = String(status || '').toUpperCase();
   return STATUS_LABELS[normalized] || displayValue(status);
@@ -389,6 +421,23 @@ export default function HorseReview() {
                   <InfoCard label="Registration count" value={selectedHorse.registrationCount} />
                   <InfoCard label="Participated" value={selectedHorse.participated ? 'Yes' : 'No'} />
                 </div>
+
+                {(() => {
+                  const performance = getHorsePerformance(selectedHorse);
+                  return (
+                    <div className="border-t border-brown-700/10 px-5 py-5">
+                      <h3 className="flex items-center gap-2 text-xl font-black text-brown-900"><BadgeCheck size={19} /> Performance summary</h3>
+                      <div className="mt-3 grid gap-4 md:grid-cols-3">
+                        <InfoCard label="Total races" value={performance.totalRaces} />
+                        <InfoCard label="Wins" value={performance.top1} />
+                        <InfoCard label="Top 1 / 2 / 3" value={`${performance.top1} / ${performance.top2} / ${performance.top3}`} />
+                        <InfoCard label="Win rate" value={formatPercent(performance.winRate)} />
+                        <InfoCard label="Top 3 rate" value={formatPercent(performance.top3Rate)} />
+                        <InfoCard label="Violations / DQ" value={`${performance.violationCount} / ${performance.disqualifiedCount}`} />
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 <div className="border-t border-brown-700/10 px-5 py-5">
                   <h3 className="flex items-center gap-2 text-xl font-black text-brown-900"><FileText size={19} /> Official profile</h3>

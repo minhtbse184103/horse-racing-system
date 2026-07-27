@@ -652,9 +652,7 @@ function getJockeyStats(jockey, t) {
     violationCount: toNumber(firstDefined(source.violationCount, jockey?.violationCount)),
     disqualifiedCount: toNumber(firstDefined(source.disqualifiedCount, jockey?.disqualifiedCount)),
     recentRace: firstDefined(jockey?.recentRaceName, jockey?.lastRaceName, source.recentRaceName, t?.('ownerRaceNoData') || 'No data yet'),
-    recentRaces: firstDefined(jockey?.recentRaces, jockey?.raceHistory, source.recentRaces, []),
-    distanceStats: firstDefined(jockey?.distanceStats, source.distanceStats, []),
-    trackStats: firstDefined(jockey?.trackStats, source.trackStats, [])
+    recentRaces: firstDefined(jockey?.recentRaces, jockey?.raceHistory, source.recentRaces, [])
   };
 }
 
@@ -3295,19 +3293,19 @@ export default function OwnerRegisterRace({ horses, onBackToHorses, onViewTransa
               </section>
 
               <section className="jockey-detail-section">
-                <h4>{t('ownerRacePerformanceByDistanceTrack')}</h4>
+                <h4>{t('ownerRacePerformanceSummary')}</h4>
                 <div className="jockey-detail-split">
                   <div>
-                    <strong>{t('ownerRaceDistance')}</strong>
-                    {Array.isArray(stats.distanceStats) && stats.distanceStats.length > 0 ? stats.distanceStats.slice(0, 4).map((item, index) => (
-                      <span key={`${item.distance || index}`}>{item.distance || 'N/A'} · {formatPercent(item.winRate, t)}</span>
-                    )) : <span>{t('ownerRaceNoData')}</span>}
+                    <strong>{t('ownerRaceTotalRace')}</strong>
+                    <span>{stats.totalRaces}</span>
+                    <strong>{t('ownerRaceWins')}</strong>
+                    <span>{stats.wins}</span>
                   </div>
                   <div>
-                    <strong>{t('ownerRaceTrack')}</strong>
-                    {Array.isArray(stats.trackStats) && stats.trackStats.length > 0 ? stats.trackStats.slice(0, 4).map((item, index) => (
-                      <span key={`${item.trackName || index}`}>{item.trackName || item.track || 'N/A'} · {formatPercent(item.winRate, t)}</span>
-                    )) : <span>{t('ownerRaceNoData')}</span>}
+                    <strong>{t('ownerRaceWinRate')}</strong>
+                    <span>{formatPercent(stats.winRate, t)}</span>
+                    <strong>{t('ownerRaceTop3Rate')}</strong>
+                    <span>{formatPercent(stats.top3Rate, t)}</span>
                   </div>
                 </div>
               </section>

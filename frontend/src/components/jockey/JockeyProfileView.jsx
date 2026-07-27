@@ -23,6 +23,37 @@ function ProfileField({ label, value, fallback }) {
   );
 }
 
+function toPerformanceNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : 0;
+}
+
+function calculateRate(part, total) {
+  const totalValue = toPerformanceNumber(total);
+  if (!totalValue) return 0;
+  return Math.round((toPerformanceNumber(part) / totalValue) * 100);
+}
+
+function getJockeyPerformance(profile) {
+  const performance = profile?.performance || {};
+  const totalRaces = toPerformanceNumber(performance.totalRaces ?? profile?.totalRaces);
+  const top1 = toPerformanceNumber(performance.top1Count ?? profile?.totalWins);
+  const top2 = toPerformanceNumber(performance.top2Count);
+  const top3 = toPerformanceNumber(performance.top3Count);
+  const podium = top1 + top2 + top3;
+
+  return {
+    totalRaces,
+    top1,
+    top2,
+    top3,
+    winRate: performance.winRate ?? calculateRate(top1, totalRaces),
+    top3Rate: performance.top3Rate ?? calculateRate(podium, totalRaces),
+    violationCount: toPerformanceNumber(performance.violationCount),
+    disqualifiedCount: toPerformanceNumber(performance.disqualifiedCount)
+  };
+}
+
 function EditableField({ label, name, value, disabled, onChange, type = 'text' }) {
   return (
     <label className="grid gap-2">
@@ -48,6 +79,7 @@ export default function JockeyProfileView({ user, profile, isLoading, onReload, 
   const [message, setMessage] = useState('');
   const snapshot = useMemo(() => getAccountValues(accountUser), [accountUser]);
   const licenceFiles = Array.isArray(profile?.files) ? profile.files : [];
+  const performance = useMemo(() => getJockeyPerformance(profile), [profile]);
 
   useEffect(() => {
     setAccountUser(user);
@@ -148,7 +180,11 @@ export default function JockeyProfileView({ user, profile, isLoading, onReload, 
           <ProfileField label={t('jockeyTrainerName')} value={profile.trainerName} fallback={t('jockeyNotUpdated')} />
           <ProfileField label={t('jockeyTrainerEmail')} value={profile.trainerEmail} fallback={t('jockeyNotUpdated')} />
           <ProfileField label={t('jockeyAcademyAddress')} value={profile.academyStableAddress} fallback={t('jockeyNotUpdated')} />
-          <ProfileField label={t('jockeyRacingRecord')} value={t('jockeyRacingRecordValue', { wins: profile.totalWins || 0, races: profile.totalRaces || 0 })} fallback={t('jockeyNotUpdated')} />
+          <ProfileField label={t('jockeyRacingRecord')} value={t('jockeyRacingRecordValue', { wins: performance.top1, races: performance.totalRaces })} fallback={t('jockeyNotUpdated')} />
+          <ProfileField label="Top 1 / 2 / 3" value={`${performance.top1} / ${performance.top2} / ${performance.top3}`} fallback={t('jockeyNotUpdated')} />
+          <ProfileField label={t('ownerRaceWinRate')} value={`${performance.winRate}%`} fallback={t('jockeyNotUpdated')} />
+          <ProfileField label={t('ownerRaceTop3Rate')} value={`${performance.top3Rate}%`} fallback={t('jockeyNotUpdated')} />
+          <ProfileField label={t('ownerRaceViolation')} value={`${performance.violationCount} / DQ ${performance.disqualifiedCount}`} fallback={t('jockeyNotUpdated')} />
           <ProfileField label={t('jockeyBiography')} value={profile.biography} fallback={t('jockeyNotUpdated')} />
           <ProfileField label={t('jockeyReviewedAt')} value={formatDate(profile.reviewedAt)} fallback={t('jockeyNotUpdated')} />
         </div>

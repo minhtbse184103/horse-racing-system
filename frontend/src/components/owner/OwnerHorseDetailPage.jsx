@@ -66,6 +66,38 @@ function formatRaceDate(value, language, fallback) {
   ).format(date);
 }
 
+function calculateRate(part, total) {
+  const totalValue = Number(total);
+  if (!totalValue) return null;
+  return (Number(part || 0) / totalValue) * 100;
+}
+
+function formatPercent(value, fallback) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return fallback;
+  return `${number.toFixed(number % 1 === 0 ? 0 : 1)}%`;
+}
+
+function getHorsePerformance(horse) {
+  const performance = horse?.performance || {};
+  const totalRaces = Number(performance.totalRaces || 0);
+  const top1 = Number(performance.top1Count || 0);
+  const top2 = Number(performance.top2Count || 0);
+  const top3 = Number(performance.top3Count || 0);
+  const podium = top1 + top2 + top3;
+
+  return {
+    totalRaces,
+    top1,
+    top2,
+    top3,
+    winRate: calculateRate(top1, totalRaces),
+    top3Rate: calculateRate(podium, totalRaces),
+    violationCount: Number(performance.violationCount || 0),
+    disqualifiedCount: Number(performance.disqualifiedCount || 0)
+  };
+}
+
 export default function OwnerHorseDetailPage({ horseId }) {
   const { language, t } = useLanguage();
 
@@ -207,6 +239,7 @@ export default function OwnerHorseDetailPage({ horseId }) {
     : [];
 
   const statusValue = String(horse.status || '').toUpperCase();
+  const performance = getHorsePerformance(horse);
 
   return (
     <main className="horse-detail-window">
@@ -233,6 +266,38 @@ export default function OwnerHorseDetailPage({ horseId }) {
             {t('close')}
           </button>
         </header>
+
+        <section className="horse-detail-window-info">
+          <DetailItem
+            label={t('ownerRaceTotalRace')}
+            value={formatNumber(performance.totalRaces)}
+          />
+
+          <DetailItem
+            label={t('ownerRaceWins')}
+            value={formatNumber(performance.top1)}
+          />
+
+          <DetailItem
+            label="Top 1 / 2 / 3"
+            value={`${performance.top1} / ${performance.top2} / ${performance.top3}`}
+          />
+
+          <DetailItem
+            label={t('ownerRaceTop3Rate')}
+            value={formatPercent(performance.top3Rate, t('ownerRaceNoData'))}
+          />
+
+          <DetailItem
+            label={t('ownerRaceWinRate')}
+            value={formatPercent(performance.winRate, t('ownerRaceNoData'))}
+          />
+
+          <DetailItem
+            label={t('ownerRaceViolation')}
+            value={`${performance.violationCount} / DQ ${performance.disqualifiedCount}`}
+          />
+        </section>
 
         <section className="horse-detail-window-info">
           <DetailItem

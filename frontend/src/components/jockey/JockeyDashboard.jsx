@@ -403,12 +403,37 @@ function isAcceptedInvitation(invitation) {
   return ['ACCEPTED', 'APPROVED'].includes(String(invitation?.status || '').toUpperCase());
 }
 
-function getWinRate(profile) {
-  const totalRaces = Number(profile?.totalRaces ?? 0);
-  const totalWins = Number(profile?.totalWins ?? 0);
+function toPerformanceNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : 0;
+}
 
-  if (!totalRaces || totalRaces < 1) return '0%';
-  return `${Math.round((totalWins / totalRaces) * 100)}%`;
+function calculatePerformanceRate(part, total) {
+  const totalValue = toPerformanceNumber(total);
+  if (!totalValue) return 0;
+  return Math.round((toPerformanceNumber(part) / totalValue) * 100);
+}
+
+function getJockeyPerformanceSummary(profile) {
+  const performance = profile?.performance || {};
+  const totalRaces = toPerformanceNumber(performance.totalRaces ?? profile?.totalRaces);
+  const top1 = toPerformanceNumber(performance.top1Count ?? profile?.totalWins);
+  const top2 = toPerformanceNumber(performance.top2Count);
+  const top3 = toPerformanceNumber(performance.top3Count);
+  const podium = top1 + top2 + top3;
+
+  return {
+    totalRaces,
+    wins: top1,
+    top2,
+    top3,
+    winRate: performance.winRate ?? calculatePerformanceRate(top1, totalRaces),
+    top3Rate: performance.top3Rate ?? calculatePerformanceRate(podium, totalRaces)
+  };
+}
+
+function getWinRate(profile) {
+  return `${getJockeyPerformanceSummary(profile).winRate}%`;
 }
 
 const jockeyOverviewIcons = [Trophy, Award, ShieldCheck, Inbox];
@@ -528,15 +553,16 @@ function ApprovedJockeyDashboard({ currentUser, onLogout, onUserUpdated }) {
   const profileCompletion = Math.round(
     (profileCompletionItems.filter(Boolean).length / profileCompletionItems.length) * 100
   );
+  const performanceSummary = getJockeyPerformanceSummary(profile);
   const jockeyStats = [
     {
       label: t('jockeyStatRaces'),
-      value: profile?.totalRaces ?? 0,
+      value: performanceSummary.totalRaces,
       detail: t('jockeyStatTotalStarts')
     },
     {
       label: t('jockeyStatWins'),
-      value: profile?.totalWins ?? 0,
+      value: performanceSummary.wins,
       detail: t('jockeyStatWinRate', { rate: getWinRate(profile) })
     },
     {

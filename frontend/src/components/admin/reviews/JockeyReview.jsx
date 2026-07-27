@@ -55,6 +55,43 @@ function formatSchedule(start, end) {
   return `${formatDate(start)} - ${formatDate(end)}`;
 }
 
+function toPerformanceNumber(value) {
+  const number = Number(value);
+  return Number.isFinite(number) ? number : 0;
+}
+
+function calculateRate(part, total) {
+  const totalValue = toPerformanceNumber(total);
+  if (!totalValue) return null;
+  return (toPerformanceNumber(part) / totalValue) * 100;
+}
+
+function formatPercent(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return 'Not updated';
+  return `${number.toFixed(number % 1 === 0 ? 0 : 1)}%`;
+}
+
+function getJockeyPerformance(profile) {
+  const performance = profile?.performance || {};
+  const totalRaces = toPerformanceNumber(performance.totalRaces ?? profile?.totalRaces);
+  const top1 = toPerformanceNumber(performance.top1Count ?? profile?.totalWins);
+  const top2 = toPerformanceNumber(performance.top2Count);
+  const top3 = toPerformanceNumber(performance.top3Count);
+  const podium = top1 + top2 + top3;
+
+  return {
+    totalRaces,
+    top1,
+    top2,
+    top3,
+    winRate: performance.winRate ?? calculateRate(top1, totalRaces),
+    top3Rate: performance.top3Rate ?? calculateRate(podium, totalRaces),
+    violationCount: toPerformanceNumber(performance.violationCount),
+    disqualifiedCount: toPerformanceNumber(performance.disqualifiedCount)
+  };
+}
+
 function getStatusLabel(status) {
   const normalized = String(status || '').toUpperCase();
   return STATUS_LABELS[normalized] || displayValue(status);
@@ -387,6 +424,7 @@ export default function JockeyReview() {
   const selectedLicenseUrls = selectedProfile ? getValidImageUrls(selectedProfile) : [];
   const selectedVerificationLinks = selectedProfile ? getVerificationLinks(selectedProfile) : [];
   const selectedIsPending = selectedProfile ? canReview(selectedProfile) : false;
+  const selectedPerformance = getJockeyPerformance(selectedProfile);
 
   return (
     <section className="space-y-6 text-brown-900">
@@ -546,6 +584,12 @@ export default function JockeyReview() {
                   <InfoCard label="Trainer email" value={selectedProfile.trainerEmail} />
                   <InfoCard label="Academy / stable address" value={selectedProfile.academyStableAddress} />
                   <InfoCard label="Biography" value={selectedProfile.biography} />
+                  <InfoCard label="Total races" value={selectedPerformance.totalRaces} />
+                  <InfoCard label="Wins" value={selectedPerformance.top1} />
+                  <InfoCard label="Top 1 / 2 / 3" value={`${selectedPerformance.top1} / ${selectedPerformance.top2} / ${selectedPerformance.top3}`} />
+                  <InfoCard label="Win rate" value={formatPercent(selectedPerformance.winRate)} />
+                  <InfoCard label="Top 3 rate" value={formatPercent(selectedPerformance.top3Rate)} />
+                  <InfoCard label="Violations / DQ" value={`${selectedPerformance.violationCount} / ${selectedPerformance.disqualifiedCount}`} />
                 </div>
 
                 <div className="border-t border-brown-700/10 px-5 py-5">

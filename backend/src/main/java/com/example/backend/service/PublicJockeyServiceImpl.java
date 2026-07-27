@@ -73,16 +73,17 @@ public class PublicJockeyServiceImpl implements PublicJockeyService {
             JockeyVerification verification,
             JockeyPerformanceSummary summary
     ) {
+        JockeyPerformanceResponse performance = mapJockeyPerformance(jockey.getUserID(), summary);
         return PublicJockeyProfileResponse.builder()
                 .jockeyId(jockey.getUserID())
                 .fullName(profile.getFullName())
                 .biography(profile.getBiography())
                 .weight(profile.getWeight())
-                .totalRaces(value(profile.getTotalRaces()))
-                .totalWins(value(profile.getTotalWins()))
+                .totalRaces(summary != null ? value(summary.getTotalRaces()) : value(profile.getTotalRaces()))
+                .totalWins(summary != null ? value(summary.getTop1Count()) : value(profile.getTotalWins()))
                 .verificationStatus(verification != null ? verification.getVerificationStatus() : null)
                 .licenceType(verification != null ? verification.getLicenceType() : null)
-                .performance(mapJockeyPerformance(jockey.getUserID(), summary))
+                .performance(performance)
                 .build();
     }
 

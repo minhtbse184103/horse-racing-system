@@ -19,10 +19,12 @@ import com.example.backend.dto.request.CreateHorseRequest;
 import com.example.backend.dto.request.InviteJockeyRequest;
 import com.example.backend.dto.request.UpdateHorseRequest;
 import com.example.backend.dto.response.FileUploadResponse;
+import com.example.backend.dto.response.HorsePerformanceResponse;
 import com.example.backend.dto.response.HorseResponse;
 import com.example.backend.dto.response.JockeyInvitationResponse;
 import com.example.backend.dto.response.OwnerDashboardResponse;
 import com.example.backend.entity.Horse;
+import com.example.backend.entity.HorsePerformanceSummary;
 import com.example.backend.entity.JockeyInvitation;
 import com.example.backend.entity.JockeyProfile;
 import com.example.backend.entity.OwnerProfile;
@@ -31,6 +33,7 @@ import com.example.backend.entity.Tournament;
 import com.example.backend.entity.User;
 import com.example.backend.exception.ApiException;
 import com.example.backend.repository.HorseRepository;
+import com.example.backend.repository.HorsePerformanceSummaryRepository;
 import com.example.backend.repository.JockeyInvitationRepository;
 import com.example.backend.repository.JockeyProfileRepository;
 import com.example.backend.repository.OwnerProfileRepository;
@@ -57,6 +60,7 @@ public class OwnerServiceImpl implements OwnerService {
     private static final String TOURNAMENT_OPEN_FOR_REGISTRATION = "OPEN_FOR_REGISTRATION";
 
     private final HorseRepository horseRepository;
+    private final HorsePerformanceSummaryRepository horsePerformanceSummaryRepository;
     private final RegistrationRepository registrationRepository;
     private final JockeyInvitationRepository jockeyInvitationRepository;
     private final JockeyProfileRepository jockeyProfileRepository;
@@ -70,6 +74,7 @@ public class OwnerServiceImpl implements OwnerService {
 
     public OwnerServiceImpl(
             HorseRepository horseRepository,
+            HorsePerformanceSummaryRepository horsePerformanceSummaryRepository,
             RegistrationRepository registrationRepository,
             JockeyInvitationRepository jockeyInvitationRepository,
             JockeyProfileRepository jockeyProfileRepository,
@@ -81,6 +86,7 @@ public class OwnerServiceImpl implements OwnerService {
             RegistrationEligibilityService eligibilityService,
             JockeyInvitationService jockeyInvitationService) {
         this.horseRepository = horseRepository;
+        this.horsePerformanceSummaryRepository = horsePerformanceSummaryRepository;
         this.registrationRepository = registrationRepository;
         this.jockeyInvitationRepository = jockeyInvitationRepository;
         this.jockeyProfileRepository = jockeyProfileRepository;
@@ -439,7 +445,27 @@ public class OwnerServiceImpl implements OwnerService {
                 .updatedAt(horse.getUpdatedAt())
                 .registrationCount(registrationIds.size())
                 .participated(hasActiveRegistration(registrationIds))
+                .performance(mapHorsePerformance(horse.getHorseId()))
                 .build();
+    }
+
+    private HorsePerformanceResponse mapHorsePerformance(Integer horseId) {
+        HorsePerformanceSummary summary = horsePerformanceSummaryRepository.findById(horseId)
+                .orElse(null);
+        return HorsePerformanceResponse.builder()
+                .horseId(horseId)
+                .totalRaces(summary != null ? value(summary.getTotalRaces()) : 0)
+                .top1Count(summary != null ? value(summary.getTop1Count()) : 0)
+                .top2Count(summary != null ? value(summary.getTop2Count()) : 0)
+                .top3Count(summary != null ? value(summary.getTop3Count()) : 0)
+                .violationCount(summary != null ? value(summary.getViolationCount()) : 0)
+                .disqualifiedCount(summary != null ? value(summary.getDisqualifiedCount()) : 0)
+                .lastUpdatedAt(summary != null ? summary.getLastUpdatedAt() : null)
+                .build();
+    }
+
+    private int value(Integer value) {
+        return value == null ? 0 : value;
     }
 
     // Tính tuổi ngựa từ ngày sinh và validate tuổi phải hợp lệ.

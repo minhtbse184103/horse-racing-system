@@ -28,6 +28,7 @@ import com.example.backend.entity.Tournament;
 import com.example.backend.entity.User;
 import com.example.backend.exception.ApiException;
 import com.example.backend.repository.HorseRepository;
+import com.example.backend.repository.HorsePerformanceSummaryRepository;
 import com.example.backend.repository.JockeyInvitationRepository;
 import com.example.backend.repository.JockeyProfileRepository;
 import com.example.backend.repository.OwnerProfileRepository;
@@ -40,6 +41,8 @@ class OwnerServiceTest {
 
     @Mock
     private HorseRepository horseRepository;
+    @Mock
+    private HorsePerformanceSummaryRepository horsePerformanceSummaryRepository;
     @Mock
     private RegistrationRepository registrationRepository;
     @Mock
@@ -65,6 +68,7 @@ class OwnerServiceTest {
     void setUp() {
         ownerService = new OwnerServiceImpl(
                 horseRepository,
+                horsePerformanceSummaryRepository,
                 registrationRepository,
                 jockeyInvitationRepository,
                 jockeyProfileRepository,

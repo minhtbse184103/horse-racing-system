@@ -9,7 +9,9 @@ import com.example.backend.entity.Tournament;
 import com.example.backend.entity.User;
 import com.example.backend.exception.ApiException;
 import com.example.backend.repository.HorseRepository;
+import com.example.backend.repository.HorsePerformanceSummaryRepository;
 import com.example.backend.repository.JockeyInvitationRepository;
+import com.example.backend.repository.JockeyPerformanceSummaryRepository;
 import com.example.backend.repository.JockeyProfileRepository;
 import com.example.backend.repository.JockeyVerificationFileRepository;
 import com.example.backend.repository.JockeyVerificationRepository;
@@ -53,7 +55,9 @@ class JockeyServiceInvitationEligibilityTest {
     @Mock private RaceEntryRepository raceEntryRepository;
     @Mock private RaceResultRepository raceResultRepository;
     @Mock private HorseRepository horseRepository;
+    @Mock private HorsePerformanceSummaryRepository horsePerformanceSummaryRepository;
     @Mock private UserRepository userRepository;
+    @Mock private JockeyPerformanceSummaryRepository jockeyPerformanceSummaryRepository;
     @Mock private TournamentRepository tournamentRepository;
     @Mock private TournamentService tournamentService;
     @Mock private RegistrationAvailabilityService availabilityService;
@@ -73,7 +77,9 @@ class JockeyServiceInvitationEligibilityTest {
                 raceEntryRepository,
                 raceResultRepository,
                 horseRepository,
+                horsePerformanceSummaryRepository,
                 userRepository,
+                jockeyPerformanceSummaryRepository,
                 tournamentRepository,
                 tournamentService,
                 availabilityService,

@@ -29,6 +29,38 @@ function getErrorText(error, fallback) {
   return error instanceof Error ? error.message || fallback : fallback;
 }
 
+function calculateRate(part, total) {
+  const totalValue = Number(total);
+  if (!totalValue) return null;
+  return (Number(part || 0) / totalValue) * 100;
+}
+
+function formatPercent(value, fallback) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return fallback;
+  return `${number.toFixed(number % 1 === 0 ? 0 : 1)}%`;
+}
+
+function getHorsePerformance(horse) {
+  const performance = horse?.performance || {};
+  const totalRaces = Number(performance.totalRaces || 0);
+  const top1 = Number(performance.top1Count || 0);
+  const top2 = Number(performance.top2Count || 0);
+  const top3 = Number(performance.top3Count || 0);
+  const podium = top1 + top2 + top3;
+
+  return {
+    totalRaces,
+    top1,
+    top2,
+    top3,
+    winRate: calculateRate(top1, totalRaces),
+    top3Rate: calculateRate(podium, totalRaces),
+    violationCount: Number(performance.violationCount || 0),
+    disqualifiedCount: Number(performance.disqualifiedCount || 0)
+  };
+}
+
 function isOwnerSection(section) {
   return section === 'overview'
     || section === 'horses'
@@ -438,6 +470,31 @@ function ApprovedOwnerDashboard({ currentUser, onLogout, onUserUpdated }) {
                   {t('close')}
                 </button>
               </div>
+
+              {(() => {
+                const performance = getHorsePerformance(selectedHorse);
+                return (
+                  <div className="detail-grid">
+                    <span>{t('ownerRacePerformanceSummary')}</span>
+                    <strong>{t('ownerRaceTotalRace')}: {performance.totalRaces}</strong>
+
+                    <span>{t('ownerRaceWins')}</span>
+                    <strong>{performance.top1}</strong>
+
+                    <span>Top 1 / 2 / 3</span>
+                    <strong>{performance.top1} / {performance.top2} / {performance.top3}</strong>
+
+                    <span>{t('ownerRaceWinRate')}</span>
+                    <strong>{formatPercent(performance.winRate, t('ownerRaceNoData'))}</strong>
+
+                    <span>{t('ownerRaceTop3Rate')}</span>
+                    <strong>{formatPercent(performance.top3Rate, t('ownerRaceNoData'))}</strong>
+
+                    <span>{t('ownerRaceViolation')}</span>
+                    <strong>{performance.violationCount} / DQ {performance.disqualifiedCount}</strong>
+                  </div>
+                );
+              })()}
 
               <div className="detail-grid">
                 <span>ID</span>

@@ -29,4 +29,5 @@ public class HorseResponse {
     private LocalDateTime updatedAt;
     private long registrationCount;
     private boolean participated;
+    private HorsePerformanceResponse performance;
 }

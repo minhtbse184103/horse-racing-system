@@ -31,6 +31,18 @@ function formatDate(value) {
   return String(value).slice(0, 10);
 }
 
+function calculateRate(part, total) {
+  const totalValue = Number(total);
+  if (!totalValue) return null;
+  return (Number(part || 0) / totalValue) * 100;
+}
+
+function formatPercent(value) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return null;
+  return `${number.toFixed(number % 1 === 0 ? 0 : 1)}%`;
+}
+
 function buildEntityConfig(entity, t) {
   // FLOW: Admin Registration Entity Detail Popup
   // ORDER: 6A/6 - Dialog normalizes the loaded Horse/Owner/Jockey detail DTO into display sections.
@@ -41,6 +53,13 @@ function buildEntityConfig(entity, t) {
 
   if (entity.type === 'horse') {
     const horseName = detail.horseName || entity.registration.horse || entity.registration.horseName || `Horse #${entity.registration.horseId}`;
+    const performance = detail.performance || {};
+    const totalRaces = Number(performance.totalRaces || 0);
+    const top1 = Number(performance.top1Count || 0);
+    const top2 = Number(performance.top2Count || 0);
+    const top3 = Number(performance.top3Count || 0);
+    const top3Rate = formatPercent(calculateRate(top1 + top2 + top3, totalRaces));
+    const winRate = formatPercent(calculateRate(top1, totalRaces));
     return {
       eyebrow: t('eventDomainHorse'),
       title: horseName,
@@ -56,6 +75,12 @@ function buildEntityConfig(entity, t) {
         { icon: User, label: t('eventRegistrationBreeding'), value: detail.breeding || entity.registration.horseBreed },
         { icon: User, label: t('eventRegistrationTrainer'), value: detail.trainer },
         { icon: HeartPulse, label: t('eventRegistrationHealthCertExpiry'), value: formatDate(detail.healthCertExpiry) || entity.registration.horseHealthCertExpiry },
+        { icon: Activity, label: t('ownerRaceTotalRace'), value: totalRaces },
+        { icon: Trophy, label: t('ownerRaceWins'), value: top1 },
+        { icon: Trophy, label: 'Top 1 / 2 / 3', value: `${top1} / ${top2} / ${top3}` },
+        { icon: Activity, label: t('ownerRaceWinRate'), value: winRate },
+        { icon: Activity, label: t('ownerRaceTop3Rate'), value: top3Rate },
+        { icon: ShieldCheck, label: t('ownerRaceViolation'), value: `${Number(performance.violationCount || 0)} / DQ ${Number(performance.disqualifiedCount || 0)}` },
         { icon: Activity, label: t('eventRegistrationCount'), value: detail.registrationCount },
         { icon: Trophy, label: t('eventRegistrationParticipated'), value: detail.participated == null ? null : detail.participated ? t('eventRegistrationYes') : t('eventRegistrationNoValue') },
         { icon: LinkIcon, label: t('eventRegistrationOfficialProfileUrl'), value: detail.officialHorseProfileUrl },
@@ -90,6 +115,14 @@ function buildEntityConfig(entity, t) {
   }
 
   const jockeyTitle = detail.fullName || entity.registration.jockey || entity.registration.jockeyName || t('eventRegistrationNoJockey');
+  const jockeyPerformance = detail.performance || {};
+  const jockeyTotalRaces = Number(jockeyPerformance.totalRaces ?? detail.totalRaces ?? 0);
+  const jockeyTop1 = Number(jockeyPerformance.top1Count ?? detail.totalWins ?? 0);
+  const jockeyTop2 = Number(jockeyPerformance.top2Count || 0);
+  const jockeyTop3 = Number(jockeyPerformance.top3Count || 0);
+  const jockeyTop3Rate = formatPercent(calculateRate(jockeyTop1 + jockeyTop2 + jockeyTop3, jockeyTotalRaces));
+  const jockeyWinRate = formatPercent(calculateRate(jockeyTop1, jockeyTotalRaces));
+
   return {
     eyebrow: t('eventDomainJockey'),
     title: jockeyTitle,
@@ -101,8 +134,12 @@ function buildEntityConfig(entity, t) {
       { icon: Phone, label: t('eventRegistrationPhone'), value: detail.phoneNumber },
       { icon: Dumbbell, label: t('eventRegistrationWeight'), value: detail.weight == null ? null : `${detail.weight} kg` },
       { icon: BookOpen, label: t('eventRegistrationBiography'), value: detail.biography },
-      { icon: Activity, label: t('eventRegistrationTotalRaces'), value: detail.totalRaces },
-      { icon: Trophy, label: t('eventRegistrationTotalWins'), value: detail.totalWins },
+      { icon: Activity, label: t('eventRegistrationTotalRaces'), value: jockeyTotalRaces },
+      { icon: Trophy, label: t('eventRegistrationTotalWins'), value: jockeyTop1 },
+      { icon: Trophy, label: 'Top 1 / 2 / 3', value: `${jockeyTop1} / ${jockeyTop2} / ${jockeyTop3}` },
+      { icon: Activity, label: t('ownerRaceWinRate'), value: jockeyWinRate },
+      { icon: Activity, label: t('ownerRaceTop3Rate'), value: jockeyTop3Rate },
+      { icon: ShieldCheck, label: t('ownerRaceViolation'), value: `${Number(jockeyPerformance.violationCount || 0)} / DQ ${Number(jockeyPerformance.disqualifiedCount || 0)}` },
       { icon: User, label: t('eventRegistrationTrainerName'), value: detail.trainerName },
       { icon: Mail, label: t('eventRegistrationTrainerEmail'), value: detail.trainerEmail },
       { icon: Home, label: t('eventRegistrationAcademyStableAddress'), value: detail.academyStableAddress },

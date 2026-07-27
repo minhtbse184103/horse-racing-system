@@ -1,5 +1,6 @@
 package com.example.backend.service;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -9,11 +10,14 @@ import org.springframework.transaction.annotation.Transactional;
 import com.example.backend.dto.request.AdminUpdateUserRequest;
 import com.example.backend.dto.request.UpdateMyAccountRequest;
 import com.example.backend.dto.response.JockeyProfileResponse;
+import com.example.backend.dto.response.JockeyPerformanceResponse;
 import com.example.backend.dto.response.LoginResponse;
 import com.example.backend.dto.response.UserResponse;
+import com.example.backend.entity.JockeyPerformanceSummary;
 import com.example.backend.entity.JockeyProfile;
 import com.example.backend.entity.User;
 import com.example.backend.exception.ApiException;
+import com.example.backend.repository.JockeyPerformanceSummaryRepository;
 import com.example.backend.repository.JockeyProfileRepository;
 import com.example.backend.repository.UserRepository;
 import com.example.backend.security.JwtUtil;
@@ -27,6 +31,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final JockeyProfileRepository jockeyProfileRepository;
+    private final JockeyPerformanceSummaryRepository jockeyPerformanceSummaryRepository;
     private final JwtUtil jwtUtil;
 
     @Transactional(readOnly = true)
@@ -154,6 +159,8 @@ public class UserService {
         if (profile == null) {
             return null;
         }
+        JockeyPerformanceSummary summary = jockeyPerformanceSummaryRepository.findById(jockey.getUserID())
+                .orElse(null);
 
         return JockeyProfileResponse.builder()
                 .jockeyId(jockey.getUserID())
@@ -161,9 +168,33 @@ public class UserService {
                 .email(jockey.getEmail())
                 .weight(profile.getWeight())
                 .biography(profile.getBiography())
-                .totalRaces(profile.getTotalRaces())
-                .totalWins(profile.getTotalWins())
+                .totalRaces(summary != null ? value(summary.getTotalRaces()) : value(profile.getTotalRaces()))
+                .totalWins(summary != null ? value(summary.getTop1Count()) : value(profile.getTotalWins()))
+                .performance(mapJockeyPerformance(jockey.getUserID(), summary))
                 .build();
+    }
+
+    private JockeyPerformanceResponse mapJockeyPerformance(
+            Integer jockeyId,
+            JockeyPerformanceSummary summary
+    ) {
+        return JockeyPerformanceResponse.builder()
+                .jockeyId(jockeyId)
+                .totalRaces(summary != null ? value(summary.getTotalRaces()) : 0)
+                .top1Count(summary != null ? value(summary.getTop1Count()) : 0)
+                .top2Count(summary != null ? value(summary.getTop2Count()) : 0)
+                .top3Count(summary != null ? value(summary.getTop3Count()) : 0)
+                .winRate(summary != null && summary.getWinRate() != null
+                        ? summary.getWinRate()
+                        : BigDecimal.ZERO)
+                .violationCount(summary != null ? value(summary.getViolationCount()) : 0)
+                .disqualifiedCount(summary != null ? value(summary.getDisqualifiedCount()) : 0)
+                .lastUpdatedAt(summary != null ? summary.getLastUpdatedAt() : null)
+                .build();
+    }
+
+    private int value(Integer value) {
+        return value == null ? 0 : value;
     }
 
     private UserResponse toResponse(User user) {

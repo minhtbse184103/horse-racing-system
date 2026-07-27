@@ -10,9 +10,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.backend.constant.RegistrationStatus;
+import com.example.backend.dto.response.HorsePerformanceResponse;
 import com.example.backend.dto.response.HorseResponse;
 import com.example.backend.entity.Horse;
+import com.example.backend.entity.HorsePerformanceSummary;
 import com.example.backend.exception.ApiException;
+import com.example.backend.repository.HorsePerformanceSummaryRepository;
 import com.example.backend.repository.HorseRepository;
 import com.example.backend.repository.RegistrationRepository;
 
@@ -27,12 +30,15 @@ public class AdminHorseService {
     );
 
     private final HorseRepository horseRepository;
+    private final HorsePerformanceSummaryRepository horsePerformanceSummaryRepository;
     private final RegistrationRepository registrationRepository;
 
     public AdminHorseService(
             HorseRepository horseRepository,
+            HorsePerformanceSummaryRepository horsePerformanceSummaryRepository,
             RegistrationRepository registrationRepository) {
         this.horseRepository = horseRepository;
+        this.horsePerformanceSummaryRepository = horsePerformanceSummaryRepository;
         this.registrationRepository = registrationRepository;
     }
 
@@ -132,7 +138,27 @@ public class AdminHorseService {
                 .updatedAt(horse.getUpdatedAt())
                 .registrationCount(registrationIds.size())
                 .participated(hasActiveRegistration(registrationIds))
+                .performance(mapHorsePerformance(horse.getHorseId()))
                 .build();
+    }
+
+    private HorsePerformanceResponse mapHorsePerformance(Integer horseId) {
+        HorsePerformanceSummary summary = horsePerformanceSummaryRepository.findById(horseId)
+                .orElse(null);
+        return HorsePerformanceResponse.builder()
+                .horseId(horseId)
+                .totalRaces(summary != null ? value(summary.getTotalRaces()) : 0)
+                .top1Count(summary != null ? value(summary.getTop1Count()) : 0)
+                .top2Count(summary != null ? value(summary.getTop2Count()) : 0)
+                .top3Count(summary != null ? value(summary.getTop3Count()) : 0)
+                .violationCount(summary != null ? value(summary.getViolationCount()) : 0)
+                .disqualifiedCount(summary != null ? value(summary.getDisqualifiedCount()) : 0)
+                .lastUpdatedAt(summary != null ? summary.getLastUpdatedAt() : null)
+                .build();
+    }
+
+    private int value(Integer value) {
+        return value == null ? 0 : value;
     }
 
     private boolean hasActiveRegistration(Collection<Integer> registrationIds) {

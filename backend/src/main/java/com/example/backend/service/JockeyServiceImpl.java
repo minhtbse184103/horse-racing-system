@@ -1,5 +1,6 @@
 package com.example.backend.service;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -17,15 +18,19 @@ import com.example.backend.constant.PaymentStatus;
 import com.example.backend.constant.RegistrationStatus;
 import com.example.backend.constant.EventStatus;
 import com.example.backend.dto.request.JockeyProfileRequest;
+import com.example.backend.dto.response.HorsePerformanceResponse;
 import com.example.backend.dto.response.HorseResponse;
 import com.example.backend.dto.response.JockeyInvitationDetailResponse;
 import com.example.backend.dto.response.JockeyInvitationResponse;
 import com.example.backend.dto.response.JockeyVerificationFileResponse;
+import com.example.backend.dto.response.JockeyPerformanceResponse;
 import com.example.backend.dto.response.JockeyProfileResponse;
 import com.example.backend.dto.response.JockeyRaceResponse;
 import com.example.backend.dto.response.TournamentDetailResponse;
 import com.example.backend.entity.Horse;
+import com.example.backend.entity.HorsePerformanceSummary;
 import com.example.backend.entity.JockeyInvitation;
+import com.example.backend.entity.JockeyPerformanceSummary;
 import com.example.backend.entity.JockeyProfile;
 import com.example.backend.entity.JockeyVerification;
 import com.example.backend.entity.JockeyVerificationFile;
@@ -34,7 +39,9 @@ import com.example.backend.entity.Tournament;
 import com.example.backend.entity.User;
 import com.example.backend.exception.ApiException;
 import com.example.backend.repository.HorseRepository;
+import com.example.backend.repository.HorsePerformanceSummaryRepository;
 import com.example.backend.repository.JockeyInvitationRepository;
+import com.example.backend.repository.JockeyPerformanceSummaryRepository;
 import com.example.backend.repository.JockeyProfileRepository;
 import com.example.backend.repository.JockeyVerificationFileRepository;
 import com.example.backend.repository.JockeyVerificationRepository;
@@ -62,7 +69,9 @@ public class JockeyServiceImpl implements JockeyService {
     private final RaceEntryRepository raceEntryRepository;
     private final RaceResultRepository raceResultRepository;
     private final HorseRepository horseRepository;
+    private final HorsePerformanceSummaryRepository horsePerformanceSummaryRepository;
     private final UserRepository userRepository;
+    private final JockeyPerformanceSummaryRepository jockeyPerformanceSummaryRepository;
     private final TournamentRepository tournamentRepository;
     private final TournamentService tournamentService;
     private final RegistrationAvailabilityService availabilityService;
@@ -78,7 +87,9 @@ public class JockeyServiceImpl implements JockeyService {
             RaceEntryRepository raceEntryRepository,
             RaceResultRepository raceResultRepository,
             HorseRepository horseRepository,
+            HorsePerformanceSummaryRepository horsePerformanceSummaryRepository,
             UserRepository userRepository,
+            JockeyPerformanceSummaryRepository jockeyPerformanceSummaryRepository,
             TournamentRepository tournamentRepository,
             TournamentService tournamentService,
             RegistrationAvailabilityService availabilityService,
@@ -92,7 +103,9 @@ public class JockeyServiceImpl implements JockeyService {
         this.raceEntryRepository = raceEntryRepository;
         this.raceResultRepository = raceResultRepository;
         this.horseRepository = horseRepository;
+        this.horsePerformanceSummaryRepository = horsePerformanceSummaryRepository;
         this.userRepository = userRepository;
+        this.jockeyPerformanceSummaryRepository = jockeyPerformanceSummaryRepository;
         this.tournamentRepository = tournamentRepository;
         this.tournamentService = tournamentService;
         this.availabilityService = availabilityService;
@@ -439,6 +452,22 @@ public class JockeyServiceImpl implements JockeyService {
                 .updatedAt(horse.getUpdatedAt())
                 .registrationCount(registrationIds.size())
                 .participated(hasActiveRegistration(registrationIds))
+                .performance(mapHorsePerformance(horse.getHorseId()))
+                .build();
+    }
+
+    private HorsePerformanceResponse mapHorsePerformance(Integer horseId) {
+        HorsePerformanceSummary summary = horsePerformanceSummaryRepository.findById(horseId)
+                .orElse(null);
+        return HorsePerformanceResponse.builder()
+                .horseId(horseId)
+                .totalRaces(summary != null ? value(summary.getTotalRaces()) : 0)
+                .top1Count(summary != null ? value(summary.getTop1Count()) : 0)
+                .top2Count(summary != null ? value(summary.getTop2Count()) : 0)
+                .top3Count(summary != null ? value(summary.getTop3Count()) : 0)
+                .violationCount(summary != null ? value(summary.getViolationCount()) : 0)
+                .disqualifiedCount(summary != null ? value(summary.getDisqualifiedCount()) : 0)
+                .lastUpdatedAt(summary != null ? summary.getLastUpdatedAt() : null)
                 .build();
     }
 
@@ -492,6 +521,9 @@ public class JockeyServiceImpl implements JockeyService {
                         .stream()
                         .map(this::mapVerificationFileToResponse)
                         .toList();
+        JockeyPerformanceSummary summary = jockeyPerformanceSummaryRepository.findById(profile.getJockeyId())
+                .orElse(null);
+        JockeyPerformanceResponse performance = mapJockeyPerformance(profile.getJockeyId(), summary);
 
         return JockeyProfileResponse.builder()
                 .jockeyId(profile.getJockeyId())
@@ -500,8 +532,9 @@ public class JockeyServiceImpl implements JockeyService {
                 .phoneNumber(jockey.getPhone())
                 .weight(profile.getWeight())
                 .biography(profile.getBiography())
-                .totalRaces(profile.getTotalRaces())
-                .totalWins(profile.getTotalWins())
+                .totalRaces(summary != null ? value(summary.getTotalRaces()) : value(profile.getTotalRaces()))
+                .totalWins(summary != null ? value(summary.getTop1Count()) : value(profile.getTotalWins()))
+                .performance(performance)
                 .trainerName(verification != null ? verification.getTrainerName() : null)
                 .trainerEmail(verification != null ? verification.getTrainerEmail() : null)
                 .academyStableAddress(verification != null ? verification.getAcademyStableAddress() : null)
@@ -517,6 +550,29 @@ public class JockeyServiceImpl implements JockeyService {
                 .reviewedBy(verification != null ? verification.getReviewedBy() : null)
                 .files(files)
                 .build();
+    }
+
+    private JockeyPerformanceResponse mapJockeyPerformance(
+            Integer jockeyId,
+            JockeyPerformanceSummary summary
+    ) {
+        return JockeyPerformanceResponse.builder()
+                .jockeyId(jockeyId)
+                .totalRaces(summary != null ? value(summary.getTotalRaces()) : 0)
+                .top1Count(summary != null ? value(summary.getTop1Count()) : 0)
+                .top2Count(summary != null ? value(summary.getTop2Count()) : 0)
+                .top3Count(summary != null ? value(summary.getTop3Count()) : 0)
+                .winRate(summary != null && summary.getWinRate() != null
+                        ? summary.getWinRate()
+                        : BigDecimal.ZERO)
+                .violationCount(summary != null ? value(summary.getViolationCount()) : 0)
+                .disqualifiedCount(summary != null ? value(summary.getDisqualifiedCount()) : 0)
+                .lastUpdatedAt(summary != null ? summary.getLastUpdatedAt() : null)
+                .build();
+    }
+
+    private int value(Integer value) {
+        return value == null ? 0 : value;
     }
 
     private JockeyVerificationFileResponse mapVerificationFileToResponse(JockeyVerificationFile file) {

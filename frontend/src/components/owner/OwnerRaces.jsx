@@ -64,6 +64,58 @@ function formatDate(value, t, language = 'vi') {
   }).format(date);
 }
 
+function calculateRate(part, total) {
+  const totalValue = Number(total);
+  if (!totalValue) return null;
+  return (Number(part || 0) / totalValue) * 100;
+}
+
+function formatPercent(value, t) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) return t('notUpdated');
+  return `${number.toFixed(number % 1 === 0 ? 0 : 1)}%`;
+}
+
+function getHorsePerformance(horse) {
+  const performance = horse?.performance || {};
+  const totalRaces = Number(performance.totalRaces || 0);
+  const top1 = Number(performance.top1Count || 0);
+  const top2 = Number(performance.top2Count || 0);
+  const top3 = Number(performance.top3Count || 0);
+  const podium = top1 + top2 + top3;
+
+  return {
+    totalRaces,
+    top1,
+    top2,
+    top3,
+    winRate: calculateRate(top1, totalRaces),
+    top3Rate: calculateRate(podium, totalRaces),
+    violationCount: Number(performance.violationCount || 0),
+    disqualifiedCount: Number(performance.disqualifiedCount || 0)
+  };
+}
+
+function getJockeyPerformance(jockey) {
+  const performance = jockey?.performance || {};
+  const totalRaces = Number(performance.totalRaces ?? jockey?.totalRaces ?? 0);
+  const top1 = Number(performance.top1Count ?? jockey?.totalWins ?? 0);
+  const top2 = Number(performance.top2Count || 0);
+  const top3 = Number(performance.top3Count || 0);
+  const podium = top1 + top2 + top3;
+
+  return {
+    totalRaces,
+    top1,
+    top2,
+    top3,
+    winRate: performance.winRate ?? calculateRate(top1, totalRaces),
+    top3Rate: performance.top3Rate ?? calculateRate(podium, totalRaces),
+    violationCount: Number(performance.violationCount || 0),
+    disqualifiedCount: Number(performance.disqualifiedCount || 0)
+  };
+}
+
 function statusClass(status) {
   const normalized = String(status || '').toUpperCase();
   if (normalized === 'COMPLETED') return 'completed';
@@ -498,24 +550,42 @@ export default function OwnerRaces({ currentUser }) {
               <>
                 {detailError && <div className="admin-alert error" role="alert">{detailError}</div>}
                 {detailHorse && (
-                  <div className="owner-race-info-grid">
-                    <article><HeartPulse size={18} /><span>{language === 'vi' ? 'Giống' : 'Breeding'}</span><strong>{detailHorse.breeding || t('notUpdated')}</strong></article>
-                    <article><CalendarDays size={18} /><span>{language === 'vi' ? 'Ngày sinh' : 'Birth date'}</span><strong>{formatDate(detailHorse.dayOfBirth, t, language)}</strong></article>
-                    <article><Users size={18} /><span>{language === 'vi' ? 'Giới tính' : 'Sex'}</span><strong>{formatDisplayLabel(detailHorse.sex)}</strong></article>
-                    <article><Activity size={18} /><span>{language === 'vi' ? 'Cân nặng' : 'Weight'}</span><strong>{detailHorse.weight ? `${detailHorse.weight} kg` : t('notUpdated')}</strong></article>
-                    <article><Flag size={18} /><span>{language === 'vi' ? 'Màu lông' : 'Colour'}</span><strong>{detailHorse.colour || t('notUpdated')}</strong></article>
-                    <article><CheckCircle2 size={18} /><span>{language === 'vi' ? 'Hạn sức khỏe' : 'Health expiry'}</span><strong>{formatDate(detailHorse.healthCertExpiry, t, language)}</strong></article>
-                  </div>
+                  (() => {
+                    const performance = getHorsePerformance(detailHorse);
+                    return (
+                      <div className="owner-race-info-grid">
+                        <article><Trophy size={18} /><span>{t('ownerRaceTotalRace')}</span><strong>{performance.totalRaces}</strong></article>
+                        <article><Medal size={18} /><span>{t('ownerRaceWins')}</span><strong>{performance.top1}</strong></article>
+                        <article><CheckCircle2 size={18} /><span>{t('ownerRaceTop3Rate')}</span><strong>{formatPercent(performance.top3Rate, t)}</strong></article>
+                        <article><Activity size={18} /><span>{t('ownerRaceViolation')}</span><strong>{performance.violationCount} / DQ {performance.disqualifiedCount}</strong></article>
+                        <article><HeartPulse size={18} /><span>{language === 'vi' ? 'Giống' : 'Breeding'}</span><strong>{detailHorse.breeding || t('notUpdated')}</strong></article>
+                        <article><CalendarDays size={18} /><span>{language === 'vi' ? 'Ngày sinh' : 'Birth date'}</span><strong>{formatDate(detailHorse.dayOfBirth, t, language)}</strong></article>
+                        <article><Users size={18} /><span>{language === 'vi' ? 'Giới tính' : 'Sex'}</span><strong>{formatDisplayLabel(detailHorse.sex)}</strong></article>
+                        <article><Activity size={18} /><span>{language === 'vi' ? 'Cân nặng' : 'Weight'}</span><strong>{detailHorse.weight ? `${detailHorse.weight} kg` : t('notUpdated')}</strong></article>
+                        <article><Flag size={18} /><span>{language === 'vi' ? 'Màu lông' : 'Colour'}</span><strong>{detailHorse.colour || t('notUpdated')}</strong></article>
+                        <article><CheckCircle2 size={18} /><span>{language === 'vi' ? 'Hạn sức khỏe' : 'Health expiry'}</span><strong>{formatDate(detailHorse.healthCertExpiry, t, language)}</strong></article>
+                      </div>
+                    );
+                  })()
                 )}
                 {detailJockey && (
-                  <div className="owner-race-info-grid">
-                    <article><Medal size={18} /><span>{language === 'vi' ? 'Tên Jockey' : 'Jockey name'}</span><strong>{detailJockey.fullName || detailJockey.jockeyName || t('notUpdated')}</strong></article>
-                    <article><Activity size={18} /><span>{language === 'vi' ? 'Cân nặng' : 'Weight'}</span><strong>{detailJockey.weight ? `${detailJockey.weight} kg` : t('notUpdated')}</strong></article>
-                    <article><Flag size={18} /><span>{language === 'vi' ? 'Giấy phép' : 'Licence'}</span><strong>{detailJockey.licenceType || detailJockey.licenseNo || t('notUpdated')}</strong></article>
-                    <article><CheckCircle2 size={18} /><span>Status</span><strong>{formatDisplayLabel(detailJockey.verificationStatus || detailJockey.status)}</strong></article>
-                    <article><Trophy size={18} /><span>{language === 'vi' ? 'Tổng Race' : 'Total races'}</span><strong>{detailJockey.totalRaces ?? detailJockey.performance?.totalRaces ?? 0}</strong></article>
-                    <article><Medal size={18} /><span>{language === 'vi' ? 'Tổng thắng' : 'Total wins'}</span><strong>{detailJockey.totalWins ?? detailJockey.performance?.totalWins ?? 0}</strong></article>
-                  </div>
+                  (() => {
+                    const performance = getJockeyPerformance(detailJockey);
+                    return (
+                      <div className="owner-race-info-grid">
+                        <article><Medal size={18} /><span>{language === 'vi' ? 'Tên Jockey' : 'Jockey name'}</span><strong>{detailJockey.fullName || detailJockey.jockeyName || t('notUpdated')}</strong></article>
+                        <article><Trophy size={18} /><span>{t('ownerRaceTotalRace')}</span><strong>{performance.totalRaces}</strong></article>
+                        <article><Medal size={18} /><span>{t('ownerRaceWins')}</span><strong>{performance.top1}</strong></article>
+                        <article><Trophy size={18} /><span>Top 1 / 2 / 3</span><strong>{performance.top1} / {performance.top2} / {performance.top3}</strong></article>
+                        <article><CheckCircle2 size={18} /><span>{t('ownerRaceWinRate')}</span><strong>{formatPercent(performance.winRate, t)}</strong></article>
+                        <article><CheckCircle2 size={18} /><span>{t('ownerRaceTop3Rate')}</span><strong>{formatPercent(performance.top3Rate, t)}</strong></article>
+                        <article><Activity size={18} /><span>{t('ownerRaceViolation')}</span><strong>{performance.violationCount} / DQ {performance.disqualifiedCount}</strong></article>
+                        <article><Activity size={18} /><span>{language === 'vi' ? 'Cân nặng' : 'Weight'}</span><strong>{detailJockey.weight ? `${detailJockey.weight} kg` : t('notUpdated')}</strong></article>
+                        <article><Flag size={18} /><span>{language === 'vi' ? 'Giấy phép' : 'Licence'}</span><strong>{detailJockey.licenceType || detailJockey.licenseNo || t('notUpdated')}</strong></article>
+                        <article><CheckCircle2 size={18} /><span>Status</span><strong>{formatDisplayLabel(detailJockey.verificationStatus || detailJockey.status)}</strong></article>
+                      </div>
+                    );
+                  })()
                 )}
                 {detailJockey?.biography && (
                   <p className="owner-entity-biography">{detailJockey.biography}</p>
