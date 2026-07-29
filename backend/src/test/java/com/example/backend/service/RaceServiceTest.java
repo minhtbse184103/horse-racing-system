@@ -173,6 +173,30 @@ class RaceServiceTest {
     }
 
     @Test
+    void createRaceRejectsPrizeRankGreaterThanMaxRunners() {
+        CreateRaceRequest request = createRequest();
+        request.setMaxRunners(3);
+        request.setPrizes(List.of(prizeRequest(4)));
+
+        stubAdmin();
+        when(tournamentRepository.findByIdForUpdate(12))
+                .thenReturn(Optional.of(tournament()));
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.createRace(request, "admin@example.com")
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        assertEquals(
+                "Prize rank cannot exceed maximum runners.",
+                exception.getMessage()
+        );
+        verify(raceRepository, never()).saveAndFlush(any());
+        verify(racePrizeRepository, never()).saveAll(any());
+    }
+
+    @Test
     void updateRaceRejectsEmptyPrizeList() {
         Race race = race();
         UpdateRaceRequest request = updateRequest();
@@ -191,6 +215,38 @@ class RaceServiceTest {
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
         assertEquals("Race must contain at least one prize.", exception.getMessage());
+        verify(raceRepository, never()).saveAndFlush(any());
+        verify(racePrizeRepository, never()).saveAll(any());
+    }
+
+    @Test
+    void updateRaceRejectsPrizeCountGreaterThanMaxRunners() {
+        Race race = race();
+        UpdateRaceRequest request = updateRequest();
+        request.setMaxRunners(3);
+        request.setPrizes(List.of(
+                prizeRequest(1),
+                prizeRequest(2),
+                prizeRequest(3),
+                prizeRequest(4)
+        ));
+
+        stubAdmin();
+        when(raceRepository.findByIdForUpdate(8)).thenReturn(Optional.of(race));
+        when(raceEntryRepository.existsByRaceId(8)).thenReturn(false);
+        when(tournamentRepository.findByIdForUpdate(12))
+                .thenReturn(Optional.of(tournament()));
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.updateRace(8, request, "admin@example.com")
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        assertEquals(
+                "Race prize count cannot exceed maximum runners.",
+                exception.getMessage()
+        );
         verify(raceRepository, never()).saveAndFlush(any());
         verify(racePrizeRepository, never()).saveAll(any());
     }
@@ -850,11 +906,7 @@ class RaceServiceTest {
     }
 
     private UpdateRaceRequest updateRequest() {
-        RacePrizeRequest firstPrize = new RacePrizeRequest();
-        firstPrize.setRankPosition(1);
-        firstPrize.setAmount(new BigDecimal("50000"));
-        firstPrize.setOwnerPercent(new BigDecimal("80"));
-        firstPrize.setJockeyPercent(new BigDecimal("20"));
+        RacePrizeRequest firstPrize = prizeRequest(1);
 
         UpdateRaceRequest request = new UpdateRaceRequest();
         request.setRaceName("Race test 1");
@@ -869,11 +921,7 @@ class RaceServiceTest {
     }
 
     private CreateRaceRequest createRequest() {
-        RacePrizeRequest firstPrize = new RacePrizeRequest();
-        firstPrize.setRankPosition(1);
-        firstPrize.setAmount(new BigDecimal("50000"));
-        firstPrize.setOwnerPercent(new BigDecimal("80"));
-        firstPrize.setJockeyPercent(new BigDecimal("20"));
+        RacePrizeRequest firstPrize = prizeRequest(1);
 
         CreateRaceRequest request = new CreateRaceRequest();
         request.setTournamentId(12);
@@ -886,6 +934,15 @@ class RaceServiceTest {
         request.setRaceOrder(1);
         request.setPrizes(List.of(firstPrize));
         return request;
+    }
+
+    private RacePrizeRequest prizeRequest(Integer rankPosition) {
+        RacePrizeRequest firstPrize = new RacePrizeRequest();
+        firstPrize.setRankPosition(rankPosition);
+        firstPrize.setAmount(new BigDecimal("50000"));
+        firstPrize.setOwnerPercent(new BigDecimal("80"));
+        firstPrize.setJockeyPercent(new BigDecimal("20"));
+        return firstPrize;
     }
 
     private RacePrize prize() {

@@ -137,7 +137,7 @@ public class TournamentProgramService {
                     request.getEntryFinalizationScheduledAt(),
                     request.getRaceStartTime()
             );
-            validatePrizes(request.getPrizes());
+            validatePrizes(request.getPrizes(), request.getMaxRunners());
 
             String raceName = request.getRaceName().trim();
             String normalizedName = raceName.toLowerCase(Locale.ROOT);
@@ -348,10 +348,13 @@ public class TournamentProgramService {
         }
     }
 
-    private void validatePrizes(List<RacePrizeRequest> prizes) {
+    private void validatePrizes(
+            List<RacePrizeRequest> prizes,
+            Integer maxRunners
+    ) {
         // FLOW: Admin Create Tournament Program
         // ORDER: 7A.2/8 - Service validates RacePrize rules for each Race before saving the program.
-        // Validation: each Race needs at least one prize, unique rank positions, and Owner/Jockey percentages totaling 100.
+        // Validation: each Race needs at least one prize, no more prize rows than runners, unique reachable ranks, and Owner/Jockey percentages totaling 100.
         if (prizes == null || prizes.isEmpty()) {
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
@@ -359,10 +362,26 @@ public class TournamentProgramService {
             );
         }
 
+        if (maxRunners != null && prizes.size() > maxRunners) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Race prize count cannot exceed maximum runners."
+            );
+        }
+
         Set<Integer> usedRanks = new HashSet<>();
         BigDecimal oneHundred = new BigDecimal("100");
 
         for (RacePrizeRequest prize : prizes) {
+            if (maxRunners != null
+                    && prize.getRankPosition() != null
+                    && prize.getRankPosition() > maxRunners) {
+                throw new ApiException(
+                        HttpStatus.BAD_REQUEST,
+                        "Prize rank cannot exceed maximum runners."
+                );
+            }
+
             if (!usedRanks.add(prize.getRankPosition())) {
                 throw new ApiException(
                         HttpStatus.BAD_REQUEST,

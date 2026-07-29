@@ -55,9 +55,9 @@ VALUES
 INSERT INTO `JockeyProfile`
   (`jockeyID`, `fullName`, `weight`, `biography`, `totalRaces`, `totalWins`, `createdAt`, `updatedAt`)
 VALUES
-  (5, 'Demo Jockey Five', 52.50, 'Experienced sprint jockey.', 48, 13, DATE_SUB(@seed_now, INTERVAL 300 DAY), @seed_now),
-  (6, 'Demo Jockey Six', 54.00, 'Specialist in middle-distance races.', 39, 9, DATE_SUB(@seed_now, INTERVAL 280 DAY), @seed_now),
-  (7, 'Demo Jockey Seven', 55.25, 'New jockey awaiting verification.', 5, 1, DATE_SUB(@seed_now, INTERVAL 30 DAY), @seed_now);
+  (5, 'Demo Jockey Five', 52.50, 'Experienced sprint jockey.', 1, 1, DATE_SUB(@seed_now, INTERVAL 300 DAY), @seed_now),
+  (6, 'Demo Jockey Six', 54.00, 'Specialist in middle-distance races.', 2, 1, DATE_SUB(@seed_now, INTERVAL 280 DAY), @seed_now),
+  (7, 'Demo Jockey Seven', 55.25, 'New jockey awaiting verification.', 1, 0, DATE_SUB(@seed_now, INTERVAL 30 DAY), @seed_now);
 
 INSERT INTO `JockeyVerification`
   (`verificationID`, `jockeyID`, `trainerName`, `trainerEmail`, `academyStableAddress`, `issuingAuthority`, `verificationLink`, `licenceType`, `expiryDate`, `weight`, `biography`, `verificationStatus`, `rejectionReason`, `resubmitCount`, `submittedAt`, `reviewedAt`, `reviewedBy`, `createdAt`, `updatedAt`)
@@ -116,10 +116,10 @@ VALUES
   (5, 2, 'Heritage Classic', 'Chiang Mai Main', 'https://images.unsplash.com/photo-1526163180810-9a17e4f915a5?auto=format&fit=crop&w=1200&q=80', TIMESTAMP(DATE_SUB(@seed_today, INTERVAL 119 DAY), '14:00:00'), TIMESTAMP(DATE_SUB(@seed_today, INTERVAL 119 DAY), '14:45:00'), TIMESTAMP(DATE_SUB(@seed_today, INTERVAL 121 DAY), '14:00:00'), TIMESTAMP(DATE_SUB(@seed_today, INTERVAL 121 DAY), '14:15:00'), 1, 1800, 6, 2, 'COMPLETED', DATE_SUB(@seed_now, INTERVAL 190 DAY), DATE_SUB(@seed_now, INTERVAL 119 DAY)),
   -- Manual-mode launch test race: raceStartTime is already in the past.
   -- Admin can finalize RaceEntry, mark it READY, then "Run Race" moves it
-  -- to IN_PROGRESS after Unity launch succeeds. Has 6 ASSIGNED RaceEntry
-  -- rows below, matching the Unity simulator capacity and satisfying
-  -- MIN_RUNNERS_TO_LAUNCH, and no RaceResult yet, so it's launchable and
-  -- ready to receive a result from Unity right after seeding.
+  -- to IN_PROGRESS after Unity launch succeeds. Has 5 ASSIGNED RaceEntry
+  -- rows below and one approved Registration waiting for Admin assignment,
+  -- while still satisfying MIN_RUNNERS_TO_LAUNCH. It has no RaceResult yet,
+  -- so it is launchable and ready to receive a result from Unity after seeding.
   (6, 1, 'Live Test Race',   'Bangkok Track A', 'https://images.unsplash.com/photo-1540479859555-17af45c78602?auto=format&fit=crop&w=1200&q=80', DATE_SUB(@seed_now, INTERVAL 1 HOUR), DATE_ADD(@seed_now, INTERVAL 1 HOUR), DATE_SUB(@seed_now, INTERVAL 3 DAY), NULL, NULL, 1000, 6, 4, 'OPEN_FOR_REGISTRATION', @seed_now, @seed_now),
   (7, 1, 'Betting Demo Sprint', 'Bangkok Track C', 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80', DATE_ADD(@seed_now, INTERVAL 3 DAY), DATE_ADD(@seed_now, INTERVAL 3 DAY) + INTERVAL 30 MINUTE, DATE_ADD(@seed_now, INTERVAL 1 DAY), NULL, NULL, 1200, 6, 5, 'REGISTRATION_CLOSED', @seed_now, @seed_now);
 
@@ -144,9 +144,9 @@ VALUES
   (5, 1, 5, 4, 5,    'REG-DEMO-005', 'UNPAID', 'REJECTED',  'Health document requires clearer verification.', DATE_SUB(@seed_now, INTERVAL 3 DAY), DATE_SUB(@seed_now, INTERVAL 1 DAY), 1, DATE_SUB(@seed_now, INTERVAL 3 DAY), DATE_SUB(@seed_now, INTERVAL 1 DAY)),
   (6, 2, 6, 4, 6,    'REG-DEMO-006', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 160 DAY), DATE_SUB(@seed_now, INTERVAL 155 DAY), 1, DATE_SUB(@seed_now, INTERVAL 160 DAY), DATE_SUB(@seed_now, INTERVAL 118 DAY)),
   (7, 1, 1, 2, 5,    'REG-DEMO-007', 'UNPAID', 'CANCELLED', NULL, DATE_SUB(@seed_now, INTERVAL 20 DAY), NULL, NULL, DATE_SUB(@seed_now, INTERVAL 20 DAY), DATE_SUB(@seed_now, INTERVAL 18 DAY)),
-  -- Dedicated registrations for Race 6 (Live Test Race). Only one
-  -- Registration per Owner/Jockey pair is assigned as a RaceEntry so Owner
-  -- and Jockey "Your Races" pages do not show duplicate assignments.
+  -- Dedicated registrations for Race 6 (Live Test Race). Five are already
+  -- assigned below, and REG-DEMO-013 is intentionally left unassigned so Admin
+  -- can demo the final RaceEntry assignment before launch.
   (8, 1, 1, 2, 5,    'REG-DEMO-008', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now, 1, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now),
   (9, 1, 2, 2, 6,    'REG-DEMO-009', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now, 1, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now),
   (10, 1, 3, 3, 5,   'REG-DEMO-010', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now, 1, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now),
@@ -158,7 +158,12 @@ VALUES
   (16, 1, 3, 3, 5,   'REG-DEMO-016', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now, 1, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now),
   (17, 1, 4, 3, 6,   'REG-DEMO-017', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now, 1, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now),
   (18, 1, 5, 4, 5,   'REG-DEMO-018', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now, 1, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now),
-  (19, 1, 6, 4, 7,   'REG-DEMO-019', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now, 1, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now);
+  (19, 1, 6, 4, 7,   'REG-DEMO-019', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now, 1, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now),
+  -- Completed Heritage Classic result history. These rows back the visible
+  -- Jockey/Horse performance summaries with real completed RaceEntry data.
+  (20, 2, 3, 3, 5,   'REG-DEMO-020', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 160 DAY), DATE_SUB(@seed_now, INTERVAL 155 DAY), 1, DATE_SUB(@seed_now, INTERVAL 160 DAY), DATE_SUB(@seed_now, INTERVAL 118 DAY)),
+  (21, 2, 4, 3, 7,   'REG-DEMO-021', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 160 DAY), DATE_SUB(@seed_now, INTERVAL 155 DAY), 1, DATE_SUB(@seed_now, INTERVAL 160 DAY), DATE_SUB(@seed_now, INTERVAL 118 DAY)),
+  (22, 2, 5, 4, 6,   'REG-DEMO-022', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 160 DAY), DATE_SUB(@seed_now, INTERVAL 155 DAY), 1, DATE_SUB(@seed_now, INTERVAL 160 DAY), DATE_SUB(@seed_now, INTERVAL 118 DAY));
 
 INSERT INTO `PaymentTransaction`
   (`paymentTransactionID`, `userID`, `registrationID`, `walletID`, `purpose`, `provider`, `amount`, `currency`, `txnRef`, `providerTransactionNo`, `status`, `payUrl`, `responseCode`, `rawResponse`, `createdAt`, `paidAt`, `updatedAt`)
@@ -179,13 +184,16 @@ VALUES
   (14, 3, 17, NULL, 'REGISTRATION_FEE', 'VNPAY', 1000000.00, 'VND', 'SEED-REG-017', 'VNP-SEED-017', 'SUCCESS', NULL, '00', '{"seed":true}', DATE_SUB(@seed_now, INTERVAL 1 DAY), DATE_SUB(@seed_now, INTERVAL 1 DAY), DATE_SUB(@seed_now, INTERVAL 1 DAY)),
   (15, 4, 18, NULL, 'REGISTRATION_FEE', 'VNPAY', 1000000.00, 'VND', 'SEED-REG-018', 'VNP-SEED-018', 'SUCCESS', NULL, '00', '{"seed":true}', DATE_SUB(@seed_now, INTERVAL 1 DAY), DATE_SUB(@seed_now, INTERVAL 1 DAY), DATE_SUB(@seed_now, INTERVAL 1 DAY)),
   (16, 4, 19, NULL, 'REGISTRATION_FEE', 'VNPAY', 1000000.00, 'VND', 'SEED-REG-019', 'VNP-SEED-019', 'SUCCESS', NULL, '00', '{"seed":true}', DATE_SUB(@seed_now, INTERVAL 1 DAY), DATE_SUB(@seed_now, INTERVAL 1 DAY), DATE_SUB(@seed_now, INTERVAL 1 DAY)),
-  (17, 14, NULL, 7, 'WALLET_DEPOSIT',   'VNPAY', 5000000.00, 'VND', 'SEED-WALLET-014', 'VNP-SEED-W014', 'SUCCESS', NULL, '00', '{"seed":true}', DATE_SUB(@seed_now, INTERVAL 2 DAY), DATE_SUB(@seed_now, INTERVAL 2 DAY), DATE_SUB(@seed_now, INTERVAL 2 DAY));
+  (17, 14, NULL, 7, 'WALLET_DEPOSIT',   'VNPAY', 5000000.00, 'VND', 'SEED-WALLET-014', 'VNP-SEED-W014', 'SUCCESS', NULL, '00', '{"seed":true}', DATE_SUB(@seed_now, INTERVAL 2 DAY), DATE_SUB(@seed_now, INTERVAL 2 DAY), DATE_SUB(@seed_now, INTERVAL 2 DAY)),
+  (18, 3, 20, NULL, 'REGISTRATION_FEE', 'VNPAY', 2000000.00, 'VND', 'SEED-REG-020', 'VNP-SEED-020', 'SUCCESS', NULL, '00', '{"seed":true}', DATE_SUB(@seed_now, INTERVAL 160 DAY), DATE_SUB(@seed_now, INTERVAL 160 DAY), DATE_SUB(@seed_now, INTERVAL 160 DAY)),
+  (19, 3, 21, NULL, 'REGISTRATION_FEE', 'VNPAY', 2000000.00, 'VND', 'SEED-REG-021', 'VNP-SEED-021', 'SUCCESS', NULL, '00', '{"seed":true}', DATE_SUB(@seed_now, INTERVAL 160 DAY), DATE_SUB(@seed_now, INTERVAL 160 DAY), DATE_SUB(@seed_now, INTERVAL 160 DAY)),
+  (20, 4, 22, NULL, 'REGISTRATION_FEE', 'VNPAY', 2000000.00, 'VND', 'SEED-REG-022', 'VNP-SEED-022', 'SUCCESS', NULL, '00', '{"seed":true}', DATE_SUB(@seed_now, INTERVAL 160 DAY), DATE_SUB(@seed_now, INTERVAL 160 DAY), DATE_SUB(@seed_now, INTERVAL 160 DAY));
 
 INSERT INTO `TournamentFund`
   (`tournamentID`, `collectedAmount`, `paidPrizeAmount`, `availableBalance`, `createdAt`, `updatedAt`)
 VALUES
   (1, 15000000.00, 0.00, 15000000.00, DATE_SUB(@seed_now, INTERVAL 7 DAY), @seed_now),
-  (2,  2000000.00, 0.00,  2000000.00, DATE_SUB(@seed_now, INTERVAL 160 DAY), DATE_SUB(@seed_now, INTERVAL 160 DAY));
+  (2,  8000000.00, 0.00,  8000000.00, DATE_SUB(@seed_now, INTERVAL 160 DAY), DATE_SUB(@seed_now, INTERVAL 160 DAY));
 
 INSERT INTO `SystemFund`
   (`systemFundID`, `balance`, `bettingFeeRevenue`, `createdAt`, `updatedAt`)
@@ -211,7 +219,10 @@ VALUES
   (14, 'TOURNAMENT:1', 1, 'REGISTRATION_FEE', 'CREDIT', 1000000.00, 12000000.00, 13000000.00, 'PAYMENT_TRANSACTION', 14, 'Tournament registration fee REG-DEMO-017', DATE_SUB(@seed_now, INTERVAL 1 DAY)),
   (15, 'TOURNAMENT:1', 1, 'REGISTRATION_FEE', 'CREDIT', 1000000.00, 13000000.00, 14000000.00, 'PAYMENT_TRANSACTION', 15, 'Tournament registration fee REG-DEMO-018', DATE_SUB(@seed_now, INTERVAL 1 DAY)),
   (16, 'TOURNAMENT:1', 1, 'REGISTRATION_FEE', 'CREDIT', 1000000.00, 14000000.00, 15000000.00, 'PAYMENT_TRANSACTION', 16, 'Tournament registration fee REG-DEMO-019', DATE_SUB(@seed_now, INTERVAL 1 DAY)),
-  (17, 'SYSTEM', NULL, 'BETTING_OPERATOR_FEE', 'CREDIT', 60000.00, 0.00, 60000.00, 'BET_SETTLEMENT', 1, 'Betting operator fee for Heritage Sprint settlement', DATE_SUB(@seed_now, INTERVAL 2 HOUR));
+  (17, 'SYSTEM', NULL, 'BETTING_OPERATOR_FEE', 'CREDIT', 60000.00, 0.00, 60000.00, 'BET_SETTLEMENT', 1, 'Betting operator fee for Heritage Sprint settlement', DATE_SUB(@seed_now, INTERVAL 2 HOUR)),
+  (18, 'TOURNAMENT:2', 2, 'REGISTRATION_FEE', 'CREDIT', 2000000.00, 2000000.00, 4000000.00, 'PAYMENT_TRANSACTION', 18, 'Tournament registration fee REG-DEMO-020', DATE_SUB(@seed_now, INTERVAL 160 DAY)),
+  (19, 'TOURNAMENT:2', 2, 'REGISTRATION_FEE', 'CREDIT', 2000000.00, 4000000.00, 6000000.00, 'PAYMENT_TRANSACTION', 19, 'Tournament registration fee REG-DEMO-021', DATE_SUB(@seed_now, INTERVAL 160 DAY)),
+  (20, 'TOURNAMENT:2', 2, 'REGISTRATION_FEE', 'CREDIT', 2000000.00, 6000000.00, 8000000.00, 'PAYMENT_TRANSACTION', 20, 'Tournament registration fee REG-DEMO-022', DATE_SUB(@seed_now, INTERVAL 160 DAY));
 
 INSERT INTO `RaceEntry`
   (`raceEntryID`, `raceID`, `registrationID`, `startingStall`, `status`, `assignedAt`, `assignedBy`, `cancelledAt`, `cancelledBy`, `cancellationReason`)
@@ -219,11 +230,17 @@ VALUES
   (1, 1, 4, 1, 'ASSIGNED',  DATE_SUB(@seed_now, INTERVAL 2 DAY), 1, NULL, NULL, NULL),
   (2, 2, 3, 2, 'CANCELLED', DATE_SUB(@seed_now, INTERVAL 2 DAY), 1, DATE_SUB(@seed_now, INTERVAL 1 DAY), 1, 'Owner requested reassignment before race start.'),
   (3, 4, 6, 3, 'ASSIGNED',  DATE_SUB(@seed_now, INTERVAL 130 DAY), 1, NULL, NULL, NULL),
-  -- Race 6 (Live Test Race) entries: three active stalls for the minimum
-  -- launchable race. Each owner and jockey appears once in this race.
+  -- Race 6 (Live Test Race) entries: five active stalls, leaving one approved
+  -- Registration unassigned so Admin can demonstrate assigning the final slot.
   (4, 6, 8, 1, 'ASSIGNED',  @seed_now, 1, NULL, NULL, NULL),
   (5, 6, 11, 2, 'ASSIGNED', @seed_now, 1, NULL, NULL, NULL),
   (6, 6, 12, 3, 'ASSIGNED', @seed_now, 1, NULL, NULL, NULL),
+  (7, 6, 9, 4, 'ASSIGNED',  @seed_now, 1, NULL, NULL, NULL),
+  (8, 6, 10, 5, 'ASSIGNED', @seed_now, 1, NULL, NULL, NULL),
+  -- Race 5 (Heritage Classic) entries for completed result history.
+  (9, 5, 20, 1, 'ASSIGNED', DATE_SUB(@seed_now, INTERVAL 130 DAY), 1, NULL, NULL, NULL),
+  (13, 5, 21, 2, 'ASSIGNED', DATE_SUB(@seed_now, INTERVAL 130 DAY), 1, NULL, NULL, NULL),
+  (14, 5, 22, 3, 'ASSIGNED', DATE_SUB(@seed_now, INTERVAL 130 DAY), 1, NULL, NULL, NULL),
   -- Race 7 (Betting Demo Sprint) entries: three unique owner/jockey
   -- assignments for betting tickets and race result display.
   (10, 7, 14, 1, 'ASSIGNED', @seed_now, 1, NULL, NULL, NULL),
@@ -270,26 +287,37 @@ VALUES
 INSERT INTO `RaceResult`
   (`resultID`, `raceEntryID`, `finishPosition`, `finishTime`, `prizeMoney`, `recordedAt`, `recordedBy`)
 VALUES
-  (1, 3, 1, '00:01:12.450', 40000000.00, DATE_SUB(@seed_now, INTERVAL 120 DAY), 8);
+  (1, 3,  1, '00:01:12.450', 40000000.00, DATE_SUB(@seed_now, INTERVAL 120 DAY), 8),
+  (2, 9,  1, '00:01:47.820', 60000000.00, DATE_SUB(@seed_now, INTERVAL 119 DAY), 9),
+  (3, 13, 2, '00:01:50.360', 36000000.00, DATE_SUB(@seed_now, INTERVAL 119 DAY), 9),
+  (4, 14, 3, '00:01:52.910', 24000000.00, DATE_SUB(@seed_now, INTERVAL 119 DAY), 9);
+
+INSERT INTO `PrizeDistribution`
+  (`prizeDistributionID`, `raceID`, `raceEntryID`, `racePrizeID`, `ownerID`, `jockeyID`, `totalPrize`, `ownerAmount`, `jockeyAmount`, `status`, `distributedAt`, `createdAt`)
+VALUES
+  (1, 4, 3,  10, 4, 6, 40000000.00, 32000000.00,  8000000.00, 'PENDING', NULL, DATE_SUB(@seed_now, INTERVAL 120 DAY)),
+  (2, 5, 9,  13, 3, 5, 60000000.00, 48000000.00, 12000000.00, 'PENDING', NULL, DATE_SUB(@seed_now, INTERVAL 119 DAY)),
+  (3, 5, 13, 14, 3, 7, 36000000.00, 28800000.00,  7200000.00, 'PENDING', NULL, DATE_SUB(@seed_now, INTERVAL 119 DAY)),
+  (4, 5, 14, 15, 4, 6, 24000000.00, 19200000.00,  4800000.00, 'PENDING', NULL, DATE_SUB(@seed_now, INTERVAL 119 DAY));
 
 INSERT INTO `HorsePerformanceSummary`
   (`horseID`, `totalRaces`, `top1Count`, `top2Count`, `top3Count`, `violationCount`, `disqualifiedCount`, `lastUpdatedAt`)
 VALUES
-  (1, 12, 4, 3, 2, 0, 0, DATE_SUB(@seed_now, INTERVAL 15 DAY)),
-  (2, 9,  2, 2, 3, 1, 0, DATE_SUB(@seed_now, INTERVAL 18 DAY)),
-  (3, 15, 5, 4, 2, 0, 0, DATE_SUB(@seed_now, INTERVAL 20 DAY)),
-  (4, 7,  1, 3, 1, 0, 0, DATE_SUB(@seed_now, INTERVAL 22 DAY)),
-  (5, 18, 6, 5, 4, 1, 0, DATE_SUB(@seed_now, INTERVAL 12 DAY)),
+  (1, 0,  0, 0, 0, 0, 0, @seed_now),
+  (2, 0,  0, 0, 0, 0, 0, @seed_now),
+  (3, 1,  1, 0, 0, 0, 0, DATE_SUB(@seed_now, INTERVAL 119 DAY)),
+  (4, 1,  0, 1, 0, 0, 0, DATE_SUB(@seed_now, INTERVAL 119 DAY)),
+  (5, 1,  0, 0, 1, 0, 0, DATE_SUB(@seed_now, INTERVAL 119 DAY)),
   (6, 1,  1, 0, 0, 0, 0, DATE_SUB(@seed_now, INTERVAL 120 DAY)),
   (7, 0,  0, 0, 0, 0, 0, @seed_now),
-  (8, 4,  0, 1, 1, 0, 1, DATE_SUB(@seed_now, INTERVAL 35 DAY));
+  (8, 0,  0, 0, 0, 0, 0, @seed_now);
 
 INSERT INTO `JockeyPerformanceSummary`
   (`jockeyID`, `totalRaces`, `top1Count`, `top2Count`, `top3Count`, `winRate`, `violationCount`, `disqualifiedCount`, `lastUpdatedAt`)
 VALUES
-  (5, 48, 13, 11, 8, 27.08, 1, 0, DATE_SUB(@seed_now, INTERVAL 12 DAY)),
-  (6, 39, 9,  10, 7, 23.08, 0, 0, DATE_SUB(@seed_now, INTERVAL 120 DAY)),
-  (7, 5,  1,  1,  1, 20.00, 0, 0, DATE_SUB(@seed_now, INTERVAL 30 DAY));
+  (5, 1, 1, 0, 0, 100.00, 0, 0, DATE_SUB(@seed_now, INTERVAL 119 DAY)),
+  (6, 2, 1, 0, 1, 50.00,  0, 0, DATE_SUB(@seed_now, INTERVAL 119 DAY)),
+  (7, 1, 0, 1, 0, 0.00,   0, 0, DATE_SUB(@seed_now, INTERVAL 119 DAY));
 
 INSERT INTO `RefereeAssignment`
   (`assignmentID`, `raceID`, `refereeUserID`, `assignedAt`, `status`)
@@ -338,6 +366,7 @@ UNION ALL SELECT 'BetTicket', COUNT(*) FROM `BetTicket`
 UNION ALL SELECT 'BetSettlement', COUNT(*) FROM `BetSettlement`
 UNION ALL SELECT 'WalletTransaction', COUNT(*) FROM `WalletTransaction`
 UNION ALL SELECT 'RaceResult', COUNT(*) FROM `RaceResult`
+UNION ALL SELECT 'PrizeDistribution', COUNT(*) FROM `PrizeDistribution`
 UNION ALL SELECT 'HorsePerformanceSummary', COUNT(*) FROM `HorsePerformanceSummary`
 UNION ALL SELECT 'JockeyPerformanceSummary', COUNT(*) FROM `JockeyPerformanceSummary`
 UNION ALL SELECT 'RefereeAssignment', COUNT(*) FROM `RefereeAssignment`

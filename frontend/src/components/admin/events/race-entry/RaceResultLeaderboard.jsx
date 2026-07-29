@@ -69,6 +69,24 @@ function rankTone(position) {
   };
 }
 
+function calculateSharePercent(amount, total) {
+  const amountValue = Number(amount || 0);
+  const totalValue = Number(total || 0);
+
+  if (!Number.isFinite(amountValue)
+    || !Number.isFinite(totalValue)
+    || totalValue <= 0) {
+    return '0%';
+  }
+
+  const percent = (amountValue / totalValue) * 100;
+  if (Number.isInteger(percent)) {
+    return `${percent}%`;
+  }
+
+  return `${percent.toFixed(1).replace(/\.0$/, '')}%`;
+}
+
 export default function RaceResultLeaderboard({
   race,
   results,
@@ -116,6 +134,9 @@ export default function RaceResultLeaderboard({
         {results.map((result) => {
           const distributionStatus = String(result.distributionStatus || 'NO_PRIZE').toUpperCase();
           const tone = rankTone(result.finishPosition);
+          const rowPrizeTotal = result.totalPrize ?? result.prizeMoney ?? 0;
+          const ownerSharePercent = calculateSharePercent(result.ownerAmount, rowPrizeTotal);
+          const jockeySharePercent = calculateSharePercent(result.jockeyAmount, rowPrizeTotal);
           const canMarkPayout = typeof canMarkOwnerPayoutPaid === 'function'
             ? canMarkOwnerPayoutPaid(result)
             : true;
@@ -171,12 +192,12 @@ export default function RaceResultLeaderboard({
                   </div>
                   <div className="grid w-full gap-2 text-xs sm:grid-cols-2 md:grid-cols-1 lg:grid-cols-2">
                     <span className="rounded-md border border-emerald-100 bg-emerald-50 px-2.5 py-2 font-black text-emerald-700">
-                      <span className="block text-[0.62rem] uppercase text-emerald-900/55">{t('eventDomainOwner')}</span>
-                      {formatVndCurrency(result.ownerAmount || 0)}
+                      <span className="block text-[0.62rem] uppercase text-emerald-900/55">{t('eventDomainOwner')} · {ownerSharePercent}</span>
+                      <span className="block leading-tight">{formatVndCurrency(result.ownerAmount || 0)}</span>
                     </span>
                     <span className="rounded-md border border-sky-100 bg-sky-50 px-2.5 py-2 font-black text-sky-700">
-                      <span className="block text-[0.62rem] uppercase text-sky-900/55">{t('eventDomainJockey')}</span>
-                      {formatVndCurrency(result.jockeyAmount || 0)}
+                      <span className="block text-[0.62rem] uppercase text-sky-900/55">{t('eventDomainJockey')} · {jockeySharePercent}</span>
+                      <span className="block leading-tight">{formatVndCurrency(result.jockeyAmount || 0)}</span>
                     </span>
                   </div>
                   <div className={`flex items-center justify-between gap-2 rounded-md border px-2.5 py-2 text-[0.68rem] font-black uppercase ${DISTRIBUTION_STATUS_STYLES[distributionStatus] || DISTRIBUTION_STATUS_STYLES.NO_PRIZE}`}>

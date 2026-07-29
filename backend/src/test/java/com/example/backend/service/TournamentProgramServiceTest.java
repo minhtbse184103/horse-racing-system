@@ -284,6 +284,55 @@ class TournamentProgramServiceTest {
     }
 
     @Test
+    void createTournamentProgramRejectsPrizeCountGreaterThanMaxRunners() {
+        CreateTournamentProgramRequest request = validProgramRequest();
+        CreateTournamentProgramRaceRequest firstRace = request.getRaces().getFirst();
+        firstRace.setMaxRunners(3);
+        firstRace.setPrizes(List.of(
+                prizeRequest(1),
+                prizeRequest(2),
+                prizeRequest(3),
+                prizeRequest(4)
+        ));
+
+        stubAdmin();
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.createTournamentProgram(request, "admin@example.com")
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        assertEquals(
+                "Race prize count cannot exceed maximum runners.",
+                exception.getMessage()
+        );
+        verifyNoProgramSave();
+    }
+
+    @Test
+    void createTournamentProgramRejectsPrizeRankGreaterThanMaxRunners() {
+        CreateTournamentProgramRequest request = validProgramRequest();
+        CreateTournamentProgramRaceRequest firstRace = request.getRaces().getFirst();
+        firstRace.setMaxRunners(3);
+        firstRace.setPrizes(List.of(prizeRequest(4)));
+
+        stubAdmin();
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.createTournamentProgram(request, "admin@example.com")
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        assertEquals(
+                "Prize rank cannot exceed maximum runners.",
+                exception.getMessage()
+        );
+        verifyNoProgramSave();
+    }
+
+    @Test
     void createTournamentProgramRejectsInvalidPrizeSplit() {
         CreateTournamentProgramRequest request = validProgramRequest();
         request.getRaces().getFirst().getPrizes().getFirst()
@@ -404,8 +453,12 @@ class TournamentProgramServiceTest {
     }
 
     private RacePrizeRequest prizeRequest() {
+        return prizeRequest(1);
+    }
+
+    private RacePrizeRequest prizeRequest(Integer rankPosition) {
         RacePrizeRequest request = new RacePrizeRequest();
-        request.setRankPosition(1);
+        request.setRankPosition(rankPosition);
         request.setAmount(new BigDecimal("50000"));
         request.setOwnerPercent(new BigDecimal("80"));
         request.setJockeyPercent(new BigDecimal("20"));
