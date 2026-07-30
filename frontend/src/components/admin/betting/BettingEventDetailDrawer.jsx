@@ -1,7 +1,106 @@
-import { ArrowUpRight, CircleDollarSign, Loader2, Settings2, Ticket, X } from 'lucide-react';
-import { dateTime, IconButton, money, StatCard, StatusBadge } from './bettingUi';
+import { useEffect, useState } from 'react';
+import { ArrowUpRight, CircleDollarSign, Clock3, Loader2, Save, Settings2, Ticket, X } from 'lucide-react';
+import {
+  dateTime,
+  fromDateTimeLocal,
+  IconButton,
+  inputClass,
+  latestBetCloseAt,
+  money,
+  StatCard,
+  StatusBadge,
+  toDateTimeLocal
+} from './bettingUi';
+const EDITABLE_STATUSES = new Set(['DRAFT', 'OPEN', 'CLOSED']);
 
-export default function BettingEventDetailDrawer({ detail, settlementDetail, isLoading, error, onClose, onViewSettlement }) {
+function CloseTimeEditor({ event, onUpdate }) {
+  const [closeAt, setCloseAt] = useState('');
+  const [saveError, setSaveError] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    setCloseAt(toDateTimeLocal(event?.closeAt));
+    setSaveError('');
+  }, [event?.betEventId, event?.closeAt]);
+
+  if (!event) return null;
+
+  const status = String(event.status || '').toUpperCase();
+  const editable = EDITABLE_STATUSES.has(status);
+  const latestCloseAt = latestBetCloseAt(event.raceStartTime);
+  const latestCloseValue = toDateTimeLocal(latestCloseAt);
+
+  async function save() {
+    const selected = new Date(closeAt);
+    if (!closeAt || Number.isNaN(selected.getTime())) {
+      setSaveError('Vui lòng chọn thời gian đóng cược.');
+      return;
+    }
+    if (selected <= new Date()) {
+      setSaveError('Close time phải ở tương lai.');
+      return;
+    }
+    if (selected > latestCloseAt) {
+      setSaveError('Cược phải đóng tối thiểu 5 phút trước race start.');
+      return;
+    }
+
+    setIsSaving(true);
+    setSaveError('');
+    try {
+      await onUpdate(event.betEventId, { closeAt: fromDateTimeLocal(closeAt) });
+    } catch (updateError) {
+      setSaveError(updateError.message || 'Không thể cập nhật thời gian đóng cược.');
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  return (
+    <section className="rounded-2xl border border-brown-200 bg-white p-5">
+      <div className="flex items-start gap-3">
+        <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-cream-100 text-brown-700"><Clock3 size={18} /></span>
+        <div>
+          <h3 className="font-black text-brown-950">Thời gian tự động đóng cược</h3>
+          <p className="mt-1 text-sm font-semibold text-slate-500">
+            Hệ thống tự chuyển OPEN sang CLOSED tại close time. Muộn nhất {dateTime(latestCloseAt)}.
+          </p>
+        </div>
+      </div>
+      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
+        <label className="grid flex-1 gap-2">
+          <span className="text-xs font-black uppercase tracking-wide text-slate-500">Close time</span>
+          <input
+            type="datetime-local"
+            min={toDateTimeLocal(new Date())}
+            max={latestCloseValue}
+            className={inputClass}
+            value={closeAt}
+            onChange={(changeEvent) => {
+              setCloseAt(changeEvent.target.value);
+              setSaveError('');
+            }}
+            disabled={!editable || isSaving}
+          />
+        </label>
+        <button
+          type="button"
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-brown-700 px-4 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-50"
+          onClick={save}
+          disabled={!editable || isSaving || closeAt === toDateTimeLocal(event.closeAt)}
+        >
+          {isSaving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+          {isSaving ? 'Đang lưu...' : 'Lưu close time'}
+        </button>
+      </div>
+      {!editable && <p className="mt-3 text-xs font-bold text-amber-700">Event đã settle hoặc hủy nên không thể chỉnh lịch.</p>}
+      {status === 'CLOSED' && editable && <p className="mt-3 text-xs font-bold text-slate-600">Sau khi chỉnh event vẫn CLOSED; Admin cần bấm Open để nhận cược lại.</p>}
+      {saveError && <p className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm font-bold text-red-700">{saveError}</p>}
+    </section>
+  );
+}
+
+export default function BettingEventDetailDrawer({ detail, settlementDetail, isLoading, error, onClose, onViewSettlement, onUpdateCloseTime }) {
   const event = detail?.event;
   const tickets = settlementDetail?.tickets || detail?.tickets || [];
   const settlement = settlementDetail?.settlement || detail?.settlement;
@@ -39,6 +138,8 @@ export default function BettingEventDetailDrawer({ detail, settlementDetail, isL
                 <StatCard label="Operator fee" value={money(settlement?.operatorFee)} description="Phí hệ thống từ settlement" icon={Settings2} tone="text-amber-700" />
                 <StatCard label="Ticket count" value={tickets.length} description="Tổng ticket liên quan" icon={Ticket} tone="text-sky-700" />
               </div>
+
+              {event && <CloseTimeEditor event={event} onUpdate={onUpdateCloseTime} />}
 
               {event?.entries?.length > 0 && (
                 <section className="rounded-2xl border border-brown-200 bg-white">

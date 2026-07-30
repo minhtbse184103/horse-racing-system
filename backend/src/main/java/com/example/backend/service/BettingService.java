@@ -10,6 +10,7 @@ import com.example.backend.constant.WalletStatus;
 import com.example.backend.constant.WalletTransactionType;
 import com.example.backend.dto.request.CreateBetEventRequest;
 import com.example.backend.dto.request.PlaceBetRequest;
+import com.example.backend.dto.request.UpdateBetEventCloseTimeRequest;
 import com.example.backend.dto.request.UpdateBetProductRequest;
 import com.example.backend.dto.response.AdminBetEventDetailResponse;
 import com.example.backend.dto.response.AdminBetSettlementDetailResponse;
@@ -73,6 +74,10 @@ import java.util.stream.Collectors;
 public class BettingService {
 
     private static final BigDecimal DEFAULT_MIN_STAKE = new BigDecimal("10000.00");
+    private static final int MAX_OPEN_BEFORE_RACE_HOURS = 12;
+    private static final int MIN_CLOSE_BEFORE_RACE_MINUTES = 5;
+    private static final Set<String> EDITABLE_SCHEDULE_STATUSES =
+            Set.of(BetEventStatus.DRAFT, BetEventStatus.OPEN, BetEventStatus.CLOSED);
     private static final Set<String> ACTIVE_TICKET_STATUSES =
             Set.of(BetTicketStatus.PLACED, BetTicketStatus.WON, BetTicketStatus.LOST);
 
@@ -125,9 +130,11 @@ public class BettingService {
     }
 
     @Transactional(readOnly = true)
-    public List<BetEventResponse> getOpenEvents() {
+    public List<BetEventResponse> getVisibleEvents() {
+        // DRAFT hiện đại diện cho event đã lên lịch và được trình bày là "sắp mở".
+        // OPEN là đang/sắp nhận cược theo openAt; CLOSED giữ lại cho bộ lọc lịch sử.
         return betEventRepository.findByStatusInOrderByOpenAtAsc(
-                        List.of(BetEventStatus.OPEN, BetEventStatus.CLOSED)
+                        List.of(BetEventStatus.DRAFT, BetEventStatus.OPEN, BetEventStatus.CLOSED)
                 )
                 .stream()
                 .map(event -> toEventResponse(event, true))
@@ -145,11 +152,14 @@ public class BettingService {
 
     @Transactional(readOnly = true)
     public List<AdminBettingEligibleRaceResponse> getEligibleRaces(Integer betProductId) {
+        // Loại Race quá sát giờ vì không còn đủ mốc đóng cược tối thiểu 5 phút.
         getActiveProduct(betProductId);
+        LocalDateTime latestEligibleCutoff = LocalDateTime.now()
+                .plusMinutes(MIN_CLOSE_BEFORE_RACE_MINUTES);
         return raceRepository.findEligibleForBetting(
                         betProductId,
                         EventStatus.ENTRIES_FINALIZED,
-                        LocalDateTime.now()
+                        latestEligibleCutoff
                 )
                 .stream()
                 .map(race -> AdminBettingEligibleRaceResponse.builder()
@@ -164,6 +174,7 @@ public class BettingService {
 
     @Transactional(readOnly = true)
     public AdminBetEventDetailResponse getAdminEventDetail(Integer eventId, String adminEmail) {
+        // Detail đã trả kèm ticket nên không cần duy trì thêm API tickets riêng lẻ.
         getAdmin(adminEmail);
         BetEvent event = getEventOrThrow(eventId);
         return AdminBetEventDetailResponse.builder()
@@ -173,13 +184,6 @@ public class BettingService {
                         .map(this::toSettlementResponse)
                         .orElse(null))
                 .build();
-    }
-
-    @Transactional(readOnly = true)
-    public List<AdminBetTicketResponse> getAdminEventTickets(Integer eventId, String adminEmail) {
-        getAdmin(adminEmail);
-        BetEvent event = getEventOrThrow(eventId);
-        return getAdminTicketsForEvent(event.getBetEventId());
     }
 
     @Transactional(readOnly = true)
@@ -210,7 +214,13 @@ public class BettingService {
 
     @Transactional
     public BetEventResponse createEvent(CreateBetEventRequest request, String adminEmail) {
+        // Khóa Race để trạng thái finalize và giờ chạy không đổi trong lúc tạo BetEvent.
         User admin = getAdmin(adminEmail);
+        boolean openNow = Boolean.TRUE.equals(request.getOpenNow());
+        if (!openNow && request.getOpenAt() == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Scheduled open time is required.");
+        }
+        LocalDateTime effectiveOpenAt = openNow ? LocalDateTime.now() : request.getOpenAt();
         Race race = raceRepository.findByIdForUpdate(request.getRaceId())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Race does not exist."));
         BetProduct product = getActiveProduct(request.getBetProductId());
@@ -218,13 +228,17 @@ public class BettingService {
         if (betEventRepository.existsByRaceIdAndBetProductId(race.getRaceId(), product.getBetProductId())) {
             throw new ApiException(HttpStatus.CONFLICT, "Bet event already exists for this race and product.");
         }
-        validateEventWindow(race, request.getOpenAt(), request.getCloseAt());
+        if (!openNow && request.getOpenAt().isBefore(LocalDateTime.now())) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Scheduled open time must be in the future.");
+        }
+        validateEventWindow(race, effectiveOpenAt, request.getCloseAt());
 
         BetEvent event = new BetEvent();
         event.setRaceId(race.getRaceId());
         event.setBetProductId(product.getBetProductId());
-        event.setStatus(BetEventStatus.DRAFT);
-        event.setOpenAt(request.getOpenAt());
+        // Open now được ghi OPEN ngay trong cùng transaction; lịch tương lai giữ DRAFT cho scheduler.
+        event.setStatus(openNow ? BetEventStatus.OPEN : BetEventStatus.DRAFT);
+        event.setOpenAt(effectiveOpenAt);
         event.setCloseAt(request.getCloseAt());
         event.setOperatorFeeRate(request.getOperatorFeeRate() != null
                 ? normalizeRate(request.getOperatorFeeRate())
@@ -235,7 +249,31 @@ public class BettingService {
     }
 
     @Transactional
+    public BetEventResponse updateEventCloseTime(
+            Integer eventId,
+            UpdateBetEventCloseTimeRequest request
+    ) {
+        // Khóa BetEvent để không sửa closeAt đồng thời với place bet, đóng event hoặc settlement.
+        BetEvent event = betEventRepository.findByIdForUpdate(eventId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Bet event does not exist."));
+        if (!EDITABLE_SCHEDULE_STATUSES.contains(event.getStatus())) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "Only draft, open, or closed betting events can update close time."
+            );
+        }
+
+        Race race = getRace(event.getRaceId());
+        validateRaceCanHostBetting(race);
+        validateEventWindow(race, event.getOpenAt(), request.getCloseAt());
+
+        event.setCloseAt(request.getCloseAt());
+        return toEventResponse(betEventRepository.save(event), true);
+    }
+
+    @Transactional
     public BetEventResponse openEvent(Integer eventId) {
+        // Event chỉ được mở khi Race còn hợp lệ và toàn bộ cửa thời gian vẫn còn hiệu lực.
         BetEvent event = betEventRepository.findByIdForUpdate(eventId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Bet event does not exist."));
         if (!BetEventStatus.DRAFT.equals(event.getStatus())
@@ -249,6 +287,7 @@ public class BettingService {
 
     @Transactional
     public BetEventResponse closeEvent(Integer eventId) {
+        // Đóng thủ công sớm hơn closeAt; scheduler xử lý trường hợp hết giờ tự nhiên.
         BetEvent event = betEventRepository.findByIdForUpdate(eventId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Bet event does not exist."));
         if (!BetEventStatus.OPEN.equals(event.getStatus())) {
@@ -256,6 +295,29 @@ public class BettingService {
         }
         event.setStatus(BetEventStatus.CLOSED);
         return toEventResponse(betEventRepository.save(event), true);
+    }
+
+    @Transactional
+    public int closeExpiredOpenEvents() {
+        // Một câu update nguyên tử giữ trạng thái UI/API đồng bộ với closeAt.
+        LocalDateTime now = LocalDateTime.now();
+        return betEventRepository.closeExpiredOpenEvents(
+                BetEventStatus.OPEN,
+                BetEventStatus.CLOSED,
+                now
+        );
+    }
+
+    @Transactional
+    public int openScheduledEvents() {
+        // Update nguyên tử giúp scheduler và thao tác Open thủ công không mở trùng event.
+        LocalDateTime now = LocalDateTime.now();
+        return betEventRepository.openScheduledDraftEvents(
+                BetEventStatus.DRAFT,
+                BetEventStatus.OPEN,
+                EventStatus.ENTRIES_FINALIZED,
+                now
+        );
     }
 
     @Transactional
@@ -577,12 +639,14 @@ public class BettingService {
     }
 
     private void validateEventCanOpen(BetEvent event) {
+        // Dùng chung validation với create/update và chặn mở lại event đã hết giờ.
         Race race = getRace(event.getRaceId());
         validateRaceCanHostBetting(race);
         validateEventWindow(race, event.getOpenAt(), event.getCloseAt());
     }
 
     private void validateRaceCanHostBetting(Race race) {
+        // Danh sách ngựa phải được Admin khóa trước khi cấu hình hay mở cược.
         if (!EventStatus.ENTRIES_FINALIZED.equals(race.getStatus())
                 || race.getEntryFinalizedAt() == null) {
             throw new ApiException(
@@ -599,16 +663,17 @@ public class BettingService {
     }
 
     private void validateEventWindow(Race race, LocalDateTime openAt, LocalDateTime closeAt) {
+        // Một nguồn validation duy nhất cho tạo event, chỉnh closeAt và mở event.
         if (!openAt.isBefore(closeAt)) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Betting open time must be before close time.");
         }
-        if (!closeAt.isBefore(race.getRaceStartTime())) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Betting must close before race start time.");
+        if (!LocalDateTime.now().isBefore(closeAt)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Close time must be in the future.");
         }
-        if (closeAt.isAfter(race.getRaceStartTime().minusMinutes(1))) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Betting must close at least 1 minute before race start.");
+        if (closeAt.isAfter(race.getRaceStartTime().minusMinutes(MIN_CLOSE_BEFORE_RACE_MINUTES))) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Betting must close at least 5 minutes before race start.");
         }
-        if (openAt.isBefore(race.getRaceStartTime().minusHours(12))) {
+        if (openAt.isBefore(race.getRaceStartTime().minusHours(MAX_OPEN_BEFORE_RACE_HOURS))) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Betting cannot open more than 12 hours before race start.");
         }
     }
@@ -701,6 +766,7 @@ public class BettingService {
         Race race = getRace(event.getRaceId());
         BetProduct product = getProduct(event.getBetProductId());
         BigDecimal totalStake = betTicketRepository.sumStakeByEvent(event.getBetEventId(), ACTIVE_TICKET_STATUSES);
+        BigDecimal raceTotalStake = betTicketRepository.sumStakeByRace(event.getRaceId(), ACTIVE_TICKET_STATUSES);
         return BetEventResponse.builder()
                 .betEventId(event.getBetEventId())
                 .raceId(event.getRaceId())
@@ -717,6 +783,7 @@ public class BettingService {
                 .maxDailyStake(product.getMaxDailyStake())
                 .operatorFeeRate(event.getOperatorFeeRate())
                 .totalStake(valueOrZero(totalStake))
+                .raceTotalStake(valueOrZero(raceTotalStake))
                 .entries(includeEntries ? getEntryOptions(event) : List.of())
                 .build();
     }

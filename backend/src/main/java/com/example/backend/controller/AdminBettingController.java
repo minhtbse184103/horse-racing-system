@@ -1,11 +1,11 @@
 package com.example.backend.controller;
 
 import com.example.backend.dto.request.CreateBetEventRequest;
+import com.example.backend.dto.request.UpdateBetEventCloseTimeRequest;
 import com.example.backend.dto.request.UpdateBetProductRequest;
 import com.example.backend.dto.response.AdminBetEventDetailResponse;
 import com.example.backend.dto.response.AdminBetSettlementDetailResponse;
 import com.example.backend.dto.response.AdminBetSettlementSummaryResponse;
-import com.example.backend.dto.response.AdminBetTicketResponse;
 import com.example.backend.dto.response.AdminBettingEligibleRaceResponse;
 import com.example.backend.dto.response.BetEventResponse;
 import com.example.backend.dto.response.BetProductResponse;
@@ -67,14 +67,6 @@ public class AdminBettingController {
         return bettingService.getAdminEventDetail(eventId, authentication.getName());
     }
 
-    @GetMapping("/events/{eventId}/tickets")
-    public List<AdminBetTicketResponse> getEventTickets(
-            @PathVariable Integer eventId,
-            Authentication authentication
-    ) {
-        return bettingService.getAdminEventTickets(eventId, authentication.getName());
-    }
-
     @PostMapping("/events")
     public ResponseEntity<BetEventResponse> createEvent(
             @Valid @RequestBody CreateBetEventRequest request,
@@ -83,6 +75,15 @@ public class AdminBettingController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(bettingService.createEvent(request, authentication.getName()));
+    }
+
+    @PutMapping("/events/{eventId}/close-time")
+    public BetEventResponse updateEventCloseTime(
+            @PathVariable Integer eventId,
+            @Valid @RequestBody UpdateBetEventCloseTimeRequest request
+    ) {
+        // Admin chỉnh giờ đóng; service khóa event và kiểm tra mốc an toàn trước Race.
+        return bettingService.updateEventCloseTime(eventId, request);
     }
 
     @PutMapping("/events/{eventId}/open")

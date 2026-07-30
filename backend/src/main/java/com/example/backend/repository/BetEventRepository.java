@@ -68,6 +68,48 @@ public interface BetEventRepository extends JpaRepository<BetEvent, Integer> {
             """)
     Optional<BetEvent> findByIdForUpdate(@Param("betEventId") Integer betEventId);
 
+    // LUỒNG: Tự động mở BetEvent đã được Admin lên lịch.
+    // Chỉ mở DRAFT khi đã đến openAt và closeAt vẫn còn hiệu lực.
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            update BetEvent event
+            set event.status = :openStatus,
+                event.updatedAt = :now
+            where event.status = :draftStatus
+              and event.openAt <= :now
+              and event.closeAt > :now
+              and exists (
+                  select race.raceId
+                  from Race race
+                  where race.raceId = event.raceId
+                    and race.status = :eligibleRaceStatus
+                    and race.entryFinalizedAt is not null
+                    and race.raceStartTime > :now
+              )
+            """)
+    int openScheduledDraftEvents(
+            @Param("draftStatus") String draftStatus,
+            @Param("openStatus") String openStatus,
+            @Param("eligibleRaceStatus") String eligibleRaceStatus,
+            @Param("now") java.time.LocalDateTime now
+    );
+
+    // LUỒNG: Tự động đóng cửa cược đã hết giờ.
+    // Cập nhật nguyên tử giúp scheduler an toàn khi request đặt vé đang chạy đồng thời.
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+            update BetEvent event
+            set event.status = :closedStatus,
+                event.updatedAt = :now
+            where event.status = :openStatus
+              and event.closeAt <= :now
+            """)
+    int closeExpiredOpenEvents(
+            @Param("openStatus") String openStatus,
+            @Param("closedStatus") String closedStatus,
+            @Param("now") java.time.LocalDateTime now
+    );
+
     // LUỒNG: Demo Race Fast-Forward
     // BẢNG: BetEvent.
     // Mục đích: dời khung giờ cược quanh thời điểm hiện tại khi admin fast-forward race để demo/test.

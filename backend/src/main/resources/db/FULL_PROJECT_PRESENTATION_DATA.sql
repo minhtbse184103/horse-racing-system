@@ -21,7 +21,8 @@ USE `horse_racing_system`;
 --   7. Login as spectator@gmail.com, complete KYC, deposit wallet balance, then place a bet.
 --   8. Open the prepared DRAFT betting event after at least 2 RaceEntries are assigned.
 --   9. Assign/verify Referee.
---   10. Near launch time, edit Race.raceStartTime/BetEvent.closeAt in MySQL Workbench if needed.
+--   10. Near launch time, edit Race.raceStartTime/BetEvent.closeAt if needed,
+--       keeping BetEvent.closeAt at least 5 minutes before Race.raceStartTime.
 --   11. Mark Race READY if needed and launch Unity.
 --   12. Unity submits provisional result.
 --   13. Referee confirms result.
@@ -159,7 +160,8 @@ VALUES
 INSERT INTO `BetEvent`
   (`betEventID`, `raceID`, `betProductID`, `status`, `openAt`, `closeAt`, `operatorFeeRate`, `createdBy`, `settledBy`, `settledAt`, `createdAt`, `updatedAt`)
 VALUES
-  (1, 1, 1, 'DRAFT', @seed_now, DATE_ADD(@seed_now, INTERVAL 55 MINUTE), 0.1000, 1, NULL, NULL, @seed_now, @seed_now);
+  -- Race 1 starts after 60 minutes, so this closeAt is exactly 5 minutes earlier.
+  (1, 1, 1, 'DRAFT', @seed_now, DATE_SUB(DATE_ADD(@seed_now, INTERVAL 60 MINUTE), INTERVAL 5 MINUTE), 0.1000, 1, NULL, NULL, @seed_now, @seed_now);
 
 INSERT INTO `RefereeAssignment`
   (`assignmentID`, `raceID`, `refereeUserID`, `assignedAt`, `status`)

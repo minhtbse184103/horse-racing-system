@@ -3,6 +3,8 @@ import { useLanguage } from '../../../context/LanguageContext';
 import { formatVndCurrency } from '../../../lib/eventFormatters';
 
 export const eventStatuses = ['ALL', 'DRAFT', 'OPEN', 'CLOSED', 'SETTLED', 'CANCELLED'];
+export const MIN_CLOSE_BEFORE_RACE_MS = 5 * 60 * 1000;
+export const MAX_OPEN_BEFORE_RACE_MS = 12 * 60 * 60 * 1000;
 
 const statusStyles = {
   DRAFT: 'border-slate-200 bg-slate-50 text-slate-700',
@@ -39,6 +41,19 @@ export function dateTime(value) {
 export function fromDateTimeLocal(value) {
   if (!value) return null;
   return value.length === 16 ? `${value}:00` : value;
+}
+
+export function toDateTimeLocal(value) {
+  if (!value) return '';
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const pad = (part) => String(part).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
+export function latestBetCloseAt(raceStartTime) {
+  const raceStart = new Date(raceStartTime);
+  return new Date(raceStart.getTime() - MIN_CLOSE_BEFORE_RACE_MS);
 }
 
 export function StatusBadge({ status }) {

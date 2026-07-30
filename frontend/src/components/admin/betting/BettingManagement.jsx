@@ -26,6 +26,7 @@ import {
   getAdminBetSettlements,
   openAdminBetEvent,
   settleAdminBetEvent,
+  updateAdminBetEventCloseTime,
   updateAdminBetProduct
 } from '../../../services/bettingService';
 import { useLanguage } from '../../../context/LanguageContext';
@@ -121,6 +122,12 @@ export default function BettingManagement() {
     await createAdminBetEvent(payload);
     setCreateOpen(false);
     setMessage('Đã tạo betting event.');
+    await loadData();
+  }
+
+  async function updateEventCloseTime(eventId, payload) {
+    await updateAdminBetEventCloseTime(eventId, payload);
+    setSelectedDetail(await getAdminBetEventDetail(eventId));
     await loadData();
   }
 
@@ -419,6 +426,7 @@ export default function BettingManagement() {
             setDetailError('');
           }}
           onViewSettlement={openSettlementDetail}
+          onUpdateCloseTime={updateEventCloseTime}
         />
       )}
 

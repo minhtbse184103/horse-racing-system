@@ -3,6 +3,7 @@ package com.example.backend.service;
 import com.example.backend.constant.BetEventStatus;
 import com.example.backend.constant.EventStatus;
 import com.example.backend.dto.request.CreateBetEventRequest;
+import com.example.backend.dto.request.UpdateBetEventCloseTimeRequest;
 import com.example.backend.dto.response.AdminBettingEligibleRaceResponse;
 import com.example.backend.dto.response.BetEventResponse;
 import com.example.backend.entity.BetEvent;
@@ -108,6 +109,29 @@ class BettingServiceEligibilityTest {
     }
 
     @Test
+    void getVisibleEventsIncludesPublishedEventsWithWholeRacePool() {
+        Race race = finalizedRace();
+        BetEvent event = eventFor(race);
+        event.setStatus(BetEventStatus.OPEN);
+        event.setOpenAt(LocalDateTime.now().plusMinutes(30));
+        when(betEventRepository.findByStatusInOrderByOpenAtAsc(
+                List.of(BetEventStatus.DRAFT, BetEventStatus.OPEN, BetEventStatus.CLOSED)
+        )).thenReturn(List.of(event));
+        when(raceRepository.findById(RACE_ID)).thenReturn(Optional.of(race));
+        when(betProductRepository.findById(PRODUCT_ID)).thenReturn(Optional.of(activeProduct()));
+        when(betTicketRepository.sumStakeByRace(eq(RACE_ID), any()))
+                .thenReturn(new BigDecimal("350000.00"));
+
+        List<BetEventResponse> result = service.getVisibleEvents();
+
+        assertEquals(1, result.size());
+        assertEquals(new BigDecimal("350000.00"), result.getFirst().getRaceTotalStake());
+        verify(betEventRepository).findByStatusInOrderByOpenAtAsc(
+                List.of(BetEventStatus.DRAFT, BetEventStatus.OPEN, BetEventStatus.CLOSED)
+        );
+    }
+
+    @Test
     void createEventRejectsRaceWhoseEntriesAreStillEditable() {
         Race race = finalizedRace();
         race.setStatus(EventStatus.REGISTRATION_CLOSED);
@@ -149,6 +173,111 @@ class BettingServiceEligibilityTest {
         assertEquals(99, result.getBetEventId());
         assertEquals(BetEventStatus.DRAFT, result.getStatus());
         assertEquals(RACE_ID, result.getRaceId());
+        assertEquals(race.getRaceStartTime().minusMinutes(5), result.getCloseAt());
+    }
+
+    @Test
+    void createEventWithOpenNowIsImmediatelyOpenAndUsesServerTime() {
+        Race race = finalizedRace();
+        CreateBetEventRequest request = validRequest(race);
+        request.setOpenNow(true);
+        request.setOpenAt(null);
+        stubAdmin();
+        when(raceRepository.findByIdForUpdate(RACE_ID)).thenReturn(Optional.of(race));
+        when(raceRepository.findById(RACE_ID)).thenReturn(Optional.of(race));
+        when(betProductRepository.findById(PRODUCT_ID)).thenReturn(Optional.of(activeProduct()));
+        when(betEventRepository.existsByRaceIdAndBetProductId(RACE_ID, PRODUCT_ID)).thenReturn(false);
+        when(betEventRepository.save(any(BetEvent.class))).thenAnswer(invocation -> {
+            BetEvent event = invocation.getArgument(0);
+            event.setBetEventId(100);
+            return event;
+        });
+        LocalDateTime beforeCreate = LocalDateTime.now();
+
+        BetEventResponse result = service.createEvent(request, ADMIN_EMAIL);
+
+        assertEquals(BetEventStatus.OPEN, result.getStatus());
+        assertEquals(true, !result.getOpenAt().isBefore(beforeCreate));
+        assertEquals(true, !result.getOpenAt().isAfter(LocalDateTime.now()));
+    }
+
+    @Test
+    void createEventRejectsCloseTimeLessThanFiveMinutesBeforeRace() {
+        Race race = finalizedRace();
+        CreateBetEventRequest request = validRequest(race);
+        request.setCloseAt(race.getRaceStartTime().minusMinutes(4).minusSeconds(59));
+        stubAdmin();
+        when(raceRepository.findByIdForUpdate(RACE_ID)).thenReturn(Optional.of(race));
+        when(betProductRepository.findById(PRODUCT_ID)).thenReturn(Optional.of(activeProduct()));
+        when(betEventRepository.existsByRaceIdAndBetProductId(RACE_ID, PRODUCT_ID)).thenReturn(false);
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.createEvent(request, ADMIN_EMAIL)
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        assertEquals(
+                "Betting must close at least 5 minutes before race start.",
+                exception.getMessage()
+        );
+        verify(betEventRepository, never()).save(any());
+    }
+
+    @Test
+    void updateEventCloseTimePersistsValidSchedule() {
+        Race race = finalizedRace();
+        BetEvent event = eventFor(race);
+        LocalDateTime newCloseAt = race.getRaceStartTime().minusMinutes(10);
+        UpdateBetEventCloseTimeRequest request = new UpdateBetEventCloseTimeRequest();
+        request.setCloseAt(newCloseAt);
+        when(betEventRepository.findByIdForUpdate(99)).thenReturn(Optional.of(event));
+        when(raceRepository.findById(RACE_ID)).thenReturn(Optional.of(race));
+        when(betProductRepository.findById(PRODUCT_ID)).thenReturn(Optional.of(activeProduct()));
+        when(betEventRepository.save(event)).thenReturn(event);
+
+        BetEventResponse result = service.updateEventCloseTime(99, request);
+
+        assertEquals(newCloseAt, result.getCloseAt());
+        verify(betEventRepository).save(event);
+    }
+
+    @Test
+    void closeExpiredOpenEventsUsesAtomicRepositoryUpdate() {
+        when(betEventRepository.closeExpiredOpenEvents(
+                eq(BetEventStatus.OPEN),
+                eq(BetEventStatus.CLOSED),
+                any(LocalDateTime.class)
+        )).thenReturn(2);
+
+        int updated = service.closeExpiredOpenEvents();
+
+        assertEquals(2, updated);
+        verify(betEventRepository).closeExpiredOpenEvents(
+                eq(BetEventStatus.OPEN),
+                eq(BetEventStatus.CLOSED),
+                any(LocalDateTime.class)
+        );
+    }
+
+    @Test
+    void openScheduledEventsUsesAtomicRepositoryUpdate() {
+        when(betEventRepository.openScheduledDraftEvents(
+                eq(BetEventStatus.DRAFT),
+                eq(BetEventStatus.OPEN),
+                eq(EventStatus.ENTRIES_FINALIZED),
+                any(LocalDateTime.class)
+        )).thenReturn(3);
+
+        int updated = service.openScheduledEvents();
+
+        assertEquals(3, updated);
+        verify(betEventRepository).openScheduledDraftEvents(
+                eq(BetEventStatus.DRAFT),
+                eq(BetEventStatus.OPEN),
+                eq(EventStatus.ENTRIES_FINALIZED),
+                any(LocalDateTime.class)
+        );
     }
 
     @Test
@@ -175,7 +304,7 @@ class BettingServiceEligibilityTest {
         request.setRaceId(RACE_ID);
         request.setBetProductId(PRODUCT_ID);
         request.setOpenAt(race.getRaceStartTime().minusHours(6));
-        request.setCloseAt(race.getRaceStartTime().minusMinutes(1));
+        request.setCloseAt(race.getRaceStartTime().minusMinutes(5));
         request.setOperatorFeeRate(new BigDecimal("0.1000"));
         return request;
     }
@@ -211,7 +340,7 @@ class BettingServiceEligibilityTest {
         event.setBetProductId(PRODUCT_ID);
         event.setStatus(BetEventStatus.DRAFT);
         event.setOpenAt(race.getRaceStartTime().minusHours(6));
-        event.setCloseAt(race.getRaceStartTime().minusMinutes(1));
+        event.setCloseAt(race.getRaceStartTime().minusMinutes(5));
         event.setOperatorFeeRate(new BigDecimal("0.1000"));
         return event;
     }

@@ -3,7 +3,6 @@ package com.example.backend.dto.request;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.Future;
-import jakarta.validation.constraints.FutureOrPresent;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
@@ -21,9 +20,9 @@ public class CreateBetEventRequest {
     @NotNull(message = "Bet product ID is required.")
     private Integer betProductId;
 
-    @NotNull(message = "Open time is required.")
-    @FutureOrPresent(message = "Open time cannot be in the past.")
     private LocalDateTime openAt;
+
+    private Boolean openNow = false;
 
     @NotNull(message = "Close time is required.")
     @Future(message = "Close time must be in the future.")

@@ -103,6 +103,19 @@ public interface BetTicketRepository extends JpaRepository<BetTicket, Integer> {
             @Param("statuses") Collection<String> statuses
     );
 
+    // LUỒNG: Spectator xem tổng tiền cược của toàn Race.
+    // Khác totalStake của từng BetEvent, số này cộng mọi product cược thuộc cùng Race.
+    @Query("""
+            select coalesce(sum(ticket.stake), 0)
+            from BetTicket ticket
+            where ticket.raceId = :raceId
+              and ticket.status in :statuses
+            """)
+    BigDecimal sumStakeByRace(
+            @Param("raceId") Integer raceId,
+            @Param("statuses") Collection<String> statuses
+    );
+
     // LUỒNG: Tính Entry Pool/Odds
     // BẢNG: BetTicket.
     // Mục đích: tính tổng stake đặt vào một RaceEntry trong một BetEvent.

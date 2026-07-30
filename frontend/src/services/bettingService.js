@@ -69,17 +69,19 @@ export async function getAdminBetEventDetail(eventId) {
   }));
 }
 
-export async function getAdminBetEventTickets(eventId) {
-  return unwrap(await httpRequest(`/api/admin/betting/events/${eventId}/tickets`, {
-    fallbackError: 'Unable to load betting event tickets.'
-  }));
-}
-
 export async function createAdminBetEvent(payload) {
   return unwrap(await httpRequest('/api/admin/betting/events', {
     method: 'POST',
     body: payload,
     fallbackError: 'Unable to create betting event.'
+  }));
+}
+
+export async function updateAdminBetEventCloseTime(eventId, payload) {
+  return unwrap(await httpRequest(`/api/admin/betting/events/${eventId}/close-time`, {
+    method: 'PUT',
+    body: payload,
+    fallbackError: 'Unable to update betting close time.'
   }));
 }
 

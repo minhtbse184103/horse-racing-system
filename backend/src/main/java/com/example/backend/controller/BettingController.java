@@ -33,8 +33,8 @@ public class BettingController {
     }
 
     @GetMapping("/events")
-    public List<BetEventResponse> getOpenEvents() {
-        return bettingService.getOpenEvents();
+    public List<BetEventResponse> getEvents() {
+        return bettingService.getVisibleEvents();
     }
 
     @GetMapping("/events/{eventId}")
