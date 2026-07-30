@@ -43,7 +43,7 @@ export default function ReviewStep({ draft, prizeTotal }) {
             <section className="rounded-lg border border-brown-700/10 bg-white/80 p-5">
               <p className="text-xs font-black uppercase text-brown-500">{t('eventWorkspaceParticipationConditions')}</p>
               <div className="mt-3 flex flex-wrap gap-2">
-                {draft.conditions.map((condition) => <span key={condition.id} className="rounded-full border border-brown-700/10 bg-cream-200 px-3 py-1.5 text-xs font-extrabold text-brown-700">{formatTournamentCondition(condition)}</span>)}
+                {draft.conditions.map((condition) => <span key={condition.id} className="rounded-full border border-brown-700/10 bg-cream-200 px-3 py-1.5 text-xs font-extrabold text-brown-700">{formatTournamentCondition(condition, t)}</span>)}
                 {draft.conditions.length === 0 && <span className="text-sm font-semibold text-slate-500">{t('eventWorkspaceNoConditions')}</span>}
               </div>
             </section>

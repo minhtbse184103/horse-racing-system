@@ -45,15 +45,50 @@ export const conditionOperatorLabels = {
   BETWEEN: 'Trong khoảng'
 };
 
-export function formatTournamentCondition(condition) {
+export function getConditionTypeLabel(type, t) {
+  if (typeof t === 'function') {
+    const translated = t(`eventConditionType_${type}`);
+    if (translated && translated !== `eventConditionType_${type}`) return translated;
+  }
+
+  return conditionTypeLabels[type] || type;
+}
+
+export function getConditionOperatorLabel(operator, t) {
+  if (typeof t === 'function') {
+    const translated = t(`eventConditionOperator_${operator}`);
+    if (translated && translated !== `eventConditionOperator_${operator}`) return translated;
+  }
+
+  return conditionOperatorLabels[operator] || operator;
+}
+
+export function getConditionGenderLabel(value, t) {
+  const gender = String(value || '').toUpperCase();
+  if (typeof t === 'function') {
+    const translated = t(`eventConditionGender_${gender}`);
+    if (translated && translated !== `eventConditionGender_${gender}`) return translated;
+  }
+
+  const genders = { ANY: 'Mọi giới tính', MALE: 'Đực', FEMALE: 'Cái' };
+  return genders[gender] || value;
+}
+
+export function getConditionUnit(type, t) {
+  if (type === 'AGE') return typeof t === 'function' ? ` ${t('eventConditionUnitAge')}` : ' tuổi';
+  if (type === 'WEIGHT') return typeof t === 'function' ? ` ${t('eventConditionUnitWeight')}` : ' kg';
+  return '';
+}
+
+export function formatTournamentCondition(condition, t) {
   if (typeof condition === 'string') return condition;
 
-  const type = conditionTypeLabels[condition.type] || condition.type;
-  const unit = condition.type === 'AGE' ? ' tuổi' : condition.type === 'WEIGHT' ? ' kg' : '';
+  const typeKey = condition.type || condition.conditionType;
+  const type = getConditionTypeLabel(typeKey, t);
+  const unit = getConditionUnit(typeKey, t);
 
-  if (condition.type === 'GENDER') {
-    const genders = { ANY: 'Mọi giới tính', MALE: 'Đực', FEMALE: 'Cái' };
-    return genders[condition.value] || `${type}: ${condition.value}`;
+  if (typeKey === 'GENDER') {
+    return getConditionGenderLabel(condition.value, t) || `${type}: ${condition.value}`;
   }
 
   if (condition.operator === 'BETWEEN') {

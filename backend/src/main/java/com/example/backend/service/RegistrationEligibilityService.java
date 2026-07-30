@@ -22,19 +22,22 @@ public class RegistrationEligibilityService {
     private final HorseRepository horseRepository;
     private final UserRepository userRepository;
     private final JockeyProfileRepository jockeyProfileRepository;
+    private final RegistrationAvailabilityService registrationAvailabilityService;
 
     public RegistrationEligibilityService(
             RegistrationRepository registrationRepository,
             TournamentConditionRepository conditionRepository,
             HorseRepository horseRepository,
             UserRepository userRepository,
-            JockeyProfileRepository jockeyProfileRepository
+            JockeyProfileRepository jockeyProfileRepository,
+            RegistrationAvailabilityService registrationAvailabilityService
     ) {
         this.registrationRepository = registrationRepository;
         this.conditionRepository = conditionRepository;
         this.horseRepository = horseRepository;
         this.userRepository = userRepository;
         this.jockeyProfileRepository = jockeyProfileRepository;
+        this.registrationAvailabilityService = registrationAvailabilityService;
     }
 
     public void validateNewSubmission(
@@ -198,6 +201,11 @@ public class RegistrationEligibilityService {
                     "Horse already has an approved registration in this tournament."
             );
         }
+
+        registrationAvailabilityService.validateRegistrationCanBeApproved(
+                registration,
+                tournament
+        );
 
         long approvedCount =
                 registrationRepository

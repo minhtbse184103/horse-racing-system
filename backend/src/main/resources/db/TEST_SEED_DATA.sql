@@ -45,7 +45,11 @@ VALUES
   (19, 2, 'OWNER',     'bet.owner3',    'bet.owner3@horse.test',     @seed_password, '0900000019', 'ACTIVE', @seed_now, @seed_now),
   (20, 3, 'JOCKEY',    'bet.jockey1',   'bet.jockey1@horse.test',    @seed_password, '0900000020', 'ACTIVE', @seed_now, @seed_now),
   (21, 3, 'JOCKEY',    'bet.jockey2',   'bet.jockey2@horse.test',    @seed_password, '0900000021', 'ACTIVE', @seed_now, @seed_now),
-  (22, 3, 'JOCKEY',    'bet.jockey3',   'bet.jockey3@horse.test',    @seed_password, '0900000022', 'ACTIVE', @seed_now, @seed_now);
+  (22, 3, 'JOCKEY',    'bet.jockey3',   'bet.jockey3@horse.test',    @seed_password, '0900000022', 'ACTIVE', @seed_now, @seed_now),
+  (23, 2, 'OWNER',     'owner.dara',    'owner.dara@horse.test',     @seed_password, '0900000023', 'ACTIVE', @seed_now, @seed_now),
+  (24, 2, 'OWNER',     'owner.elena',   'owner.elena@horse.test',    @seed_password, '0900000024', 'ACTIVE', @seed_now, @seed_now),
+  (25, 3, 'JOCKEY',    'jockey.gavin',  'jockey.gavin@horse.test',   @seed_password, '0900000025', 'ACTIVE', @seed_now, @seed_now),
+  (26, 3, 'JOCKEY',    'jockey.hana',   'jockey.hana@horse.test',    @seed_password, '0900000026', 'ACTIVE', @seed_now, @seed_now);
 
 INSERT INTO `user_verifications`
   (`verification_id`, `user_id`, `provider`, `provider_session_id`, `provider_session_number`, `workflow_id`, `vendor_data`, `verification_url`, `status`, `id_verification_status`, `liveness_status`, `face_match_status`, `verified_full_name`, `verified_date_of_birth`, `document_type`, `document_last_four`, `attempt_number`, `submitted_at`, `verified_at`, `expires_at`, `created_at`, `updated_at`)
@@ -64,7 +68,9 @@ VALUES
   (5, 11, 'Rejected Riverside Stable', 'Hai Chau District, Da Nang', 'https://example.com/owners/rejected/stable-certificate.pdf', 1, 'https://example.com/owners/rejected/horse-ownership.pdf', 'REJECTED', 'Stable ownership document is not readable.', DATE_SUB(@seed_now, INTERVAL 5 DAY), DATE_SUB(@seed_now, INTERVAL 3 DAY), 1, DATE_SUB(@seed_now, INTERVAL 5 DAY), DATE_SUB(@seed_now, INTERVAL 3 DAY)),
   (6, 17, 'Bet Flow Stable One', 'Thu Duc City, Ho Chi Minh City', 'https://example.com/bet-flow/owner-1/stable.pdf', 1, 'https://example.com/bet-flow/owner-1/ownership.pdf', 'APPROVED', NULL, DATE_SUB(@seed_now, INTERVAL 60 DAY), DATE_SUB(@seed_now, INTERVAL 58 DAY), 1, DATE_SUB(@seed_now, INTERVAL 60 DAY), DATE_SUB(@seed_now, INTERVAL 58 DAY)),
   (7, 18, 'Bet Flow Stable Two', 'District 7, Ho Chi Minh City', 'https://example.com/bet-flow/owner-2/stable.pdf', 1, 'https://example.com/bet-flow/owner-2/ownership.pdf', 'APPROVED', NULL, DATE_SUB(@seed_now, INTERVAL 60 DAY), DATE_SUB(@seed_now, INTERVAL 58 DAY), 1, DATE_SUB(@seed_now, INTERVAL 60 DAY), DATE_SUB(@seed_now, INTERVAL 58 DAY)),
-  (8, 19, 'Bet Flow Stable Three', 'Bien Hoa City, Dong Nai', 'https://example.com/bet-flow/owner-3/stable.pdf', 1, 'https://example.com/bet-flow/owner-3/ownership.pdf', 'APPROVED', NULL, DATE_SUB(@seed_now, INTERVAL 60 DAY), DATE_SUB(@seed_now, INTERVAL 58 DAY), 1, DATE_SUB(@seed_now, INTERVAL 60 DAY), DATE_SUB(@seed_now, INTERVAL 58 DAY));
+  (8, 19, 'Bet Flow Stable Three', 'Bien Hoa City, Dong Nai', 'https://example.com/bet-flow/owner-3/stable.pdf', 1, 'https://example.com/bet-flow/owner-3/ownership.pdf', 'APPROVED', NULL, DATE_SUB(@seed_now, INTERVAL 60 DAY), DATE_SUB(@seed_now, INTERVAL 58 DAY), 1, DATE_SUB(@seed_now, INTERVAL 60 DAY), DATE_SUB(@seed_now, INTERVAL 58 DAY)),
+  (9, 23, 'Dara Highland Stable', 'Nakhon Ratchasima Racing Farm', 'https://example.com/owners/dara/stable-certificate.pdf', 1, 'https://example.com/owners/dara/horse-ownership.pdf', 'APPROVED', NULL, DATE_SUB(@seed_now, INTERVAL 60 DAY), DATE_SUB(@seed_now, INTERVAL 58 DAY), 1, DATE_SUB(@seed_now, INTERVAL 60 DAY), DATE_SUB(@seed_now, INTERVAL 58 DAY)),
+  (10, 24, 'Elena River Stable', 'Ayutthaya Riverside Stables', 'https://example.com/owners/elena/stable-certificate.pdf', 1, 'https://example.com/owners/elena/horse-ownership.pdf', 'APPROVED', NULL, DATE_SUB(@seed_now, INTERVAL 55 DAY), DATE_SUB(@seed_now, INTERVAL 53 DAY), 1, DATE_SUB(@seed_now, INTERVAL 55 DAY), DATE_SUB(@seed_now, INTERVAL 53 DAY));
 
 INSERT INTO `OwnerProfile`
   (`ownerID`, `applicationID`, `createdAt`, `updatedAt`)
@@ -74,7 +80,9 @@ VALUES
   (4, 3, DATE_SUB(@seed_now, INTERVAL 98 DAY),  DATE_SUB(@seed_now, INTERVAL 98 DAY)),
   (17, 6, DATE_SUB(@seed_now, INTERVAL 58 DAY), DATE_SUB(@seed_now, INTERVAL 58 DAY)),
   (18, 7, DATE_SUB(@seed_now, INTERVAL 58 DAY), DATE_SUB(@seed_now, INTERVAL 58 DAY)),
-  (19, 8, DATE_SUB(@seed_now, INTERVAL 58 DAY), DATE_SUB(@seed_now, INTERVAL 58 DAY));
+  (19, 8, DATE_SUB(@seed_now, INTERVAL 58 DAY), DATE_SUB(@seed_now, INTERVAL 58 DAY)),
+  (23, 9, DATE_SUB(@seed_now, INTERVAL 58 DAY), DATE_SUB(@seed_now, INTERVAL 58 DAY)),
+  (24, 10, DATE_SUB(@seed_now, INTERVAL 53 DAY), DATE_SUB(@seed_now, INTERVAL 53 DAY));
 
 INSERT INTO `JockeyProfile`
   (`jockeyID`, `fullName`, `weight`, `biography`, `totalRaces`, `totalWins`, `createdAt`, `updatedAt`)
@@ -84,7 +92,9 @@ VALUES
   (7, 'Demo Jockey Seven', 55.25, 'New jockey awaiting verification.', 1, 0, DATE_SUB(@seed_now, INTERVAL 30 DAY), @seed_now),
   (20, 'Bet Flow Jockey One', 52.00, 'Approved jockey for the dedicated betting flow.', 0, 0, DATE_SUB(@seed_now, INTERVAL 60 DAY), @seed_now),
   (21, 'Bet Flow Jockey Two', 53.00, 'Approved jockey for the dedicated betting flow.', 0, 0, DATE_SUB(@seed_now, INTERVAL 60 DAY), @seed_now),
-  (22, 'Bet Flow Jockey Three', 54.00, 'Approved jockey for the dedicated betting flow.', 0, 0, DATE_SUB(@seed_now, INTERVAL 60 DAY), @seed_now);
+  (22, 'Bet Flow Jockey Three', 54.00, 'Approved jockey for the dedicated betting flow.', 0, 0, DATE_SUB(@seed_now, INTERVAL 60 DAY), @seed_now),
+  (25, 'Demo Jockey Gavin', 53.40, 'Reliable tactical jockey for demo race entries.', 0, 0, DATE_SUB(@seed_now, INTERVAL 50 DAY), @seed_now),
+  (26, 'Demo Jockey Hana', 52.90, 'Fast-start specialist for sprint demonstrations.', 0, 0, DATE_SUB(@seed_now, INTERVAL 45 DAY), @seed_now);
 
 INSERT INTO `JockeyVerification`
   (`verificationID`, `jockeyID`, `trainerName`, `trainerEmail`, `academyStableAddress`, `issuingAuthority`, `verificationLink`, `licenceType`, `expiryDate`, `weight`, `biography`, `verificationStatus`, `rejectionReason`, `resubmitCount`, `submittedAt`, `reviewedAt`, `reviewedBy`, `createdAt`, `updatedAt`)
@@ -95,7 +105,9 @@ VALUES
   (4, 12, 'Trainer Linh', 'linh@trainer.test', 'Saigon Racing Academy', 'Vietnam Racing Authority', 'https://example.com/verify/jockey-12', 'TRAINEE', DATE_ADD(@seed_today, INTERVAL 18 MONTH), 51.75, 'Pending jockey application waiting for admin approval.', 'PENDING', NULL, 0, DATE_SUB(@seed_now, INTERVAL 1 DAY), NULL, NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), DATE_SUB(@seed_now, INTERVAL 1 DAY)),
   (5, 20, 'Trainer Bet One', 'trainer.bet1@horse.test', 'Saigon Racing Academy', 'Vietnam Racing Authority', 'https://example.com/verify/bet-jockey-1', 'PROFESSIONAL', DATE_ADD(@seed_today, INTERVAL 2 YEAR), 52.00, 'Approved jockey for the betting flow.', 'APPROVED', NULL, 0, DATE_SUB(@seed_now, INTERVAL 60 DAY), DATE_SUB(@seed_now, INTERVAL 58 DAY), 1, DATE_SUB(@seed_now, INTERVAL 60 DAY), DATE_SUB(@seed_now, INTERVAL 58 DAY)),
   (6, 21, 'Trainer Bet Two', 'trainer.bet2@horse.test', 'Saigon Racing Academy', 'Vietnam Racing Authority', 'https://example.com/verify/bet-jockey-2', 'PROFESSIONAL', DATE_ADD(@seed_today, INTERVAL 2 YEAR), 53.00, 'Approved jockey for the betting flow.', 'APPROVED', NULL, 0, DATE_SUB(@seed_now, INTERVAL 60 DAY), DATE_SUB(@seed_now, INTERVAL 58 DAY), 1, DATE_SUB(@seed_now, INTERVAL 60 DAY), DATE_SUB(@seed_now, INTERVAL 58 DAY)),
-  (7, 22, 'Trainer Bet Three', 'trainer.bet3@horse.test', 'Saigon Racing Academy', 'Vietnam Racing Authority', 'https://example.com/verify/bet-jockey-3', 'PROFESSIONAL', DATE_ADD(@seed_today, INTERVAL 2 YEAR), 54.00, 'Approved jockey for the betting flow.', 'APPROVED', NULL, 0, DATE_SUB(@seed_now, INTERVAL 60 DAY), DATE_SUB(@seed_now, INTERVAL 58 DAY), 1, DATE_SUB(@seed_now, INTERVAL 60 DAY), DATE_SUB(@seed_now, INTERVAL 58 DAY));
+  (7, 22, 'Trainer Bet Three', 'trainer.bet3@horse.test', 'Saigon Racing Academy', 'Vietnam Racing Authority', 'https://example.com/verify/bet-jockey-3', 'PROFESSIONAL', DATE_ADD(@seed_today, INTERVAL 2 YEAR), 54.00, 'Approved jockey for the betting flow.', 'APPROVED', NULL, 0, DATE_SUB(@seed_now, INTERVAL 60 DAY), DATE_SUB(@seed_now, INTERVAL 58 DAY), 1, DATE_SUB(@seed_now, INTERVAL 60 DAY), DATE_SUB(@seed_now, INTERVAL 58 DAY)),
+  (8, 25, 'Trainer Kiet', 'kiet@trainer.test', 'Bangkok Racing Academy', 'Thailand Racing Authority', 'https://example.com/verify/jockey-25', 'PROFESSIONAL', DATE_ADD(@seed_today, INTERVAL 2 YEAR), 53.40, 'Approved jockey for unique demo assignment.', 'APPROVED', NULL, 0, DATE_SUB(@seed_now, INTERVAL 50 DAY), DATE_SUB(@seed_now, INTERVAL 48 DAY), 1, DATE_SUB(@seed_now, INTERVAL 50 DAY), DATE_SUB(@seed_now, INTERVAL 48 DAY)),
+  (9, 26, 'Trainer Suda', 'suda@trainer.test', 'Bangkok Racing Academy', 'Thailand Racing Authority', 'https://example.com/verify/jockey-26', 'PROFESSIONAL', DATE_ADD(@seed_today, INTERVAL 2 YEAR), 52.90, 'Approved jockey for unique demo assignment.', 'APPROVED', NULL, 0, DATE_SUB(@seed_now, INTERVAL 45 DAY), DATE_SUB(@seed_now, INTERVAL 43 DAY), 1, DATE_SUB(@seed_now, INTERVAL 45 DAY), DATE_SUB(@seed_now, INTERVAL 43 DAY));
 
 INSERT INTO `JockeyVerificationFile`
   (`fileID`, `verificationID`, `fileUrl`, `fileType`, `uploadedAt`)
@@ -106,7 +118,9 @@ VALUES
   (4, 4, 'https://picsum.photos/seed/jockey-12-license/900/560', 'IMAGE', DATE_SUB(@seed_now, INTERVAL 1 DAY)),
   (5, 5, 'https://picsum.photos/seed/bet-jockey-1-license/900/560', 'IMAGE', DATE_SUB(@seed_now, INTERVAL 60 DAY)),
   (6, 6, 'https://picsum.photos/seed/bet-jockey-2-license/900/560', 'IMAGE', DATE_SUB(@seed_now, INTERVAL 60 DAY)),
-  (7, 7, 'https://picsum.photos/seed/bet-jockey-3-license/900/560', 'IMAGE', DATE_SUB(@seed_now, INTERVAL 60 DAY));
+  (7, 7, 'https://picsum.photos/seed/bet-jockey-3-license/900/560', 'IMAGE', DATE_SUB(@seed_now, INTERVAL 60 DAY)),
+  (8, 8, 'https://picsum.photos/seed/jockey-25-license/900/560', 'IMAGE', DATE_SUB(@seed_now, INTERVAL 50 DAY)),
+  (9, 9, 'https://picsum.photos/seed/jockey-26-license/900/560', 'IMAGE', DATE_SUB(@seed_now, INTERVAL 45 DAY));
 
 INSERT INTO `Wallet`
   (`walletID`, `userID`, `balance`, `lockedBalance`, `currency`, `status`, `createdAt`, `updatedAt`)
@@ -129,7 +143,9 @@ VALUES
   (8, 3, 'Demo Eclipse', 6, DATE_SUB(@seed_today, INTERVAL 6 YEAR), 490.00, 'Black',    'FEMALE', 'Thoroughbred', 'Demo Trainer', DATE_ADD(@seed_today, INTERVAL 1 YEAR), 'https://example.com/horses/8/health.pdf', 'https://www.racingandsports.com.au/thoroughbred/horse/demo-eclipse', 'REJECTED', 'Health certificate image is unclear.', @seed_now, @seed_now),
   (9, 17, 'Bet Flow Lightning', 4, DATE_SUB(@seed_today, INTERVAL 4 YEAR), 482.00, 'Bay', 'MALE', 'Thoroughbred', 'Bet Flow Trainer One', DATE_ADD(@seed_today, INTERVAL 1 YEAR), 'https://example.com/bet-flow/horses/9-health.pdf', 'https://example.com/bet-flow/horses/9-profile', 'ACTIVE', NULL, DATE_SUB(@seed_now, INTERVAL 55 DAY), @seed_now),
   (10, 18, 'Bet Flow Hurricane', 5, DATE_SUB(@seed_today, INTERVAL 5 YEAR), 495.00, 'Black', 'MALE', 'Thoroughbred', 'Bet Flow Trainer Two', DATE_ADD(@seed_today, INTERVAL 1 YEAR), 'https://example.com/bet-flow/horses/10-health.pdf', 'https://example.com/bet-flow/horses/10-profile', 'ACTIVE', NULL, DATE_SUB(@seed_now, INTERVAL 55 DAY), @seed_now),
-  (11, 19, 'Bet Flow Starlight', 4, DATE_SUB(@seed_today, INTERVAL 4 YEAR), 478.00, 'Grey', 'MALE', 'Thoroughbred', 'Bet Flow Trainer Three', DATE_ADD(@seed_today, INTERVAL 1 YEAR), 'https://example.com/bet-flow/horses/11-health.pdf', 'https://example.com/bet-flow/horses/11-profile', 'ACTIVE', NULL, DATE_SUB(@seed_now, INTERVAL 55 DAY), @seed_now);
+  (11, 19, 'Bet Flow Starlight', 4, DATE_SUB(@seed_today, INTERVAL 4 YEAR), 478.00, 'Grey', 'MALE', 'Thoroughbred', 'Bet Flow Trainer Three', DATE_ADD(@seed_today, INTERVAL 1 YEAR), 'https://example.com/bet-flow/horses/11-health.pdf', 'https://example.com/bet-flow/horses/11-profile', 'ACTIVE', NULL, DATE_SUB(@seed_now, INTERVAL 55 DAY), @seed_now),
+  (12, 23, 'Demo Tempest', 5, DATE_SUB(@seed_today, INTERVAL 5 YEAR), 505.00, 'Bay',     'MALE',   'Thoroughbred', 'Demo Trainer', DATE_ADD(@seed_today, INTERVAL 1 YEAR), 'https://example.com/horses/12/health.pdf', 'https://www.racingandsports.com.au/thoroughbred/horse/demo-tempest', 'ACTIVE', NULL, @seed_now, @seed_now),
+  (13, 24, 'Demo Sapphire', 4, DATE_SUB(@seed_today, INTERVAL 4 YEAR), 492.00, 'Grey',  'FEMALE', 'Thoroughbred', 'Demo Trainer', DATE_ADD(@seed_today, INTERVAL 1 YEAR), 'https://example.com/horses/13/health.pdf', 'https://www.racingandsports.com.au/thoroughbred/horse/demo-sapphire', 'ACTIVE', NULL, @seed_now, @seed_now);
 
 INSERT INTO `Tournament`
   (`tournamentID`, `tournamentName`, `venue`, `venueImageUrl`, `description`, `registrationOpenAt`, `registrationCloseAt`, `startDate`, `endDate`, `maxRegistrations`, `entryFee`, `status`, `createdBy`, `createdAt`, `updatedAt`)
@@ -200,8 +216,8 @@ VALUES
   -- assigned below, and REG-DEMO-013 is intentionally left unassigned so Admin
   -- can demo the final RaceEntry assignment before launch.
   (8, 1, 1, 2, 5,    'REG-DEMO-008', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now, 1, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now),
-  (9, 1, 2, 2, 6,    'REG-DEMO-009', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now, 1, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now),
-  (10, 1, 3, 3, 5,   'REG-DEMO-010', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now, 1, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now),
+  (9, 1, 12, 23, 25, 'REG-DEMO-009', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now, 1, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now),
+  (10, 1, 13, 24, 26, 'REG-DEMO-010', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now, 1, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now),
   (11, 1, 4, 3, 6,   'REG-DEMO-011', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now, 1, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now),
   (12, 1, 5, 4, 7,   'REG-DEMO-012', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now, 1, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now),
   (13, 1, 6, 4, 6,   'REG-DEMO-013', 'PAID',   'APPROVED',  NULL, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now, 1, DATE_SUB(@seed_now, INTERVAL 1 DAY), @seed_now),
@@ -229,8 +245,8 @@ VALUES
   (3,  3,  4, NULL, 'REGISTRATION_FEE', 'VNPAY', 1000000.00, 'VND', 'SEED-REG-004', 'VNP-SEED-004', 'SUCCESS', NULL, '00', '{"seed":true}', DATE_SUB(@seed_now, INTERVAL 7 DAY), DATE_SUB(@seed_now, INTERVAL 7 DAY), DATE_SUB(@seed_now, INTERVAL 7 DAY)),
   (4,  4,  6, NULL, 'REGISTRATION_FEE', 'VNPAY', 2000000.00, 'VND', 'SEED-REG-006', 'VNP-SEED-006', 'SUCCESS', NULL, '00', '{"seed":true}', DATE_SUB(@seed_now, INTERVAL 160 DAY), DATE_SUB(@seed_now, INTERVAL 160 DAY), DATE_SUB(@seed_now, INTERVAL 160 DAY)),
   (5,  2,  8, NULL, 'REGISTRATION_FEE', 'VNPAY', 1000000.00, 'VND', 'SEED-REG-008', 'VNP-SEED-008', 'SUCCESS', NULL, '00', '{"seed":true}', DATE_SUB(@seed_now, INTERVAL 1 DAY), DATE_SUB(@seed_now, INTERVAL 1 DAY), DATE_SUB(@seed_now, INTERVAL 1 DAY)),
-  (6,  2,  9, NULL, 'REGISTRATION_FEE', 'VNPAY', 1000000.00, 'VND', 'SEED-REG-009', 'VNP-SEED-009', 'SUCCESS', NULL, '00', '{"seed":true}', DATE_SUB(@seed_now, INTERVAL 1 DAY), DATE_SUB(@seed_now, INTERVAL 1 DAY), DATE_SUB(@seed_now, INTERVAL 1 DAY)),
-  (7,  3, 10, NULL, 'REGISTRATION_FEE', 'VNPAY', 1000000.00, 'VND', 'SEED-REG-010', 'VNP-SEED-010', 'SUCCESS', NULL, '00', '{"seed":true}', DATE_SUB(@seed_now, INTERVAL 1 DAY), DATE_SUB(@seed_now, INTERVAL 1 DAY), DATE_SUB(@seed_now, INTERVAL 1 DAY)),
+  (6,  23, 9, NULL, 'REGISTRATION_FEE', 'VNPAY', 1000000.00, 'VND', 'SEED-REG-009', 'VNP-SEED-009', 'SUCCESS', NULL, '00', '{"seed":true}', DATE_SUB(@seed_now, INTERVAL 1 DAY), DATE_SUB(@seed_now, INTERVAL 1 DAY), DATE_SUB(@seed_now, INTERVAL 1 DAY)),
+  (7,  24, 10, NULL, 'REGISTRATION_FEE', 'VNPAY', 1000000.00, 'VND', 'SEED-REG-010', 'VNP-SEED-010', 'SUCCESS', NULL, '00', '{"seed":true}', DATE_SUB(@seed_now, INTERVAL 1 DAY), DATE_SUB(@seed_now, INTERVAL 1 DAY), DATE_SUB(@seed_now, INTERVAL 1 DAY)),
   (8,  3, 11, NULL, 'REGISTRATION_FEE', 'VNPAY', 1000000.00, 'VND', 'SEED-REG-011', 'VNP-SEED-011', 'SUCCESS', NULL, '00', '{"seed":true}', DATE_SUB(@seed_now, INTERVAL 1 DAY), DATE_SUB(@seed_now, INTERVAL 1 DAY), DATE_SUB(@seed_now, INTERVAL 1 DAY)),
   (9,  4, 12, NULL, 'REGISTRATION_FEE', 'VNPAY', 1000000.00, 'VND', 'SEED-REG-012', 'VNP-SEED-012', 'SUCCESS', NULL, '00', '{"seed":true}', DATE_SUB(@seed_now, INTERVAL 1 DAY), DATE_SUB(@seed_now, INTERVAL 1 DAY), DATE_SUB(@seed_now, INTERVAL 1 DAY)),
   (10, 4, 13, NULL, 'REGISTRATION_FEE', 'VNPAY', 1000000.00, 'VND', 'SEED-REG-013', 'VNP-SEED-013', 'SUCCESS', NULL, '00', '{"seed":true}', DATE_SUB(@seed_now, INTERVAL 1 DAY), DATE_SUB(@seed_now, INTERVAL 1 DAY), DATE_SUB(@seed_now, INTERVAL 1 DAY)),
@@ -387,7 +403,9 @@ VALUES
   (8, 0,  0, 0, 0, 0, 0, @seed_now),
   (9, 0,  0, 0, 0, 0, 0, @seed_now),
   (10, 0, 0, 0, 0, 0, 0, @seed_now),
-  (11, 0, 0, 0, 0, 0, 0, @seed_now);
+  (11, 0, 0, 0, 0, 0, 0, @seed_now),
+  (12, 0, 0, 0, 0, 0, 0, @seed_now),
+  (13, 0, 0, 0, 0, 0, 0, @seed_now);
 
 INSERT INTO `JockeyPerformanceSummary`
   (`jockeyID`, `totalRaces`, `top1Count`, `top2Count`, `top3Count`, `winRate`, `violationCount`, `disqualifiedCount`, `lastUpdatedAt`)
@@ -397,7 +415,9 @@ VALUES
   (7, 1, 0, 1, 0, 0.00,   0, 0, DATE_SUB(@seed_now, INTERVAL 119 DAY)),
   (20, 0, 0, 0, 0, 0.00, 0, 0, @seed_now),
   (21, 0, 0, 0, 0, 0.00, 0, 0, @seed_now),
-  (22, 0, 0, 0, 0, 0.00, 0, 0, @seed_now);
+  (22, 0, 0, 0, 0, 0.00, 0, 0, @seed_now),
+  (25, 0, 0, 0, 0, 0.00, 0, 0, @seed_now),
+  (26, 0, 0, 0, 0, 0.00, 0, 0, @seed_now);
 
 INSERT INTO `RefereeAssignment`
   (`assignmentID`, `raceID`, `refereeUserID`, `assignedAt`, `status`)

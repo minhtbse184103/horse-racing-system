@@ -1,7 +1,8 @@
 import { Plus, ShieldCheck, Trash2 } from 'lucide-react';
 import {
-  conditionOperatorLabels,
-  formatTournamentCondition
+  formatTournamentCondition,
+  getConditionOperatorLabel,
+  getConditionUnit
 } from '../../../../lib/eventFormatters';
 import {
   CONDITION_OPERATORS_BY_TYPE,
@@ -35,6 +36,7 @@ export default function EligibilityConditionBuilder({
   const selectedTypeLabel = conditionLabelByType[conditionDraft.type] || selectedType?.label || conditionDraft.type;
   const availableOperators = CONDITION_OPERATORS_BY_TYPE[conditionDraft.type];
   const usesRange = conditionDraft.operator === 'BETWEEN';
+  const selectedUnit = getConditionUnit(conditionDraft.type, t).trim();
 
   function chooseType(type) {
     setConditionDraft(createConditionDraft(type));
@@ -42,7 +44,7 @@ export default function EligibilityConditionBuilder({
   }
 
   function addCondition() {
-    const validationError = validateConditionDraft(conditionDraft);
+    const validationError = validateConditionDraft(conditionDraft, t);
     if (validationError) {
       setError(validationError);
       return;
@@ -114,7 +116,7 @@ export default function EligibilityConditionBuilder({
               }
             >
               {availableOperators.map((operator) => (
-                <option key={operator} value={operator}>{conditionOperatorLabels[operator]}</option>
+                <option key={operator} value={operator}>{getConditionOperatorLabel(operator, t)}</option>
               ))}
             </select>
           </WizardField>
@@ -144,7 +146,7 @@ export default function EligibilityConditionBuilder({
                     placeholder={t('eventWizardMinimumPlaceholder')}
                   />
                   <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-extrabold text-slate-500">
-                    {conditionDraft.type === 'AGE' ? 'tuổi' : 'kg'}
+                    {selectedUnit}
                   </span>
                 </div>
               </WizardField>
@@ -159,7 +161,7 @@ export default function EligibilityConditionBuilder({
                     placeholder={t('eventWizardMaximumPlaceholder')}
                   />
                   <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-extrabold text-slate-500">
-                    {conditionDraft.type === 'AGE' ? 'tuổi' : 'kg'}
+                    {selectedUnit}
                   </span>
                 </div>
               </WizardField>
@@ -176,7 +178,7 @@ export default function EligibilityConditionBuilder({
                   placeholder={t('eventWizardValuePlaceholder')}
                 />
                 <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs font-extrabold text-slate-500">
-                  {conditionDraft.type === 'AGE' ? 'tuổi' : 'kg'}
+                  {selectedUnit}
                 </span>
               </div>
             </WizardField>
@@ -205,7 +207,7 @@ export default function EligibilityConditionBuilder({
               </span>
               <div className="min-w-0">
                 <p className="text-xs font-black uppercase text-brown-500">{conditionLabelByType[condition.type] || t('eventWizardConditionFallback')}</p>
-                <p className="truncate text-sm font-black text-brown-900">{formatTournamentCondition(condition)}</p>
+                <p className="truncate text-sm font-black text-brown-900">{formatTournamentCondition(condition, t)}</p>
               </div>
             </div>
             <button

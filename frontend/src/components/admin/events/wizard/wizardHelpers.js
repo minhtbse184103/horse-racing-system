@@ -46,20 +46,26 @@ export function resetConditionDraft() {
   return { ...DEFAULT_CONDITION };
 }
 
-export function validateConditionDraft(conditionDraft) {
+export function validateConditionDraft(conditionDraft, t) {
   const usesRange = conditionDraft.operator === 'BETWEEN';
 
   if (usesRange) {
     const min = Number(conditionDraft.minValue);
     const max = Number(conditionDraft.maxValue);
     if (conditionDraft.minValue === '' || conditionDraft.maxValue === '') {
-      return 'Nhập đầy đủ giá trị tối thiểu và tối đa.';
+      return typeof t === 'function'
+        ? t('eventValidationConditionRangeRequired')
+        : 'Nhập đầy đủ giá trị tối thiểu và tối đa.';
     }
     if (min < 0 || max < 0 || min > max) {
-      return 'Giá trị tối thiểu phải từ 0 trở lên và không được vượt quá giá trị tối đa.';
+      return typeof t === 'function'
+        ? t('eventValidationConditionRangeInvalid')
+        : 'Giá trị tối thiểu phải từ 0 trở lên và không được vượt quá giá trị tối đa.';
     }
   } else if (conditionDraft.value === '') {
-    return 'Nhập giá trị cho điều kiện này.';
+    return typeof t === 'function'
+      ? t('eventValidationConditionValueRequired')
+      : 'Nhập giá trị cho điều kiện này.';
   }
 
   return '';

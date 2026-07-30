@@ -50,6 +50,7 @@ class RegistrationEligibilityServiceTest {
     @Mock private HorseRepository horseRepository;
     @Mock private UserRepository userRepository;
     @Mock private JockeyProfileRepository jockeyProfileRepository;
+    @Mock private RegistrationAvailabilityService registrationAvailabilityService;
 
     private RegistrationEligibilityService service;
 
@@ -60,7 +61,8 @@ class RegistrationEligibilityServiceTest {
                 conditionRepository,
                 horseRepository,
                 userRepository,
-                jockeyProfileRepository
+                jockeyProfileRepository,
+                registrationAvailabilityService
         );
     }
 

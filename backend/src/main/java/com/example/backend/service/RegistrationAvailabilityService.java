@@ -3,6 +3,7 @@ package com.example.backend.service;
 import com.example.backend.constant.EventStatus;
 import com.example.backend.constant.RegistrationStatus;
 import com.example.backend.entity.Horse;
+import com.example.backend.entity.Registration;
 import com.example.backend.entity.Tournament;
 import com.example.backend.entity.User;
 import com.example.backend.exception.ApiException;
@@ -109,6 +110,76 @@ public class RegistrationAvailabilityService {
         validateOwnerSameTournamentForOwnerRegistration(owner.getUserID(), tournament.getTournamentId());
         validateHorseRegistrationAvailabilityForOwnerRegistration(horse.getHorseId());
         validateJockeyRegistrationAvailabilityForOwnerRegistration(jockey.getUserID(), tournament);
+    }
+
+    public void validateRegistrationCanBeApproved(
+            Registration registration,
+            Tournament tournament
+    ) {
+        List<String> approvedStatuses = List.of(RegistrationStatus.APPROVED);
+        Integer excludedRegistrationId = registration.getRegistrationId();
+
+        long ownerSameTournamentCount =
+                registrationRepository.countByTournamentIdAndOwnerIdAndStatusInExcludingRegistration(
+                        tournament.getTournamentId(),
+                        registration.getOwnerId(),
+                        approvedStatuses,
+                        excludedRegistrationId);
+        if (ownerSameTournamentCount > 0) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Owner already has an approved registration in this tournament.");
+        }
+
+        if (registration.getJockeyId() != null) {
+            long jockeySameTournamentCount =
+                    registrationRepository.countByTournamentIdAndJockeyIdAndStatusInExcludingRegistration(
+                            tournament.getTournamentId(),
+                            registration.getJockeyId(),
+                            approvedStatuses,
+                            excludedRegistrationId);
+            if (jockeySameTournamentCount > 0) {
+                throw new ApiException(HttpStatus.CONFLICT,
+                        "Jockey already has an approved registration in this tournament.");
+            }
+        }
+
+        long activeHorseTournamentCount =
+                registrationRepository.countByActiveTournamentAndHorseIdAndStatusInExcludingRegistration(
+                        registration.getHorseId(),
+                        approvedStatuses,
+                        BLOCKING_TOURNAMENT_STATUSES,
+                        excludedRegistrationId);
+        if (activeHorseTournamentCount > 0) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Horse already has an approved registration in an unfinished tournament.");
+        }
+
+        if (registration.getJockeyId() == null) {
+            return;
+        }
+
+        long activeJockeyTournamentCount =
+                registrationRepository.countByActiveTournamentAndJockeyIdAndStatusInExcludingRegistration(
+                        registration.getJockeyId(),
+                        approvedStatuses,
+                        BLOCKING_TOURNAMENT_STATUSES,
+                        excludedRegistrationId);
+        if (activeJockeyTournamentCount > 0) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Jockey already has an approved registration in an unfinished tournament.");
+        }
+
+        long activeHorseJockeyTournamentCount =
+                registrationRepository.countByActiveTournamentAndHorseIdAndJockeyIdAndStatusInExcludingRegistration(
+                        registration.getHorseId(),
+                        registration.getJockeyId(),
+                        approvedStatuses,
+                        BLOCKING_TOURNAMENT_STATUSES,
+                        excludedRegistrationId);
+        if (activeHorseJockeyTournamentCount > 0) {
+            throw new ApiException(HttpStatus.CONFLICT,
+                    "Horse and jockey already have an approved registration in an unfinished tournament.");
+        }
     }
 
     private void validateOwnerForInvitation(
