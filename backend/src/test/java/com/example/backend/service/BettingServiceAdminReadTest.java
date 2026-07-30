@@ -164,13 +164,13 @@ class BettingServiceAdminReadTest {
     }
 
     @Test
-    void getAdminEventTicketsRejectsNonAdmin() {
+    void getAdminEventDetailRejectsNonAdmin() {
         when(userRepository.findByEmail(ADMIN_EMAIL))
                 .thenReturn(Optional.of(user(OWNER_ID, "owner.huy", "owner@test.com", "OWNER")));
 
         ApiException exception = assertThrows(
                 ApiException.class,
-                () -> service.getAdminEventTickets(EVENT_ID, ADMIN_EMAIL)
+                () -> service.getAdminEventDetail(EVENT_ID, ADMIN_EMAIL)
         );
 
         assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());

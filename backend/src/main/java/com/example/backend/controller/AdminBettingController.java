@@ -1,11 +1,12 @@
 package com.example.backend.controller;
 
 import com.example.backend.dto.request.CreateBetEventRequest;
+import com.example.backend.dto.request.UpdateBetEventCloseTimeRequest;
 import com.example.backend.dto.request.UpdateBetProductRequest;
 import com.example.backend.dto.response.AdminBetEventDetailResponse;
 import com.example.backend.dto.response.AdminBetSettlementDetailResponse;
 import com.example.backend.dto.response.AdminBetSettlementSummaryResponse;
-import com.example.backend.dto.response.AdminBetTicketResponse;
+import com.example.backend.dto.response.AdminBettingEligibleRaceResponse;
 import com.example.backend.dto.response.BetEventResponse;
 import com.example.backend.dto.response.BetProductResponse;
 import com.example.backend.dto.response.BetSettlementResponse;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -50,20 +52,19 @@ public class AdminBettingController {
         return bettingService.getAdminEvents();
     }
 
+    @GetMapping("/eligible-races")
+    public List<AdminBettingEligibleRaceResponse> getEligibleRaces(
+            @RequestParam Integer betProductId
+    ) {
+        return bettingService.getEligibleRaces(betProductId);
+    }
+
     @GetMapping("/events/{eventId}")
     public AdminBetEventDetailResponse getEventDetail(
             @PathVariable Integer eventId,
             Authentication authentication
     ) {
         return bettingService.getAdminEventDetail(eventId, authentication.getName());
-    }
-
-    @GetMapping("/events/{eventId}/tickets")
-    public List<AdminBetTicketResponse> getEventTickets(
-            @PathVariable Integer eventId,
-            Authentication authentication
-    ) {
-        return bettingService.getAdminEventTickets(eventId, authentication.getName());
     }
 
     @PostMapping("/events")
@@ -74,6 +75,15 @@ public class AdminBettingController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(bettingService.createEvent(request, authentication.getName()));
+    }
+
+    @PutMapping("/events/{eventId}/close-time")
+    public BetEventResponse updateEventCloseTime(
+            @PathVariable Integer eventId,
+            @Valid @RequestBody UpdateBetEventCloseTimeRequest request
+    ) {
+        // Admin chỉnh giờ đóng; service khóa event và kiểm tra mốc an toàn trước Race.
+        return bettingService.updateEventCloseTime(eventId, request);
     }
 
     @PutMapping("/events/{eventId}/open")

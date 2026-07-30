@@ -15,19 +15,22 @@ import {
   X,
   Settings2
 } from 'lucide-react';
-import { getRaces } from '../../../services/eventService';
 import {
   closeAdminBetEvent,
   createAdminBetEvent,
   getAdminBetEventDetail,
   getAdminBetEvents,
+  getAdminEligibleBetRaces,
   getAdminBetProducts,
   getAdminBetSettlementDetail,
   getAdminBetSettlements,
   openAdminBetEvent,
   settleAdminBetEvent,
+  updateAdminBetEventCloseTime,
   updateAdminBetProduct
 } from '../../../services/bettingService';
+import { useLanguage } from '../../../context/LanguageContext';
+import { betProductDescription, betProductName } from '../../../lib';
 import BettingEventDetailDrawer from './BettingEventDetailDrawer';
 import CreateBetEventModal from './CreateBetEventModal';
 import ProductEditor from './ProductEditor';
@@ -44,10 +47,10 @@ import {
 } from './bettingUi';
 
 export default function BettingManagement() {
+  const { t } = useLanguage();
   const [products, setProducts] = useState([]);
   const [events, setEvents] = useState([]);
   const [settlements, setSettlements] = useState([]);
-  const [races, setRaces] = useState([]);
   const [selectedDetail, setSelectedDetail] = useState(null);
   const [selectedSettlementDetail, setSelectedSettlementDetail] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -65,15 +68,13 @@ export default function BettingManagement() {
     setIsLoading(true);
     setError('');
     try {
-      const [productList, eventList, raceList, settlementList] = await Promise.all([
+      const [productList, eventList, settlementList] = await Promise.all([
         getAdminBetProducts(),
         getAdminBetEvents(),
-        getRaces(),
         getAdminBetSettlements()
       ]);
       setProducts(productList || []);
       setEvents(eventList || []);
-      setRaces(raceList || []);
       setSettlements(settlementList || []);
     } catch (err) {
       setError(err.message || 'Không thể tải dữ liệu betting.');
@@ -104,11 +105,12 @@ export default function BettingManagement() {
         event.trackName,
         event.productCode,
         event.productName,
+        betProductName(event.productCode, t, event.productName),
         event.status
       ].join(' ').toLowerCase();
       return (statusFilter === 'ALL' || status === statusFilter) && (!keyword || haystack.includes(keyword));
     });
-  }, [events, search, statusFilter]);
+  }, [events, search, statusFilter, t]);
 
   async function saveProduct(productId, payload) {
     const updated = await updateAdminBetProduct(productId, payload);
@@ -120,6 +122,12 @@ export default function BettingManagement() {
     await createAdminBetEvent(payload);
     setCreateOpen(false);
     setMessage('Đã tạo betting event.');
+    await loadData();
+  }
+
+  async function updateEventCloseTime(eventId, payload) {
+    await updateAdminBetEventCloseTime(eventId, payload);
+    setSelectedDetail(await getAdminBetEventDetail(eventId));
     await loadData();
   }
 
@@ -334,7 +342,7 @@ export default function BettingManagement() {
                 >
                   <span className="min-w-0">
                     <strong className="block truncate text-brown-950">{settlement.raceName}</strong>
-                    <small className="font-semibold text-slate-500">{settlement.productCode} · {dateTime(settlement.settledAt)}</small>
+                    <small className="font-semibold text-slate-500">{betProductName(settlement.productCode, t, settlement.productName)} · {dateTime(settlement.settledAt)}</small>
                   </span>
                   <span>
                     <small className="block text-xs font-black uppercase text-slate-500">Operator fee</small>
@@ -375,9 +383,9 @@ export default function BettingManagement() {
                   </div>
                   <div className="mt-4 min-w-0">
                     <ProductBadge code={product.code} />
-                    <h3 className="mt-3 truncate text-xl font-black text-brown-950">{product.name}</h3>
+                    <h3 className="mt-3 truncate text-xl font-black text-brown-950">{betProductName(product.code, t, product.name)}</h3>
                     <p className="mt-1 line-clamp-2 text-sm font-semibold leading-6 text-slate-500">
-                      {product.description || 'Mở popup để chỉnh cấu hình sản phẩm cược.'}
+                      {betProductDescription(product.code, t, product.description)}
                     </p>
                   </div>
                   <div className="mt-4 grid grid-cols-2 gap-3 rounded-xl border border-brown-100 bg-white p-3">
@@ -400,7 +408,7 @@ export default function BettingManagement() {
       {createOpen && (
         <CreateBetEventModal
           products={products}
-          races={races}
+          onLoadRaces={getAdminEligibleBetRaces}
           onCancel={() => setCreateOpen(false)}
           onCreate={createEvent}
         />
@@ -418,6 +426,7 @@ export default function BettingManagement() {
             setDetailError('');
           }}
           onViewSettlement={openSettlementDetail}
+          onUpdateCloseTime={updateEventCloseTime}
         />
       )}
 

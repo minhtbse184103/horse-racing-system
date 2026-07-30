@@ -21,7 +21,8 @@ USE `horse_racing_system`;
 --   7. Login as spectator@gmail.com, complete KYC, deposit wallet balance, then place a bet.
 --   8. Open the prepared DRAFT betting event after at least 2 RaceEntries are assigned.
 --   9. Assign/verify Referee.
---   10. Near launch time, edit Race.raceStartTime/BetEvent.closeAt in MySQL Workbench if needed.
+--   10. Near launch time, edit Race.raceStartTime/BetEvent.closeAt if needed,
+--       keeping BetEvent.closeAt at least 5 minutes before Race.raceStartTime.
 --   11. Mark Race READY if needed and launch Unity.
 --   12. Unity submits provisional result.
 --   13. Referee confirms result.
@@ -153,13 +154,14 @@ VALUES
 INSERT INTO `BetProduct`
   (`betProductID`, `code`, `name`, `description`, `minStake`, `maxDailyStake`, `operatorFeeRate`, `active`, `createdAt`, `updatedAt`)
 VALUES
-  (1, 'WIN', 'Win Bet', 'Pick the winning RaceEntry.', 10000.00, 1000000.00, 0.1000, true, @seed_now, @seed_now),
-  (2, 'PLACE', 'Place Bet', 'Pick a RaceEntry finishing in the prize ranks.', 10000.00, 1000000.00, 0.1000, true, @seed_now, @seed_now);
+  (1, 'WIN', 'Top 1', 'Pick the horse that finishes in first place.', 10000.00, 1000000.00, 0.1000, true, @seed_now, @seed_now),
+  (2, 'PLACE', 'Top 3', 'Pick a horse that finishes in the first three places.', 10000.00, 1000000.00, 0.1000, true, @seed_now, @seed_now);
 
 INSERT INTO `BetEvent`
   (`betEventID`, `raceID`, `betProductID`, `status`, `openAt`, `closeAt`, `operatorFeeRate`, `createdBy`, `settledBy`, `settledAt`, `createdAt`, `updatedAt`)
 VALUES
-  (1, 1, 1, 'DRAFT', @seed_now, DATE_ADD(@seed_now, INTERVAL 55 MINUTE), 0.1000, 1, NULL, NULL, @seed_now, @seed_now);
+  -- Race 1 starts after 60 minutes, so this closeAt is exactly 5 minutes earlier.
+  (1, 1, 1, 'DRAFT', @seed_now, DATE_SUB(DATE_ADD(@seed_now, INTERVAL 60 MINUTE), INTERVAL 5 MINUTE), 0.1000, 1, NULL, NULL, @seed_now, @seed_now);
 
 INSERT INTO `RefereeAssignment`
   (`assignmentID`, `raceID`, `refereeUserID`, `assignedAt`, `status`)

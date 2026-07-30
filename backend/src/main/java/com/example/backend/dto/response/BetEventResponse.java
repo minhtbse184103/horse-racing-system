@@ -26,5 +26,6 @@ public class BetEventResponse {
     private BigDecimal maxDailyStake;
     private BigDecimal operatorFeeRate;
     private BigDecimal totalStake;
+    private BigDecimal raceTotalStake;
     private List<BetEntryOptionResponse> entries;
 }

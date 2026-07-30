@@ -5,7 +5,7 @@ export function confirmVnpayReturn(searchParams) {
     ? searchParams
     : `?${searchParams || ''}`;
 
-  return httpRequest(`/api/payments/vnpay/return${query}`, {
+  return httpRequest(`/api/payments/vnpay/confirm${query}`, {
     auth: false,
     fallbackError: 'Unable to confirm the VNPAY payment result.'
   });
