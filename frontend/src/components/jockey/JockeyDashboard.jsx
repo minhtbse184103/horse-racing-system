@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ArrowRight, Award, CalendarCheck2, ClipboardList, FileBadge2, Inbox, Medal, ShieldCheck, Trophy, UserRound } from 'lucide-react';
+import { ArrowRight, Award, CalendarCheck2, ClipboardList, FileBadge2, Inbox, ShieldCheck, Trophy } from 'lucide-react';
 import defaultJockeyAvatar from '../../assets/default-jockey-avatar.svg';
 import AppShell from '../common/AppShell';
 import ConfirmModal from '../common/ConfirmModal';
@@ -26,18 +26,17 @@ const jockeyNavItems = [
   { key: 'overview', labelKey: 'jockeyNavOverview', icon: '📊' },
   { key: 'profile', labelKey: 'jockeyNavProfile', icon: '🧑‍✈️' },
   { key: 'invitations', labelKey: 'jockeyNavInvitations', icon: '✉️' },
-  { key: 'races', label: 'Your Races', icon: '🏁' }
+  { key: 'races', labelKey: 'jockeyNavRaces', icon: '🏁' }
 ];
 
 const INVITATION_TABS = [
-  { key: 'ALL', labelKey: 'jockeyFilterAll' },
   { key: 'PENDING', labelKey: 'jockeyFilterPending' },
+  { key: 'ALL', labelKey: 'jockeyFilterAll' },
   { key: 'ACCEPTED', labelKey: 'jockeyFilterAccepted' },
   { key: 'REJECTED', labelKey: 'jockeyFilterRejected' },
   { key: 'EXPIRED', labelKey: 'jockeyFilterExpired' },
   { key: 'CANCELLED', labelKey: 'jockeyFilterCancelled' }
 ];
-
 
 function emptyProfileForm(currentUser = {}) {
   return {
@@ -61,6 +60,14 @@ function emptyProfileForm(currentUser = {}) {
 
 function getErrorText(error, fallback) {
   return error instanceof Error ? error.message || fallback : fallback;
+}
+
+function translatedStatus(status, t) {
+  const normalized = String(status || '').toUpperCase();
+  if (!normalized) return t('notUpdated');
+  const key = `status_${normalized}`;
+  const translated = t(key);
+  return translated === key ? formatDisplayLabel(normalized) : translated;
 }
 
 function isJockeySection(section) {
@@ -163,7 +170,7 @@ function formatTournamentDateRange(invitation) {
   const startDate = invitation.tournamentStartDate;
   const endDate = invitation.tournamentEndDate;
 
-  if (!startDate && !endDate) return 'N/A';
+  if (!startDate && !endDate) return '—';
   if (startDate && endDate) return `${formatDate(startDate)} - ${formatDate(endDate)}`;
   return formatDate(startDate || endDate);
 }
@@ -282,6 +289,7 @@ function InvitationDetailModal({
   onDecline,
   onClose
 }) {
+  const { t } = useLanguage();
   if (!invitation) return null;
 
   const horse = getInvitationHorseDetails(invitation);
@@ -302,7 +310,7 @@ function InvitationDetailModal({
             <p>{horse.horseName ? `Ngựa ${horse.horseName}` : 'Thông tin lời mời từ owner'}</p>
           </div>
           <div className="jockey-invitation-detail-heading-actions">
-            <span className={`status-badge ${statusClass(invitation.status)}`}>{formatDisplayLabel(invitation.status)}</span>
+            <span className={`status-badge ${statusClass(invitation.status)}`}>{translatedStatus(invitation.status, t)}</span>
             <button className="outline-button compact-button" type="button" onClick={onClose}>Đóng</button>
           </div>
         </div>
@@ -319,19 +327,19 @@ function InvitationDetailModal({
               </div>
               {invitation.registrationStatus && (
                 <span className={`status-badge ${statusClass(invitation.registrationStatus)}`}>
-                  Đăng ký: {formatDisplayLabel(invitation.registrationStatus)}
+                  {t('jockeyRegistrationLabel')}: {translatedStatus(invitation.registrationStatus, t)}
                 </span>
               )}
             </div>
             <div className="jockey-invitation-message">
               <span>Lời nhắn từ owner</span>
-              <strong>{invitation.message || 'Owner không gửi lời nhắn kèm theo.'}</strong>
+              <strong>{invitation.message || 'Chủ ngựa không gửi lời nhắn kèm theo.'}</strong>
             </div>
             <dl className="jockey-detail-grid">
-              <div><dt>Owner</dt><dd>{getOwnerName(invitation)}</dd></div>
+              <div><dt>{t('jockeyOwnerLabel')}</dt><dd>{getOwnerName(invitation)}</dd></div>
               <div><dt>Gửi lúc</dt><dd>{formatDate(invitation.createdAt)}</dd></div>
               <div><dt>Hạn phản hồi</dt><dd>{formatDate(invitation.expiredAt)}</dd></div>
-              <div><dt>Trạng thái</dt><dd>{formatDisplayLabel(invitation.status)}</dd></div>
+              <div><dt>{t('jockeyInvitationStatus')}</dt><dd>{translatedStatus(invitation.status, t)}</dd></div>
             </dl>
           </section>
 
@@ -350,7 +358,7 @@ function InvitationDetailModal({
           <section className="jockey-invitation-detail-section">
             <div className="jockey-detail-section-heading">
               <div><span className="jockey-detail-section-icon">H</span><h3>Ngựa tham gia</h3></div>
-              <span className={`status-badge ${statusClass(horse.status)}`}>{formatDisplayLabel(horse.status)}</span>
+              <span className={`status-badge ${statusClass(horse.status)}`}>{translatedStatus(horse.status, t)}</span>
             </div>
             <dl className="jockey-detail-grid">
               <div><dt>Tên ngựa</dt><dd>{horse.horseName || 'Chưa có dữ liệu'}</dd></div>
@@ -372,7 +380,11 @@ function InvitationDetailModal({
 
         <footer className="jockey-invitation-detail-footer">
           <p>
-            {isExpired ? 'Lời mời đã hết hạn phản hồi.' : isPending ? 'Kiểm tra thông tin trước khi đưa ra quyết định.' : `Lời mời đã được xử lý: ${formatDisplayLabel(invitation.status)}.`}
+            {isExpired
+              ? t('jockeyInvitationExpiredNotice')
+              : isPending
+                ? t('jockeyInvitationDecisionHint')
+                : t('jockeyInvitationProcessed', { status: translatedStatus(invitation.status, t) })}
           </p>
           <div>
             <button className="outline-button" type="button" onClick={onClose}>Đóng</button>
@@ -395,12 +407,12 @@ function getInvitationId(invitation) {
   return invitation.invitationId;
 }
 
-function countByStatus(invitations, status) {
-  return invitations.filter((invitation) => String(invitation.status || '').toUpperCase() === status).length;
-}
-
 function isAcceptedInvitation(invitation) {
   return ['ACCEPTED', 'APPROVED'].includes(String(invitation?.status || '').toUpperCase());
+}
+
+function countByStatus(invitations, status) {
+  return invitations.filter((invitation) => String(invitation.status || '').toUpperCase() === status).length;
 }
 
 function toPerformanceNumber(value) {
@@ -417,23 +429,12 @@ function calculatePerformanceRate(part, total) {
 function getJockeyPerformanceSummary(profile) {
   const performance = profile?.performance || {};
   const totalRaces = toPerformanceNumber(performance.totalRaces ?? profile?.totalRaces);
-  const top1 = toPerformanceNumber(performance.top1Count ?? profile?.totalWins);
-  const top2 = toPerformanceNumber(performance.top2Count);
-  const top3 = toPerformanceNumber(performance.top3Count);
-  const podium = top1 + top2 + top3;
-
+  const wins = toPerformanceNumber(performance.top1Count ?? profile?.totalWins);
   return {
     totalRaces,
-    wins: top1,
-    top2,
-    top3,
-    winRate: performance.winRate ?? calculatePerformanceRate(top1, totalRaces),
-    top3Rate: performance.top3Rate ?? calculatePerformanceRate(podium, totalRaces)
+    wins,
+    winRate: performance.winRate ?? calculatePerformanceRate(wins, totalRaces)
   };
-}
-
-function getWinRate(profile) {
-  return `${getJockeyPerformanceSummary(profile).winRate}%`;
 }
 
 const jockeyOverviewIcons = [Trophy, Award, ShieldCheck, Inbox];
@@ -515,7 +516,7 @@ function ApprovedJockeyDashboard({ currentUser, onLogout, onUserUpdated }) {
   const [invitationDecision, setInvitationDecision] = useState(null);
   const [isLoadingInvitationDetail, setIsLoadingInvitationDetail] = useState(false);
   const [invitationDetailError, setInvitationDetailError] = useState('');
-  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [statusFilter, setStatusFilter] = useState('PENDING');
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [isLoadingInvitations, setIsLoadingInvitations] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
@@ -524,7 +525,7 @@ function ApprovedJockeyDashboard({ currentUser, onLogout, onUserUpdated }) {
   const [profileSubmitError, setProfileSubmitError] = useState('');
   const [message, setMessage] = useState('');
 
-  const jockeyName = currentUser?.fullName || currentUser?.email || 'Jockey';
+  const jockeyName = currentUser?.fullName || currentUser?.email || t('role_JOCKEY');
   const isLoading = isLoadingProfile || isLoadingInvitations;
   const profileStatus = String(profile?.status || '').toUpperCase();
   const verificationStatus = String(profile?.verificationStatus || '').toUpperCase();
@@ -534,13 +535,17 @@ function ApprovedJockeyDashboard({ currentUser, onLogout, onUserUpdated }) {
 
   const tournamentById = useMemo(() => new Map(tournaments.map((tournament) => [String(tournament.tournamentId ?? tournament.tournamentID ?? tournament.id), tournament])), [tournaments]);
 
+  const pendingInvitations = useMemo(() => invitations.filter((invitation) => {
+    const isPending = String(invitation.status || '').toUpperCase() === 'PENDING';
+    const expiresAt = invitation.expiredAt ? new Date(invitation.expiredAt).getTime() : null;
+    return isPending && (!Number.isFinite(expiresAt) || expiresAt > Date.now());
+  }), [invitations]);
+  const pendingInvitationCount = pendingInvitations.length;
   const filteredInvitations = useMemo(() => {
+    if (statusFilter === 'PENDING') return pendingInvitations;
     if (statusFilter === 'ALL') return invitations;
     return invitations.filter((invitation) => String(invitation.status || '').toUpperCase() === statusFilter);
-  }, [invitations, statusFilter]);
-
-  const latestInvitations = useMemo(() => invitations.slice(0, 5), [invitations]);
-  const pendingInvitationCount = countByStatus(invitations, 'PENDING');
+  }, [invitations, pendingInvitations, statusFilter]);
   const acceptedInvitationCount = invitations.filter(isAcceptedInvitation).length;
   const profileCompletionItems = [
     profile?.fullName || profileForm.applicantFullName,
@@ -563,11 +568,11 @@ function ApprovedJockeyDashboard({ currentUser, onLogout, onUserUpdated }) {
     {
       label: t('jockeyStatWins'),
       value: performanceSummary.wins,
-      detail: t('jockeyStatWinRate', { rate: getWinRate(profile) })
+      detail: t('jockeyStatWinRate', { rate: `${performanceSummary.winRate}%` })
     },
     {
       label: t('jockeyStatProfile'),
-      value: profile ? formatDisplayLabel(profile.status) : t('jockeyStatMissing'),
+      value: profile ? translatedStatus(profile.status, t) : t('jockeyStatMissing'),
       detail: profile ? t('jockeyStatLicence', { licence: profile.licenseNo || t('notUpdated') }) : t('jockeyStatCreateProfile')
     },
     {
@@ -576,7 +581,6 @@ function ApprovedJockeyDashboard({ currentUser, onLogout, onUserUpdated }) {
       detail: t('jockeyStatAccepted', { count: acceptedInvitationCount })
     }
   ];
-
   async function loadProfile({ silentMissing = false } = {}) {
     setIsLoadingProfile(true);
     setPageError('');
@@ -1218,7 +1222,7 @@ function ApprovedJockeyDashboard({ currentUser, onLogout, onUserUpdated }) {
   }
 
   function renderInvitationList(limit) {
-    const items = typeof limit === 'number' ? latestInvitations.slice(0, limit) : filteredInvitations;
+    const items = typeof limit === 'number' ? pendingInvitations.slice(0, limit) : filteredInvitations;
 
     if (isLoadingInvitations) return <p className="table-empty">{t('jockeyLoadingInvitations')}</p>;
     if (items.length === 0) return <p className="table-empty">{t('jockeyNoMatchingInvitations')}</p>;
@@ -1243,10 +1247,10 @@ function ApprovedJockeyDashboard({ currentUser, onLogout, onUserUpdated }) {
                   </div>
                 </div>
                 <div className="jockey-status-pair">
-                  <span className={`status-badge ${statusClass(invitation.status)}`}>{formatDisplayLabel(invitation.status)}</span>
+                  <span className={`status-badge ${statusClass(invitation.status)}`}>{translatedStatus(invitation.status, t)}</span>
                   {invitation.registrationStatus && (
                     <span className={`status-badge ${statusClass(invitation.registrationStatus)}`}>
-                      Đăng ký: {formatDisplayLabel(invitation.registrationStatus)}
+                      {t('jockeyRegistrationLabel')}: {translatedStatus(invitation.registrationStatus, t)}
                     </span>
                   )}
                 </div>
@@ -1254,7 +1258,7 @@ function ApprovedJockeyDashboard({ currentUser, onLogout, onUserUpdated }) {
 
               {invitation.message && (
                 <div className="jockey-invitation-message compact">
-                  <span>Lời nhắn từ owner</span>
+                  <span>Lời nhắn từ chủ ngựa</span>
                   <strong>{invitation.message}</strong>
                 </div>
               )}
@@ -1285,7 +1289,7 @@ function ApprovedJockeyDashboard({ currentUser, onLogout, onUserUpdated }) {
                       type="button"
                       onClick={() => requestInvitationDecision(invitation, 'accept')}
                       disabled={acceptDisabled}
-                      title={!isProfileActive ? 'Hồ sơ chưa ở trạng thái ACTIVE nên không thể chấp nhận lời mời này.' : 'Chấp nhận lời mời'}
+                      title={!isProfileActive ? 'Hồ sơ chưa hoạt động nên không thể chấp nhận lời mời này.' : 'Chấp nhận lời mời'}
                     >
                       {actionId === invitationId ? 'Đang xử lý...' : 'Chấp nhận'}
                     </button>
@@ -1307,7 +1311,7 @@ function ApprovedJockeyDashboard({ currentUser, onLogout, onUserUpdated }) {
       title={t('jockeyDashboardTitle', { name: jockeyName })}
       subtitle={t('jockeyDashboardSubtitle')}
       profileName={jockeyName}
-      profileRole={String(currentUser?.role || currentUser?.roleName || 'JOCKEY')}
+      profileRole={t(`role_${String(currentUser?.role || currentUser?.roleName || 'JOCKEY').toUpperCase()}`)}
       activeSection={activeSection}
       navItems={jockeyNavItems}
       onNavigate={handleNavigate}
@@ -1324,55 +1328,7 @@ function ApprovedJockeyDashboard({ currentUser, onLogout, onUserUpdated }) {
 
       {activeSection === 'overview' && (
         <section className="jockey-overview-page">
-          <section className="jockey-overview-hero">
-            <div className="jockey-overview-identity">
-              <span className="jockey-overview-kicker">
-                <Medal size={15} aria-hidden="true" />
-                {t('jockeyDashboardEyebrow')}
-              </span>
-              <h2>{t('jockeyHeroTitle')}</h2>
-              <p>{t('jockeyHeroDescription')}</p>
-
-              <div className="jockey-overview-action-grid">
-                <button className="jockey-overview-action primary" type="button" onClick={() => setActiveSection('invitations')}>
-                  <span><Inbox size={18} aria-hidden="true" /></span>
-                  <strong>{t('jockeyViewInvitations')}</strong>
-                  <small>{pendingInvitationCount} pending</small>
-                  <ArrowRight size={17} aria-hidden="true" />
-                </button>
-                <button className="jockey-overview-action" type="button" onClick={() => setActiveSection('profile')}>
-                  <span><UserRound size={18} aria-hidden="true" /></span>
-                  <strong>{t('jockeyOpenProfile')}</strong>
-                  <small>{profileCompletion}% complete</small>
-                  <ArrowRight size={17} aria-hidden="true" />
-                </button>
-              </div>
-            </div>
-
-            <aside className="jockey-overview-profile-card">
-              <div className="jockey-overview-avatar">
-                <img src={profile?.imgUrl || defaultJockeyAvatar} alt={jockeyName} />
-              </div>
-              <div>
-                <span className={`status-badge ${statusClass(profile?.status || (isProfileActive ? 'ACTIVE' : 'PENDING'))}`}>
-                  {profile ? formatDisplayLabel(profile.status) : t('jockeyStatMissing')}
-                </span>
-                <h3>{profile?.fullName || jockeyName}</h3>
-                <p>{profile?.email || currentUser?.email || t('notUpdated')}</p>
-              </div>
-              <div className="jockey-overview-completion">
-                <div>
-                  <span>Profile readiness</span>
-                  <strong>{profileCompletion}%</strong>
-                </div>
-                <div className="jockey-overview-completion-track" aria-hidden="true">
-                  <span style={{ width: `${profileCompletion}%` }} />
-                </div>
-              </div>
-            </aside>
-          </section>
-
-          <section className="jockey-overview-metric-grid" aria-label="Jockey overview metrics">
+          <section className="jockey-overview-metric-grid" aria-label={t('jockeyOverviewMetrics')}>
             {jockeyStats.map((stat, index) => {
               const Icon = jockeyOverviewIcons[index] || Trophy;
               return (
@@ -1405,19 +1361,19 @@ function ApprovedJockeyDashboard({ currentUser, onLogout, onUserUpdated }) {
               </header>
 
               <div className="jockey-overview-invitation-list">
-                {latestInvitations.length === 0 ? (
+                {pendingInvitations.length === 0 ? (
                   <div className="jockey-overview-empty">
                     <CalendarCheck2 size={22} aria-hidden="true" />
                     <strong>{t('jockeyNoInvitations')}</strong>
                   </div>
-                ) : latestInvitations.map((invitation) => (
+                ) : pendingInvitations.slice(0, 5).map((invitation) => (
                   <button className="jockey-overview-invitation-row" type="button" onClick={() => openInvitationDetail(invitation)} key={invitation.invitationId || `${invitation.tournamentId}-${invitation.horseId}`}>
                     <span className="jockey-overview-invitation-main">
-                      <strong>{invitation.tournamentName || `Tournament ${invitation.tournamentId || ''}`}</strong>
-                      <small>{invitation.horseName || invitation.horseId || 'N/A'} · {formatTournamentDateRange(invitation)}</small>
+                      <strong>{invitation.tournamentName || t('jockeyTournamentNumber', { id: invitation.tournamentId || '' })}</strong>
+                      <small>{invitation.horseName || invitation.horseId || t('notUpdated')} · {formatTournamentDateRange(invitation)}</small>
                     </span>
                     <span className={`status-badge ${statusClass(invitation.status)}`}>
-                      {formatDisplayLabel(invitation.status)}
+                      {translatedStatus(invitation.status, t)}
                     </span>
                   </button>
                 ))}
@@ -1437,21 +1393,21 @@ function ApprovedJockeyDashboard({ currentUser, onLogout, onUserUpdated }) {
                   <FileBadge2 size={18} aria-hidden="true" />
                   <span>
                     <strong>{t('jockeyProfileVerified')}</strong>
-                    <small>{profileCompletion}% profile readiness</small>
+                    <small>{t('jockeyProfileReadiness', { percent: profileCompletion })}</small>
                   </span>
                 </button>
                 <button type="button" onClick={() => setActiveSection('invitations')}>
                   <ClipboardList size={18} aria-hidden="true" />
                   <span>
                     <strong>{t('jockeyCheckPending', { count: pendingInvitationCount })}</strong>
-                    <small>{acceptedInvitationCount} accepted invitation(s)</small>
+                    <small>{t('jockeyAcceptedInvitationCount', { count: acceptedInvitationCount })}</small>
                   </span>
                 </button>
                 <button type="button" onClick={() => setActiveSection('races')}>
                   <Trophy size={18} aria-hidden="true" />
                   <span>
-                    <strong>Your Races</strong>
-                    <small>View assigned RaceEntry history and official results.</small>
+                    <strong>{t('jockeyNavRaces')}</strong>
+                    <small>{t('jockeyRacesQuickDescription')}</small>
                   </span>
                 </button>
               </div>
@@ -1490,7 +1446,7 @@ function ApprovedJockeyDashboard({ currentUser, onLogout, onUserUpdated }) {
                 >
                   {INVITATION_TABS.map((option) => (
                     <option key={option.key} value={option.key}>
-                      {t(option.labelKey)} ({option.key === 'ALL' ? invitations.length : countByStatus(invitations, option.key)})
+                      {t(option.labelKey)} ({option.key === 'ALL' ? invitations.length : option.key === 'PENDING' ? pendingInvitationCount : countByStatus(invitations, option.key)})
                     </option>
                   ))}
                 </select>
@@ -1523,8 +1479,8 @@ function ApprovedJockeyDashboard({ currentUser, onLogout, onUserUpdated }) {
         open={Boolean(invitationDecision)}
         title={invitationDecision?.action === 'accept' ? 'Chấp nhận lời mời?' : 'Từ chối lời mời?'}
         message={invitationDecision?.action === 'accept'
-          ? 'Sau khi chấp nhận, Owner có thể tạo đơn đăng ký giải và thanh toán lệ phí cho ngựa này.'
-          : 'Lời mời sẽ được đánh dấu đã từ chối và Owner phải chọn Jockey khác.'}
+          ? 'Sau khi chấp nhận, chủ ngựa có thể thanh toán lệ phí cho đơn đăng ký này.'
+          : 'Lời mời sẽ được đánh dấu đã từ chối và chủ ngựa phải chọn nài ngựa khác.'}
         confirmLabel={invitationDecision?.action === 'accept' ? 'Chấp nhận' : 'Từ chối'}
         cancelLabel="Quay lại"
         variant={invitationDecision?.action === 'accept' ? 'primary' : 'danger'}
@@ -1535,7 +1491,7 @@ function ApprovedJockeyDashboard({ currentUser, onLogout, onUserUpdated }) {
         <dl className="jockey-invitation-confirm-summary">
           <div><dt>Giải đấu</dt><dd>{invitationDecision?.invitation?.tournamentName || 'Chưa cập nhật'}</dd></div>
           <div><dt>Ngựa</dt><dd>{invitationDecision?.invitation?.horseName || 'Chưa cập nhật'}</dd></div>
-          <div><dt>Owner</dt><dd>{invitationDecision ? getOwnerName(invitationDecision.invitation) : ''}</dd></div>
+          <div><dt>{t('jockeyOwnerLabel')}</dt><dd>{invitationDecision ? getOwnerName(invitationDecision.invitation) : ''}</dd></div>
           <div><dt>Hạn phản hồi</dt><dd>{formatDate(invitationDecision?.invitation?.expiredAt)}</dd></div>
         </dl>
       </ConfirmModal>

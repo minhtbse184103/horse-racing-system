@@ -4638,13 +4638,6 @@ select {
   padding-bottom: 10px;
 }
 
-.legacy-jockey-select,
-.legacy-invite-message,
-.legacy-invite-message-input,
-.legacy-invite-actions {
-  display: none !important;
-}
-
 .owner-invite-context-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -7535,7 +7528,7 @@ select {
 
 .jockey-overview-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1.45fr) minmax(300px, 0.72fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 18px;
   align-items: stretch;
 }
@@ -12107,10 +12100,64 @@ select {
    HORSE INFORMATION
    ========================================================= */
 
+.horse-detail-overview-grid {
+  display: grid;
+  grid-template-columns: minmax(320px, 0.82fr) minmax(500px, 1.18fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.horse-detail-overview-card {
+  min-width: 0;
+  padding: 24px;
+  border: 1px solid #eadfd4;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(68, 42, 24, 0.045);
+}
+
+.horse-detail-overview-card.performance-card {
+  background: linear-gradient(145deg, #fffaf4, #fff);
+}
+
+.horse-detail-card-heading {
+  margin-bottom: 20px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid #eee3d9;
+}
+
+.horse-detail-card-heading .eyebrow {
+  margin: 0 0 6px;
+  color: #a85e29;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
+.horse-detail-card-heading h2 {
+  margin: 0;
+  color: #24170e;
+  font-size: 21px;
+  font-weight: 700;
+}
+
+.horse-detail-card-heading > p:last-child {
+  margin: 8px 0 0;
+  color: #718096;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.horse-detail-stat-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 4px;
+}
+
 .horse-detail-window-info {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  column-gap: 80px;
+  column-gap: 32px;
   row-gap: 10px;
 
   padding: 4px 0 8px;
@@ -12468,6 +12515,32 @@ select {
   border-bottom: none;
 }
 
+.horse-race-result {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 30px;
+  padding: 5px 11px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  color: #475569;
+  font-size: 13px;
+  font-weight: 750;
+  white-space: nowrap;
+}
+
+.horse-race-result.position-1 {
+  border: 1px solid #efd18d;
+  background: #fff5d6;
+  color: #8a5700;
+}
+
+.horse-race-result.position-2,
+.horse-race-result.position-3 {
+  background: #edf2f7;
+  color: #44546a;
+}
+
 /* =========================================================
    LOADING AND ERROR
    ========================================================= */
@@ -12505,6 +12578,10 @@ select {
    ========================================================= */
 
 @media (max-width: 950px) {
+  .horse-detail-overview-grid {
+    grid-template-columns: 1fr;
+  }
+
   .horse-detail-window-info {
     grid-template-columns: 1fr;
     column-gap: 0;
@@ -12541,6 +12618,10 @@ select {
     gap: 5px;
 
     padding: 13px 2px;
+  }
+
+  .horse-detail-overview-card {
+    padding: 18px;
   }
 
   .horse-detail-section-heading {

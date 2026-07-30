@@ -223,8 +223,10 @@ export default function WalletTransferPanel({ currentUser, role: roleOverride })
         if (cancelled) return;
         setKyc(current);
         if (current?.status === 'VERIFIED') {
-          await loadWallet();
-          window.history.replaceState(null, '', '/dashboard?section=wallet');
+          // KYC only unlocks the spectator's wallet/betting permissions.
+          // Return to the spectator overview; opening the wallet and topping up
+          // remain explicit actions chosen by the user.
+          window.location.replace('/dashboard');
           return;
         }
       } catch {

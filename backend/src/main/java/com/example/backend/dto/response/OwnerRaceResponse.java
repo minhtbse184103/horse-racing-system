@@ -31,4 +31,5 @@ public class OwnerRaceResponse {
     private Integer jockeyId;
     private String jockeyName;
     private boolean officialResultAvailable;
+    private Integer finishPosition;
 }

@@ -3,7 +3,6 @@ import { CalendarDays, Eye, Flag, MapPin, Medal, RefreshCw, Search, Trophy, User
 import { getRaceResults } from '../../services/eventService';
 import { getJockeyRaces } from '../../services/jockeyService';
 import { useLanguage } from '../../context/LanguageContext';
-import { formatDisplayLabel } from '../../lib';
 import RaceResultLeaderboard from '../admin/events/race-entry/RaceResultLeaderboard';
 
 function getErrorText(error, fallback) {
@@ -15,11 +14,11 @@ function getRaceImageUrl(race) {
 }
 
 function getRaceStatus(race) {
-  return race?.raceStatus || race?.status || 'N/A';
+  return race?.raceStatus || race?.status || '';
 }
 
-function getRaceName(race) {
-  return race?.raceName || race?.name || `Race #${race?.raceId || ''}`;
+function getRaceName(race, fallbackLabel = 'Race') {
+  return race?.raceName || race?.name || `${fallbackLabel} #${race?.raceId || ''}`;
 }
 
 function getTotalPrize(results) {
@@ -27,7 +26,7 @@ function getTotalPrize(results) {
 }
 
 function formatDateTime(value, t, language = 'vi') {
-  if (!value) return typeof t === 'function' ? t('notUpdated') : 'N/A';
+  if (!value) return typeof t === 'function' ? t('notUpdated') : '—';
   const date = new Date(String(value));
   if (Number.isNaN(date.getTime())) return String(value);
   return new Intl.DateTimeFormat(language === 'vi' ? 'vi-VN' : 'en-US', {
@@ -61,25 +60,27 @@ export default function JockeyRaces() {
   const [isResultLoading, setIsResultLoading] = useState(false);
 
   const copy = {
-    eyebrow: language === 'vi' ? 'Race của tôi' : 'Your races',
-    title: language === 'vi' ? 'Race đã được phân công' : 'Assigned race entries',
+    eyebrow: language === 'vi' ? 'Cuộc đua của tôi' : 'Your races',
+    title: language === 'vi' ? 'Các lượt thi đấu được phân công' : 'Assigned race entries',
     desc: language === 'vi'
-      ? 'Theo dõi các Race mà Owner đã đăng ký bạn làm Jockey và Admin đã xếp RaceEntry chính thức.'
+      ? 'Theo dõi các cuộc đua mà chủ ngựa đã đăng ký bạn làm nài ngựa và quản trị viên đã xếp lượt thi đấu chính thức.'
       : 'Track races where an Owner registered you as the Jockey and Admin assigned the official RaceEntry.',
-    search: language === 'vi' ? 'Tìm theo Tournament, Race, Horse, Owner...' : 'Search Tournament, Race, Horse, Owner...',
-    emptyTitle: language === 'vi' ? 'Chưa có Race được phân công' : 'No assigned races yet',
+    search: language === 'vi' ? 'Tìm theo giải đấu, cuộc đua, ngựa hoặc chủ ngựa...' : 'Search Tournament, Race, Horse, Owner...',
+    emptyTitle: language === 'vi' ? 'Chưa có cuộc đua được phân công' : 'No assigned races yet',
     emptyDesc: language === 'vi'
-      ? 'Sau khi Registration được duyệt và phân công RaceEntry, Race sẽ xuất hiện tại đây.'
+      ? 'Sau khi đơn đăng ký được duyệt và phân công lượt thi đấu, cuộc đua sẽ xuất hiện tại đây.'
       : 'After a Registration is approved and assigned as a RaceEntry, races will appear here.',
     noResult: language === 'vi' ? 'Chưa có kết quả chính thức' : 'No official result yet',
     viewResult: language === 'vi' ? 'Xem kết quả' : 'View result',
-    loadError: language === 'vi' ? 'Không thể tải danh sách Race của bạn.' : 'Unable to load your races.',
-    resultLoadError: language === 'vi' ? 'Không thể tải kết quả Race.' : 'Unable to load race results.',
+    loadError: language === 'vi' ? 'Không thể tải danh sách cuộc đua của bạn.' : 'Unable to load your races.',
+    resultLoadError: language === 'vi' ? 'Không thể tải kết quả cuộc đua.' : 'Unable to load race results.',
     retry: language === 'vi' ? 'Tải lại' : 'Retry',
-    raceEntry: 'RaceEntry',
-    registeredHorse: language === 'vi' ? 'Horse đã đăng ký' : 'Registered horse',
-    owner: 'Owner',
-    raceTime: language === 'vi' ? 'Lịch Race' : 'Race schedule',
+    raceEntry: language === 'vi' ? 'Lượt thi đấu' : 'Race entry',
+    registeredHorse: language === 'vi' ? 'Ngựa đã đăng ký' : 'Registered horse',
+    owner: language === 'vi' ? 'Chủ ngựa' : 'Owner',
+    raceTime: language === 'vi' ? 'Lịch thi đấu' : 'Race schedule',
+    race: language === 'vi' ? 'Cuộc đua' : 'Race',
+    tournament: language === 'vi' ? 'Giải đấu' : 'Tournament',
     stall: language === 'vi' ? 'Chuồng xuất phát' : 'Starting stall'
   };
 
@@ -146,7 +147,7 @@ export default function JockeyRaces() {
           <Search size={18} />
           <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder={copy.search} />
         </label>
-        <span className="owner-count-pill">{filteredRaces.length} / {races.length} Race</span>
+        <span className="owner-count-pill">{filteredRaces.length} / {races.length} {copy.race.toLowerCase()}</span>
       </section>
 
       {loadError && (
@@ -176,11 +177,11 @@ export default function JockeyRaces() {
             return (
               <article className="owner-race-card" key={race.raceEntryId || `${race.raceId}-${race.registrationId}`}>
                 <div className={`owner-race-card-image ${imageUrl ? 'has-image' : ''}`}>
-                  {imageUrl ? <img src={imageUrl} alt={race.trackName || getRaceName(race)} /> : <Flag size={26} />}
+                  {imageUrl ? <img src={imageUrl} alt={race.trackName || getRaceName(race, copy.race)} /> : <Flag size={26} />}
                 </div>
                 <div className="owner-race-card-main">
-                  <p>{race.tournamentName || `Tournament #${race.tournamentId}`}</p>
-                  <h3>{getRaceName(race)}</h3>
+                  <p>{race.tournamentName || `${copy.tournament} #${race.tournamentId}`}</p>
+                  <h3>{getRaceName(race, copy.race)}</h3>
                   <span><MapPin size={14} /> {race.trackName || t('notUpdated')}</span>
                 </div>
                 <div className="owner-race-card-info">
@@ -190,8 +191,8 @@ export default function JockeyRaces() {
                   <span><Flag size={15} /> {copy.stall} <strong>{race.startingStall || '-'}</strong></span>
                 </div>
                 <div className="owner-race-card-state">
-                  <span className={`status-badge ${statusClass(status)}`}>{formatDisplayLabel(status)}</span>
-                  <small>{copy.raceEntry}: {formatDisplayLabel(race.raceEntryStatus || 'ASSIGNED')}</small>
+                  <span className={`status-badge ${statusClass(status)}`}>{status ? t(`status_${String(status).toUpperCase()}`) : t('notUpdated')}</span>
+                  <small>{copy.raceEntry}: {t(`status_${String(race.raceEntryStatus || 'ASSIGNED').toUpperCase()}`)}</small>
                 </div>
                 <div className="owner-race-card-actions">
                   <button type="button" className="primary-button compact-primary" onClick={() => openResults(race)} disabled={!canViewResult}>
@@ -225,7 +226,7 @@ export default function JockeyRaces() {
               </div>
             ) : (
               <RaceResultLeaderboard
-                race={{ ...resultRace, name: getRaceName(resultRace) }}
+                race={{ ...resultRace, name: getRaceName(resultRace, copy.race) }}
                 results={results}
                 totalPrize={getTotalPrize(results)}
                 onClose={() => setResultRace(null)}

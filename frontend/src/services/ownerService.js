@@ -196,10 +196,9 @@ export function cancelOwnerInvitation(invitationId) {
   });
 }
 
-export function submitOwnerTournamentRegistration(payload) {
-  return httpRequest('/api/owner/tournament-registrations', {
+export function startOwnerRegistrationPayment(registrationId) {
+  return httpRequest(`/api/owner/tournament-registrations/${registrationId}/payment`, {
     method: 'POST',
-    body: payload,
-    fallbackError: 'Khong the dang ky Tournament.'
+    fallbackError: 'Khong the khoi tao thanh toan phi Tournament.'
   });
 }

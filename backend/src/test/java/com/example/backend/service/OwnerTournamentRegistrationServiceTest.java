@@ -12,6 +12,7 @@ import com.example.backend.dto.response.OwnerRegistrationPaymentResponse;
 import com.example.backend.dto.response.PaymentTransactionResponse;
 import com.example.backend.dto.response.RegistrationResponse;
 import com.example.backend.entity.Horse;
+import com.example.backend.entity.JockeyInvitation;
 import com.example.backend.entity.JockeyProfile;
 import com.example.backend.entity.PaymentTransaction;
 import com.example.backend.entity.PrizeDistribution;
@@ -37,6 +38,7 @@ import com.example.backend.repository.UserRepository;
 import com.example.backend.repository.UserVerificationRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -104,10 +106,6 @@ class OwnerTournamentRegistrationServiceTest {
                 raceRepository,
                 userVerificationRepository,
                 vnpayPaymentService,
-                new RegistrationAvailabilityService(
-                        registrationRepository,
-                        jockeyInvitationRepository
-                ),
                 eligibilityService
         );
 
@@ -124,6 +122,87 @@ class OwnerTournamentRegistrationServiceTest {
     }
 
     @Test
+    void startPaymentUsesRegistrationCreatedByAcceptedInvitation() {
+        User owner = user(30, "owner@example.com", "OWNER");
+        User jockey = user(40, "jockey@example.com", "JOCKEY");
+        Tournament tournament = openTournament();
+        Horse horse = activeHorse();
+        Registration registration = pendingRegistration();
+        JockeyInvitation invitation = JockeyInvitation.builder()
+                .invitationId(9)
+                .registrationId(77)
+                .ownerId(30)
+                .jockeyId(40)
+                .horseId(20)
+                .tournamentId(10)
+                .status("ACCEPTED")
+                .build();
+
+        when(userRepository.findByEmail("owner@example.com")).thenReturn(Optional.of(owner));
+        when(registrationRepository.findByIdForUpdate(77)).thenReturn(Optional.of(registration));
+        when(jockeyInvitationRepository.findByRegistrationIdAndOwnerIdAndStatus(77, 30, "ACCEPTED"))
+                .thenReturn(Optional.of(invitation));
+        when(tournamentRepository.findById(10)).thenReturn(Optional.of(tournament));
+        when(horseRepository.findById(20)).thenReturn(Optional.of(horse));
+        when(userRepository.findById(30)).thenReturn(Optional.of(owner));
+        when(userRepository.findById(40)).thenReturn(Optional.of(jockey));
+        stubJockeyProfile();
+        when(raceEntryRepository.findByRegistrationIdAndStatus(77, RaceEntryStatus.ASSIGNED))
+                .thenReturn(Optional.empty());
+
+        PaymentTransaction paymentTransaction = paymentTransaction();
+        when(vnpayPaymentService.createRegistrationFeePayment(registration, tournament, "127.0.0.1"))
+                .thenReturn(paymentTransaction);
+        when(vnpayPaymentService.toResponse(paymentTransaction)).thenReturn(
+                PaymentTransactionResponse.builder().registrationId(77).status("PENDING").build()
+        );
+
+        OwnerRegistrationPaymentResponse response =
+                service.startRegistrationPayment(77, "127.0.0.1");
+
+        assertEquals("https://sandbox.test/pay", response.getPaymentUrl());
+        verify(eligibilityService).validateSubmissionWindow(tournament);
+        verify(registrationRepository, never()).save(any());
+    }
+
+    @Test
+    void startPaymentRejectsRegistrationWithoutLinkedAcceptedInvitation() {
+        User owner = user(30, "owner@example.com", "OWNER");
+        Registration registration = pendingRegistration();
+        when(userRepository.findByEmail("owner@example.com")).thenReturn(Optional.of(owner));
+        when(registrationRepository.findByIdForUpdate(77)).thenReturn(Optional.of(registration));
+        when(jockeyInvitationRepository.findByRegistrationIdAndOwnerIdAndStatus(77, 30, "ACCEPTED"))
+                .thenReturn(Optional.empty());
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.startRegistrationPayment(77, "127.0.0.1")
+        );
+
+        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
+        verify(vnpayPaymentService, never()).createRegistrationFeePayment(any(), any(), any());
+    }
+
+    @Test
+    void startPaymentRejectsRegistrationOwnedByAnotherOwner() {
+        User owner = user(30, "owner@example.com", "OWNER");
+        Registration registration = pendingRegistration();
+        registration.setOwnerId(999);
+        when(userRepository.findByEmail("owner@example.com")).thenReturn(Optional.of(owner));
+        when(registrationRepository.findByIdForUpdate(77)).thenReturn(Optional.of(registration));
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.startRegistrationPayment(77, "127.0.0.1")
+        );
+
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
+        verify(jockeyInvitationRepository, never())
+                .findByRegistrationIdAndOwnerIdAndStatus(any(), any(), any());
+    }
+
+    @Test
+    @Disabled("Obsolete submitRegistration contract; registration creation now belongs to acceptInvitation")
     void submitSuccessCreatesPendingUnpaidRegistration() {
         OwnerTournamentRegistrationRequest request = request();
         User owner = user(30, "owner@example.com", "OWNER");
@@ -166,7 +245,7 @@ class OwnerTournamentRegistrationServiceTest {
                         .build());
 
         OwnerRegistrationPaymentResponse response =
-                service.submitRegistration(request, "127.0.0.1");
+                service.startRegistrationPayment(77, "127.0.0.1");
         RegistrationResponse registrationResponse = response.getRegistration();
 
         ArgumentCaptor<Registration> captor =
@@ -196,6 +275,7 @@ class OwnerTournamentRegistrationServiceTest {
     }
 
     @Test
+    @Disabled("Obsolete submitRegistration contract; payment now starts by registrationId")
     void submitExistingUnpaidRegistrationRevalidatesCandidateWithoutSelfDuplicateCheck() {
         OwnerTournamentRegistrationRequest request = request();
         User owner = user(30, "owner@example.com", "OWNER");
@@ -243,7 +323,7 @@ class OwnerTournamentRegistrationServiceTest {
                         .build());
 
         OwnerRegistrationPaymentResponse response =
-                service.submitRegistration(request, "127.0.0.1");
+                service.startRegistrationPayment(77, "127.0.0.1");
 
         assertEquals("https://sandbox.test/pay", response.getPaymentUrl());
         verify(eligibilityService).validateSubmissionWindow(tournament);
@@ -262,6 +342,7 @@ class OwnerTournamentRegistrationServiceTest {
     }
 
     @Test
+    @Disabled("Obsolete submitRegistration contract; covered by startPayment linked-invitation tests")
     void submitFailsWithoutAcceptedInvitation() {
         OwnerTournamentRegistrationRequest request = request();
         User owner = user(30, "owner@example.com", "OWNER");
@@ -276,7 +357,7 @@ class OwnerTournamentRegistrationServiceTest {
 
         ApiException exception = assertThrows(
                 ApiException.class,
-                () -> service.submitRegistration(request, "127.0.0.1")
+                () -> service.startRegistrationPayment(77, "127.0.0.1")
         );
 
         assertEquals(HttpStatus.CONFLICT, exception.getStatus());
@@ -288,6 +369,7 @@ class OwnerTournamentRegistrationServiceTest {
     }
 
     @Test
+    @Disabled("Obsolete submitRegistration contract; availability is enforced during acceptInvitation")
     void submitRejectsDuplicateTournamentHorseRegistration() {
         OwnerTournamentRegistrationRequest request = request();
         User owner = user(30, "owner@example.com", "OWNER");
@@ -308,7 +390,7 @@ class OwnerTournamentRegistrationServiceTest {
 
         ApiException exception = assertThrows(
                 ApiException.class,
-                () -> service.submitRegistration(request, "127.0.0.1")
+                () -> service.startRegistrationPayment(77, "127.0.0.1")
         );
 
         assertEquals(HttpStatus.CONFLICT, exception.getStatus());
@@ -320,6 +402,7 @@ class OwnerTournamentRegistrationServiceTest {
     }
 
     @Test
+    @Disabled("Obsolete submitRegistration contract; availability is enforced during acceptInvitation")
     void submitRejectsHorseRegistrationInOverlappingTournament() {
         OwnerTournamentRegistrationRequest request = request();
         User owner = user(30, "owner@example.com", "OWNER");
@@ -353,7 +436,7 @@ class OwnerTournamentRegistrationServiceTest {
 
         ApiException exception = assertThrows(
                 ApiException.class,
-                () -> service.submitRegistration(request, "127.0.0.1")
+                () -> service.startRegistrationPayment(77, "127.0.0.1")
         );
 
         assertEquals(HttpStatus.CONFLICT, exception.getStatus());
@@ -365,6 +448,7 @@ class OwnerTournamentRegistrationServiceTest {
     }
 
     @Test
+    @Disabled("Obsolete submitRegistration contract; payment-window behavior has a dedicated startPayment test")
     void submitRejectsTournamentNotOpen() {
         OwnerTournamentRegistrationRequest request = request();
         User owner = user(30, "owner@example.com", "OWNER");
@@ -382,7 +466,7 @@ class OwnerTournamentRegistrationServiceTest {
 
         ApiException exception = assertThrows(
                 ApiException.class,
-                () -> service.submitRegistration(request, "127.0.0.1")
+                () -> service.startRegistrationPayment(77, "127.0.0.1")
         );
 
         assertEquals(HttpStatus.CONFLICT, exception.getStatus());
@@ -395,6 +479,7 @@ class OwnerTournamentRegistrationServiceTest {
     }
 
     @Test
+    @Disabled("Obsolete submitRegistration contract; owner uniqueness is enforced during invitation acceptance")
     void submitRejectsOwnerWithAnotherActiveRegistrationInSameTournament() {
         OwnerTournamentRegistrationRequest request = request();
         User owner = user(30, "owner@example.com", "OWNER");
@@ -415,7 +500,7 @@ class OwnerTournamentRegistrationServiceTest {
 
         ApiException exception = assertThrows(
                 ApiException.class,
-                () -> service.submitRegistration(request, "127.0.0.1")
+                () -> service.startRegistrationPayment(77, "127.0.0.1")
         );
 
         assertEquals(HttpStatus.CONFLICT, exception.getStatus());
@@ -633,6 +718,20 @@ class OwnerTournamentRegistrationServiceTest {
         paymentTransaction.setStatus("PENDING");
         paymentTransaction.setPayUrl("https://sandbox.test/pay");
         return paymentTransaction;
+    }
+
+    private Registration pendingRegistration() {
+        Registration registration = new Registration();
+        registration.setRegistrationId(77);
+        registration.setRegistrationNo("REG-T10-PENDING");
+        registration.setTournamentId(10);
+        registration.setHorseId(20);
+        registration.setOwnerId(30);
+        registration.setJockeyId(40);
+        registration.setPaymentStatus(PaymentStatus.UNPAID);
+        registration.setApprovalStatus(RegistrationStatus.PENDING);
+        registration.setSubmittedAt(LocalDateTime.now());
+        return registration;
     }
 
     private Registration paidRegistration() {

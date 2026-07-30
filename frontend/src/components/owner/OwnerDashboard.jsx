@@ -203,17 +203,7 @@ function ApprovedOwnerDashboard({ currentUser, onLogout, onUserUpdated }) {
       horseId
     )}/detail`;
 
-    const detailWindow = window.open(
-      detailUrl,
-      `horse-detail-${horseId}`,
-      'width=1400,height=900,left=80,top=40,resizable=yes,scrollbars=yes'
-    );
-
-    if (!detailWindow) {
-      setPageError(
-        'Trình duyệt đang chặn cửa sổ mới. Hãy cho phép popup cho trang web này.'
-      );
-    }
+    window.location.assign(detailUrl);
   }
 
   function handleEditHorse(horse) {

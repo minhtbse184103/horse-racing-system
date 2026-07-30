@@ -1,12 +1,10 @@
 package com.example.backend.controller;
 
-import com.example.backend.dto.request.OwnerTournamentRegistrationRequest;
 import com.example.backend.dto.response.OwnerEntryFeeTransactionResponse;
 import com.example.backend.dto.response.OwnerRegistrationPaymentResponse;
 import com.example.backend.dto.response.OwnerRaceResponse;
 import com.example.backend.dto.response.TournamentResponse;
 import com.example.backend.service.OwnerTournamentRegistrationService;
-import jakarta.validation.Valid;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,7 +13,6 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
@@ -58,15 +55,15 @@ public class OwnerTournamentRegistrationController {
         registrationService.markOwnerPrizeDistributionPaid(prizeDistributionId);
     }
 
-    @PostMapping
-    public ResponseEntity<OwnerRegistrationPaymentResponse> submitRegistration(
-            @Valid @RequestBody OwnerTournamentRegistrationRequest request,
+    @PostMapping("/{registrationId}/payment")
+    public ResponseEntity<OwnerRegistrationPaymentResponse> startRegistrationPayment(
+            @PathVariable Integer registrationId,
             HttpServletRequest httpRequest
     ) {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(registrationService.submitRegistration(
-                        request,
+                .body(registrationService.startRegistrationPayment(
+                        registrationId,
                         getClientIp(httpRequest)
                 ));
     }

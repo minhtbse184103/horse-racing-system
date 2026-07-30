@@ -93,6 +93,7 @@ public interface RaceEntryRepository
         String getHorseName();
         Integer getJockeyId();
         String getJockeyName();
+        Integer getFinishPosition();
     }
 
     @Query("""
@@ -116,7 +117,8 @@ public interface RaceEntryRepository
                horse.horseId as horseId,
                horse.horseName as horseName,
                jockey.userID as jockeyId,
-               coalesce(jockeyProfile.fullName, jockey.username) as jockeyName
+               coalesce(jockeyProfile.fullName, jockey.username) as jockeyName,
+               result.finishPosition as finishPosition
         from RaceEntry entry
         join Registration registration on registration.registrationId = entry.registrationId
         join Race race on race.raceId = entry.raceId
@@ -124,6 +126,7 @@ public interface RaceEntryRepository
         join Horse horse on horse.horseId = registration.horseId
         join User jockey on jockey.userID = registration.jockeyId
         left join JockeyProfile jockeyProfile on jockeyProfile.jockeyId = jockey.userID
+        left join RaceResult result on result.raceEntryId = entry.raceEntryId
         where registration.ownerId = :ownerId
         order by race.raceStartTime desc, race.raceOrder asc
         """)

@@ -152,7 +152,7 @@ export default function JockeyProfileView({ user, profile, isLoading, onReload, 
             <EditableField label={t('jockeyUsername')} name="username" value={account.username} disabled={!isEditing || isSaving} onChange={handleChange} />
             <EditableField label={t('jockeyEmail')} name="email" type="email" value={account.email} disabled={!isEditing || isSaving} onChange={handleChange} />
             <EditableField label={t('jockeyPhoneNumber')} name="phone" value={account.phone} disabled={!isEditing || isSaving} onChange={handleChange} />
-            <EditableField label={t('jockeyRole')} name="role" value={formatDisplayLabel(account.role)} disabled onChange={handleChange} />
+            <EditableField label={t('jockeyRole')} name="role" value={t(`role_${String(account.role || 'JOCKEY').toUpperCase()}`)} disabled onChange={handleChange} />
           </div>
           {isEditing && (
             <div className="mt-5 flex flex-col-reverse gap-3 border-t border-brown-700/10 pt-5 sm:flex-row sm:justify-end">
@@ -181,10 +181,10 @@ export default function JockeyProfileView({ user, profile, isLoading, onReload, 
           <ProfileField label={t('jockeyTrainerEmail')} value={profile.trainerEmail} fallback={t('jockeyNotUpdated')} />
           <ProfileField label={t('jockeyAcademyAddress')} value={profile.academyStableAddress} fallback={t('jockeyNotUpdated')} />
           <ProfileField label={t('jockeyRacingRecord')} value={t('jockeyRacingRecordValue', { wins: performance.top1, races: performance.totalRaces })} fallback={t('jockeyNotUpdated')} />
-          <ProfileField label="Top 1 / 2 / 3" value={`${performance.top1} / ${performance.top2} / ${performance.top3}`} fallback={t('jockeyNotUpdated')} />
+          <ProfileField label={t('jockeyTopPositions')} value={`${performance.top1} / ${performance.top2} / ${performance.top3}`} fallback={t('jockeyNotUpdated')} />
           <ProfileField label={t('ownerRaceWinRate')} value={`${performance.winRate}%`} fallback={t('jockeyNotUpdated')} />
           <ProfileField label={t('ownerRaceTop3Rate')} value={`${performance.top3Rate}%`} fallback={t('jockeyNotUpdated')} />
-          <ProfileField label={t('ownerRaceViolation')} value={`${performance.violationCount} / DQ ${performance.disqualifiedCount}`} fallback={t('jockeyNotUpdated')} />
+          <ProfileField label={t('ownerRaceViolation')} value={`${performance.violationCount} / ${t('jockeyDisqualifiedShort')} ${performance.disqualifiedCount}`} fallback={t('jockeyNotUpdated')} />
           <ProfileField label={t('jockeyBiography')} value={profile.biography} fallback={t('jockeyNotUpdated')} />
           <ProfileField label={t('jockeyReviewedAt')} value={formatDate(profile.reviewedAt)} fallback={t('jockeyNotUpdated')} />
         </div>

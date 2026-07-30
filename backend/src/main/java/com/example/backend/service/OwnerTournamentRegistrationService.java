@@ -6,7 +6,6 @@ import com.example.backend.constant.PaymentStatus;
 import com.example.backend.constant.PrizeDistributionStatus;
 import com.example.backend.constant.RaceEntryStatus;
 import com.example.backend.constant.RegistrationStatus;
-import com.example.backend.dto.request.OwnerTournamentRegistrationRequest;
 import com.example.backend.dto.response.OwnerEntryFeeTransactionResponse;
 import com.example.backend.dto.response.OwnerRegistrationPaymentResponse;
 import com.example.backend.dto.response.OwnerRaceResponse;
@@ -48,7 +47,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -58,10 +56,6 @@ public class OwnerTournamentRegistrationService {
     private static final String ROLE_OWNER = "OWNER";
     private static final String INVITATION_ACCEPTED = "ACCEPTED";
 
-    private static final List<String> ACTIVE_REGISTRATION_STATUSES = List.of(
-            RegistrationStatus.PENDING,
-            RegistrationStatus.APPROVED
-    );
     private static final List<String> RETRYABLE_PAYMENT_STATUSES = List.of(
             PaymentStatus.UNPAID,
             PaymentStatus.FAILED
@@ -82,7 +76,6 @@ public class OwnerTournamentRegistrationService {
     private final RaceRepository raceRepository;
     private final UserVerificationRepository userVerificationRepository;
     private final VnpayPaymentService vnpayPaymentService;
-    private final RegistrationAvailabilityService availabilityService;
     private final RegistrationEligibilityService eligibilityService;
 
     public OwnerTournamentRegistrationService(
@@ -101,7 +94,6 @@ public class OwnerTournamentRegistrationService {
             RaceRepository raceRepository,
             UserVerificationRepository userVerificationRepository,
             VnpayPaymentService vnpayPaymentService,
-            RegistrationAvailabilityService availabilityService,
             RegistrationEligibilityService eligibilityService) {
         this.registrationRepository = registrationRepository;
         this.tournamentRepository = tournamentRepository;
@@ -118,96 +110,42 @@ public class OwnerTournamentRegistrationService {
         this.raceRepository = raceRepository;
         this.userVerificationRepository = userVerificationRepository;
         this.vnpayPaymentService = vnpayPaymentService;
-        this.availabilityService = availabilityService;
         this.eligibilityService = eligibilityService;
     }
 
     @Transactional
-    public OwnerRegistrationPaymentResponse submitRegistration(
-            OwnerTournamentRegistrationRequest request,
+    public OwnerRegistrationPaymentResponse startRegistrationPayment(
+            Integer registrationId,
             String clientIp
     ) {
         User owner = getCurrentOwner();
-        Tournament tournament = getTournament(request.getTournamentId());
-        eligibilityService.validateSubmissionWindow(tournament);
+        Registration registration = registrationRepository.findByIdForUpdate(registrationId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "Registration does not exist."
+                ));
 
-        Horse horse = getOwnedHorse(request.getHorseId(), owner.getUserID());
-        User jockey = getJockey(request.getJockeyId());
-
-        eligibilityService.validateLoadedParticipants(
-                tournament,
-                horse,
-                owner,
-                jockey
-        );
-
-        validateAcceptedInvitation(tournament, horse, owner, jockey);
-
-        Registration existingRegistration = findExistingActiveRegistration(
-                tournament,
-                horse,
-                owner,
-                jockey
-        );
-        if (existingRegistration != null) {
-            return createPaymentResponseForExistingRegistration(
-                    existingRegistration,
-                    tournament,
-                    clientIp
-            );
+        if (!owner.getUserID().equals(registration.getOwnerId())) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Registration does not belong to the current owner.");
         }
 
-        eligibilityService.validateNewSubmissionCapacity(tournament);
-        availabilityService.validateOwnerRegistrationCanBeCreated(
-                tournament,
-                horse,
-                owner,
-                jockey
-        );
-
-        LocalDateTime now = LocalDateTime.now();
-        Registration registration = new Registration();
-        registration.setTournamentId(tournament.getTournamentId());
-        registration.setHorseId(horse.getHorseId());
-        registration.setOwnerId(owner.getUserID());
-        registration.setJockeyId(jockey.getUserID());
-        registration.setRegistrationNo(generateRegistrationNo(tournament.getTournamentId()));
-        registration.setPaymentStatus(PaymentStatus.UNPAID);
-        registration.setApprovalStatus(RegistrationStatus.PENDING);
-        registration.setSubmittedAt(now);
-
-        Registration savedRegistration = registrationRepository.save(registration);
-
-        var paymentTransaction = vnpayPaymentService.createRegistrationFeePayment(
-                savedRegistration,
-                tournament,
-                clientIp
-        );
-
-        return OwnerRegistrationPaymentResponse.builder()
-                .registration(toResponse(savedRegistration))
-                .paymentTransaction(vnpayPaymentService.toResponse(paymentTransaction))
-                .paymentUrl(paymentTransaction.getPayUrl())
-                .build();
-    }
-
-    private Registration findExistingActiveRegistration(
-            Tournament tournament,
-            Horse horse,
-            User owner,
-            User jockey
-    ) {
-        return registrationRepository
-                .findActiveByTournamentHorseOwnerAndJockey(
-                        tournament.getTournamentId(),
-                        horse.getHorseId(),
+        jockeyInvitationRepository.findByRegistrationIdAndOwnerIdAndStatus(
+                        registrationId,
                         owner.getUserID(),
-                        jockey.getUserID(),
-                        ACTIVE_REGISTRATION_STATUSES
+                        INVITATION_ACCEPTED
                 )
-                .stream()
-                .findFirst()
-                .orElse(null);
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.CONFLICT,
+                        "An ACCEPTED jockey invitation linked to this registration is required before payment."
+                ));
+
+        if (!RegistrationStatus.PENDING.equals(registration.getApprovalStatus())) {
+            throw new ApiException(HttpStatus.CONFLICT, "Registration cannot be paid from its current approval status.");
+        }
+
+        Tournament tournament = getTournament(registration.getTournamentId());
+        eligibilityService.validateSubmissionWindow(tournament);
+        return createPaymentResponseForExistingRegistration(registration, tournament, clientIp);
     }
 
     private OwnerRegistrationPaymentResponse createPaymentResponseForExistingRegistration(
@@ -397,54 +335,6 @@ public class OwnerTournamentRegistrationService {
                         HttpStatus.NOT_FOUND,
                         "Tournament does not exist."
                 ));
-    }
-
-    private Horse getOwnedHorse(Integer horseId, Integer ownerId) {
-        return horseRepository.findByHorseIdAndOwnerId(horseId, ownerId)
-                .orElseThrow(() -> new ApiException(
-                        HttpStatus.NOT_FOUND,
-                        "Horse does not exist or does not belong to the current owner."
-                ));
-    }
-
-    private User getJockey(Integer jockeyId) {
-        return userRepository.findById(jockeyId)
-                .orElseThrow(() -> new ApiException(
-                        HttpStatus.NOT_FOUND,
-                        "Jockey does not exist."
-                ));
-    }
-
-    private void validateAcceptedInvitation(
-            Tournament tournament,
-            Horse horse,
-            User owner,
-            User jockey
-    ) {
-        boolean acceptedInvitationExists =
-                jockeyInvitationRepository
-                        .existsByTournamentIdAndHorseIdAndOwnerIdAndJockeyIdAndStatus(
-                                tournament.getTournamentId(),
-                                horse.getHorseId(),
-                                owner.getUserID(),
-                                jockey.getUserID(),
-                                INVITATION_ACCEPTED
-                        );
-
-        if (!acceptedInvitationExists) {
-            throw new ApiException(
-                    HttpStatus.CONFLICT,
-                    "An ACCEPTED jockey invitation is required before registration."
-            );
-        }
-    }
-
-    private String generateRegistrationNo(Integer tournamentId) {
-        return "REG-T" + tournamentId + "-" + UUID.randomUUID()
-                .toString()
-                .replace("-", "")
-                .substring(0, 10)
-                .toUpperCase();
     }
 
     private RegistrationResponse toResponse(Registration registration) {
@@ -644,6 +534,7 @@ public class OwnerTournamentRegistrationService {
                 .jockeyId(race.getJockeyId())
                 .jockeyName(race.getJockeyName())
                 .officialResultAvailable(officialResultAvailable)
+                .finishPosition(race.getFinishPosition())
                 .build();
     }
 }

@@ -180,12 +180,7 @@ export default function OwnerHorseDetailPage({ horseId }) {
   }, [ownerRaces, horseId]);
 
   function handleClose() {
-    window.close();
-    window.setTimeout(() => {
-      if (!window.closed) {
-        window.history.back();
-      }
-    }, 100);
+    window.location.assign('/dashboard?section=horses');
   }
 
   if (isLoading) {
@@ -267,7 +262,20 @@ export default function OwnerHorseDetailPage({ horseId }) {
           </button>
         </header>
 
-        <section className="horse-detail-window-info">
+        <div className="horse-detail-overview-grid">
+          <section className="horse-detail-overview-card performance-card">
+            <div className="horse-detail-card-heading">
+              <p className="eyebrow">
+                {language === 'vi' ? 'THÀNH TÍCH' : 'PERFORMANCE'}
+              </p>
+              <h2>{language === 'vi' ? 'Thành tích thi đấu' : 'Race performance'}</h2>
+              <p>
+                {language === 'vi'
+                  ? 'Tổng hợp kết quả thi đấu chính thức của ngựa.'
+                  : 'A summary of the horse’s official race results.'}
+              </p>
+            </div>
+            <div className="horse-detail-stat-grid">
           <DetailItem
             label={t('ownerRaceTotalRace')}
             value={formatNumber(performance.totalRaces)}
@@ -297,9 +305,20 @@ export default function OwnerHorseDetailPage({ horseId }) {
             label={t('ownerRaceViolation')}
             value={`${performance.violationCount} / DQ ${performance.disqualifiedCount}`}
           />
-        </section>
+            </div>
+          </section>
 
-        <section className="horse-detail-window-info">
+          <section className="horse-detail-overview-card profile-card">
+            <div className="horse-detail-card-heading">
+              <p className="eyebrow">{language === 'vi' ? 'HỒ SƠ' : 'PROFILE'}</p>
+              <h2>{language === 'vi' ? 'Thông tin cá nhân' : 'Horse information'}</h2>
+              <p>
+                {language === 'vi'
+                  ? 'Thông tin nhận dạng, thể trạng và hồ sơ đăng ký.'
+                  : 'Identity, physical details and registration profile.'}
+              </p>
+            </div>
+            <div className="horse-detail-window-info">
           <DetailItem
             label="ID"
             value={getHorseId(horse) || 'N/A'}
@@ -347,23 +366,6 @@ export default function OwnerHorseDetailPage({ horseId }) {
           <DetailItem
             label={t('ownerHorseTrainer')}
             value={horse.trainer || t('notUpdated')}
-          />
-
-          <DetailItem
-            label={t('ownerHorseOfficialProfileUrl')}
-            value={
-              horse.officialHorseProfileUrl ? (
-                <a
-                  href={horse.officialHorseProfileUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {horse.officialHorseProfileUrl}
-                </a>
-              ) : (
-                t('notUpdated')
-              )
-            }
           />
 
           <DetailItem
@@ -428,7 +430,9 @@ export default function OwnerHorseDetailPage({ horseId }) {
               wide
             />
           )}
-        </section>
+            </div>
+          </section>
+        </div>
 
         <section className="horse-detail-window-section">
           <div className="horse-detail-section-heading">
@@ -623,13 +627,18 @@ export default function OwnerHorseDetailPage({ horseId }) {
                       </td>
 
                       <td>
-                        {race.officialResultAvailable
-                          ? language === 'vi'
-                            ? 'Đã có kết quả'
-                            : 'Result available'
-                          : language === 'vi'
-                            ? 'Chưa có kết quả'
-                            : 'No result yet'}
+                        {race.officialResultAvailable && race.finishPosition ? (
+                          <span className={`horse-race-result position-${race.finishPosition}`}>
+                            {race.finishPosition === 1 && <span aria-hidden="true">🏆</span>}
+                            {language === 'vi'
+                              ? `Hạng ${race.finishPosition}`
+                              : `Position ${race.finishPosition}`}
+                          </span>
+                        ) : race.officialResultAvailable ? (
+                          language === 'vi' ? 'Đã có kết quả' : 'Result available'
+                        ) : (
+                          language === 'vi' ? 'Chưa có kết quả' : 'No result yet'
+                        )}
                       </td>
                     </tr>
                   ))}

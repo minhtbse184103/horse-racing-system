@@ -29,7 +29,7 @@ import {
   getOwnerInvitations,
   getOwnerTournamentDetail,
   inviteJockey,
-  submitOwnerTournamentRegistration
+  startOwnerRegistrationPayment
 } from '../../services/ownerService';
 import { confirmVnpayReturn } from '../../services/paymentService';
 import { getTournaments } from '../../services/eventService';
@@ -512,12 +512,28 @@ function getHorseTournamentLockKey(horseId, tournamentId) {
 
 function isOverlappingHorseError(message) {
   const normalized = String(message || '').toLowerCase();
+  if (
+    normalized.includes('jockey')
+    || normalized.includes('nài ngựa')
+  ) return false;
+
   return normalized.includes('ngựa này')
     && (
       normalized.includes('trùng thời gian')
       || normalized.includes('trung thoi gian')
       || normalized.includes('overlapping tournament')
     );
+}
+
+function isJockeyAvailabilityError(message) {
+  const normalized = String(message || '').toLowerCase();
+  const mentionsJockey = normalized.includes('jockey')
+    || normalized.includes('nài ngựa');
+  const mentionsConflict = normalized.includes('lời mời')
+    || normalized.includes('đơn đăng ký')
+    || normalized.includes('overlapping tournament')
+    || normalized.includes('active registration');
+  return mentionsJockey && mentionsConflict;
 }
 
 function getHorseTournamentLockReason(horse, tournament, invitations = [], manualLocks = {}, t) {
@@ -1689,18 +1705,22 @@ export default function OwnerRegisterRace({ horses, onBackToHorses, onViewTransa
     const horseId = String(getInvitationHorseId(invitation) || '');
     if (!tournamentId) return;
 
-    setSelectedWorkflowInvitationId(String(getInvitationId(invitation) || ''));
+    setSelectedWorkflowInvitationId(restart ? '' : String(getInvitationId(invitation) || ''));
     setFlowMode('invite');
     setWizardStep(2);
     setExpandedEligibilityHorseId('');
     setFormValues({
       tournamentId,
-      horseId,
+      horseId: restart ? '' : horseId,
       jockeyId: restart ? '' : String(getInvitationJockeyId(invitation) || ''),
       expiredAt: '',
       message: ''
     });
-    setRegistrationValues({ tournamentId, horseId, jockeyId: '' });
+    setRegistrationValues({
+      tournamentId,
+      horseId: restart ? '' : horseId,
+      jockeyId: ''
+    });
     setFormErrors({});
     setRegistrationErrors({});
     resetFeedback();
@@ -1824,7 +1844,10 @@ export default function OwnerRegisterRace({ horses, onBackToHorses, onViewTransa
       return normalizedInvitation;
     } catch (err) {
       const errorText = getErrorText(err, t('ownerRaceInviteError'));
-      if (isOverlappingHorseError(errorText) && nextValues.horseId && nextValues.tournamentId) {
+      if (isJockeyAvailabilityError(errorText)) {
+        setFormValues((current) => ({ ...current, jockeyId: '' }));
+        setFormErrors((current) => ({ ...current, jockeyId: errorText, horseId: '' }));
+      } else if (isOverlappingHorseError(errorText) && nextValues.horseId && nextValues.tournamentId) {
         const lockKey = getHorseTournamentLockKey(nextValues.horseId, nextValues.tournamentId);
         setHorseLockReasons((current) => ({ ...current, [lockKey]: errorText }));
         setFormErrors((current) => ({ ...current, horseId: errorText }));
@@ -1848,7 +1871,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses, onViewTransa
     await submitInvitation(jockeyId);
   }
 
-  async function handleRegistrationSubmit(event) {
+  async function handleStartRegistrationPayment(event) {
     event.preventDefault();
     if (isRegistering) return;
     if (isPaidStatus(getInvitationPaymentStatus(selectedAcceptedInvitation))) {
@@ -1870,11 +1893,12 @@ export default function OwnerRegisterRace({ horses, onBackToHorses, onViewTransa
       setRegistrationErrors(errors);
       if (Object.keys(errors).length > 0) return;
 
-      const response = await submitOwnerTournamentRegistration({
-        tournamentId: Number(registrationValues.tournamentId),
-        horseId: Number(registrationValues.horseId),
-        jockeyId: Number(registrationValues.jockeyId)
-      });
+      const registrationId = selectedAcceptedInvitation?.registrationId;
+      if (!registrationId) {
+        setRegistrationSubmitError(t('ownerRaceAcceptedInviteRequired'));
+        return;
+      }
+      const response = await startOwnerRegistrationPayment(registrationId);
       const registration = response?.registration || response;
       setRegistrationResult(registration);
 
@@ -2511,33 +2535,6 @@ export default function OwnerRegisterRace({ horses, onBackToHorses, onViewTransa
               <div className="admin-alert error modal-alert" role="alert">{submitError}</div>
             )}
 
-            <div className="owner-invite-context-grid wizard-step-hidden">
-              <article className="owner-invite-context-card">
-                <p className="eyebrow">Race</p>
-                <h3>{selectedTournament ? getRaceName(selectedRace, selectedTournament, t) : t('ownerRaceNotSelected')}</h3>
-                <div className="owner-invite-context-list">
-                  <span><CalendarDays size={14} /> {t('ownerRaceDateTime')} <strong>{formatDateTime(getRaceDateTime(selectedRace, selectedTournament), t, language)}</strong></span>
-                  <span><MapPin size={14} /> {t('ownerRaceLocation')} <strong>{selectedTournament ? getRaceTrack(selectedRace, selectedTournament, t) : t('notUpdated')}</strong></span>
-                  <span><Flag size={14} /> {t('ownerRaceDistance')} <strong>{getRaceDistance(selectedRace, t)}</strong></span>
-                  <span><Users size={14} /> {t('ownerRaceHorseCount')} <strong>{selectedTournament ? getRaceCapacity(selectedRace, selectedTournament) : t('notUpdated')}</strong></span>
-                  <span><CircleDollarSign size={14} /> {t('ownerRaceEntryFee')} <strong>{selectedTournament ? formatCurrency(selectedTournament.entryFee) : t('notUpdated')}</strong></span>
-                  <span><Clock size={14} /> {t('status')} <strong>{selectedTournament ? formatStatus(selectedTournament.status || 'OPEN_FOR_REGISTRATION', t) : t('ownerRaceNoSelection')}</strong></span>
-                </div>
-              </article>
-
-              <article className="owner-invite-context-card">
-                <p className="eyebrow">{t('ownerRaceHorseLabel')}</p>
-                <h3>{selectedHorse ? getHorseName(selectedHorse) : t('ownerRaceNoSelection')}</h3>
-                <div className="owner-invite-context-list">
-                  <span><ShieldCheck size={14} /> Eligibility <strong>{selectedHorse ? formatStatus(selectedHorse.status || 'ACTIVE', t) : t('ownerRaceNoSelection')}</strong></span>
-                  <span><BarChart3 size={14} /> {t('ownerRaceTotalRace')} <strong>{selectedHorse ? selectedHorseStats.totalRaces : t('ownerRaceNoData')}</strong></span>
-                  <span><Trophy size={14} /> Top 1/2/3 <strong>{selectedHorse ? `${selectedHorseStats.top1}/${selectedHorseStats.top2}/${selectedHorseStats.top3}` : t('ownerRaceNoData')}</strong></span>
-                  <span><CheckCircle2 size={14} /> {t('ownerRaceTop3Rate')} <strong>{selectedHorse ? formatPercent(selectedHorseStats.top3Rate, t) : t('ownerRaceNoData')}</strong></span>
-                  <span><XCircle size={14} /> {t('ownerRaceViolation')} <strong>{selectedHorse ? `${selectedHorseStats.violationCount} / DQ ${selectedHorseStats.disqualifiedCount}` : t('ownerRaceNoData')}</strong></span>
-                  <span><Flag size={14} /> {t('ownerHorseAge')}/{t('ownerHorseBreeding')} <strong>{selectedHorse ? firstDefined(selectedHorse.age, selectedHorse.breeding, selectedHorse.sex, t('notUpdated')) : t('ownerRaceNoSelection')}</strong></span>
-                </div>
-              </article>
-            </div>
             {currentPendingInvitation && !message && !submitError && (
               <div className="admin-alert warning modal-alert" role="status">
                 {t('ownerRacePendingInviteNotice')}
@@ -2579,44 +2576,6 @@ export default function OwnerRegisterRace({ horses, onBackToHorses, onViewTransa
                 ) : null}
               </div>
             </div>
-
-            <div className="owner-form-row legacy-jockey-select">
-              <div>
-                <label className="field-label" htmlFor="ownerJockeyId">{t('ownerRaceActiveJockeyLabel')} <span className="required">*</span></label>
-                <select className={formErrors.jockeyId ? 'input has-error' : 'input'} id="ownerJockeyId" name="jockeyId" value={formValues.jockeyId} onChange={handleChange} disabled={isSaving || isLoading || !inviteReady}>
-                  <option value="">{t('ownerRaceChooseJockey')}</option>
-                  {jockeys.map((jockey) => {
-                    const jockeyId = getUserId(jockey);
-                    return <option key={jockeyId} value={jockeyId}>{jockey.fullName || jockey.email || `Jockey ${jockeyId}`}</option>;
-                  })}
-                </select>
-                {!isLoading && jockeys.length === 0 && <p className="field-hint warning-text">{t('ownerRaceNoActiveJockey')}</p>}
-              </div>
-
-              <div>
-                <label className="field-label" htmlFor="ownerExpiredAt">{t('ownerRaceInviteDeadline')}</label>
-                <input
-                  className={formErrors.expiredAt ? 'input has-error' : 'input'}
-                  id="ownerExpiredAt"
-                  name="expiredAt"
-                  type="date"
-                  value={formValues.expiredAt}
-                  onChange={handleChange}
-                  min={responseDeadlineMin}
-                  max={responseDeadlineMax || undefined}
-                  disabled={isSaving || !inviteReady}
-                />
-                {selectedTournament && (
-                  <p className="field-hint">
-                    {t('ownerRaceDeadlineHint')} <strong>{formatDateTime(getRegistrationDeadline(selectedTournament), t, language)}</strong>.
-                  </p>
-                )}
-                {formErrors.expiredAt && <p className="field-error">{formErrors.expiredAt}</p>}
-              </div>
-            </div>
-
-            <label className="field-label legacy-invite-message" htmlFor="ownerInviteMessage">{t('ownerRaceMessage')}</label>
-            <textarea className="input textarea-input legacy-invite-message-input" id="ownerInviteMessage" name="message" rows={3} value={formValues.message} onChange={handleChange} disabled={isSaving || !inviteReady} placeholder={t('ownerRaceMessagePlaceholder')} />
 
             <div className="owner-form-row">
               <div>
@@ -2703,11 +2662,6 @@ export default function OwnerRegisterRace({ horses, onBackToHorses, onViewTransa
               </div>
             )}
 
-            <div className="admin-form-actions tournament-modal-actions legacy-invite-actions">
-              <button className="primary-button" type="submit" disabled={isSaving || isLoading || !inviteReady || Boolean(currentPendingInvitation)}>
-                <Send size={16} /> {isSaving ? t('ownerRaceSending') : t('ownerRaceSendInvite')}
-              </button>
-            </div>
           </form>
 
           {showPaymentResult ? (
@@ -2808,7 +2762,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses, onViewTransa
             )}
           </section>
           ) : isPaymentFlowActive && hasAcceptedInvitation && canStartInvitationPayment(selectedAcceptedInvitation) ? (
-          <form className={`owner-panel owner-form flow-only ${wizardStep === 4 ? '' : 'wizard-step-hidden'}`} onSubmit={handleRegistrationSubmit} noValidate>
+          <form className={`owner-panel owner-form flow-only ${wizardStep === 4 ? '' : 'wizard-step-hidden'}`} onSubmit={handleStartRegistrationPayment} noValidate>
             <div className="owner-panel-header">
               <div>
                 <p className="eyebrow">{t('ownerRacePaymentTitle')}</p>
@@ -2895,7 +2849,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses, onViewTransa
           </section>
           ) : null}
 
-          {isInviteFlowActive && (
+          {isInviteFlowActive && wizardStep < 3 && (
             <div className="owner-panel wizard-navigation">
               <button className="outline-button wizard-nav-button" type="button" onClick={clearTournamentSelection} disabled={isSaving || isRegistering}>
                 {t('cancel')}
@@ -2913,6 +2867,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses, onViewTransa
               </div>
             </div>
           )}
+
         </main>
 
         <aside className="owner-registration-sidebar">

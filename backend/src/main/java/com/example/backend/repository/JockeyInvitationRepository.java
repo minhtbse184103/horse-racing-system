@@ -32,6 +32,12 @@ public interface JockeyInvitationRepository extends JpaRepository<JockeyInvitati
     // Spring Data tạo điều kiện: where invitationId = :invitationId and ownerId = :ownerId.
     Optional<JockeyInvitation> findByInvitationIdAndOwnerId(Integer invitationId, Integer ownerId);
 
+    Optional<JockeyInvitation> findByRegistrationIdAndOwnerIdAndStatus(
+            Integer registrationId,
+            Integer ownerId,
+            String status
+    );
+
     // LUỒNG: Jockey xem/chấp nhận/từ chối lời mời
     // BẢNG: JockeyInvitation.
     // Mục đích: chỉ lấy một lời mời nếu lời mời đó thuộc jockey hiện tại.
