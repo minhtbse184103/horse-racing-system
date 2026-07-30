@@ -249,27 +249,59 @@ public class OwnerServiceImpl implements OwnerService {
                 .toList();
     }
 
-    // Owner mời jockey tham gia tournament cùng một ngựa, chỉ tạo invitation PENDING.
+    /**
+     * Owner gửi lời mời cho một Jockey để cùng một ngựa tham gia Tournament.
+     *
+     * Luồng này chỉ tạo JockeyInvitation ở trạng thái PENDING. Registration chưa
+     * được tạo ở đây; Registration chỉ được tạo sau khi Jockey chấp nhận lời mời.
+     * Nếu bất kỳ bước kiểm tra hoặc lưu dữ liệu nào thất bại, @Transactional sẽ
+     * rollback toàn bộ thao tác của phương thức này.
+     */
     @Transactional
     @Override
     public JockeyInvitationResponse inviteJockey(InviteJockeyRequest request) {
-        // Lấy owner, ngựa và tournament từ DB để kiểm tra quyền/điều kiện trước khi mời.
+        // Bước 1: Lấy Owner từ tài khoản đang đăng nhập và kiểm tra đúng role OWNER.
         User owner = getCurrentOwner();
+
+        // Bước 2: Lấy ngựa theo horseId và ownerId. Hàm này đồng thời bảo đảm
+        // Owner không thể dùng ngựa thuộc sở hữu của người khác để gửi lời mời.
         Horse horse = getOwnedHorse(request.getHorseId());
+
+        // Bước 3: Lấy Tournament được Owner lựa chọn; báo lỗi nếu Tournament không tồn tại.
         Tournament tournament = getTournament(request.getTournamentId());
 
-        // Ngựa phải hợp lệ để đăng ký và hạn lời mời không được vượt hạn đăng ký.
+        // Bước 4: Kiểm tra điều kiện cơ bản trước khi mời:
+        // - ngựa phải ACTIVE;
+        // - Tournament phải đang mở đăng ký và chưa hết hạn;
+        // - Tournament chưa đạt số lượng đăng ký tối đa.
         validateHorseCanRegister(horse, tournament);
+
+        // Hạn phản hồi của lời mời phải nằm trước hạn đóng đăng ký Tournament,
+        // để Jockey không thể chấp nhận lời mời sau khi giải đã đóng đăng ký.
         validateInvitationExpiry(request.getExpiredAt(), tournament);
 
-        // Lấy jockey được mời và kiểm tra điều kiện tham gia giải.
+        // Bước 5: Lấy Jockey được chọn và kiểm tra user có role JOCKEY,
+        // tài khoản ACTIVE và đã có JockeyProfile hợp lệ.
         User jockey = getJockey(request.getJockeyId());
+
+        // Bước 6: Kiểm tra lại điều kiện tham gia ở backend (nguồn quyết định cuối cùng):
+        // - thời gian đăng ký của Tournament còn hiệu lực;
+        // - Owner và ngựa còn ACTIVE, ngựa thuộc đúng Owner;
+        // - giấy sức khỏe, tuổi và cân nặng của ngựa hợp lệ;
+        // - ngựa đạt các TournamentCondition;
+        // - Jockey còn ACTIVE và có hồ sơ hợp lệ.
         eligibilityService.validateParticipationRequirements(
                 tournament,
                 horse.getHorseId(),
                 owner.getUserID(),
                 jockey.getUserID()
         );
+
+        // Bước 7: Kiểm tra tính khả dụng để tránh tạo lời mời xung đột:
+        // - Owner chưa có Registration đang hoạt động hoặc Invitation PENDING
+        //   khác trong chính Tournament này;
+        // - ngựa chưa có Registration hoặc Invitation PENDING ở Tournament chưa kết thúc;
+        // - Jockey chưa có Registration hoặc Invitation PENDING ở Tournament chưa kết thúc.
         availabilityService.validateInvitationCanBeCreated(
                 owner.getUserID(),
                 horse.getHorseId(),
@@ -277,7 +309,8 @@ public class OwnerServiceImpl implements OwnerService {
                 tournament,
                 null);
 
-        // Tạo lời mời PENDING để jockey phản hồi accept/reject.
+        // Bước 8: Tạo entity lời mời. Không gán registrationId vì ở thời điểm này
+        // Jockey chưa chấp nhận và hệ thống chưa tạo Registration.
         JockeyInvitation invitation = JockeyInvitation.builder()
                 .tournamentId(tournament.getTournamentId())
                 .horseId(horse.getHorseId())
@@ -288,6 +321,8 @@ public class OwnerServiceImpl implements OwnerService {
                 .status(INVITATION_PENDING)
                 .build();
 
+        // Bước 9: Lưu JockeyInvitation vào DB rồi chuyển entity thành response
+        // trả về frontend. Trạng thái trả về tại bước này luôn là PENDING.
         return jockeyInvitationService.toResponse(jockeyInvitationRepository.save(invitation));
     }
 

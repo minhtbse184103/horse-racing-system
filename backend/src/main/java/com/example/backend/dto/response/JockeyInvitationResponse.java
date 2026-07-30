@@ -14,6 +14,7 @@ public class JockeyInvitationResponse {
     private String registrationNo;
     private Integer tournamentId;
     private String tournamentName;
+    private String tournamentStatus;
     private LocalDate tournamentStartDate;
     private LocalDate tournamentEndDate;
     private Integer horseId;

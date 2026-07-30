@@ -403,7 +403,7 @@ class OwnerTournamentRegistrationServiceTest {
 
     @Test
     @Disabled("Obsolete submitRegistration contract; availability is enforced during acceptInvitation")
-    void submitRejectsHorseRegistrationInOverlappingTournament() {
+    void submitRejectsHorseRegistrationInUnfinishedTournament() {
         OwnerTournamentRegistrationRequest request = request();
         User owner = user(30, "owner@example.com", "OWNER");
         User jockey = user(40, "jockey@example.com", "JOCKEY");
@@ -426,10 +426,9 @@ class OwnerTournamentRegistrationServiceTest {
                 any(Collection.class),
                 eq(null)
         )).thenReturn(0L);
-        when(registrationRepository.countByOverlappingTournamentAndHorseIdAndStatusInExcludingRegistration(
+        when(registrationRepository.countByActiveTournamentAndHorseIdAndStatusInExcludingRegistration(
                 eq(20),
-                eq(tournament.getStartDate()),
-                eq(tournament.getEndDate()),
+                any(Collection.class),
                 any(Collection.class),
                 eq(null)
         )).thenReturn(1L);
@@ -441,7 +440,7 @@ class OwnerTournamentRegistrationServiceTest {
 
         assertEquals(HttpStatus.CONFLICT, exception.getStatus());
         assertEquals(
-                "Horse already has an active registration in an overlapping tournament.",
+                "Horse already has an active registration in an unfinished tournament.",
                 exception.getMessage()
         );
         verify(registrationRepository, never()).save(any());
@@ -815,17 +814,15 @@ class OwnerTournamentRegistrationServiceTest {
                 any(Collection.class),
                 eq(null)
         )).thenReturn(0L);
-        when(registrationRepository.countByOverlappingTournamentAndJockeyIdAndStatusInExcludingRegistration(
+        when(registrationRepository.countByActiveTournamentAndJockeyIdAndStatusInExcludingRegistration(
                 eq(jockey.getUserID()),
-                eq(tournament.getStartDate()),
-                eq(tournament.getEndDate()),
+                any(Collection.class),
                 any(Collection.class),
                 eq(null)
         )).thenReturn(0L);
-        when(registrationRepository.countByOverlappingTournamentAndHorseIdAndStatusInExcludingRegistration(
+        when(registrationRepository.countByActiveTournamentAndHorseIdAndStatusInExcludingRegistration(
                 eq(horse.getHorseId()),
-                eq(tournament.getStartDate()),
-                eq(tournament.getEndDate()),
+                any(Collection.class),
                 any(Collection.class),
                 eq(null)
         )).thenReturn(0L);

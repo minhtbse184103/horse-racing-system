@@ -80,10 +80,20 @@ public class RegistrationEligibilityService {
     }
 
     /**
-     * Validates the mutable participant data shared by invitation, acceptance,
-     * registration creation and payment retry flows. It intentionally does not
-     * check for another Registration so an existing UNPAID Registration does
-     * not conflict with itself when its payment URL is recreated.
+     * Kiểm tra các điều kiện cơ bản của những đối tượng tham gia Tournament.
+     * Hàm không tạo hoặc cập nhật dữ liệu; nếu có điều kiện không đạt, hàm sẽ
+     * ném ApiException và dừng luồng đang gọi nó.
+     *
+     * Phạm vi của hàm này gồm:
+     * - Tournament đang trong thời gian nhận đăng ký;
+     * - Owner có role OWNER và tài khoản ACTIVE;
+     * - ngựa tồn tại, thuộc đúng Owner, đang ACTIVE và có dữ liệu hợp lệ;
+     * - ngựa đạt toàn bộ TournamentCondition;
+     * - nếu có jockeyId, Jockey phải có role JOCKEY, ACTIVE và có JockeyProfile.
+     *
+     * Hàm này không kiểm tra sức chứa Tournament, Registration/lời mời bị trùng
+     * hoặc lịch thi đấu bị chồng chéo. Các kiểm tra đó được thực hiện riêng bởi
+     * validateNewSubmissionCapacity() và RegistrationAvailabilityService.
      */
     public void validateParticipationRequirements(
             Tournament tournament,
@@ -91,13 +101,21 @@ public class RegistrationEligibilityService {
             Integer ownerId,
             Integer jockeyId
     ) {
+        // Bước 1: Tournament phải ở trạng thái OPEN_FOR_REGISTRATION và thời điểm
+        // hiện tại phải nằm giữa registrationOpenAt và registrationCloseAt.
         validateSubmissionWindow(tournament);
 
+        // Bước 2: Tải Owner và ngựa từ DB. Nếu ID không tồn tại, getUser/getHorse
+        // sẽ ném lỗi ngay và các bước kiểm tra phía sau không tiếp tục chạy.
         User owner = getUser(ownerId, "Owner");
         Horse horse = getHorse(horseId);
 
+        // Bước 3: Kiểm tra Owner, quyền sở hữu ngựa, trạng thái/dữ liệu của ngựa
+        // và các điều kiện riêng mà Admin đã cấu hình cho Tournament.
         validateOwnerAndHorse(tournament, horse, owner);
 
+        // Bước 4: jockeyId là tùy chọn để hàm có thể được tái sử dụng ở những
+        // bước chưa chọn Jockey. Khi có jockeyId, Jockey phải hợp lệ mới được đi tiếp.
         if (jockeyId != null) {
             validateJockey(jockeyId);
         }

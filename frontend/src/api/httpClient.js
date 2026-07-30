@@ -318,9 +318,11 @@ const MESSAGE_TRANSLATIONS = {
   'Tournament registration window is not configured.': 'Tournament chưa cấu hình thời gian Registration.',
   'An ACCEPTED jockey invitation is required before registration.': 'Cần có lời mời Jockey đã ACCEPTED trước khi gửi Registration.',
   'Horse already has an active registration in an overlapping tournament.': 'Horse đã có Registration đang hoạt động trong Tournament trùng lịch.',
+  'Horse already has an active registration in an unfinished tournament.': 'Ngựa đang có Registration trong một Tournament chưa kết thúc.',
   'Owner already has an active registration in this tournament.': 'Owner đã có Registration đang hoạt động trong Tournament này.',
   'Jockey already has an active registration in this tournament.': 'Jockey đã có Registration đang hoạt động trong Tournament này.',
-  'Jockey already has an active registration in an overlapping tournament.': 'Jockey đã có Registration đang hoạt động trong Tournament trùng lịch.'
+  'Jockey already has an active registration in an overlapping tournament.': 'Jockey đã có Registration đang hoạt động trong Tournament trùng lịch.',
+  'Jockey already has an active registration in an unfinished tournament.': 'Jockey đang có Registration trong một Tournament chưa kết thúc.'
 };
 
 export function getStoredToken() {

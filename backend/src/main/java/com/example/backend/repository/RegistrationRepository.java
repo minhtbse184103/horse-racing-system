@@ -292,19 +292,17 @@ public interface RegistrationRepository
           on tournament.tournamentId = registration.tournamentId
         where registration.jockeyId = :jockeyId
           and registration.approvalStatus in :statuses
+          and tournament.status in :tournamentStatuses
           and (
                 :excludedRegistrationId is null
                 or registration.registrationId
                     <> :excludedRegistrationId
               )
-          and tournament.startDate <= :endDate
-          and tournament.endDate >= :startDate
         """)
-    long countByOverlappingTournamentAndJockeyIdAndStatusInExcludingRegistration(
+    long countByActiveTournamentAndJockeyIdAndStatusInExcludingRegistration(
             @Param("jockeyId") Integer jockeyId,
-            @Param("startDate") java.time.LocalDate startDate,
-            @Param("endDate") java.time.LocalDate endDate,
             @Param("statuses") Collection<String> statuses,
+            @Param("tournamentStatuses") Collection<String> tournamentStatuses,
             @Param("excludedRegistrationId")
             Integer excludedRegistrationId
     );
@@ -316,19 +314,17 @@ public interface RegistrationRepository
           on tournament.tournamentId = registration.tournamentId
         where registration.horseId = :horseId
           and registration.approvalStatus in :statuses
+          and tournament.status in :tournamentStatuses
           and (
                 :excludedRegistrationId is null
                 or registration.registrationId
                     <> :excludedRegistrationId
               )
-          and tournament.startDate <= :endDate
-          and tournament.endDate >= :startDate
         """)
-    long countByOverlappingTournamentAndHorseIdAndStatusInExcludingRegistration(
+    long countByActiveTournamentAndHorseIdAndStatusInExcludingRegistration(
             @Param("horseId") Integer horseId,
-            @Param("startDate") java.time.LocalDate startDate,
-            @Param("endDate") java.time.LocalDate endDate,
             @Param("statuses") Collection<String> statuses,
+            @Param("tournamentStatuses") Collection<String> tournamentStatuses,
             @Param("excludedRegistrationId")
             Integer excludedRegistrationId
     );
@@ -341,20 +337,18 @@ public interface RegistrationRepository
         where registration.horseId = :horseId
           and registration.jockeyId = :jockeyId
           and registration.approvalStatus in :statuses
+          and tournament.status in :tournamentStatuses
           and (
                 :excludedRegistrationId is null
                 or registration.registrationId
                     <> :excludedRegistrationId
               )
-          and tournament.startDate <= :endDate
-          and tournament.endDate >= :startDate
         """)
-    long countByOverlappingTournamentAndHorseIdAndJockeyIdAndStatusInExcludingRegistration(
+    long countByActiveTournamentAndHorseIdAndJockeyIdAndStatusInExcludingRegistration(
             @Param("horseId") Integer horseId,
             @Param("jockeyId") Integer jockeyId,
-            @Param("startDate") java.time.LocalDate startDate,
-            @Param("endDate") java.time.LocalDate endDate,
             @Param("statuses") Collection<String> statuses,
+            @Param("tournamentStatuses") Collection<String> tournamentStatuses,
             @Param("excludedRegistrationId")
             Integer excludedRegistrationId
     );

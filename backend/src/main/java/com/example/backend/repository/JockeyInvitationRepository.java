@@ -115,8 +115,8 @@ public interface JockeyInvitationRepository extends JpaRepository<JockeyInvitati
 
     // LUỒNG: Owner gửi/cập nhật lời mời
     // BẢNG: JockeyInvitation, Tournament.
-    // Mục đích: tránh mời jockey đang có lời mời pending bị trùng lịch với tournament mới.
-    // Cách xử lý: join Tournament để so sánh khoảng ngày; bỏ qua lời mời hết hạn và lời mời đang sửa.
+    // Mục đích: không cho dùng lại jockey khi lời mời cũ còn pending trong Tournament chưa kết thúc.
+    // Cách xử lý: chỉ tính Tournament đang hoạt động; bỏ qua lời mời hết hạn và lời mời đang sửa.
     @Query("""
             select count(i) > 0
             from JockeyInvitation i
@@ -125,21 +125,19 @@ public interface JockeyInvitationRepository extends JpaRepository<JockeyInvitati
               and i.status = :invitationStatus
               and (i.expiredAt is null or i.expiredAt > :now)
               and (:excludedInvitationId is null or i.invitationId <> :excludedInvitationId)
-              and t.startDate <= :endDate
-              and t.endDate >= :startDate
+              and t.status in :tournamentStatuses
             """)
-    boolean existsPendingOverlappingInvitationForJockey(
+    boolean existsPendingInvitationInActiveTournamentForJockey(
             @Param("jockeyId") Integer jockeyId,
-            @Param("startDate") java.time.LocalDate startDate,
-            @Param("endDate") java.time.LocalDate endDate,
             @Param("invitationStatus") String invitationStatus,
+            @Param("tournamentStatuses") Collection<String> tournamentStatuses,
             @Param("now") java.time.LocalDateTime now,
             @Param("excludedInvitationId") Integer excludedInvitationId);
 
     // LUỒNG: Owner gửi/cập nhật lời mời
     // BẢNG: JockeyInvitation, Tournament.
-    // Mục đích: tránh cùng một horse bị gắn vào lời mời pending khác trong khoảng ngày tournament bị trùng.
-    // Cách xử lý: join Tournament để kiểm tra trùng lịch và bỏ qua lời mời hết hạn/lời mời hiện tại.
+    // Mục đích: không cho dùng lại horse khi lời mời cũ còn pending trong Tournament chưa kết thúc.
+    // Cách xử lý: chỉ tính Tournament đang hoạt động và bỏ qua lời mời hết hạn/lời mời hiện tại.
     @Query("""
             select count(i) > 0
             from JockeyInvitation i
@@ -148,21 +146,19 @@ public interface JockeyInvitationRepository extends JpaRepository<JockeyInvitati
               and i.status = :invitationStatus
               and (i.expiredAt is null or i.expiredAt > :now)
               and (:excludedInvitationId is null or i.invitationId <> :excludedInvitationId)
-              and t.startDate <= :endDate
-              and t.endDate >= :startDate
+              and t.status in :tournamentStatuses
             """)
-    boolean existsPendingOverlappingInvitationForHorse(
+    boolean existsPendingInvitationInActiveTournamentForHorse(
             @Param("horseId") Integer horseId,
-            @Param("startDate") java.time.LocalDate startDate,
-            @Param("endDate") java.time.LocalDate endDate,
             @Param("invitationStatus") String invitationStatus,
+            @Param("tournamentStatuses") Collection<String> tournamentStatuses,
             @Param("now") java.time.LocalDateTime now,
             @Param("excludedInvitationId") Integer excludedInvitationId);
 
     // LUỒNG: Owner gửi/cập nhật lời mời
     // BẢNG: JockeyInvitation, Tournament.
-    // Mục đích: tránh cùng cặp horse + jockey có nhiều lời mời pending bị trùng lịch.
-    // Cách xử lý: kết hợp horse, jockey, status, điều kiện chưa hết hạn, loại trừ tùy chọn và khoảng ngày Tournament.
+    // Mục đích: tránh cùng cặp horse + jockey có nhiều lời mời pending trong Tournament chưa kết thúc.
+    // Cách xử lý: kết hợp horse, jockey, status, Tournament đang hoạt động và loại trừ tùy chọn.
     @Query("""
             select count(i) > 0
             from JockeyInvitation i
@@ -172,15 +168,13 @@ public interface JockeyInvitationRepository extends JpaRepository<JockeyInvitati
               and i.status = :invitationStatus
               and (i.expiredAt is null or i.expiredAt > :now)
               and (:excludedInvitationId is null or i.invitationId <> :excludedInvitationId)
-              and t.startDate <= :endDate
-              and t.endDate >= :startDate
+              and t.status in :tournamentStatuses
             """)
-    boolean existsPendingOverlappingInvitationForHorseAndJockey(
+    boolean existsPendingInvitationInActiveTournamentForHorseAndJockey(
             @Param("horseId") Integer horseId,
             @Param("jockeyId") Integer jockeyId,
-            @Param("startDate") java.time.LocalDate startDate,
-            @Param("endDate") java.time.LocalDate endDate,
             @Param("invitationStatus") String invitationStatus,
+            @Param("tournamentStatuses") Collection<String> tournamentStatuses,
             @Param("now") java.time.LocalDateTime now,
             @Param("excludedInvitationId") Integer excludedInvitationId);
 

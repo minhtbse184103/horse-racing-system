@@ -57,6 +57,7 @@ public class JockeyInvitationService {
                 .registrationNo(registration != null ? registration.getRegistrationNo() : null)
                 .tournamentId(tournamentId)
                 .tournamentName(tournament != null ? tournament.getTournamentName() : null)
+                .tournamentStatus(tournament != null ? tournament.getStatus() : null)
                 .tournamentStartDate(tournament != null ? tournament.getStartDate() : null)
                 .tournamentEndDate(tournament != null ? tournament.getEndDate() : null)
                 .horseId(horseId)

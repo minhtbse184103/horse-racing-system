@@ -205,6 +205,10 @@ function getInvitationTournamentId(invitation) {
   return invitation.tournamentId ?? invitation.tournamentID ?? invitation.tournament?.tournamentId ?? invitation.tournament?.id;
 }
 
+function getInvitationTournamentStatus(invitation) {
+  return String(invitation?.tournamentStatus ?? invitation?.tournament?.status ?? '').toUpperCase();
+}
+
 function getInvitationJockeyName(invitation) {
   return invitation.jockeyName || invitation.jockey?.fullName || invitation.jockey?.email || `Jockey ${getInvitationJockeyId(invitation) || ''}`;
 }
@@ -271,6 +275,10 @@ function isLockedInvitationStatus(status) {
 
 function isClosedInvitationStatus(status) {
   return ['CANCELLED', 'CANCELED', 'REJECTED', 'DECLINED', 'EXPIRED'].includes(String(status || '').toUpperCase());
+}
+
+function isFinishedTournamentStatus(status) {
+  return ['COMPLETED', 'CANCELLED', 'CANCELED'].includes(String(status || '').toUpperCase());
 }
 
 function isLockedRegistrationStatus(status) {
@@ -483,6 +491,8 @@ function isAlreadyPaidError(message) {
 }
 
 function isActiveHorseInvitation(invitation) {
+  if (isFinishedTournamentStatus(getInvitationTournamentStatus(invitation))) return false;
+
   const invitationStatus = String(invitation?.status || '').toUpperCase();
   if (isClosedInvitationStatus(invitationStatus)) return false;
 
@@ -496,21 +506,11 @@ function isActiveHorseInvitation(invitation) {
     || isLockedRegistrationStatus(invitation?.registrationStatus);
 }
 
-function tournamentDateRangesOverlap(leftTournament, rightTournament) {
-  const leftStart = getDateTime(leftTournament?.startDate ?? leftTournament?.tournamentStartDate);
-  const leftEnd = getDateTime(leftTournament?.endDate ?? leftTournament?.tournamentEndDate);
-  const rightStart = getDateTime(rightTournament?.startDate ?? rightTournament?.tournamentStartDate);
-  const rightEnd = getDateTime(rightTournament?.endDate ?? rightTournament?.tournamentEndDate);
-
-  if (!leftStart || !leftEnd || !rightStart || !rightEnd) return false;
-  return leftStart.getTime() <= rightEnd.getTime() && leftEnd.getTime() >= rightStart.getTime();
-}
-
 function getHorseTournamentLockKey(horseId, tournamentId) {
   return `${tournamentId || ''}:${horseId || ''}`;
 }
 
-function isOverlappingHorseError(message) {
+function isHorseAvailabilityError(message) {
   const normalized = String(message || '').toLowerCase();
   if (
     normalized.includes('jockey')
@@ -522,6 +522,8 @@ function isOverlappingHorseError(message) {
       normalized.includes('trùng thời gian')
       || normalized.includes('trung thoi gian')
       || normalized.includes('overlapping tournament')
+      || normalized.includes('chưa kết thúc')
+      || normalized.includes('unfinished tournament')
     );
 }
 
@@ -532,6 +534,8 @@ function isJockeyAvailabilityError(message) {
   const mentionsConflict = normalized.includes('lời mời')
     || normalized.includes('đơn đăng ký')
     || normalized.includes('overlapping tournament')
+    || normalized.includes('chưa kết thúc')
+    || normalized.includes('unfinished tournament')
     || normalized.includes('active registration');
   return mentionsJockey && mentionsConflict;
 }
@@ -568,18 +572,14 @@ function getHorseTournamentLockReason(horse, tournament, invitations = [], manua
       : t?.('ownerRaceHorseTournamentRegistrationLock') || 'Ngựa đã có đơn trong giải này';
   }
 
-  const overlappingInvitation = invitations.find((invitation) => (
+  const activeTournamentInvitation = invitations.find((invitation) => (
     String(getInvitationHorseId(invitation)) === String(horseId)
     && String(getInvitationTournamentId(invitation)) !== String(tournamentId)
     && isActiveHorseInvitation(invitation)
-    && tournamentDateRangesOverlap(tournament, {
-      startDate: invitation.tournamentStartDate ?? invitation.tournament?.startDate,
-      endDate: invitation.tournamentEndDate ?? invitation.tournament?.endDate
-    })
   ));
 
-  if (overlappingInvitation) {
-    return t?.('ownerRaceHorseOverlappingTournamentLock') || 'Ngựa này đã có đơn đăng ký hoặc lời mời ở giải đấu trùng thời gian.';
+  if (activeTournamentInvitation) {
+    return t?.('ownerRaceHorseActiveTournamentLock') || 'Ngựa này đang có đơn đăng ký hoặc lời mời ở một Tournament chưa kết thúc.';
   }
 
   return '';
@@ -1496,6 +1496,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses, onViewTransa
       setJockeys((Array.isArray(userData) ? userData : []).filter((user) => getUserRole(user) === 'JOCKEY' && String(user.status || '').toUpperCase() === 'ACTIVE'));
       const normalizedInvitations = Array.isArray(invitationData) ? invitationData : [];
       setInvitations(normalizedInvitations);
+      setHorseLockReasons({});
       return {
         tournaments: Array.isArray(tournamentData) ? tournamentData : [],
         openTournaments: Array.isArray(openTournamentData) ? openTournamentData : [],
@@ -1847,7 +1848,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses, onViewTransa
       if (isJockeyAvailabilityError(errorText)) {
         setFormValues((current) => ({ ...current, jockeyId: '' }));
         setFormErrors((current) => ({ ...current, jockeyId: errorText, horseId: '' }));
-      } else if (isOverlappingHorseError(errorText) && nextValues.horseId && nextValues.tournamentId) {
+      } else if (isHorseAvailabilityError(errorText) && nextValues.horseId && nextValues.tournamentId) {
         const lockKey = getHorseTournamentLockKey(nextValues.horseId, nextValues.tournamentId);
         setHorseLockReasons((current) => ({ ...current, [lockKey]: errorText }));
         setFormErrors((current) => ({ ...current, horseId: errorText }));
