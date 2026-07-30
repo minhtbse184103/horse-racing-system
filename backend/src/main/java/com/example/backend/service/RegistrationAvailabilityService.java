@@ -43,27 +43,6 @@ public class RegistrationAvailabilityService {
         this.jockeyInvitationRepository = jockeyInvitationRepository;
     }
 
-    /**
-     * Kiểm tra Owner, ngựa và Jockey có đang rảnh để tạo một lời mời mới hay không.
-     * Hàm chỉ kiểm tra xung đột với Registration/Invitation đã tồn tại; hàm không
-     * tạo lời mời và cũng không cập nhật dữ liệu trong database.
-     *
-     * Quy tắc đang áp dụng:
-     * - mỗi Owner chỉ được có một Registration đang hoạt động hoặc một Invitation
-     *   PENDING trong cùng Tournament;
-     * - ngựa không được có Registration đang hoạt động hoặc Invitation PENDING
-     *   tại bất kỳ Tournament nào chưa COMPLETED/CANCELLED;
-     * - Jockey không được có Registration đang hoạt động hoặc Invitation PENDING
-     *   tại bất kỳ Tournament nào chưa COMPLETED/CANCELLED.
-     *
-     * excludedInvitationId dùng khi cần kiểm tra lại một lời mời hiện có: lời mời
-     * mang ID này sẽ được bỏ qua để không tự xung đột với chính nó. Khi tạo lời mời
-     * mới, caller truyền null vì chưa có Invitation nào cần loại trừ.
-     *
-     * Các điều kiện như role/trạng thái của Owner và Jockey, quyền sở hữu ngựa,
-     * giấy sức khỏe, TournamentCondition, thời hạn đăng ký và sức chứa Tournament
-     * không thuộc trách nhiệm của hàm này; chúng được kiểm tra bởi service eligibility.
-     */
     public void validateInvitationCanBeCreated(
             Integer ownerId,
             Integer horseId,
@@ -71,18 +50,10 @@ public class RegistrationAvailabilityService {
             Tournament tournament,
             Integer excludedInvitationId
     ) {
-        // Bước 1: Chặn nếu Owner đã có Registration đang hoạt động hoặc một lời
-        // mời PENDING khác trong chính Tournament đang chọn.
         validateOwnerForInvitation(ownerId, tournament.getTournamentId(), excludedInvitationId);
 
-        // Bước 2: Chặn nếu ngựa đã được đăng ký hoặc đang nằm trong lời mời PENDING
-        // của một Tournament chưa kết thúc, không phụ thuộc Race đã hoàn thành hay chưa.
-        // excludedRegistrationId truyền null vì luồng tạo Invitation chưa có
-        // Registration hiện tại nào cần bỏ qua.
         validateHorseActiveTournamentAvailability(horseId, null, excludedInvitationId);
 
-        // Bước 3: Kiểm tra tương tự cho Jockey. Jockey chỉ được dùng lại sau khi
-        // Tournament cũ chuyển COMPLETED hoặc CANCELLED.
         validateJockeyActiveTournamentAvailability(jockeyId, null, excludedInvitationId);
     }
 

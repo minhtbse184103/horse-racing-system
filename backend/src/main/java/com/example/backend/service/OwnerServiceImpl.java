@@ -272,8 +272,7 @@ public class OwnerServiceImpl implements OwnerService {
 
         // Bước 4: Kiểm tra điều kiện cơ bản trước khi mời:
         // - ngựa phải ACTIVE;
-        // - Tournament phải đang mở đăng ký và chưa hết hạn;
-        // - Tournament chưa đạt số lượng đăng ký tối đa.
+        // - Tournament phải đang mở đăng ký và chưa hết hạn.
         validateHorseCanRegister(horse, tournament);
 
         // Hạn phản hồi của lời mời phải nằm trước hạn đóng đăng ký Tournament,
@@ -432,15 +431,6 @@ public class OwnerServiceImpl implements OwnerService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Hạn đăng ký giải đấu đã qua.");
         }
 
-        // Kiểm tra số lượng đăng ký active chưa vượt maxRegistrations.
-        if (tournament.getMaxRegistrations() != null) {
-            long activeRegistrations = registrationRepository.countByTournamentIdAndStatusIn(
-                    tournament.getTournamentId(),
-                    ACTIVE_REGISTRATION_STATUSES);
-            if (activeRegistrations >= tournament.getMaxRegistrations()) {
-                throw new ApiException(HttpStatus.CONFLICT, "Giải đấu đã đạt số người tham gia tối đa.");
-            }
-        }
     }
 
     // Đảm bảo hạn phản hồi lời mời jockey không vượt quá hạn đăng ký tournament.
