@@ -3,6 +3,7 @@ import { adaptWorkspaceTournament } from '../../../../adapters/tournamentAdapter
 import { adaptRegistration, adaptRegistrations } from '../../../../adapters/registrationAdapter';
 import {
   approveRegistration as approveRegistrationRequest,
+  confirmRegistrationRefund as confirmRegistrationRefundRequest,
   getRegistrations,
   rejectRegistration as rejectRegistrationRequest
 } from '../../../../services/adminRegistrationService';
@@ -149,6 +150,16 @@ export default function useTournamentWorkspace() {
     // Purpose: keep the Registration list source-of-truth aligned with backend audit fields and rejection reason.
     const updated = adaptRegistration(
       await rejectRegistrationRequest(registrationId, rejectionReason)
+    );
+    setRegistrations((current) => current.map((registration) =>
+      registration.id === updated.id ? updated : registration
+    ));
+    return updated;
+  }
+
+  async function confirmRegistrationRefund(registrationId) {
+    const updated = adaptRegistration(
+      await confirmRegistrationRefundRequest(registrationId)
     );
     setRegistrations((current) => current.map((registration) =>
       registration.id === updated.id ? updated : registration
@@ -409,6 +420,7 @@ export default function useTournamentWorkspace() {
     retryRegistrations: loadRegistrations,
     approveRegistration,
     rejectRegistration,
+    confirmRegistrationRefund,
     updateRaceEntryCount,
     updateRaceStatus,
     search,

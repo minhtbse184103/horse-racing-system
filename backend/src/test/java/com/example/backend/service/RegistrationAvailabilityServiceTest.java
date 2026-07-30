@@ -1,6 +1,7 @@
 package com.example.backend.service;
 
 import com.example.backend.constant.EventStatus;
+import com.example.backend.constant.PaymentStatus;
 import com.example.backend.constant.RegistrationStatus;
 import com.example.backend.entity.Registration;
 import com.example.backend.entity.Tournament;
@@ -156,6 +157,24 @@ class RegistrationAvailabilityServiceTest {
                 "Horse and jockey already have an approved registration in an unfinished tournament.",
                 exception.getMessage()
         );
+    }
+
+    @Test
+    void invitationRemainsBlockedWhilePreviousRegistrationAwaitsRefund() {
+        Tournament tournament = tournament();
+        when(registrationRepository.countByTournamentIdAndOwnerIdAndApprovalStatusAndPaymentStatus(
+                10,
+                30,
+                RegistrationStatus.REJECTED,
+                PaymentStatus.REFUND_PENDING
+        )).thenReturn(1L);
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.validateInvitationCanBeCreated(30, 20, 40, tournament, null)
+        );
+
+        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
     }
 
     private Registration approvalCandidate() {

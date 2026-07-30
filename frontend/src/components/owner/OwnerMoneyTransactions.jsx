@@ -15,7 +15,13 @@ import { useLanguage } from '../../context/LanguageContext';
 import { formatDisplayLabel } from '../../lib';
 import { formatVndCurrency } from '../../lib/eventFormatters';
 
-const STATUS_OPTIONS = ['ALL', 'PENDING', 'SUCCESS', 'FAILED'];
+const STATUS_OPTIONS = ['ALL', 'PENDING', 'SUCCESS', 'REFUND_PENDING', 'REFUNDED', 'FAILED'];
+
+function getDisplayPaymentStatus(transaction) {
+  const registrationStatus = String(transaction?.registrationPaymentStatus || '').toUpperCase();
+  if (['REFUND_PENDING', 'REFUNDED'].includes(registrationStatus)) return registrationStatus;
+  return String(transaction?.status || 'PENDING').toUpperCase();
+}
 
 function formatDateTime(value, language = 'vi') {
   if (!value) return language === 'vi' ? 'Chưa cập nhật' : 'Not updated';
@@ -33,6 +39,8 @@ function formatDateTime(value, language = 'vi') {
 function getPaymentStatusClass(status) {
   const normalized = String(status || '').toUpperCase();
   if (normalized === 'SUCCESS') return 'bg-emerald-50 text-emerald-700 ring-emerald-200';
+  if (normalized === 'REFUNDED') return 'bg-sky-50 text-sky-700 ring-sky-200';
+  if (normalized === 'REFUND_PENDING') return 'bg-orange-50 text-orange-700 ring-orange-200';
   if (normalized === 'FAILED') return 'bg-red-50 text-red-700 ring-red-200';
   return 'bg-amber-50 text-amber-700 ring-amber-200';
 }
@@ -42,11 +50,15 @@ function getPaymentStatusLabel(status, language) {
   const labels = {
     vi: {
       SUCCESS: 'Đã thanh toán',
+      REFUND_PENDING: 'Chờ hoàn tiền',
+      REFUNDED: 'Đã hoàn tiền',
       PENDING: 'Đang chờ',
       FAILED: 'Thất bại'
     },
     en: {
       SUCCESS: 'Paid',
+      REFUND_PENDING: 'Refund pending',
+      REFUNDED: 'Refunded',
       PENDING: 'Pending',
       FAILED: 'Failed'
     }
@@ -85,7 +97,8 @@ export default function OwnerMoneyTransactions() {
     search: language === 'vi' ? 'Tìm Tournament, Horse, Jockey, mã Registration...' : 'Search Tournament, Horse, Jockey, Registration...',
     filter: language === 'vi' ? 'Lọc Status' : 'Filter Status',
     refresh: language === 'vi' ? 'Làm mới' : 'Refresh',
-    paidAmount: language === 'vi' ? 'Đã thanh toán' : 'Paid amount',
+    paidAmount: language === 'vi' ? 'Đã thanh toán còn hiệu lực' : 'Active paid amount',
+    refundedAmount: language === 'vi' ? 'Đã hoàn tiền' : 'Refunded amount',
     pending: language === 'vi' ? 'Đang chờ' : 'Pending',
     failed: language === 'vi' ? 'Thất bại' : 'Failed',
     total: language === 'vi' ? 'Tổng giao dịch' : 'Total transactions',
@@ -107,7 +120,8 @@ export default function OwnerMoneyTransactions() {
     responseCode: language === 'vi' ? 'Mã phản hồi' : 'Response code',
     createdAt: language === 'vi' ? 'Tạo lúc' : 'Created at',
     paidAt: language === 'vi' ? 'Thanh toán lúc' : 'Paid at',
-    paymentStatus: 'Payment Status',
+    vnpayStatus: language === 'vi' ? 'Giao dịch VNPAY' : 'VNPAY transaction',
+    registrationPaymentStatus: language === 'vi' ? 'Trạng thái phí Registration' : 'Registration fee status',
     approvalStatus: 'Registration Status',
     view: language === 'vi' ? 'Xem' : 'View',
     all: language === 'vi' ? 'Tất cả' : 'All'
@@ -132,17 +146,25 @@ export default function OwnerMoneyTransactions() {
 
   const summary = useMemo(() => transactions.reduce((total, item) => {
     const status = String(item.status || '').toUpperCase();
+    const registrationPaymentStatus = String(item.registrationPaymentStatus || '').toUpperCase();
     const amount = Number(item.amount || 0);
     if (status === 'SUCCESS') {
-      total.paidAmount += Number.isFinite(amount) ? amount : 0;
-      total.successCount += 1;
+      if (registrationPaymentStatus === 'REFUNDED') {
+        total.refundedAmount += Number.isFinite(amount) ? amount : 0;
+        total.refundedCount += 1;
+      } else {
+        total.paidAmount += Number.isFinite(amount) ? amount : 0;
+        total.successCount += 1;
+      }
     }
     if (status === 'PENDING') total.pendingCount += 1;
     if (status === 'FAILED') total.failedCount += 1;
     return total;
   }, {
     paidAmount: 0,
+    refundedAmount: 0,
     successCount: 0,
+    refundedCount: 0,
     pendingCount: 0,
     failedCount: 0
   }), [transactions]);
@@ -151,7 +173,7 @@ export default function OwnerMoneyTransactions() {
     const needle = query.trim().toLowerCase();
     return transactions.filter((transaction) => {
       const matchesStatus = statusFilter === 'ALL'
-        || String(transaction.status || '').toUpperCase() === statusFilter;
+        || getDisplayPaymentStatus(transaction) === statusFilter;
       const matchesQuery = !needle || [
         transaction.tournamentName,
         transaction.horseName,
@@ -184,13 +206,20 @@ export default function OwnerMoneyTransactions() {
         </div>
       )}
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         <article className="rounded-lg border border-brown-700/10 bg-white/85 p-5 shadow-sm">
           <span className="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
             <CheckCircle2 size={15} /> {copy.paidAmount}
           </span>
           <strong className="mt-3 block text-2xl font-black text-brown-950">{formatVndCurrency(summary.paidAmount)}</strong>
           <small className="mt-1 block font-bold text-emerald-700">{summary.successCount} SUCCESS</small>
+        </article>
+        <article className="rounded-lg border border-brown-700/10 bg-white/85 p-5 shadow-sm">
+          <span className="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
+            <ReceiptText size={15} /> {copy.refundedAmount}
+          </span>
+          <strong className="mt-3 block text-2xl font-black text-brown-950">{formatVndCurrency(summary.refundedAmount)}</strong>
+          <small className="mt-1 block font-bold text-sky-700">{summary.refundedCount} REFUNDED</small>
         </article>
         <article className="rounded-lg border border-brown-700/10 bg-white/85 p-5 shadow-sm">
           <span className="flex items-center gap-2 text-xs font-black uppercase tracking-wide text-slate-500">
@@ -301,8 +330,8 @@ export default function OwnerMoneyTransactions() {
                   <strong className="mt-1 block text-lg font-black text-brown-950">{formatVndCurrency(transaction.amount)}</strong>
                 </div>
                 <div className="flex flex-wrap gap-2">
-                  <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-black uppercase ring-1 ${getPaymentStatusClass(transaction.status)}`}>
-                    {getPaymentStatusLabel(transaction.status, language)}
+                  <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-black uppercase ring-1 ${getPaymentStatusClass(getDisplayPaymentStatus(transaction))}`}>
+                    {getPaymentStatusLabel(getDisplayPaymentStatus(transaction), language)}
                   </span>
                   {transaction.registrationApprovalStatus && (
                     <span className="inline-flex items-center rounded-full bg-slate-50 px-3 py-1 text-xs font-black uppercase text-slate-600 ring-1 ring-slate-200">
@@ -355,7 +384,8 @@ export default function OwnerMoneyTransactions() {
             </div>
 
             <div className="mt-5 grid gap-4 md:grid-cols-2">
-              <Field label={copy.paymentStatus} value={getPaymentStatusLabel(selectedTransaction.status, language)} />
+              <Field label={copy.registrationPaymentStatus} value={getPaymentStatusLabel(getDisplayPaymentStatus(selectedTransaction), language)} />
+              <Field label={copy.vnpayStatus} value={getPaymentStatusLabel(selectedTransaction.status, language)} />
               <Field label={copy.approvalStatus} value={formatDisplayLabel(selectedTransaction.registrationApprovalStatus)} />
               <Field label={copy.amount} value={formatVndCurrency(selectedTransaction.amount)} />
               <Field label={copy.provider} value={selectedTransaction.provider} />

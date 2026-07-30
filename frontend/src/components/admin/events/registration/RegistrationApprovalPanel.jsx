@@ -25,7 +25,8 @@ export default function RegistrationApprovalPanel({
   loadError,
   onRetry,
   onApprove,
-  onReject
+  onReject,
+  onConfirmRefund
 }) {
   // FLOW: Admin Registration List / Load / Filter
   // ORDER: 7/8 - Registration panel scopes loaded rows to the expanded Tournament and applies summary/filter state.
@@ -65,6 +66,11 @@ export default function RegistrationApprovalPanel({
       // Purpose: delegate rejection with the reviewed reason so the workspace can replace the Registration row from the backend response.
       await onReject(registration.id, reason);
     }
+    setSelectedRegistration(null);
+  }
+
+  async function confirmRefund(registration) {
+    await onConfirmRefund(registration.id);
     setSelectedRegistration(null);
   }
 
@@ -133,7 +139,7 @@ export default function RegistrationApprovalPanel({
         )}
       </AnimatePresence>
       <AnimatePresence>
-        {selectedRegistration && <RegistrationReviewDialog registration={selectedRegistration} onClose={() => setSelectedRegistration(null)} onDecision={decideRegistration} onViewEntity={viewEntity} />}
+        {selectedRegistration && <RegistrationReviewDialog registration={selectedRegistration} onClose={() => setSelectedRegistration(null)} onDecision={decideRegistration} onConfirmRefund={confirmRefund} onViewEntity={viewEntity} />}
       </AnimatePresence>
       <AnimatePresence>
         {selectedEntity && (

@@ -8,6 +8,7 @@ import com.example.backend.entity.PaymentTransaction;
 import com.example.backend.entity.Registration;
 import com.example.backend.entity.SystemFund;
 import com.example.backend.entity.TournamentFund;
+import com.example.backend.entity.User;
 import com.example.backend.exception.ApiException;
 import com.example.backend.repository.FundTransactionRepository;
 import com.example.backend.repository.SystemFundRepository;
@@ -48,6 +49,47 @@ public class FundAccountingService {
         );
         transaction.setBalanceAfter(fund.getAvailableBalance());
         transaction.setBalanceBefore(fund.getAvailableBalance().subtract(amount));
+        fundTransactionRepository.save(transaction);
+    }
+
+    @Transactional
+    public void recordManualRegistrationRefund(
+            PaymentTransaction payment,
+            Registration registration,
+            User admin
+    ) {
+        BigDecimal amount = money(payment.getAmount());
+        int updated = tournamentFundRepository.debitRegistrationRefund(
+                registration.getTournamentId(),
+                amount
+        );
+        if (updated != 1) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "Tournament fund balance is insufficient to record this refund."
+            );
+        }
+
+        TournamentFund fund = tournamentFundRepository
+                .findByTournamentIdForUpdate(registration.getTournamentId())
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.INTERNAL_SERVER_ERROR,
+                        "Tournament fund was not created."
+                ));
+
+        FundTransaction transaction = baseTransaction(
+                tournamentFundKey(registration.getTournamentId()),
+                registration.getTournamentId(),
+                FundTransactionType.REGISTRATION_REFUND,
+                "DEBIT",
+                amount,
+                WalletReferenceType.PAYMENT_TRANSACTION,
+                payment.getPaymentTransactionId(),
+                "Manual registration refund " + registration.getRegistrationNo()
+                        + " confirmed by admin #" + admin.getUserID()
+        );
+        transaction.setBalanceBefore(fund.getAvailableBalance().add(amount));
+        transaction.setBalanceAfter(fund.getAvailableBalance());
         fundTransactionRepository.save(transaction);
     }
 

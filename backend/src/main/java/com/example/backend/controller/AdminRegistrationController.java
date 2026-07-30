@@ -95,4 +95,15 @@ public class AdminRegistrationController {
                 authentication.getName()
         );
     }
+
+    @PutMapping("/{registrationId}/confirm-refund")
+    public RegistrationResponse confirmManualRefund(
+            @PathVariable Integer registrationId,
+            Authentication authentication
+    ) {
+        return registrationService.confirmManualRefund(
+                registrationId,
+                authentication.getName()
+        );
+    }
 }

@@ -31,4 +31,19 @@ public interface TournamentFundRepository extends JpaRepository<TournamentFund, 
             @Param("tournamentId") Integer tournamentId,
             @Param("amount") BigDecimal amount
     );
+
+    @Modifying
+    @Query(value = """
+            UPDATE TournamentFund
+            SET collectedAmount = collectedAmount - :amount,
+                availableBalance = availableBalance - :amount,
+                updatedAt = NOW()
+            WHERE tournamentID = :tournamentId
+              AND collectedAmount >= :amount
+              AND availableBalance >= :amount
+            """, nativeQuery = true)
+    int debitRegistrationRefund(
+            @Param("tournamentId") Integer tournamentId,
+            @Param("amount") BigDecimal amount
+    );
 }
