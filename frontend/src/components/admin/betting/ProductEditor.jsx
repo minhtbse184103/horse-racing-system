@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { Loader2, Save } from 'lucide-react';
+import { useLanguage } from '../../../context/LanguageContext';
+import { betProductDescription, betProductName } from '../../../lib';
 import { Field, inputClass, ProductBadge, StatusBadge } from './bettingUi';
 
 const moneyInputFormatter = new Intl.NumberFormat('vi-VN', {
@@ -17,9 +19,8 @@ function parseMoneyInputValue(value) {
 }
 
 export default function ProductEditor({ product, onSave }) {
+  const { t } = useLanguage();
   const [form, setForm] = useState(() => ({
-    name: product.name || '',
-    description: product.description || '',
     minStake: product.minStake || 10000,
     maxDailyStake: product.maxDailyStake || 1000000,
     operatorFeeRate: Number(product.operatorFeeRate || 0) * 100,
@@ -37,7 +38,6 @@ export default function ProductEditor({ product, onSave }) {
     const minStake = Number(form.minStake);
     const maxDailyStake = Number(form.maxDailyStake);
     const operatorFeeRate = Number(form.operatorFeeRate);
-    if (!form.name.trim()) return 'Tên sản phẩm là bắt buộc.';
     if (!Number.isFinite(minStake) || minStake < 10000) return 'Min stake phải từ 10.000 VND.';
     if (!Number.isFinite(maxDailyStake) || maxDailyStake < minStake) return 'Max daily stake không được nhỏ hơn min stake.';
     if (!Number.isFinite(operatorFeeRate) || operatorFeeRate < 0 || operatorFeeRate > 50) return 'Phí tổ chức phải từ 0% đến 50%.';
@@ -51,8 +51,8 @@ export default function ProductEditor({ product, onSave }) {
     setIsSaving(true);
     try {
       await onSave(product.betProductId, {
-        name: form.name.trim(),
-        description: form.description.trim() || null,
+        name: product.name,
+        description: product.description || null,
         minStake: Number(form.minStake),
         maxDailyStake: Number(form.maxDailyStake),
         operatorFeeRate: Number(form.operatorFeeRate) / 100,
@@ -70,18 +70,15 @@ export default function ProductEditor({ product, onSave }) {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <ProductBadge code={product.code} />
-          <h3 className="mt-3 truncate text-lg font-black text-brown-950">{product.name}</h3>
+          <h3 className="mt-3 truncate text-lg font-black text-brown-950">{betProductName(product.code, t, product.name)}</h3>
           <p className="mt-1 line-clamp-2 text-sm font-semibold leading-6 text-slate-500">
-            {product.description || 'Chưa có mô tả sản phẩm cược.'}
+            {betProductDescription(product.code, t, product.description)}
           </p>
         </div>
         <StatusBadge status={form.active ? 'ACTIVE' : 'INACTIVE'} />
       </div>
 
       <div className="mt-5 grid gap-3 lg:grid-cols-2">
-        <Field label="Tên sản phẩm">
-          <input className={inputClass} value={form.name} onChange={(event) => update('name', event.target.value)} />
-        </Field>
         <Field label="Trạng thái">
           <select className={inputClass} value={form.active ? 'true' : 'false'} onChange={(event) => update('active', event.target.value === 'true')}>
             <option value="true">ACTIVE</option>
@@ -116,9 +113,6 @@ export default function ProductEditor({ product, onSave }) {
         </Field>
         <Field label="Operator fee (%)">
           <input type="number" min="0" max="50" step="0.1" className={inputClass} value={form.operatorFeeRate} onChange={(event) => update('operatorFeeRate', event.target.value)} />
-        </Field>
-        <Field label="Mô tả">
-          <input className={inputClass} value={form.description} onChange={(event) => update('description', event.target.value)} />
         </Field>
       </div>
 

@@ -11,7 +11,7 @@ import {
   Wallet,
   X
 } from 'lucide-react';
-import { formatDate, formatDisplayLabel } from '../../lib';
+import { betProductName, formatDate, formatDisplayLabel } from '../../lib';
 import { formatVndCurrency } from '../../lib/eventFormatters';
 import { getMyWallet } from '../../services/walletService';
 import {
@@ -48,7 +48,8 @@ function StatusBadge({ status }) {
 }
 
 function ProductBadge({ code }) {
-  const label = String(code || '').toUpperCase();
+  const { t } = useLanguage();
+  const label = betProductName(code, t);
   return <span className="bet-product-badge">{label}</span>;
 }
 
@@ -97,7 +98,7 @@ function BettingEventList({ events, selectedProduct, setSelectedProduct, onSelec
         >
           {productOptions.map((option) => (
             <option key={option} value={option}>
-              {option === 'ALL' ? t('spectatorFilterAll') : option}
+              {option === 'ALL' ? t('spectatorFilterAll') : betProductName(option, t)}
             </option>
           ))}
         </select>
@@ -348,6 +349,7 @@ function RaceDetailSummary({ event }) {
 }
 
 function TicketDetailDialog({ ticket, cancellingTicketId, onCancelTicket, onClose }) {
+  const { t } = useLanguage();
   const isCancelling = Number(cancellingTicketId) === Number(ticket.betTicketId);
   const [raceDetail, setRaceDetail] = useState(null);
   const [raceError, setRaceError] = useState('');
@@ -415,7 +417,7 @@ function TicketDetailDialog({ ticket, cancellingTicketId, onCancelTicket, onClos
           </button>
           <TicketDetailField label="Horse" value={ticket.horseName} emphasis />
           <TicketDetailField label="Starting stall" value={ticket.startingStall ? `#${ticket.startingStall}` : '-'} />
-          <TicketDetailField label="Product" value={ticket.productName || ticket.productCode} />
+          <TicketDetailField label="Product" value={betProductName(ticket.productCode, t, ticket.productName)} />
           <TicketDetailField label="Stake" value={money(ticket.stake)} emphasis />
           <TicketDetailField label="Odds" value={ticketOdds(ticket)} />
           <TicketDetailField label="Payout" value={money(ticket.payoutAmount)} emphasis />
@@ -492,7 +494,11 @@ function MyTickets({
             {ticketStatuses.map((status) => <option key={status} value={status}>{status === 'ALL' ? t('spectatorFilterAll') : formatDisplayLabel(status)}</option>)}
           </select>
           <select className="spectator-bet-select" value={productFilter} onChange={(event) => setProductFilter(event.target.value)}>
-            {productOptions.map((product) => <option key={product} value={product}>{product === 'ALL' ? t('spectatorFilterAll') : product}</option>)}
+            {productOptions.map((product) => (
+              <option key={product} value={product}>
+                {product === 'ALL' ? t('spectatorFilterAll') : betProductName(product, t)}
+              </option>
+            ))}
           </select>
         </div>
       </div>

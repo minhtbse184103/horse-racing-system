@@ -3,6 +3,7 @@ package com.example.backend.service;
 import com.example.backend.constant.BetEventStatus;
 import com.example.backend.constant.BetProductCode;
 import com.example.backend.constant.BetTicketStatus;
+import com.example.backend.constant.EventStatus;
 import com.example.backend.constant.RaceEntryStatus;
 import com.example.backend.constant.WalletReferenceType;
 import com.example.backend.constant.WalletStatus;
@@ -14,6 +15,7 @@ import com.example.backend.dto.response.AdminBetEventDetailResponse;
 import com.example.backend.dto.response.AdminBetSettlementDetailResponse;
 import com.example.backend.dto.response.AdminBetSettlementSummaryResponse;
 import com.example.backend.dto.response.AdminBetTicketResponse;
+import com.example.backend.dto.response.AdminBettingEligibleRaceResponse;
 import com.example.backend.dto.response.BetEntryOptionResponse;
 import com.example.backend.dto.response.BetEventResponse;
 import com.example.backend.dto.response.BetProductResponse;
@@ -142,6 +144,25 @@ public class BettingService {
     }
 
     @Transactional(readOnly = true)
+    public List<AdminBettingEligibleRaceResponse> getEligibleRaces(Integer betProductId) {
+        getActiveProduct(betProductId);
+        return raceRepository.findEligibleForBetting(
+                        betProductId,
+                        EventStatus.ENTRIES_FINALIZED,
+                        LocalDateTime.now()
+                )
+                .stream()
+                .map(race -> AdminBettingEligibleRaceResponse.builder()
+                        .raceId(race.getRaceId())
+                        .raceName(race.getRaceName())
+                        .trackName(race.getTrackName())
+                        .raceStartTime(race.getRaceStartTime())
+                        .status(race.getStatus())
+                        .build())
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public AdminBetEventDetailResponse getAdminEventDetail(Integer eventId, String adminEmail) {
         getAdmin(adminEmail);
         BetEvent event = getEventOrThrow(eventId);
@@ -190,13 +211,10 @@ public class BettingService {
     @Transactional
     public BetEventResponse createEvent(CreateBetEventRequest request, String adminEmail) {
         User admin = getAdmin(adminEmail);
-        Race race = raceRepository.findById(request.getRaceId())
+        Race race = raceRepository.findByIdForUpdate(request.getRaceId())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Race does not exist."));
-        BetProduct product = betProductRepository.findById(request.getBetProductId())
-                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Bet product does not exist."));
-        if (!Boolean.TRUE.equals(product.getActive())) {
-            throw new ApiException(HttpStatus.CONFLICT, "Bet product is inactive.");
-        }
+        BetProduct product = getActiveProduct(request.getBetProductId());
+        validateRaceCanHostBetting(race);
         if (betEventRepository.existsByRaceIdAndBetProductId(race.getRaceId(), product.getBetProductId())) {
             throw new ApiException(HttpStatus.CONFLICT, "Bet event already exists for this race and product.");
         }
@@ -560,9 +578,23 @@ public class BettingService {
 
     private void validateEventCanOpen(BetEvent event) {
         Race race = getRace(event.getRaceId());
+        validateRaceCanHostBetting(race);
         validateEventWindow(race, event.getOpenAt(), event.getCloseAt());
-        if (raceEntryRepository.countByRaceIdAndStatus(event.getRaceId(), RaceEntryStatus.ASSIGNED) < 2) {
-            throw new ApiException(HttpStatus.CONFLICT, "At least two race entries are required to open betting.");
+    }
+
+    private void validateRaceCanHostBetting(Race race) {
+        if (!EventStatus.ENTRIES_FINALIZED.equals(race.getStatus())
+                || race.getEntryFinalizedAt() == null) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "Race entries must be finalized before betting can be configured."
+            );
+        }
+        if (!LocalDateTime.now().isBefore(race.getRaceStartTime())) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "Betting cannot be configured after the race starts."
+            );
         }
     }
 
@@ -959,6 +991,15 @@ public class BettingService {
     private Race getRace(Integer raceId) {
         return raceRepository.findById(raceId)
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Race does not exist."));
+    }
+
+    private BetProduct getActiveProduct(Integer productId) {
+        BetProduct product = betProductRepository.findById(productId)
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Bet product does not exist."));
+        if (!Boolean.TRUE.equals(product.getActive())) {
+            throw new ApiException(HttpStatus.CONFLICT, "Bet product is inactive.");
+        }
+        return product;
     }
 
     private BetEvent getEventOrThrow(Integer eventId) {

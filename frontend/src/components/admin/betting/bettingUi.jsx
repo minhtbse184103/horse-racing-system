@@ -1,4 +1,5 @@
-import { formatDisplayLabel } from '../../../lib';
+import { betProductName, formatDisplayLabel } from '../../../lib';
+import { useLanguage } from '../../../context/LanguageContext';
 import { formatVndCurrency } from '../../../lib/eventFormatters';
 
 export const eventStatuses = ['ALL', 'DRAFT', 'OPEN', 'CLOSED', 'SETTLED', 'CANCELLED'];
@@ -50,9 +51,10 @@ export function StatusBadge({ status }) {
 }
 
 export function ProductBadge({ code }) {
+  const { t } = useLanguage();
   return (
     <span className="inline-flex min-h-7 items-center rounded-full border border-brown-200 bg-cream-100 px-3 py-1 text-xs font-black uppercase text-brown-800">
-      {String(code || 'PRODUCT').toUpperCase()}
+      {betProductName(code, t, 'Product')}
     </span>
   );
 }

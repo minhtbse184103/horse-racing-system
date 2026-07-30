@@ -1,8 +1,11 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Loader2, Plus, X } from 'lucide-react';
+import { useLanguage } from '../../../context/LanguageContext';
+import { betProductName } from '../../../lib';
 import { dateTime, Field, fromDateTimeLocal, IconButton, inputClass } from './bettingUi';
 
-export default function CreateBetEventModal({ products, races, onCancel, onCreate }) {
+export default function CreateBetEventModal({ products, onLoadRaces, onCancel, onCreate }) {
+  const { t } = useLanguage();
   const [form, setForm] = useState(() => ({
     raceId: '',
     betProductId: '',
@@ -12,11 +15,47 @@ export default function CreateBetEventModal({ products, races, onCancel, onCreat
   }));
   const [error, setError] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  const [races, setRaces] = useState([]);
+  const [racesLoading, setRacesLoading] = useState(false);
+  const [racesError, setRacesError] = useState('');
 
   const selectedRace = races.find((race) => Number(race.raceId) === Number(form.raceId));
 
+  useEffect(() => {
+    if (!form.betProductId) {
+      setRaces([]);
+      setRacesError('');
+      return undefined;
+    }
+
+    let active = true;
+    setRacesLoading(true);
+    setRacesError('');
+    onLoadRaces(form.betProductId)
+      .then((eligibleRaces) => {
+        if (active) setRaces(eligibleRaces || []);
+      })
+      .catch((loadError) => {
+        if (!active) return;
+        setRaces([]);
+        setRacesError(loadError.message || 'Không thể tải Race đủ điều kiện.');
+      })
+      .finally(() => {
+        if (active) setRacesLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [form.betProductId, onLoadRaces]);
+
   function update(field, value) {
-    setForm((current) => ({ ...current, [field]: value }));
+    setForm((current) => ({
+      ...current,
+      [field]: value,
+      ...(field === 'betProductId' ? { raceId: '', openAt: '', closeAt: '' } : {}),
+      ...(field === 'raceId' ? { openAt: '', closeAt: '' } : {})
+    }));
     setError('');
   }
 
@@ -25,8 +64,8 @@ export default function CreateBetEventModal({ products, races, onCancel, onCreat
     const closeAt = new Date(form.closeAt);
     const raceStart = selectedRace ? new Date(selectedRace.raceStartTime) : null;
     const fee = Number(form.operatorFeeRate);
-    if (!form.raceId) return 'Vui lòng chọn Race.';
     if (!form.betProductId) return 'Vui lòng chọn sản phẩm cược.';
+    if (!form.raceId) return 'Vui lòng chọn Race.';
     if (!form.openAt) return 'Vui lòng nhập thời gian mở cược.';
     if (!form.closeAt) return 'Vui lòng nhập thời gian đóng cược.';
     if (!(openAt < closeAt)) return 'Open time phải trước close time.';
@@ -70,25 +109,39 @@ export default function CreateBetEventModal({ products, races, onCancel, onCreat
         </header>
 
         <div className="grid gap-4 p-6 lg:grid-cols-2">
+          <Field label="Product">
+            <select className={inputClass} value={form.betProductId} onChange={(event) => update('betProductId', event.target.value)}>
+              <option value="">Chọn product</option>
+              {products.filter((product) => product.active).map((product) => (
+                <option key={product.betProductId} value={product.betProductId}>
+                  {betProductName(product.code, t, product.name)}
+                </option>
+              ))}
+            </select>
+          </Field>
           <Field label="Race">
-            <select className={inputClass} value={form.raceId} onChange={(event) => update('raceId', event.target.value)}>
-              <option value="">Chọn Race</option>
+            <select
+              className={inputClass}
+              value={form.raceId}
+              onChange={(event) => update('raceId', event.target.value)}
+              disabled={!form.betProductId || racesLoading || Boolean(racesError)}
+            >
+              <option value="">
+                {!form.betProductId
+                  ? 'Chọn product trước'
+                  : racesLoading
+                    ? 'Đang tải Race...'
+                    : races.length === 0
+                      ? 'Không có Race đủ điều kiện'
+                      : 'Chọn Race'}
+              </option>
               {races.map((race) => (
                 <option key={race.raceId} value={race.raceId}>
                   {race.raceName} · {dateTime(race.raceStartTime)}
                 </option>
               ))}
             </select>
-          </Field>
-          <Field label="Product">
-            <select className={inputClass} value={form.betProductId} onChange={(event) => update('betProductId', event.target.value)}>
-              <option value="">Chọn product</option>
-              {products.filter((product) => product.active).map((product) => (
-                <option key={product.betProductId} value={product.betProductId}>
-                  {product.code} · {product.name}
-                </option>
-              ))}
-            </select>
+            {racesError && <span className="text-xs font-bold text-red-600">{racesError}</span>}
           </Field>
           <Field label="Open time">
             <input type="datetime-local" className={inputClass} value={form.openAt} onChange={(event) => update('openAt', event.target.value)} />

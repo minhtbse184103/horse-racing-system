@@ -153,8 +153,8 @@ VALUES
 INSERT INTO `BetProduct`
   (`betProductID`, `code`, `name`, `description`, `minStake`, `maxDailyStake`, `operatorFeeRate`, `active`, `createdAt`, `updatedAt`)
 VALUES
-  (1, 'WIN', 'Win Bet', 'Pick the winning RaceEntry.', 10000.00, 1000000.00, 0.1000, true, @seed_now, @seed_now),
-  (2, 'PLACE', 'Place Bet', 'Pick a RaceEntry finishing in the prize ranks.', 10000.00, 1000000.00, 0.1000, true, @seed_now, @seed_now);
+  (1, 'WIN', 'Top 1', 'Pick the horse that finishes in first place.', 10000.00, 1000000.00, 0.1000, true, @seed_now, @seed_now),
+  (2, 'PLACE', 'Top 3', 'Pick a horse that finishes in the first three places.', 10000.00, 1000000.00, 0.1000, true, @seed_now, @seed_now);
 
 INSERT INTO `BetEvent`
   (`betEventID`, `raceID`, `betProductID`, `status`, `openAt`, `closeAt`, `operatorFeeRate`, `createdBy`, `settledBy`, `settledAt`, `createdAt`, `updatedAt`)

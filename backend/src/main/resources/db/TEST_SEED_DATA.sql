@@ -121,7 +121,9 @@ VALUES
   -- while still satisfying MIN_RUNNERS_TO_LAUNCH. It has no RaceResult yet,
   -- so it is launchable and ready to receive a result from Unity after seeding.
   (6, 1, 'Live Test Race',   'Bangkok Track A', 'https://images.unsplash.com/photo-1540479859555-17af45c78602?auto=format&fit=crop&w=1200&q=80', DATE_SUB(@seed_now, INTERVAL 1 HOUR), DATE_ADD(@seed_now, INTERVAL 1 HOUR), DATE_SUB(@seed_now, INTERVAL 3 DAY), NULL, NULL, 1000, 6, 4, 'OPEN_FOR_REGISTRATION', @seed_now, @seed_now),
-  (7, 1, 'Betting Demo Sprint', 'Bangkok Track C', 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80', DATE_ADD(@seed_now, INTERVAL 3 DAY), DATE_ADD(@seed_now, INTERVAL 3 DAY) + INTERVAL 30 MINUTE, DATE_ADD(@seed_now, INTERVAL 1 DAY), NULL, NULL, 1200, 6, 5, 'REGISTRATION_CLOSED', @seed_now, @seed_now);
+  -- Betting demo entries are already finalized. Its OPEN events below stay
+  -- inside the final 12-hour window and close one hour before race start.
+  (7, 1, 'Betting Demo Sprint', 'Bangkok Track C', 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=80', DATE_ADD(@seed_now, INTERVAL 6 HOUR), DATE_ADD(@seed_now, INTERVAL 390 MINUTE), DATE_SUB(@seed_now, INTERVAL 2 DAY), DATE_SUB(@seed_now, INTERVAL 1 HOUR), 1, 1200, 6, 5, 'ENTRIES_FINALIZED', @seed_now, @seed_now);
 
 INSERT INTO `RacePrize`
   (`racePrizeID`, `raceID`, `rankPosition`, `amount`, `ownerPercent`, `jockeyPercent`)
@@ -250,14 +252,14 @@ VALUES
 INSERT INTO `BetProduct`
   (`betProductID`, `code`, `name`, `description`, `minStake`, `maxDailyStake`, `operatorFeeRate`, `active`, `createdAt`, `updatedAt`)
 VALUES
-  (1, 'WIN', 'Win', 'Pick the horse that finishes first.', 10000.00, 1000000.00, 0.1000, true, @seed_now, @seed_now),
-  (2, 'PLACE', 'Place', 'Pick a horse that finishes in the top three.', 10000.00, 1000000.00, 0.1000, true, @seed_now, @seed_now);
+  (1, 'WIN', 'Top 1', 'Pick the horse that finishes in first place.', 10000.00, 1000000.00, 0.1000, true, @seed_now, @seed_now),
+  (2, 'PLACE', 'Top 3', 'Pick a horse that finishes in the first three places.', 10000.00, 1000000.00, 0.1000, true, @seed_now, @seed_now);
 
 INSERT INTO `BetEvent`
   (`betEventID`, `raceID`, `betProductID`, `status`, `openAt`, `closeAt`, `operatorFeeRate`, `createdBy`, `settledBy`, `settledAt`, `createdAt`, `updatedAt`)
 VALUES
-  (1, 7, 1, 'OPEN', DATE_SUB(@seed_now, INTERVAL 1 HOUR), DATE_ADD(@seed_now, INTERVAL 1 DAY), 0.1000, 1, NULL, NULL, @seed_now, @seed_now),
-  (2, 7, 2, 'OPEN', DATE_SUB(@seed_now, INTERVAL 1 HOUR), DATE_ADD(@seed_now, INTERVAL 1 DAY), 0.1000, 1, NULL, NULL, @seed_now, @seed_now),
+  (1, 7, 1, 'OPEN', DATE_SUB(@seed_now, INTERVAL 1 HOUR), DATE_ADD(@seed_now, INTERVAL 5 HOUR), 0.1000, 1, NULL, NULL, @seed_now, @seed_now),
+  (2, 7, 2, 'OPEN', DATE_SUB(@seed_now, INTERVAL 1 HOUR), DATE_ADD(@seed_now, INTERVAL 5 HOUR), 0.1000, 1, NULL, NULL, @seed_now, @seed_now),
   (3, 4, 1, 'SETTLED', DATE_SUB(@seed_now, INTERVAL 5 HOUR), DATE_SUB(@seed_now, INTERVAL 3 HOUR), 0.1000, 1, 1, DATE_SUB(@seed_now, INTERVAL 2 HOUR), DATE_SUB(@seed_now, INTERVAL 5 HOUR), DATE_SUB(@seed_now, INTERVAL 2 HOUR)),
   -- Closed and not settled, with official RaceResult below, so Admin can test the manual Settle action.
   (4, 4, 2, 'CLOSED', DATE_SUB(@seed_now, INTERVAL 4 HOUR), DATE_SUB(@seed_now, INTERVAL 2 HOUR), 0.1000, 1, NULL, NULL, DATE_SUB(@seed_now, INTERVAL 4 HOUR), DATE_SUB(@seed_now, INTERVAL 2 HOUR));

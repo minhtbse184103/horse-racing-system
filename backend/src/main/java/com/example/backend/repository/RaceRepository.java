@@ -132,4 +132,24 @@ public interface RaceRepository extends JpaRepository<Race, Integer> {
             @Param("statuses") Collection<String> statuses
     );
 
+    @Query("""
+        select race
+        from Race race
+        where race.status = :finalizedStatus
+          and race.entryFinalizedAt is not null
+          and race.raceStartTime > :now
+          and not exists (
+              select event.betEventId
+              from BetEvent event
+              where event.raceId = race.raceId
+                and event.betProductId = :betProductId
+          )
+        order by race.raceStartTime asc
+        """)
+    List<Race> findEligibleForBetting(
+            @Param("betProductId") Integer betProductId,
+            @Param("finalizedStatus") String finalizedStatus,
+            @Param("now") LocalDateTime now
+    );
+
 }

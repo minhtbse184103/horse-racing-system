@@ -6,6 +6,7 @@ import com.example.backend.dto.response.AdminBetEventDetailResponse;
 import com.example.backend.dto.response.AdminBetSettlementDetailResponse;
 import com.example.backend.dto.response.AdminBetSettlementSummaryResponse;
 import com.example.backend.dto.response.AdminBetTicketResponse;
+import com.example.backend.dto.response.AdminBettingEligibleRaceResponse;
 import com.example.backend.dto.response.BetEventResponse;
 import com.example.backend.dto.response.BetProductResponse;
 import com.example.backend.dto.response.BetSettlementResponse;
@@ -21,6 +22,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -48,6 +50,13 @@ public class AdminBettingController {
     @GetMapping("/events")
     public List<BetEventResponse> getEvents() {
         return bettingService.getAdminEvents();
+    }
+
+    @GetMapping("/eligible-races")
+    public List<AdminBettingEligibleRaceResponse> getEligibleRaces(
+            @RequestParam Integer betProductId
+    ) {
+        return bettingService.getEligibleRaces(betProductId);
     }
 
     @GetMapping("/events/{eventId}")

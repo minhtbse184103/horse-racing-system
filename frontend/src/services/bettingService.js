@@ -57,6 +57,12 @@ export async function getAdminBetEvents() {
   }));
 }
 
+export async function getAdminEligibleBetRaces(betProductId) {
+  return unwrap(await httpRequest(`/api/admin/betting/eligible-races?betProductId=${encodeURIComponent(betProductId)}`, {
+    fallbackError: 'Unable to load eligible races.'
+  }));
+}
+
 export async function getAdminBetEventDetail(eventId) {
   return unwrap(await httpRequest(`/api/admin/betting/events/${eventId}`, {
     fallbackError: 'Unable to load betting event details.'
