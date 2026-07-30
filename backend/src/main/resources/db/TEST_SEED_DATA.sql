@@ -352,6 +352,18 @@ INSERT INTO `BetSettlement`
 VALUES
   (1, 3, 600000.00, 200000.00, 400000.00, 60000.00, 540000.00, 1, DATE_SUB(@seed_now, INTERVAL 2 HOUR));
 
+UPDATE `BetSettlement`
+SET `grossPool` = `totalStake`,
+    `netPool` = `payoutPool`,
+    `rawOdds` = ROUND(`payoutPool` / `winningStake`, 4),
+    `minimumOdds` = 1.0500,
+    `finalOdds` = GREATEST(ROUND(`payoutPool` / `winningStake`, 4), 1.0500),
+    `totalPayout` = `payoutPool`,
+    `subsidyAmount` = 0,
+    `roundingAdjustment` = 0,
+    `outcome` = 'PAID'
+WHERE `betSettlementID` = 1;
+
 INSERT INTO `BetTicket`
   (`betTicketID`, `betEventID`, `userID`, `walletID`, `raceID`, `raceEntryID`, `stake`, `estimatedOddsAtBet`, `finalOdds`, `payoutAmount`, `status`, `placedAt`, `settledAt`, `createdAt`, `updatedAt`)
 VALUES

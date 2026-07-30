@@ -535,6 +535,7 @@ CREATE TABLE `WalletTransaction` (
       'BET_LOST',
       'BET_WIN',
       'BET_REFUND',
+      'BET_VOID_REFUND',
       'PRIZE_PAYOUT',
       'WITHDRAW'
     )),
@@ -562,10 +563,11 @@ CREATE TABLE `SystemFund` (
   `systemFundID` int PRIMARY KEY,
   `balance` decimal(14,2) NOT NULL DEFAULT 0,
   `bettingFeeRevenue` decimal(14,2) NOT NULL DEFAULT 0,
+  `minusPoolSubsidyPaid` decimal(14,2) NOT NULL DEFAULT 0,
   `createdAt` datetime NOT NULL,
   `updatedAt` datetime NOT NULL,
   CONSTRAINT `chk_system_fund_amounts`
-    CHECK (`balance` >= 0 AND `bettingFeeRevenue` >= 0)
+    CHECK (`balance` >= 0 AND `bettingFeeRevenue` >= 0 AND `minusPoolSubsidyPaid` >= 0)
 );
 
 CREATE TABLE `FundTransaction` (
@@ -584,7 +586,12 @@ CREATE TABLE `FundTransaction` (
   CONSTRAINT `FundTransaction_unique_reference`
     UNIQUE (`fundKey`, `transactionType`, `referenceType`, `referenceID`),
   CONSTRAINT `chk_fund_transaction_type`
-    CHECK (`transactionType` IN ('REGISTRATION_FEE', 'PRIZE_PAYOUT', 'BETTING_OPERATOR_FEE')),
+    CHECK (`transactionType` IN (
+      'REGISTRATION_FEE',
+      'PRIZE_PAYOUT',
+      'BETTING_OPERATOR_FEE',
+      'MINUS_POOL_SUBSIDY'
+    )),
   CONSTRAINT `chk_fund_transaction_direction`
     CHECK (`direction` IN ('CREDIT', 'DEBIT')),
   CONSTRAINT `chk_fund_transaction_amount`
@@ -617,6 +624,7 @@ CREATE TABLE `BetProduct` (
   `minStake` decimal(14,2) NOT NULL DEFAULT 10000.00,
   `maxDailyStake` decimal(14,2) NOT NULL DEFAULT 1000000.00,
   `operatorFeeRate` decimal(5,4) NOT NULL DEFAULT 0.1000,
+  `minimumOdds` decimal(10,4) NOT NULL DEFAULT 1.0500,
   `active` boolean NOT NULL DEFAULT true,
   `createdAt` datetime,
   `updatedAt` datetime,
@@ -625,13 +633,16 @@ CREATE TABLE `BetProduct` (
   CONSTRAINT `chk_bet_product_stake`
     CHECK (`minStake` >= 10000.00 AND `maxDailyStake` >= `minStake`),
   CONSTRAINT `chk_bet_product_fee`
-    CHECK (`operatorFeeRate` >= 0 AND `operatorFeeRate` <= 0.5000)
+    CHECK (`operatorFeeRate` >= 0 AND `operatorFeeRate` <= 0.5000),
+  CONSTRAINT `chk_bet_product_minimum_odds`
+    CHECK (`minimumOdds` >= 1.0500)
 );
 
 CREATE TABLE `BetEvent` (
   `betEventID` int PRIMARY KEY AUTO_INCREMENT,
   `raceID` int NOT NULL,
   `betProductID` int NOT NULL,
+  `attemptNumber` int NOT NULL DEFAULT 1,
   `status` varchar(30) NOT NULL DEFAULT 'DRAFT',
   `openAt` datetime NOT NULL,
   `closeAt` datetime NOT NULL,
@@ -641,7 +652,7 @@ CREATE TABLE `BetEvent` (
   `settledAt` datetime,
   `createdAt` datetime,
   `updatedAt` datetime,
-  UNIQUE KEY `BetEvent_race_product_unique` (`raceID`, `betProductID`),
+  UNIQUE KEY `BetEvent_race_product_attempt_unique` (`raceID`, `betProductID`, `attemptNumber`),
   CONSTRAINT `chk_bet_event_status`
     CHECK (`status` IN ('DRAFT', 'OPEN', 'CLOSED', 'SETTLED', 'CANCELLED')),
   CONSTRAINT `chk_bet_event_window`
@@ -664,6 +675,8 @@ CREATE TABLE `BetTicket` (
   `status` varchar(30) NOT NULL DEFAULT 'PLACED',
   `placedAt` datetime NOT NULL,
   `settledAt` datetime,
+  `voidedAt` datetime,
+  `refundReason` varchar(500),
   `createdAt` datetime,
   `updatedAt` datetime,
   CONSTRAINT `chk_bet_ticket_stake`
@@ -680,6 +693,16 @@ CREATE TABLE `BetSettlement` (
   `losingStake` decimal(14,2) NOT NULL,
   `operatorFee` decimal(14,2) NOT NULL,
   `payoutPool` decimal(14,2) NOT NULL,
+  `grossPool` decimal(14,2) NOT NULL DEFAULT 0,
+  `netPool` decimal(14,2) NOT NULL DEFAULT 0,
+  `rawOdds` decimal(10,4),
+  `minimumOdds` decimal(10,4) NOT NULL DEFAULT 1.0500,
+  `finalOdds` decimal(10,4),
+  `totalPayout` decimal(14,2) NOT NULL DEFAULT 0,
+  `subsidyAmount` decimal(14,2) NOT NULL DEFAULT 0,
+  `roundingAdjustment` decimal(14,2) NOT NULL DEFAULT 0,
+  `outcome` varchar(30) NOT NULL DEFAULT 'PAID',
+  `voidReason` varchar(500),
   `settledBy` int NOT NULL,
   `settledAt` datetime NOT NULL,
   CONSTRAINT `chk_bet_settlement_amounts`
@@ -689,7 +712,13 @@ CREATE TABLE `BetSettlement` (
       AND `losingStake` >= 0
       AND `operatorFee` >= 0
       AND `payoutPool` >= 0
-    )
+      AND `grossPool` >= 0
+      AND `netPool` >= 0
+      AND `totalPayout` >= 0
+      AND `subsidyAmount` >= 0
+    ),
+  CONSTRAINT `chk_bet_settlement_outcome`
+    CHECK (`outcome` IN ('PAID', 'VOIDED', 'REFUNDED'))
 );
 
 CREATE TABLE `PrizeDistribution` (

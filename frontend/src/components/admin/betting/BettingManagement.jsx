@@ -342,7 +342,7 @@ export default function BettingManagement() {
                 >
                   <span className="min-w-0">
                     <strong className="block truncate text-brown-950">{settlement.raceName}</strong>
-                    <small className="font-semibold text-slate-500">{betProductName(settlement.productCode, t, settlement.productName)} · {dateTime(settlement.settledAt)}</small>
+                    <small className="font-semibold text-slate-500">{betProductName(settlement.productCode, t, settlement.productName)} · {settlement.outcome || 'PAID'} · {dateTime(settlement.settledAt)}</small>
                   </span>
                   <span>
                     <small className="block text-xs font-black uppercase text-slate-500">Operator fee</small>
@@ -350,7 +350,7 @@ export default function BettingManagement() {
                   </span>
                   <span>
                     <small className="block text-xs font-black uppercase text-slate-500">Total stake</small>
-                    <strong className="text-brown-950">{money(settlement.totalStake)}</strong>
+                    <strong className="text-brown-950">{settlement.outcome === 'VOIDED' ? `Refund ${money(settlement.totalStake)}` : money(settlement.totalStake)}</strong>
                   </span>
                   <Eye className="justify-self-end text-brown-500" size={18} />
                 </button>

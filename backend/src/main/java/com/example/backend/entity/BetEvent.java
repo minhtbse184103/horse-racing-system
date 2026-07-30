@@ -31,6 +31,9 @@ public class BetEvent {
     @Column(name = "betProductID", nullable = false)
     private Integer betProductId;
 
+    @Column(name = "attemptNumber", nullable = false)
+    private Integer attemptNumber;
+
     @Column(name = "status", nullable = false, length = 30)
     private String status;
 
@@ -63,6 +66,9 @@ public class BetEvent {
         LocalDateTime now = LocalDateTime.now();
         if (createdAt == null) {
             createdAt = now;
+        }
+        if (attemptNumber == null) {
+            attemptNumber = 1;
         }
         updatedAt = now;
     }

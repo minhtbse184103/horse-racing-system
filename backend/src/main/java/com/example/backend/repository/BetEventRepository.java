@@ -23,6 +23,22 @@ public interface BetEventRepository extends JpaRepository<BetEvent, Integer> {
     // Một Race có thể có nhiều BetEvent theo từng BetProduct (WIN, PLACE...).
     // Cặp raceId + betProductId giúp tránh tạo trùng event cược cho cùng một Race và cùng loại cược.
     boolean existsByRaceIdAndBetProductId(Integer raceId, Integer betProductId);
+    boolean existsByRaceIdAndBetProductIdAndStatusNot(
+            Integer raceId,
+            Integer betProductId,
+            String excludedStatus
+    );
+
+    @Query("""
+            select coalesce(max(event.attemptNumber), 0)
+            from BetEvent event
+            where event.raceId = :raceId
+              and event.betProductId = :betProductId
+            """)
+    Integer findMaxAttemptNumber(
+            @Param("raceId") Integer raceId,
+            @Param("betProductId") Integer betProductId
+    );
 
     // LUỒNG: Spectator xem danh sách Betting Event
     // BẢNG: BetEvent.

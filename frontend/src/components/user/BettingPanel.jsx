@@ -65,9 +65,20 @@ function ProductBadge({ code }) {
 }
 
 function ticketOdds(ticket) {
+  if (['REFUNDED', 'VOID'].includes(String(ticket?.status || '').toUpperCase())) return '-';
   if (ticket?.finalOdds) return Number(ticket.finalOdds).toFixed(2);
   if (ticket?.estimatedOddsAtBet) return Number(ticket.estimatedOddsAtBet).toFixed(2);
   return '-';
+}
+
+function refundReasonLabel(reason) {
+  const labels = {
+    USER_CANCELLED: 'Người chơi hủy vé trong thời gian cho phép',
+    RACE_RESULT_REJECTED: 'Kết quả đua bị Admin từ chối',
+    NO_WINNING_BETS: 'Không có vé chọn đúng kết quả thắng',
+    INSUFFICIENT_SYSTEM_RESERVE: 'Quỹ dự phòng không đủ bảo chứng odds tối thiểu'
+  };
+  return labels[String(reason || '').toUpperCase()] || reason || 'Không áp dụng';
 }
 
 function productKey(item) {
@@ -422,11 +433,14 @@ function BetEventDetail({
                 <span className="flex justify-between gap-3"><span>{t('spectatorDailyStakeUsed')}</span><strong>{money(dailyStakeUsed)}</strong></span>
                 <span className="flex justify-between gap-3"><span>{t('spectatorDailyStakeRemaining')}</span><strong>{dailyStakeRemaining === null ? '-' : money(dailyStakeRemaining)}</strong></span>
                 <span className="flex justify-between gap-3"><span>{t('spectatorEstimatedOdds')}</span><strong>{selectedEntry?.estimatedOdds ? Number(selectedEntry.estimatedOdds).toFixed(2) : '-'}</strong></span>
+                <span className="flex justify-between gap-3"><span>{t('spectatorMinimumOdds')}</span><strong>{Number(event.minimumOdds || 1.05).toFixed(2)}</strong></span>
+                <span className="flex justify-between gap-3"><span>{t('spectatorOperatorFee')}</span><strong>{(Number(event.operatorFeeRate || 0) * 100).toFixed(1)}%</strong></span>
                 <span className="flex justify-between gap-3"><span>{t('spectatorEstimatedPayout')}</span><strong>{money(estimatedPayout)}</strong></span>
+                <span className="flex justify-between gap-3"><span>{t('spectatorEstimatedProfit')}</span><strong>{money(Math.max(estimatedPayout - stakeNumber, 0))}</strong></span>
               </div>
               <div className="spectator-bet-warning">
                 <AlertTriangle size={16} />
-                <span>{t('spectatorOddsNotice')}</span>
+                <span>{t('spectatorBettingRulesNotice')}</span>
               </div>
               <button
                 className="spectator-bet-primary-action"
@@ -532,6 +546,8 @@ function BetConfirmationDialog({
             value={estimatedOdds > 0 ? estimatedOdds.toFixed(2) : '-'}
           />
           <TicketDetailField label={t('spectatorEstimatedPayout')} value={money(estimatedPayout)} />
+          <TicketDetailField label={t('spectatorMinimumOdds')} value={Number(event.minimumOdds || 1.05).toFixed(2)} />
+          <TicketDetailField label={t('spectatorEstimatedProfit')} value={money(Math.max(estimatedPayout - stakeNumber, 0))} />
           <TicketDetailField label={t('spectatorWalletAfterBet')} value={money(walletAfterBet)} />
           <TicketDetailField label={t('spectatorDailyStakeUsed')} value={money(dailyStakeUsed)} />
           <TicketDetailField
@@ -542,7 +558,7 @@ function BetConfirmationDialog({
 
         <div className="spectator-ticket-detail-note spectator-bet-confirmation-note">
           <AlertTriangle size={18} />
-          <p>{t('spectatorBetConfirmationNotice')}</p>
+          <p>{t('spectatorBettingRulesNotice')}</p>
         </div>
 
         <div className="spectator-ticket-detail-actions">
@@ -818,6 +834,9 @@ function TicketDetailDialog({ ticket, cancellingTicketId, onCancelTicket, onClos
           <TicketDetailField label="Placed at" value={dateTime(ticket.placedAt)} />
           <TicketDetailField label="Betting closes" value={dateTime(ticket.bettingCloseAt)} />
           <TicketDetailField label="Settled at" value={dateTime(ticket.settledAt)} />
+          {['REFUNDED', 'VOID'].includes(String(ticket.status || '').toUpperCase()) && (
+            <TicketDetailField label="Lý do hoàn tiền" value={refundReasonLabel(ticket.refundReason)} emphasis />
+          )}
         </div>
 
         {raceError && <div className="admin-alert error" role="alert">{raceError}</div>}

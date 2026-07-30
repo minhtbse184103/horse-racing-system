@@ -74,8 +74,13 @@ import java.util.stream.Collectors;
 public class BettingService {
 
     private static final BigDecimal DEFAULT_MIN_STAKE = new BigDecimal("10000.00");
-    private static final int MAX_OPEN_BEFORE_RACE_HOURS = 12;
+    private static final BigDecimal DEFAULT_MINIMUM_ODDS = new BigDecimal("1.0500");
     private static final int MIN_CLOSE_BEFORE_RACE_MINUTES = 5;
+    private static final String SETTLEMENT_PAID = "PAID";
+    private static final String SETTLEMENT_VOIDED = "VOIDED";
+    private static final String VOID_NO_WINNING_BETS = "NO_WINNING_BETS";
+    private static final String VOID_INSUFFICIENT_SYSTEM_RESERVE = "INSUFFICIENT_SYSTEM_RESERVE";
+    public static final String VOID_REJECTED_RACE_RESULT = "RACE_RESULT_REJECTED";
     private static final Set<String> EDITABLE_SCHEDULE_STATUSES =
             Set.of(BetEventStatus.DRAFT, BetEventStatus.OPEN, BetEventStatus.CLOSED);
     private static final Set<String> ACTIVE_TICKET_STATUSES =
@@ -124,6 +129,7 @@ public class BettingService {
         product.setMinStake(minStake);
         product.setMaxDailyStake(maxDailyStake);
         product.setOperatorFeeRate(normalizeRate(request.getOperatorFeeRate()));
+        product.setMinimumOdds(normalizeMinimumOdds(request.getMinimumOdds()));
         product.setActive(request.getActive());
 
         return toProductResponse(betProductRepository.save(product));
@@ -225,7 +231,11 @@ public class BettingService {
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Race does not exist."));
         BetProduct product = getActiveProduct(request.getBetProductId());
         validateRaceCanHostBetting(race);
-        if (betEventRepository.existsByRaceIdAndBetProductId(race.getRaceId(), product.getBetProductId())) {
+        if (betEventRepository.existsByRaceIdAndBetProductIdAndStatusNot(
+                race.getRaceId(),
+                product.getBetProductId(),
+                BetEventStatus.CANCELLED
+        )) {
             throw new ApiException(HttpStatus.CONFLICT, "Bet event already exists for this race and product.");
         }
         if (!openNow && request.getOpenAt().isBefore(LocalDateTime.now())) {
@@ -236,6 +246,11 @@ public class BettingService {
         BetEvent event = new BetEvent();
         event.setRaceId(race.getRaceId());
         event.setBetProductId(product.getBetProductId());
+        Integer lastAttempt = betEventRepository.findMaxAttemptNumber(
+                race.getRaceId(),
+                product.getBetProductId()
+        );
+        event.setAttemptNumber(lastAttempt == null ? 1 : lastAttempt + 1);
         // Open now được ghi OPEN ngay trong cùng transaction; lịch tương lai giữ DRAFT cho scheduler.
         event.setStatus(openNow ? BetEventStatus.OPEN : BetEventStatus.DRAFT);
         event.setOpenAt(effectiveOpenAt);
@@ -448,6 +463,7 @@ public class BettingService {
         ticket.setStatus(BetTicketStatus.REFUNDED);
         ticket.setFinalOdds(BigDecimal.ONE.setScale(4, RoundingMode.HALF_UP));
         ticket.setPayoutAmount(stake.setScale(2, RoundingMode.HALF_UP));
+        ticket.setRefundReason("USER_CANCELLED");
         ticket.setSettledAt(LocalDateTime.now());
         BetTicket savedTicket = betTicketRepository.save(ticket);
 
@@ -485,6 +501,29 @@ public class BettingService {
         return events.stream()
                 .filter(this::isReadyForAutoSettlement)
                 .map(event -> settleEventForAdmin(event, settledByUserId, true))
+                .toList();
+    }
+
+    @Transactional
+    public List<BetSettlementResponse> voidRaceEvents(
+            Integer raceId,
+            Integer voidedByUserId,
+            String reason
+    ) {
+        List<BetEvent> events = betEventRepository.findByRaceIdAndStatusInForUpdate(
+                raceId,
+                List.of(BetEventStatus.DRAFT, BetEventStatus.OPEN, BetEventStatus.CLOSED)
+        );
+        return events.stream()
+                .map(event -> voidEventAndRefund(
+                        event,
+                        betTicketRepository.findPlacedByEventForUpdate(
+                                event.getBetEventId(),
+                                BetTicketStatus.PLACED
+                        ),
+                        voidedByUserId,
+                        reason
+                ))
                 .toList();
     }
 
@@ -533,8 +572,36 @@ public class BettingService {
         BigDecimal operatorFee = totalStake.multiply(event.getOperatorFeeRate()).setScale(2, RoundingMode.HALF_UP);
         BigDecimal payoutPool = totalStake.subtract(operatorFee);
 
-        for (BetTicket ticket : tickets) {
-            settleTicket(ticket, winningEntryIds.contains(ticket.getRaceEntryId()), winningStake, payoutPool);
+        if (!tickets.isEmpty() && winningStake.signum() == 0) {
+            return voidEventAndRefund(event, tickets, settledByUserId, VOID_NO_WINNING_BETS);
+        }
+
+        BigDecimal minimumOdds = normalizeMinimumOdds(product.getMinimumOdds());
+        BigDecimal rawOdds = winningStake.signum() > 0
+                ? payoutPool.divide(winningStake, 4, RoundingMode.HALF_UP)
+                : null;
+        BigDecimal finalOdds = rawOdds == null ? null : rawOdds.max(minimumOdds);
+        BigDecimal totalPayout = tickets.stream()
+                .filter(ticket -> winningEntryIds.contains(ticket.getRaceEntryId()))
+                .map(ticket -> valueOrZero(ticket.getStake())
+                        .multiply(finalOdds)
+                        .setScale(2, RoundingMode.HALF_UP))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        BigDecimal subsidyAmount = totalPayout.subtract(payoutPool).max(BigDecimal.ZERO)
+                .setScale(2, RoundingMode.HALF_UP);
+        BigDecimal theoreticalPayout = finalOdds == null
+                ? BigDecimal.ZERO
+                : winningStake.multiply(finalOdds).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal roundingAdjustment = totalPayout.subtract(theoreticalPayout)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        if (!fundAccountingService.canCoverBettingSettlement(operatorFee, subsidyAmount)) {
+            return voidEventAndRefund(
+                    event,
+                    tickets,
+                    settledByUserId,
+                    VOID_INSUFFICIENT_SYSTEM_RESERVE
+            );
         }
 
         BetSettlement settlement = new BetSettlement();
@@ -544,10 +611,27 @@ public class BettingService {
         settlement.setLosingStake(losingStake.setScale(2, RoundingMode.HALF_UP));
         settlement.setOperatorFee(operatorFee);
         settlement.setPayoutPool(payoutPool.setScale(2, RoundingMode.HALF_UP));
+        settlement.setGrossPool(totalStake.setScale(2, RoundingMode.HALF_UP));
+        settlement.setNetPool(payoutPool.setScale(2, RoundingMode.HALF_UP));
+        settlement.setRawOdds(rawOdds);
+        settlement.setMinimumOdds(minimumOdds);
+        settlement.setFinalOdds(finalOdds);
+        settlement.setTotalPayout(totalPayout.setScale(2, RoundingMode.HALF_UP));
+        settlement.setSubsidyAmount(subsidyAmount);
+        settlement.setRoundingAdjustment(roundingAdjustment);
+        settlement.setOutcome(SETTLEMENT_PAID);
         settlement.setSettledBy(settledByUserId);
         settlement.setSettledAt(LocalDateTime.now());
         BetSettlement savedSettlement = betSettlementRepository.save(settlement);
-        fundAccountingService.recordBettingOperatorFee(savedSettlement);
+        fundAccountingService.recordBettingSettlement(savedSettlement);
+
+        for (BetTicket ticket : tickets) {
+            settleTicket(
+                    ticket,
+                    winningEntryIds.contains(ticket.getRaceEntryId()),
+                    finalOdds
+            );
+        }
 
         event.setStatus(BetEventStatus.SETTLED);
         event.setSettledBy(settledByUserId);
@@ -569,8 +653,7 @@ public class BettingService {
     private void settleTicket(
             BetTicket ticket,
             boolean won,
-            BigDecimal winningStake,
-            BigDecimal payoutPool
+            BigDecimal finalOdds
     ) {
         Wallet wallet = walletRepository.findByWalletIdForUpdate(ticket.getWalletId())
                 .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Wallet does not exist."));
@@ -597,21 +680,15 @@ public class BettingService {
             return;
         }
 
-        BigDecimal payout = BigDecimal.ZERO;
-        if (winningStake.compareTo(BigDecimal.ZERO) > 0) {
-            payout = stake.divide(winningStake, 8, RoundingMode.HALF_UP)
-                    .multiply(payoutPool)
-                    .setScale(2, RoundingMode.HALF_UP);
-        }
+        BigDecimal payout = stake.multiply(finalOdds).setScale(2, RoundingMode.HALF_UP);
         BigDecimal balanceAfter = balanceBefore.add(payout.subtract(stake));
-        BigDecimal odds = payout.divide(stake, 4, RoundingMode.HALF_UP);
 
         wallet.setBalance(balanceAfter);
         wallet.setLockedBalance(lockedAfter);
         walletRepository.save(wallet);
 
         ticket.setStatus(BetTicketStatus.WON);
-        ticket.setFinalOdds(odds);
+        ticket.setFinalOdds(finalOdds);
         ticket.setPayoutAmount(payout);
         ticket.setSettledAt(LocalDateTime.now());
         betTicketRepository.save(ticket);
@@ -619,6 +696,82 @@ public class BettingService {
         saveWalletTransaction(wallet, WalletTransactionType.BET_WIN, payout,
                 balanceBefore, balanceAfter, lockedBefore, lockedAfter,
                 WalletReferenceType.BET_TICKET, ticket.getBetTicketId(), "Settle winning betting ticket");
+    }
+
+    private BetSettlementResponse voidEventAndRefund(
+            BetEvent event,
+            List<BetTicket> tickets,
+            Integer voidedByUserId,
+            String reason
+    ) {
+        LocalDateTime now = LocalDateTime.now();
+        BigDecimal totalStake = tickets.stream()
+                .map(BetTicket::getStake)
+                .map(this::valueOrZero)
+                .reduce(BigDecimal.ZERO, BigDecimal::add)
+                .setScale(2, RoundingMode.HALF_UP);
+
+        for (BetTicket ticket : tickets) {
+            refundVoidedTicket(ticket, reason, now);
+        }
+
+        BetSettlement settlement = new BetSettlement();
+        settlement.setBetEventId(event.getBetEventId());
+        settlement.setTotalStake(totalStake);
+        settlement.setWinningStake(BigDecimal.ZERO.setScale(2));
+        settlement.setLosingStake(BigDecimal.ZERO.setScale(2));
+        settlement.setOperatorFee(BigDecimal.ZERO.setScale(2));
+        settlement.setPayoutPool(BigDecimal.ZERO.setScale(2));
+        settlement.setGrossPool(totalStake);
+        settlement.setNetPool(BigDecimal.ZERO.setScale(2));
+        settlement.setMinimumOdds(DEFAULT_MINIMUM_ODDS);
+        settlement.setTotalPayout(totalStake);
+        settlement.setSubsidyAmount(BigDecimal.ZERO.setScale(2));
+        settlement.setRoundingAdjustment(BigDecimal.ZERO.setScale(2));
+        settlement.setOutcome(SETTLEMENT_VOIDED);
+        settlement.setVoidReason(reason);
+        settlement.setSettledBy(voidedByUserId);
+        settlement.setSettledAt(now);
+        BetSettlement savedSettlement = betSettlementRepository.save(settlement);
+
+        event.setStatus(BetEventStatus.CANCELLED);
+        event.setSettledBy(voidedByUserId);
+        event.setSettledAt(now);
+        betEventRepository.save(event);
+        return toSettlementResponse(savedSettlement);
+    }
+
+    private void refundVoidedTicket(BetTicket ticket, String reason, LocalDateTime now) {
+        Wallet wallet = walletRepository.findByWalletIdForUpdate(ticket.getWalletId())
+                .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "Wallet does not exist."));
+        BigDecimal balanceBefore = valueOrZero(wallet.getBalance());
+        BigDecimal lockedBefore = valueOrZero(wallet.getLockedBalance());
+        BigDecimal stake = valueOrZero(ticket.getStake());
+        BigDecimal lockedAfter = lockedBefore.subtract(stake).max(BigDecimal.ZERO);
+
+        wallet.setLockedBalance(lockedAfter);
+        walletRepository.save(wallet);
+
+        ticket.setStatus(BetTicketStatus.VOID);
+        ticket.setFinalOdds(BigDecimal.ONE.setScale(4));
+        ticket.setPayoutAmount(stake.setScale(2, RoundingMode.HALF_UP));
+        ticket.setRefundReason(reason);
+        ticket.setVoidedAt(now);
+        ticket.setSettledAt(now);
+        betTicketRepository.save(ticket);
+
+        saveWalletTransaction(
+                wallet,
+                WalletTransactionType.BET_VOID_REFUND,
+                stake,
+                balanceBefore,
+                balanceBefore,
+                lockedBefore,
+                lockedAfter,
+                WalletReferenceType.BET_TICKET,
+                ticket.getBetTicketId(),
+                "Void betting ticket and release stake: " + reason
+        );
     }
 
     private Set<Integer> getWinningEntryIds(String productCode, List<RaceResult> results) {
@@ -672,9 +825,6 @@ public class BettingService {
         }
         if (closeAt.isAfter(race.getRaceStartTime().minusMinutes(MIN_CLOSE_BEFORE_RACE_MINUTES))) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Betting must close at least 5 minutes before race start.");
-        }
-        if (openAt.isBefore(race.getRaceStartTime().minusHours(MAX_OPEN_BEFORE_RACE_HOURS))) {
-            throw new ApiException(HttpStatus.BAD_REQUEST, "Betting cannot open more than 12 hours before race start.");
         }
     }
 
@@ -782,6 +932,8 @@ public class BettingService {
                 .minStake(product.getMinStake())
                 .maxDailyStake(product.getMaxDailyStake())
                 .operatorFeeRate(event.getOperatorFeeRate())
+                .minimumOdds(normalizeMinimumOdds(product.getMinimumOdds()))
+                .attemptNumber(event.getAttemptNumber())
                 .totalStake(valueOrZero(totalStake))
                 .raceTotalStake(valueOrZero(raceTotalStake))
                 .entries(includeEntries ? getEntryOptions(event) : List.of())
@@ -875,9 +1027,12 @@ public class BettingService {
                 .estimatedOddsAtBet(ticket.getEstimatedOddsAtBet())
                 .finalOdds(ticket.getFinalOdds())
                 .payoutAmount(ticket.getPayoutAmount())
+                .netProfit(netProfit(ticket))
                 .status(ticket.getStatus())
+                .refundReason(ticket.getRefundReason())
                 .placedAt(ticket.getPlacedAt())
                 .settledAt(ticket.getSettledAt())
+                .voidedAt(ticket.getVoidedAt())
                 .build();
     }
 
@@ -925,9 +1080,12 @@ public class BettingService {
                 .estimatedOddsAtBet(ticket.getEstimatedOddsAtBet())
                 .finalOdds(ticket.getFinalOdds())
                 .payoutAmount(ticket.getPayoutAmount())
+                .netProfit(netProfit(ticket))
                 .status(ticket.getStatus())
+                .refundReason(ticket.getRefundReason())
                 .placedAt(ticket.getPlacedAt())
                 .settledAt(ticket.getSettledAt())
+                .voidedAt(ticket.getVoidedAt())
                 .build();
     }
 
@@ -953,6 +1111,13 @@ public class BettingService {
                 .losingStake(settlement.getLosingStake())
                 .operatorFee(settlement.getOperatorFee())
                 .payoutPool(settlement.getPayoutPool())
+                .rawOdds(settlement.getRawOdds())
+                .minimumOdds(settlement.getMinimumOdds())
+                .finalOdds(settlement.getFinalOdds())
+                .totalPayout(settlement.getTotalPayout())
+                .subsidyAmount(settlement.getSubsidyAmount())
+                .outcome(settlement.getOutcome())
+                .voidReason(settlement.getVoidReason())
                 .settledBy(settlement.getSettledBy())
                 .settledByName(displayName(settledBy))
                 .settledAt(settlement.getSettledAt())
@@ -968,6 +1133,16 @@ public class BettingService {
                 .losingStake(settlement.getLosingStake())
                 .operatorFee(settlement.getOperatorFee())
                 .payoutPool(settlement.getPayoutPool())
+                .grossPool(settlement.getGrossPool())
+                .netPool(settlement.getNetPool())
+                .rawOdds(settlement.getRawOdds())
+                .minimumOdds(settlement.getMinimumOdds())
+                .finalOdds(settlement.getFinalOdds())
+                .totalPayout(settlement.getTotalPayout())
+                .subsidyAmount(settlement.getSubsidyAmount())
+                .roundingAdjustment(settlement.getRoundingAdjustment())
+                .outcome(settlement.getOutcome())
+                .voidReason(settlement.getVoidReason())
                 .settledBy(settlement.getSettledBy())
                 .settledAt(settlement.getSettledAt())
                 .build();
@@ -992,6 +1167,7 @@ public class BettingService {
                 .minStake(product.getMinStake())
                 .maxDailyStake(product.getMaxDailyStake())
                 .operatorFeeRate(product.getOperatorFeeRate())
+                .minimumOdds(normalizeMinimumOdds(product.getMinimumOdds()))
                 .active(product.getActive())
                 .build();
     }
@@ -1010,7 +1186,8 @@ public class BettingService {
             return null;
         }
         BigDecimal payoutPool = totalStake.subtract(totalStake.multiply(event.getOperatorFeeRate()));
-        return payoutPool.divide(selectedStake, 4, RoundingMode.HALF_UP);
+        BigDecimal rawOdds = payoutPool.divide(selectedStake, 4, RoundingMode.HALF_UP);
+        return rawOdds.max(normalizeMinimumOdds(getProduct(event.getBetProductId()).getMinimumOdds()));
     }
 
     private void saveWalletTransaction(
@@ -1091,6 +1268,26 @@ public class BettingService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "Operator fee rate must be from 0 to 0.5.");
         }
         return rate.setScale(4, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal normalizeMinimumOdds(BigDecimal odds) {
+        BigDecimal value = odds == null ? DEFAULT_MINIMUM_ODDS : odds;
+        if (value.compareTo(DEFAULT_MINIMUM_ODDS) < 0) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "Minimum odds cannot be lower than 1.05.");
+        }
+        return value.setScale(4, RoundingMode.HALF_UP);
+    }
+
+    private BigDecimal netProfit(BetTicket ticket) {
+        if (ticket.getPayoutAmount() == null || ticket.getStake() == null) {
+            return null;
+        }
+        if (BetTicketStatus.REFUNDED.equals(ticket.getStatus())
+                || BetTicketStatus.VOID.equals(ticket.getStatus())) {
+            return BigDecimal.ZERO.setScale(2);
+        }
+        return ticket.getPayoutAmount().subtract(ticket.getStake())
+                .setScale(2, RoundingMode.HALF_UP);
     }
 
     private BigDecimal valueOrZero(BigDecimal value) {

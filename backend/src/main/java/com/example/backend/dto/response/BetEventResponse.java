@@ -17,6 +17,7 @@ public class BetEventResponse {
     private String trackName;
     private LocalDateTime raceStartTime;
     private Integer betProductId;
+    private Integer attemptNumber;
     private String productCode;
     private String productName;
     private String status;
@@ -25,6 +26,7 @@ public class BetEventResponse {
     private BigDecimal minStake;
     private BigDecimal maxDailyStake;
     private BigDecimal operatorFeeRate;
+    private BigDecimal minimumOdds;
     private BigDecimal totalStake;
     private BigDecimal raceTotalStake;
     private List<BetEntryOptionResponse> entries;

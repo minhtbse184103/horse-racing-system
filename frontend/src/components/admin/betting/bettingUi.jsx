@@ -114,16 +114,19 @@ export function SectionShell({ eyebrow, title, description, action, children }) 
 export function StatCard({ label, value, description, icon: Icon, tone = 'text-brown-700' }) {
   return (
     <article className="rounded-2xl border border-brown-200/70 bg-white p-5 shadow-[0_14px_35px_rgba(76,45,25,0.07)]">
-      <div className="flex items-start justify-between gap-4">
-        <div className="min-w-0">
-          <p className="text-xs font-black uppercase tracking-[0.14em] text-slate-500">{label}</p>
-          <strong className="mt-2 block truncate text-2xl font-black text-brown-950 lg:text-3xl">{value}</strong>
-          {description && <span className="mt-1 block text-sm font-semibold text-slate-500">{description}</span>}
-        </div>
+      <div className="flex items-start justify-between gap-3">
+        <p className="min-w-0 text-xs font-black uppercase tracking-[0.14em] text-slate-500">{label}</p>
         <span className={`grid size-11 shrink-0 place-items-center rounded-xl bg-cream-100 ${tone}`}>
           <Icon size={21} />
         </span>
       </div>
+      <strong
+        className="mt-3 block break-words text-2xl font-black leading-tight tracking-tight text-brown-950"
+        title={String(value)}
+      >
+        {value}
+      </strong>
+      {description && <span className="mt-1 block text-sm font-semibold leading-5 text-slate-500">{description}</span>}
     </article>
   );
 }

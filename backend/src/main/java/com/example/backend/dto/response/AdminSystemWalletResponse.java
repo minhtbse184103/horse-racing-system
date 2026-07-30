@@ -14,6 +14,7 @@ public class AdminSystemWalletResponse {
     private Integer systemFundId;
     private BigDecimal balance;
     private BigDecimal bettingFeeRevenue;
+    private BigDecimal minusPoolSubsidyPaid;
     private String currency;
     private LocalDateTime updatedAt;
     private List<SystemFundTransactionResponse> transactions;

@@ -19,6 +19,10 @@ public class WalletTransactionResponse {
     private BigDecimal balanceAfter;
     private BigDecimal lockedBefore;
     private BigDecimal lockedAfter;
+    private BigDecimal balanceDelta;
+    private BigDecimal lockedDelta;
+    private BigDecimal availableBefore;
+    private BigDecimal availableAfter;
     private String referenceType;
     private Integer referenceId;
     private String description;

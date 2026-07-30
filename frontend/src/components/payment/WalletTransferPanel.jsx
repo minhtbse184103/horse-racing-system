@@ -28,11 +28,36 @@ function formatWalletDate(value) {
   });
 }
 
-function walletTransactionDirection(type) {
-  const normalized = String(type || '').toUpperCase();
-  if (['DEPOSIT', 'BET_WIN', 'BET_REFUND', 'PRIZE_PAYOUT'].includes(normalized)) return 'credit';
-  if (['BET_LOCK', 'BET_LOST'].includes(normalized)) return 'debit';
+function walletTransactionDirection(transaction) {
+  const balanceDelta = Number(transaction?.balanceDelta ?? 0);
+  if (balanceDelta > 0) return 'credit';
+  if (balanceDelta < 0) return 'debit';
   return 'neutral';
+}
+
+function walletTransactionLabel(type) {
+  const labels = {
+    DEPOSIT: 'Nạp tiền',
+    BET_LOCK: 'Khóa tiền cược',
+    BET_LOST: 'Cược thua',
+    BET_WIN: 'Cược thắng',
+    BET_REFUND: 'Hoàn vé đã hủy',
+    BET_VOID_REFUND: 'Hoàn vé bị vô hiệu',
+    PRIZE_PAYOUT: 'Tiền thưởng'
+  };
+  const normalized = String(type || '').toUpperCase();
+  return labels[normalized] || normalized || 'Giao dịch';
+}
+
+function transactionAmountText(transaction) {
+  const type = String(transaction?.type || '').toUpperCase();
+  const amount = Number(transaction?.amount || 0);
+  const balanceDelta = Number(transaction?.balanceDelta ?? 0);
+  if (type === 'BET_LOCK') return `Khóa ${formatVndCurrency(amount)}`;
+  if (['BET_REFUND', 'BET_VOID_REFUND'].includes(type)) return `Mở khóa ${formatVndCurrency(amount)}`;
+  if (balanceDelta > 0) return `+${formatVndCurrency(balanceDelta)}`;
+  if (balanceDelta < 0) return `-${formatVndCurrency(Math.abs(balanceDelta))}`;
+  return formatVndCurrency(amount);
 }
 
 function walletTransactionGroup(type) {
@@ -48,13 +73,15 @@ function WalletTransactionHistory({ transactions }) {
     const amount = Number(transaction.amount || 0);
     const type = String(transaction.type || '').toUpperCase();
     if (type === 'DEPOSIT') total.topUp += amount;
-    if (['BET_LOCK', 'BET_LOST'].includes(type)) total.betOut += amount;
-    if (['BET_REFUND', 'BET_WIN'].includes(type)) total.betIn += amount;
+    if (type.startsWith('BET_')) total.netBet += Number(transaction.balanceDelta ?? 0);
+    if (['BET_REFUND', 'BET_VOID_REFUND'].includes(type)) total.refunded += amount;
+    total.locked += Number(transaction.lockedDelta ?? 0);
     return total;
   }, {
     topUp: 0,
-    betOut: 0,
-    betIn: 0
+    netBet: 0,
+    refunded: 0,
+    locked: 0
   }), [transactions]);
   const filteredTransactions = useMemo(() => {
     if (filter === 'ALL') return transactions;
@@ -93,16 +120,16 @@ function WalletTransactionHistory({ transactions }) {
           <strong>{formatVndCurrency(summary.topUp)}</strong>
         </div>
         <div>
-          <span>Betting trừ/khóa</span>
-          <strong>{formatVndCurrency(summary.betOut)}</strong>
+          <span>Lãi/lỗ betting ròng</span>
+          <strong>{summary.netBet >= 0 ? '+' : '-'}{formatVndCurrency(Math.abs(summary.netBet))}</strong>
         </div>
         <div>
-          <span>Betting hoàn/thắng</span>
-          <strong>{formatVndCurrency(summary.betIn)}</strong>
+          <span>Đã hoàn/mở khóa</span>
+          <strong>{formatVndCurrency(summary.refunded)}</strong>
         </div>
         <div>
-          <span>Tổng giao dịch</span>
-          <strong>{transactions.length}</strong>
+          <span>Đang khóa từ betting</span>
+          <strong>{formatVndCurrency(Math.max(summary.locked, 0))}</strong>
         </div>
       </div>
 
@@ -130,6 +157,7 @@ function WalletTransactionHistory({ transactions }) {
           <span>Số tiền</span>
           <span>Balance</span>
           <span>Locked</span>
+          <span>Khả dụng</span>
           <span>Nội dung</span>
         </div>
         {filteredTransactions.length === 0 ? (
@@ -137,23 +165,26 @@ function WalletTransactionHistory({ transactions }) {
             Không có giao dịch phù hợp với bộ lọc này.
           </div>
         ) : filteredTransactions.map((transaction) => {
-          const direction = walletTransactionDirection(transaction.type);
-          const Icon = direction === 'credit' ? ArrowDownLeft : ArrowUpRight;
+          const direction = walletTransactionDirection(transaction);
+          const Icon = direction === 'credit' ? ArrowDownLeft : direction === 'debit' ? ArrowUpRight : ShieldCheck;
           return (
             <article className="wallet-transaction-row" key={transaction.walletTransactionId}>
               <span className="wallet-transaction-time">{formatWalletDate(transaction.createdAt)}</span>
               <span className={`wallet-transaction-type ${direction}`}>
                 <Icon size={15} />
-                {String(transaction.type || 'UNKNOWN').toUpperCase()}
+                {walletTransactionLabel(transaction.type)}
               </span>
               <strong className={`wallet-transaction-amount ${direction}`}>
-                {direction === 'debit' ? '-' : '+'}{formatVndCurrency(transaction.amount)}
+                {transactionAmountText(transaction)}
               </strong>
               <span className="wallet-transaction-balance">
                 {formatVndCurrency(transaction.balanceBefore)} → {formatVndCurrency(transaction.balanceAfter)}
               </span>
               <span className="wallet-transaction-balance">
                 {formatVndCurrency(transaction.lockedBefore)} → {formatVndCurrency(transaction.lockedAfter)}
+              </span>
+              <span className="wallet-transaction-balance">
+                {formatVndCurrency(transaction.availableBefore)} → {formatVndCurrency(transaction.availableAfter)}
               </span>
               <span className="wallet-transaction-description" title={transaction.description || ''}>
                 {transaction.description || `${transaction.referenceType || 'Reference'} #${transaction.referenceId || '-'}`}

@@ -132,7 +132,7 @@ public class AdminMoneyTransactionService {
                 .id("WALLET:" + transaction.getWalletTransactionId())
                 .source("WALLET")
                 .transactionType(transaction.getType())
-                .direction(walletDirection(transaction.getType()))
+                .direction(walletDirection(transaction))
                 .amount(money(transaction.getAmount()))
                 .currency(VND)
                 .status("RECORDED")
@@ -178,10 +178,10 @@ public class AdminMoneyTransactionService {
                 .id("BET_SETTLEMENT:" + settlement.getBetSettlementId())
                 .source("BET_SETTLEMENT")
                 .transactionType("BET_SETTLEMENT")
-                .direction("SETTLED")
+                .direction("VOIDED".equals(settlement.getOutcome()) ? "UNLOCK" : "SETTLED")
                 .amount(money(settlement.getTotalStake()))
                 .currency(VND)
-                .status("SETTLED")
+                .status("VOIDED".equals(settlement.getOutcome()) ? "VOIDED" : "SETTLED")
                 .userId(settlement.getSettledBy())
                 .username(displayUser(settledBy))
                 .tournamentId(tournament != null ? tournament.getTournamentId() : null)
@@ -192,7 +192,9 @@ public class AdminMoneyTransactionService {
                 .referenceId(settlement.getBetSettlementId())
                 .description("totalStake=" + money(settlement.getTotalStake())
                         + ", payoutPool=" + money(settlement.getPayoutPool())
-                        + ", operatorFee=" + money(settlement.getOperatorFee()))
+                        + ", operatorFee=" + money(settlement.getOperatorFee())
+                        + ", subsidy=" + money(settlement.getSubsidyAmount())
+                        + ", outcome=" + settlement.getOutcome())
                 .createdAt(settlement.getSettledAt())
                 .build();
     }
@@ -258,16 +260,19 @@ public class AdminMoneyTransactionService {
         return value == null || value.isBlank() ? fallback : value;
     }
 
-    private static String walletDirection(String type) {
-        if (type == null) {
+    private static String walletDirection(WalletTransaction transaction) {
+        if (transaction == null) {
             return null;
         }
-        return switch (type) {
-            case "DEPOSIT", "BET_WIN", "BET_REFUND", "PRIZE_PAYOUT" -> "CREDIT";
-            case "BET_LOCK" -> "LOCK";
-            case "BET_LOST" -> "DEBIT";
-            default -> null;
-        };
+        BigDecimal balanceDelta = money(transaction.getBalanceAfter())
+                .subtract(money(transaction.getBalanceBefore()));
+        if (balanceDelta.signum() > 0) return "CREDIT";
+        if (balanceDelta.signum() < 0) return "DEBIT";
+        BigDecimal lockedDelta = money(transaction.getLockedAfter())
+                .subtract(money(transaction.getLockedBefore()));
+        if (lockedDelta.signum() > 0) return "LOCK";
+        if (lockedDelta.signum() < 0) return "UNLOCK";
+        return "RECORDED";
     }
 
     private static String displayUser(User user) {

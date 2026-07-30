@@ -9017,7 +9017,7 @@ select {
 .wallet-transaction-head,
 .wallet-transaction-row {
   display: grid;
-  grid-template-columns: minmax(9rem, 0.9fr) minmax(9rem, 0.9fr) minmax(8rem, 0.8fr) minmax(12rem, 1fr) minmax(12rem, 1fr) minmax(0, 1.2fr);
+  grid-template-columns: minmax(9rem, 0.9fr) minmax(9rem, 0.9fr) minmax(8rem, 0.8fr) minmax(11rem, 1fr) minmax(11rem, 1fr) minmax(11rem, 1fr) minmax(0, 1.2fr);
   gap: 12px;
   align-items: center;
 }

@@ -42,6 +42,36 @@ public class BetSettlement {
     @Column(name = "payoutPool", nullable = false, precision = 14, scale = 2)
     private BigDecimal payoutPool;
 
+    @Column(name = "grossPool", nullable = false, precision = 14, scale = 2)
+    private BigDecimal grossPool;
+
+    @Column(name = "netPool", nullable = false, precision = 14, scale = 2)
+    private BigDecimal netPool;
+
+    @Column(name = "rawOdds", precision = 10, scale = 4)
+    private BigDecimal rawOdds;
+
+    @Column(name = "minimumOdds", nullable = false, precision = 10, scale = 4)
+    private BigDecimal minimumOdds;
+
+    @Column(name = "finalOdds", precision = 10, scale = 4)
+    private BigDecimal finalOdds;
+
+    @Column(name = "totalPayout", nullable = false, precision = 14, scale = 2)
+    private BigDecimal totalPayout;
+
+    @Column(name = "subsidyAmount", nullable = false, precision = 14, scale = 2)
+    private BigDecimal subsidyAmount;
+
+    @Column(name = "roundingAdjustment", nullable = false, precision = 14, scale = 2)
+    private BigDecimal roundingAdjustment;
+
+    @Column(name = "outcome", nullable = false, length = 30)
+    private String outcome;
+
+    @Column(name = "voidReason", length = 500)
+    private String voidReason;
+
     @Column(name = "settledBy", nullable = false)
     private Integer settledBy;
 
@@ -53,5 +83,12 @@ public class BetSettlement {
         if (settledAt == null) {
             settledAt = LocalDateTime.now();
         }
+        if (grossPool == null) grossPool = totalStake != null ? totalStake : BigDecimal.ZERO;
+        if (netPool == null) netPool = payoutPool != null ? payoutPool : BigDecimal.ZERO;
+        if (minimumOdds == null) minimumOdds = new BigDecimal("1.0500");
+        if (totalPayout == null) totalPayout = BigDecimal.ZERO;
+        if (subsidyAmount == null) subsidyAmount = BigDecimal.ZERO;
+        if (roundingAdjustment == null) roundingAdjustment = BigDecimal.ZERO;
+        if (outcome == null) outcome = "PAID";
     }
 }

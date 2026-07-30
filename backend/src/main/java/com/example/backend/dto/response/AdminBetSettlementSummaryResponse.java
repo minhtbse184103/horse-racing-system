@@ -24,6 +24,13 @@ public class AdminBetSettlementSummaryResponse {
     private BigDecimal losingStake;
     private BigDecimal operatorFee;
     private BigDecimal payoutPool;
+    private BigDecimal rawOdds;
+    private BigDecimal minimumOdds;
+    private BigDecimal finalOdds;
+    private BigDecimal totalPayout;
+    private BigDecimal subsidyAmount;
+    private String outcome;
+    private String voidReason;
     private Integer settledBy;
     private String settledByName;
     private LocalDateTime settledAt;

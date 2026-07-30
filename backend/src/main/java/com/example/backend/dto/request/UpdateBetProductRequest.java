@@ -34,6 +34,10 @@ public class UpdateBetProductRequest {
     @DecimalMax(value = "0.5000", message = "Operator fee rate cannot exceed 50%.")
     private BigDecimal operatorFeeRate;
 
+    @NotNull(message = "Minimum odds is required.")
+    @DecimalMin(value = "1.0500", message = "Minimum odds must be at least 1.05.")
+    private BigDecimal minimumOdds;
+
     @NotNull(message = "Active status is required.")
     private Boolean active;
 }

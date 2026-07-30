@@ -30,6 +30,9 @@ public class SystemFund {
     @Column(name = "bettingFeeRevenue", nullable = false, precision = 14, scale = 2)
     private BigDecimal bettingFeeRevenue;
 
+    @Column(name = "minusPoolSubsidyPaid", nullable = false, precision = 14, scale = 2)
+    private BigDecimal minusPoolSubsidyPaid;
+
     @Column(name = "createdAt", nullable = false)
     private LocalDateTime createdAt;
 
@@ -42,6 +45,7 @@ public class SystemFund {
         if (systemFundId == null) systemFundId = SINGLETON_ID;
         if (balance == null) balance = BigDecimal.ZERO;
         if (bettingFeeRevenue == null) bettingFeeRevenue = BigDecimal.ZERO;
+        if (minusPoolSubsidyPaid == null) minusPoolSubsidyPaid = BigDecimal.ZERO;
         if (createdAt == null) createdAt = now;
         updatedAt = now;
     }

@@ -17,6 +17,16 @@ public class BetSettlementResponse {
     private BigDecimal losingStake;
     private BigDecimal operatorFee;
     private BigDecimal payoutPool;
+    private BigDecimal grossPool;
+    private BigDecimal netPool;
+    private BigDecimal rawOdds;
+    private BigDecimal minimumOdds;
+    private BigDecimal finalOdds;
+    private BigDecimal totalPayout;
+    private BigDecimal subsidyAmount;
+    private BigDecimal roundingAdjustment;
+    private String outcome;
+    private String voidReason;
     private Integer settledBy;
     private LocalDateTime settledAt;
 }

@@ -24,6 +24,7 @@ export default function ProductEditor({ product, onSave }) {
     minStake: product.minStake || 10000,
     maxDailyStake: product.maxDailyStake || 1000000,
     operatorFeeRate: Number(product.operatorFeeRate || 0) * 100,
+    minimumOdds: Number(product.minimumOdds || 1.05),
     active: Boolean(product.active)
   }));
   const [error, setError] = useState('');
@@ -38,9 +39,11 @@ export default function ProductEditor({ product, onSave }) {
     const minStake = Number(form.minStake);
     const maxDailyStake = Number(form.maxDailyStake);
     const operatorFeeRate = Number(form.operatorFeeRate);
+    const minimumOdds = Number(form.minimumOdds);
     if (!Number.isFinite(minStake) || minStake < 10000) return 'Min stake phải từ 10.000 VND.';
     if (!Number.isFinite(maxDailyStake) || maxDailyStake < minStake) return 'Max daily stake không được nhỏ hơn min stake.';
     if (!Number.isFinite(operatorFeeRate) || operatorFeeRate < 0 || operatorFeeRate > 50) return 'Phí tổ chức phải từ 0% đến 50%.';
+    if (!Number.isFinite(minimumOdds) || minimumOdds < 1.05) return 'Odds tối thiểu phải từ 1,05.';
     return '';
   }
 
@@ -56,6 +59,7 @@ export default function ProductEditor({ product, onSave }) {
         minStake: Number(form.minStake),
         maxDailyStake: Number(form.maxDailyStake),
         operatorFeeRate: Number(form.operatorFeeRate) / 100,
+        minimumOdds: Number(form.minimumOdds),
         active: Boolean(form.active)
       });
     } catch (err) {
@@ -113,6 +117,9 @@ export default function ProductEditor({ product, onSave }) {
         </Field>
         <Field label="Operator fee (%)">
           <input type="number" min="0" max="50" step="0.1" className={inputClass} value={form.operatorFeeRate} onChange={(event) => update('operatorFeeRate', event.target.value)} />
+        </Field>
+        <Field label="Minimum odds">
+          <input type="number" min="1.05" step="0.01" className={inputClass} value={form.minimumOdds} onChange={(event) => update('minimumOdds', event.target.value)} />
         </Field>
       </div>
 

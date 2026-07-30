@@ -244,6 +244,15 @@ public class AdminRaceResultReviewService {
                 now
         );
 
+        // The rejected run is no longer a valid betting outcome. Void every
+        // unsettled market for this race and release all spectator stakes
+        // before the race is made READY for a new attempt.
+        bettingService.voidRaceEvents(
+                race.getRaceId(),
+                admin.getUserID(),
+                BettingService.VOID_REJECTED_RACE_RESULT
+        );
+
         // FLOW: Admin Reject Result
         // ORDER: 7/8 - Reset Race to READY and clear stale Unity run/token fields for a new launch.
         // READY after Admin rejection is a manual recovery state. It is not

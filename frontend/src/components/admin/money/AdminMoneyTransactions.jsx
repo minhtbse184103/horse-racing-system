@@ -31,7 +31,9 @@ const TYPE_OPTIONS = [
   'BET_WIN',
   'BET_LOST',
   'BET_REFUND',
+  'BET_VOID_REFUND',
   'BETTING_OPERATOR_FEE',
+  'MINUS_POOL_SUBSIDY',
   'PRIZE_PAYOUT',
   'BET_SETTLEMENT'
 ];
@@ -80,6 +82,7 @@ function directionTone(direction) {
   const normalized = String(direction || '').toUpperCase();
   if (normalized === 'CREDIT' || normalized === 'SETTLED') return 'text-emerald-700';
   if (normalized === 'DEBIT' || normalized === 'LOCK') return 'text-red-700';
+  if (normalized === 'UNLOCK') return 'text-sky-700';
   return 'text-brown-800';
 }
 

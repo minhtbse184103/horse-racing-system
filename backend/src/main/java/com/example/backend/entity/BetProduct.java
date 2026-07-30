@@ -43,6 +43,9 @@ public class BetProduct {
     @Column(name = "operatorFeeRate", nullable = false, precision = 5, scale = 4)
     private BigDecimal operatorFeeRate;
 
+    @Column(name = "minimumOdds", nullable = false, precision = 10, scale = 4)
+    private BigDecimal minimumOdds;
+
     @Column(name = "active", nullable = false)
     private Boolean active;
 
@@ -63,6 +66,9 @@ public class BetProduct {
         }
         if (operatorFeeRate == null) {
             operatorFeeRate = new BigDecimal("0.1000");
+        }
+        if (minimumOdds == null) {
+            minimumOdds = new BigDecimal("1.0500");
         }
         if (active == null) {
             active = true;

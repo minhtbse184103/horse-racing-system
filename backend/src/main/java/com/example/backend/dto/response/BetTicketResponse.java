@@ -25,7 +25,10 @@ public class BetTicketResponse {
     private BigDecimal estimatedOddsAtBet;
     private BigDecimal finalOdds;
     private BigDecimal payoutAmount;
+    private BigDecimal netProfit;
     private String status;
+    private String refundReason;
     private LocalDateTime placedAt;
     private LocalDateTime settledAt;
+    private LocalDateTime voidedAt;
 }

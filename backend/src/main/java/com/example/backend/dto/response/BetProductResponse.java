@@ -16,5 +16,6 @@ public class BetProductResponse {
     private BigDecimal minStake;
     private BigDecimal maxDailyStake;
     private BigDecimal operatorFeeRate;
+    private BigDecimal minimumOdds;
     private Boolean active;
 }

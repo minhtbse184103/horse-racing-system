@@ -262,16 +262,24 @@ public class    WalletService {
     }
 
     private WalletTransactionResponse mapTransactionToResponse(WalletTransaction transaction) {
+        BigDecimal balanceBefore = valueOrZero(transaction.getBalanceBefore());
+        BigDecimal balanceAfter = valueOrZero(transaction.getBalanceAfter());
+        BigDecimal lockedBefore = valueOrZero(transaction.getLockedBefore());
+        BigDecimal lockedAfter = valueOrZero(transaction.getLockedAfter());
         return WalletTransactionResponse.builder()
                 .walletTransactionId(transaction.getWalletTransactionId())
                 .walletId(transaction.getWalletId())
                 .userId(transaction.getUserId())
                 .type(transaction.getType())
                 .amount(transaction.getAmount())
-                .balanceBefore(transaction.getBalanceBefore())
-                .balanceAfter(transaction.getBalanceAfter())
-                .lockedBefore(transaction.getLockedBefore())
-                .lockedAfter(transaction.getLockedAfter())
+                .balanceBefore(balanceBefore)
+                .balanceAfter(balanceAfter)
+                .lockedBefore(lockedBefore)
+                .lockedAfter(lockedAfter)
+                .balanceDelta(balanceAfter.subtract(balanceBefore))
+                .lockedDelta(lockedAfter.subtract(lockedBefore))
+                .availableBefore(balanceBefore.subtract(lockedBefore))
+                .availableAfter(balanceAfter.subtract(lockedAfter))
                 .referenceType(transaction.getReferenceType())
                 .referenceId(transaction.getReferenceId())
                 .description(transaction.getDescription())

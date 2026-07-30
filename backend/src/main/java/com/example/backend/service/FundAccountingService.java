@@ -53,26 +53,63 @@ public class FundAccountingService {
 
     @Transactional
     public void recordBettingOperatorFee(BetSettlement settlement) {
-        BigDecimal amount = money(settlement.getOperatorFee());
-        if (amount.signum() == 0) return;
+        recordBettingSettlement(settlement);
+    }
 
-        systemFundRepository.creditBettingFee(amount);
-        SystemFund fund = systemFundRepository.findById(SystemFund.SINGLETON_ID)
-                .orElseThrow(() -> new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "System fund was not created."));
+    @Transactional
+    public boolean canCoverBettingSettlement(BigDecimal operatorFee, BigDecimal subsidyAmount) {
+        BigDecimal currentBalance = systemFundRepository.findByIdForUpdate(SystemFund.SINGLETON_ID)
+                .map(SystemFund::getBalance)
+                .map(this::money)
+                .orElse(BigDecimal.ZERO);
+        return currentBalance.add(money(operatorFee)).compareTo(money(subsidyAmount)) >= 0;
+    }
 
-        FundTransaction transaction = baseTransaction(
-                SYSTEM_FUND_KEY,
-                null,
-                FundTransactionType.BETTING_OPERATOR_FEE,
-                "CREDIT",
-                amount,
-                WalletReferenceType.BET_SETTLEMENT,
-                settlement.getBetSettlementId(),
-                "Betting operator fee"
-        );
-        transaction.setBalanceAfter(fund.getBalance());
-        transaction.setBalanceBefore(fund.getBalance().subtract(amount));
-        fundTransactionRepository.save(transaction);
+    @Transactional
+    public void recordBettingSettlement(BetSettlement settlement) {
+        BigDecimal fee = money(settlement.getOperatorFee());
+        BigDecimal subsidy = money(settlement.getSubsidyAmount());
+        if (fee.signum() == 0 && subsidy.signum() == 0) return;
+
+        SystemFund fund = systemFundRepository.findByIdForUpdate(SystemFund.SINGLETON_ID)
+                .orElseGet(() -> newSystemFund());
+        BigDecimal startingBalance = money(fund.getBalance());
+
+        if (fee.signum() > 0) {
+            BigDecimal balanceAfterFee = startingBalance.add(fee);
+            fund.setBalance(balanceAfterFee);
+            fund.setBettingFeeRevenue(money(fund.getBettingFeeRevenue()).add(fee));
+            systemFundRepository.save(fund);
+            fundTransactionRepository.save(systemTransaction(
+                    settlement,
+                    FundTransactionType.BETTING_OPERATOR_FEE,
+                    "CREDIT",
+                    fee,
+                    startingBalance,
+                    balanceAfterFee,
+                    "Betting operator fee"
+            ));
+            startingBalance = balanceAfterFee;
+        }
+
+        if (subsidy.signum() > 0) {
+            if (startingBalance.compareTo(subsidy) < 0) {
+                throw new ApiException(HttpStatus.CONFLICT, "System reserve is insufficient for minimum odds.");
+            }
+            BigDecimal balanceAfterSubsidy = startingBalance.subtract(subsidy);
+            fund.setBalance(balanceAfterSubsidy);
+            fund.setMinusPoolSubsidyPaid(money(fund.getMinusPoolSubsidyPaid()).add(subsidy));
+            systemFundRepository.save(fund);
+            fundTransactionRepository.save(systemTransaction(
+                    settlement,
+                    FundTransactionType.MINUS_POOL_SUBSIDY,
+                    "DEBIT",
+                    subsidy,
+                    startingBalance,
+                    balanceAfterSubsidy,
+                    "Minimum odds 1.05 payout subsidy"
+            ));
+        }
     }
 
     public FundTransaction createPrizeDebit(
@@ -119,6 +156,39 @@ public class FundAccountingService {
 
     private String tournamentFundKey(Integer tournamentId) {
         return "TOURNAMENT:" + tournamentId;
+    }
+
+    private SystemFund newSystemFund() {
+        SystemFund fund = new SystemFund();
+        fund.setSystemFundId(SystemFund.SINGLETON_ID);
+        fund.setBalance(BigDecimal.ZERO);
+        fund.setBettingFeeRevenue(BigDecimal.ZERO);
+        fund.setMinusPoolSubsidyPaid(BigDecimal.ZERO);
+        return systemFundRepository.save(fund);
+    }
+
+    private FundTransaction systemTransaction(
+            BetSettlement settlement,
+            String type,
+            String direction,
+            BigDecimal amount,
+            BigDecimal balanceBefore,
+            BigDecimal balanceAfter,
+            String description
+    ) {
+        FundTransaction transaction = baseTransaction(
+                SYSTEM_FUND_KEY,
+                null,
+                type,
+                direction,
+                amount,
+                WalletReferenceType.BET_SETTLEMENT,
+                settlement.getBetSettlementId(),
+                description
+        );
+        transaction.setBalanceBefore(balanceBefore);
+        transaction.setBalanceAfter(balanceAfter);
+        return transaction;
     }
 
     private BigDecimal money(BigDecimal value) {

@@ -53,11 +53,12 @@ function StatCard({ label, value, note, icon: Icon, tone = 'text-brown-500' }) {
 }
 
 function TransactionRow({ transaction }) {
+  const isDebit = String(transaction.direction || '').toUpperCase() === 'DEBIT';
   return (
     <article className="grid min-w-0 gap-4 border-b border-brown-700/10 px-4 py-4 last:border-b-0 lg:grid-cols-[minmax(12rem,1.2fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(13rem,1.2fr)] lg:items-center">
       <div className="min-w-0">
         <div className="flex items-center gap-2">
-          <span className="grid size-9 shrink-0 place-items-center rounded-xl border border-emerald-100 bg-emerald-50 text-emerald-700">
+          <span className={`grid size-9 shrink-0 place-items-center rounded-xl border ${isDebit ? 'border-red-100 bg-red-50 text-red-700' : 'border-emerald-100 bg-emerald-50 text-emerald-700'}`}>
             <ArrowUpRight size={16} />
           </span>
           <div className="min-w-0">
@@ -75,8 +76,8 @@ function TransactionRow({ transaction }) {
         <span className="text-[0.65rem] font-black uppercase tracking-wide text-slate-500">
           Số tiền
         </span>
-        <strong className="mt-1 block whitespace-nowrap text-base font-black text-emerald-700">
-          + {money(transaction.amount)}
+        <strong className={`mt-1 block whitespace-nowrap text-base font-black ${isDebit ? 'text-red-700' : 'text-emerald-700'}`}>
+          {isDebit ? '-' : '+'} {money(transaction.amount)}
         </strong>
       </div>
 
@@ -140,13 +141,13 @@ export default function AdminSystemWallet({ onOpenMoneyTransactions }) {
         <div className="flex min-w-0 flex-col gap-4 border-b border-brown-700/10 px-5 py-6 sm:px-7 lg:flex-row lg:items-center lg:justify-between">
           <div className="min-w-0">
             <p className="text-xs font-black uppercase tracking-[0.18em] text-brown-500">
-              Ví hệ thống
+              Quỹ bảo chứng
             </p>
             <h2 className="mt-2 text-3xl font-black tracking-tight text-brown-950">
-              System Wallet
+              Quỹ dự phòng Betting
             </h2>
             <p className="mt-2 max-w-2xl text-sm font-semibold text-slate-600">
-              Theo dõi tiền thuộc sở hữu hệ thống. Hiện tại số dư chỉ tăng từ phí vận hành đặt cược.
+              Nhận phí vận hành và bù phần thiếu để bảo đảm odds tối thiểu 1,05 cho người thắng.
             </p>
           </div>
           <div className="flex shrink-0 flex-col gap-2 sm:flex-row">
@@ -180,18 +181,18 @@ export default function AdminSystemWallet({ onOpenMoneyTransactions }) {
         )}
 
         {loading ? (
-          <div className="grid min-w-0 gap-4 p-5 sm:p-7 lg:grid-cols-3">
-            {[0, 1, 2].map((item) => (
+            <div className="grid min-w-0 gap-4 p-5 sm:p-7 lg:grid-cols-4">
+              {[0, 1, 2, 3].map((item) => (
               <div key={item} className="h-36 animate-pulse rounded-[26px] bg-white/70" />
             ))}
           </div>
         ) : (
           <>
-            <div className="grid min-w-0 gap-4 p-5 sm:p-7 lg:grid-cols-3">
+            <div className="grid min-w-0 gap-4 p-5 sm:p-7 lg:grid-cols-4">
               <StatCard
-                label="System Balance"
+                label="Reserve Balance"
                 value={money(wallet?.balance)}
-                note="Tiền thuộc sở hữu nền tảng"
+                note="Số dư còn có thể bảo chứng payout"
                 icon={Landmark}
                 tone="text-brown-600"
               />
@@ -201,6 +202,13 @@ export default function AdminSystemWallet({ onOpenMoneyTransactions }) {
                 note="Tổng phí vận hành từ betting settlement"
                 icon={CircleDollarSign}
                 tone="text-emerald-600"
+              />
+              <StatCard
+                label="Minus Pool Subsidy"
+                value={money(wallet?.minusPoolSubsidyPaid)}
+                note="Tổng tiền đã bù để giữ odds tối thiểu"
+                icon={ShieldCheck}
+                tone="text-red-600"
               />
               <StatCard
                 label="Ledger Rows"
@@ -215,7 +223,7 @@ export default function AdminSystemWallet({ onOpenMoneyTransactions }) {
               <div className="flex gap-3">
                 <ShieldCheck className="mt-0.5 shrink-0" size={18} />
                 <p>
-                  System Wallet là read-only. Admin không thể nạp, rút hoặc chỉnh sửa số dư thủ công.
+                  Quỹ dự phòng là read-only. Admin không thể nạp, rút hoặc chỉnh sửa số dư thủ công. Nếu quỹ không đủ bảo chứng, toàn bộ vé trong event sẽ được hoàn.
                 </p>
               </div>
             </div>
@@ -227,7 +235,7 @@ export default function AdminSystemWallet({ onOpenMoneyTransactions }) {
                     System Fund Ledger
                   </p>
                   <h3 className="mt-1 text-xl font-black text-brown-950">
-                    Phí vận hành betting
+                    Phí vận hành và khoản bù payout
                   </h3>
                 </div>
                 <span className="inline-flex w-fit items-center gap-2 rounded-full border border-brown-700/10 bg-white px-3 py-1 text-xs font-black text-slate-600">
@@ -243,10 +251,10 @@ export default function AdminSystemWallet({ onOpenMoneyTransactions }) {
                       <ReceiptText size={24} />
                     </span>
                     <h4 className="mt-4 text-lg font-black text-brown-950">
-                      Chưa có giao dịch System Wallet
+                      Chưa có giao dịch quỹ dự phòng
                     </h4>
                     <p className="mt-2 max-w-md text-sm font-semibold text-slate-500">
-                      Khi betting event được settle và phát sinh operator fee, giao dịch sẽ xuất hiện tại đây.
+                      Phí vận hành được ghi CREDIT; khoản bù odds tối thiểu được ghi DEBIT.
                     </p>
                   </div>
                 </div>

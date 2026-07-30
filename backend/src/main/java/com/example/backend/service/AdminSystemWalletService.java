@@ -44,6 +44,9 @@ public class AdminSystemWalletService {
                 .systemFundId(SystemFund.SINGLETON_ID)
                 .balance(systemFund != null ? money(systemFund.getBalance()) : BigDecimal.ZERO)
                 .bettingFeeRevenue(systemFund != null ? money(systemFund.getBettingFeeRevenue()) : BigDecimal.ZERO)
+                .minusPoolSubsidyPaid(
+                        systemFund != null ? money(systemFund.getMinusPoolSubsidyPaid()) : BigDecimal.ZERO
+                )
                 .currency(VND)
                 .updatedAt(systemFund != null ? systemFund.getUpdatedAt() : null)
                 .transactions(transactions)

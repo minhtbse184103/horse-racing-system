@@ -61,6 +61,12 @@ public class BetTicket {
     @Column(name = "settledAt")
     private LocalDateTime settledAt;
 
+    @Column(name = "voidedAt")
+    private LocalDateTime voidedAt;
+
+    @Column(name = "refundReason", length = 500)
+    private String refundReason;
+
     @Column(name = "createdAt")
     private LocalDateTime createdAt;
 

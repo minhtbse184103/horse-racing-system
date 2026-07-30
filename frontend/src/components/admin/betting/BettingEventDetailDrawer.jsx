@@ -133,9 +133,10 @@ export default function BettingEventDetailDrawer({ detail, settlementDetail, isL
 
           {!isLoading && !error && (
             <>
-              <div className="grid gap-4 md:grid-cols-3">
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                 <StatCard label="Total stake" value={money(event?.totalStake || settlement?.totalStake)} description="Tổng tiền cược ghi nhận" icon={CircleDollarSign} tone="text-emerald-700" />
                 <StatCard label="Operator fee" value={money(settlement?.operatorFee)} description="Phí hệ thống từ settlement" icon={Settings2} tone="text-amber-700" />
+                <StatCard label="Reserve subsidy" value={money(settlement?.subsidyAmount)} description={settlement?.outcome === 'VOIDED' ? `VOID: ${settlement?.voidReason || 'N/A'}` : `Final odds: ${settlement?.finalOdds || '-'}`} icon={CircleDollarSign} tone="text-red-700" />
                 <StatCard label="Ticket count" value={tickets.length} description="Tổng ticket liên quan" icon={Ticket} tone="text-sky-700" />
               </div>
 

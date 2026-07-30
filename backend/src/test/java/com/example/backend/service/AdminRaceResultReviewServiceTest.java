@@ -237,6 +237,11 @@ class AdminRaceResultReviewServiceTest {
         verify(performanceSummaryService, never())
                 .updateAfterRaceApproved(any(), any());
         verify(raceEntryRepository, never()).findAllById(any());
+        verify(bettingService).voidRaceEvents(
+                RACE_ID,
+                ADMIN_ID,
+                BettingService.VOID_REJECTED_RACE_RESULT
+        );
 
         ArgumentCaptor<Race> raceCaptor = ArgumentCaptor.forClass(Race.class);
         verify(raceRepository).save(raceCaptor.capture());

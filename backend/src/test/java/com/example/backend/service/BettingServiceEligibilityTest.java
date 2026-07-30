@@ -161,7 +161,9 @@ class BettingServiceEligibilityTest {
         when(raceRepository.findByIdForUpdate(RACE_ID)).thenReturn(Optional.of(race));
         when(raceRepository.findById(RACE_ID)).thenReturn(Optional.of(race));
         when(betProductRepository.findById(PRODUCT_ID)).thenReturn(Optional.of(activeProduct()));
-        when(betEventRepository.existsByRaceIdAndBetProductId(RACE_ID, PRODUCT_ID)).thenReturn(false);
+        when(betEventRepository.existsByRaceIdAndBetProductIdAndStatusNot(
+                RACE_ID, PRODUCT_ID, BetEventStatus.CANCELLED
+        )).thenReturn(false);
         when(betEventRepository.save(any(BetEvent.class))).thenAnswer(invocation -> {
             BetEvent event = invocation.getArgument(0);
             event.setBetEventId(99);
@@ -177,6 +179,32 @@ class BettingServiceEligibilityTest {
     }
 
     @Test
+    void createEventAllowsOpeningMoreThanTwelveHoursBeforeRace() {
+        Race race = finalizedRace();
+        race.setRaceStartTime(LocalDateTime.now().plusHours(30));
+        CreateBetEventRequest request = validRequest(race);
+        request.setOpenAt(LocalDateTime.now().plusMinutes(1));
+        stubAdmin();
+        when(raceRepository.findByIdForUpdate(RACE_ID)).thenReturn(Optional.of(race));
+        when(raceRepository.findById(RACE_ID)).thenReturn(Optional.of(race));
+        when(betProductRepository.findById(PRODUCT_ID)).thenReturn(Optional.of(activeProduct()));
+        when(betEventRepository.existsByRaceIdAndBetProductIdAndStatusNot(
+                RACE_ID, PRODUCT_ID, BetEventStatus.CANCELLED
+        )).thenReturn(false);
+        when(betEventRepository.save(any(BetEvent.class))).thenAnswer(invocation -> {
+            BetEvent event = invocation.getArgument(0);
+            event.setBetEventId(101);
+            return event;
+        });
+
+        BetEventResponse result = service.createEvent(request, ADMIN_EMAIL);
+
+        assertEquals(101, result.getBetEventId());
+        assertEquals(BetEventStatus.DRAFT, result.getStatus());
+        assertEquals(request.getOpenAt(), result.getOpenAt());
+    }
+
+    @Test
     void createEventWithOpenNowIsImmediatelyOpenAndUsesServerTime() {
         Race race = finalizedRace();
         CreateBetEventRequest request = validRequest(race);
@@ -186,7 +214,9 @@ class BettingServiceEligibilityTest {
         when(raceRepository.findByIdForUpdate(RACE_ID)).thenReturn(Optional.of(race));
         when(raceRepository.findById(RACE_ID)).thenReturn(Optional.of(race));
         when(betProductRepository.findById(PRODUCT_ID)).thenReturn(Optional.of(activeProduct()));
-        when(betEventRepository.existsByRaceIdAndBetProductId(RACE_ID, PRODUCT_ID)).thenReturn(false);
+        when(betEventRepository.existsByRaceIdAndBetProductIdAndStatusNot(
+                RACE_ID, PRODUCT_ID, BetEventStatus.CANCELLED
+        )).thenReturn(false);
         when(betEventRepository.save(any(BetEvent.class))).thenAnswer(invocation -> {
             BetEvent event = invocation.getArgument(0);
             event.setBetEventId(100);
@@ -209,7 +239,9 @@ class BettingServiceEligibilityTest {
         stubAdmin();
         when(raceRepository.findByIdForUpdate(RACE_ID)).thenReturn(Optional.of(race));
         when(betProductRepository.findById(PRODUCT_ID)).thenReturn(Optional.of(activeProduct()));
-        when(betEventRepository.existsByRaceIdAndBetProductId(RACE_ID, PRODUCT_ID)).thenReturn(false);
+        when(betEventRepository.existsByRaceIdAndBetProductIdAndStatusNot(
+                RACE_ID, PRODUCT_ID, BetEventStatus.CANCELLED
+        )).thenReturn(false);
 
         ApiException exception = assertThrows(
                 ApiException.class,
