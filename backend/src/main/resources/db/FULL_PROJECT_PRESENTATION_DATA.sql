@@ -118,12 +118,16 @@ VALUES
   (36, 5, 'SPECTATOR', 'spectatorhuy',   'spectatorhuy@gmail.com',   @seed_password, '0900000036', 'ACTIVE', @seed_now, @seed_now),
   (37, 2, 'OWNER',     'owner',          'owner@gmail.com',          @seed_password, '0900000037', 'ACTIVE', @seed_now, @seed_now),
   (38, 3, 'JOCKEY',    'jockey',         'jockey@gmail.com',         @seed_password, '0900000038', 'ACTIVE', @seed_now, @seed_now),
-  (39, 5, 'SPECTATOR', 'spectator',      'spectator@gmail.com',      @seed_password, '0900000039', 'ACTIVE', @seed_now, @seed_now);
+  (39, 5, 'SPECTATOR', 'spectator',      'spectator@gmail.com',      @seed_password, '0900000039', 'ACTIVE', @seed_now, @seed_now),
+  (40, 5, 'SPECTATOR', 'spectator1',     'spectator1@gmail.com',     @seed_password, '0900000040', 'ACTIVE', @seed_now, @seed_now),
+  (41, 5, 'SPECTATOR', 'spectator2',     'spectator2@gmail.com',     @seed_password, '0900000041', 'ACTIVE', @seed_now, @seed_now);
 
 INSERT INTO `user_verifications`
   (`verification_id`, `user_id`, `provider`, `provider_session_id`, `provider_session_number`, `workflow_id`, `vendor_data`, `verification_url`, `status`, `id_verification_status`, `liveness_status`, `face_match_status`, `verified_full_name`, `verified_date_of_birth`, `document_type`, `document_last_four`, `attempt_number`, `submitted_at`, `verified_at`, `expires_at`, `created_at`, `updated_at`)
 VALUES
-  (1, 39, 'DIDIT', 'presentation-didit-39', 39, 'presentation-workflow', 'user-39', NULL, 'VERIFIED', 'Approved', 'Approved', 'Approved', 'Presentation Spectator', DATE_SUB(@seed_today, INTERVAL 25 YEAR), 'ID_CARD', '0039', 1, DATE_SUB(@seed_now, INTERVAL 3 DAY), DATE_SUB(@seed_now, INTERVAL 2 DAY), DATE_ADD(@seed_now, INTERVAL 5 YEAR), DATE_SUB(@seed_now, INTERVAL 3 DAY), DATE_SUB(@seed_now, INTERVAL 2 DAY));
+  (1, 39, 'DIDIT', 'presentation-didit-39', 39, 'presentation-workflow', 'user-39', NULL, 'VERIFIED', 'Approved', 'Approved', 'Approved', 'Presentation Spectator', DATE_SUB(@seed_today, INTERVAL 25 YEAR), 'ID_CARD', '0039', 1, DATE_SUB(@seed_now, INTERVAL 3 DAY), DATE_SUB(@seed_now, INTERVAL 2 DAY), DATE_ADD(@seed_now, INTERVAL 5 YEAR), DATE_SUB(@seed_now, INTERVAL 3 DAY), DATE_SUB(@seed_now, INTERVAL 2 DAY)),
+  (2, 40, 'DIDIT', 'presentation-didit-40', 40, 'presentation-workflow', 'user-40', NULL, 'VERIFIED', 'Approved', 'Approved', 'Approved', 'Presentation Spectator One', DATE_SUB(@seed_today, INTERVAL 24 YEAR), 'ID_CARD', '0040', 1, DATE_SUB(@seed_now, INTERVAL 3 DAY), DATE_SUB(@seed_now, INTERVAL 2 DAY), DATE_ADD(@seed_now, INTERVAL 5 YEAR), DATE_SUB(@seed_now, INTERVAL 3 DAY), DATE_SUB(@seed_now, INTERVAL 2 DAY)),
+  (3, 41, 'DIDIT', 'presentation-didit-41', 41, 'presentation-workflow', 'user-41', NULL, 'VERIFIED', 'Approved', 'Approved', 'Approved', 'Presentation Spectator Two', DATE_SUB(@seed_today, INTERVAL 23 YEAR), 'ID_CARD', '0041', 1, DATE_SUB(@seed_now, INTERVAL 3 DAY), DATE_SUB(@seed_now, INTERVAL 2 DAY), DATE_ADD(@seed_now, INTERVAL 5 YEAR), DATE_SUB(@seed_now, INTERVAL 3 DAY), DATE_SUB(@seed_now, INTERVAL 2 DAY));
 
 INSERT INTO `OwnerApplication`
   (`applicationID`, `userID`, `stableName`, `stableAddress`, `stableCertificateUrl`, `totalHorsesOwned`, `horseOwnershipProofUrl`, `status`, `rejectReason`, `submittedAt`, `reviewedAt`, `reviewedBy`, `createdAt`, `updatedAt`)
@@ -247,10 +251,10 @@ VALUES
 INSERT INTO `Race`
   (`raceID`, `tournamentID`, `raceName`, `trackName`, `trackImageUrl`, `raceStartTime`, `raceEndTime`, `entryFinalizationScheduledAt`, `entryFinalizedAt`, `entryFinalizedBy`, `distance`, `maxRunners`, `raceOrder`, `status`, `runTriggeredBy`, `runStartedAt`, `raceEngineToken`, `raceEngineTokenIssuedAt`, `createdAt`, `updatedAt`)
 VALUES
-  (1, 1, 'Bangkok Sprint',       'Bangkok Track A',    'https://images.unsplash.com/photo-1540479859555-17af45c78602?auto=format&fit=crop&w=1200&q=80', TIMESTAMP(DATE_ADD(@seed_today, INTERVAL 5 DAY),  '10:00:00'), TIMESTAMP(DATE_ADD(@seed_today, INTERVAL 5 DAY),  '11:00:00'), TIMESTAMP(DATE_ADD(@seed_today, INTERVAL 2 DAY),  '09:00:00'), NULL, NULL, 1200, 6, 1, 'REGISTRATION_CLOSED', NULL, NULL, NULL, NULL, @seed_now, @seed_now),
-  (2, 1, 'Bangkok Classic',      'Bangkok Track B',    'https://images.unsplash.com/photo-1493246507139-91e8fad9978e?auto=format&fit=crop&w=1200&q=80', TIMESTAMP(DATE_ADD(@seed_today, INTERVAL 6 DAY),  '14:00:00'), TIMESTAMP(DATE_ADD(@seed_today, INTERVAL 6 DAY),  '15:00:00'), TIMESTAMP(DATE_ADD(@seed_today, INTERVAL 3 DAY),  '09:00:00'), NULL, NULL, 1600, 6, 2, 'REGISTRATION_CLOSED', NULL, NULL, NULL, NULL, @seed_now, @seed_now),
-  (3, 2, 'Chiang Mai Sprint',    'Chiang Mai Main',    'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1200&q=80', TIMESTAMP(DATE_ADD(@seed_today, INTERVAL 12 DAY), '09:30:00'), TIMESTAMP(DATE_ADD(@seed_today, INTERVAL 12 DAY), '10:30:00'), TIMESTAMP(DATE_ADD(@seed_today, INTERVAL 9 DAY),  '09:00:00'), NULL, NULL, 1200, 6, 1, 'REGISTRATION_CLOSED', NULL, NULL, NULL, NULL, @seed_now, @seed_now),
-  (4, 2, 'Chiang Mai Endurance', 'Chiang Mai Valley',  'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1200&q=80', TIMESTAMP(DATE_ADD(@seed_today, INTERVAL 13 DAY), '15:00:00'), TIMESTAMP(DATE_ADD(@seed_today, INTERVAL 13 DAY), '16:00:00'), TIMESTAMP(DATE_ADD(@seed_today, INTERVAL 10 DAY), '09:00:00'), NULL, NULL, 2000, 6, 2, 'REGISTRATION_CLOSED', NULL, NULL, NULL, NULL, @seed_now, @seed_now);
+  (1, 1, 'Bangkok Sprint',       'Bangkok Track A',    'https://images.unsplash.com/photo-1540479859555-17af45c78602?auto=format&fit=crop&w=1200&q=80', TIMESTAMP(DATE_ADD(@seed_today, INTERVAL 5 DAY),  '10:00:00'), TIMESTAMP(DATE_ADD(@seed_today, INTERVAL 5 DAY),  '11:00:00'), TIMESTAMP(DATE_ADD(@seed_today, INTERVAL 2 DAY),  '09:00:00'), NULL, NULL, 1200, 6, 1, 'OPEN_FOR_REGISTRATION', NULL, NULL, NULL, NULL, @seed_now, @seed_now),
+  (2, 1, 'Bangkok Classic',      'Bangkok Track B',    'https://images.unsplash.com/photo-1493246507139-91e8fad9978e?auto=format&fit=crop&w=1200&q=80', TIMESTAMP(DATE_ADD(@seed_today, INTERVAL 6 DAY),  '14:00:00'), TIMESTAMP(DATE_ADD(@seed_today, INTERVAL 6 DAY),  '15:00:00'), TIMESTAMP(DATE_ADD(@seed_today, INTERVAL 3 DAY),  '09:00:00'), NULL, NULL, 1600, 6, 2, 'OPEN_FOR_REGISTRATION', NULL, NULL, NULL, NULL, @seed_now, @seed_now),
+  (3, 2, 'Chiang Mai Sprint',    'Chiang Mai Main',    'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1200&q=80', TIMESTAMP(DATE_ADD(@seed_today, INTERVAL 12 DAY), '09:30:00'), TIMESTAMP(DATE_ADD(@seed_today, INTERVAL 12 DAY), '10:30:00'), TIMESTAMP(DATE_ADD(@seed_today, INTERVAL 9 DAY),  '09:00:00'), NULL, NULL, 1200, 6, 1, 'OPEN_FOR_REGISTRATION', NULL, NULL, NULL, NULL, @seed_now, @seed_now),
+  (4, 2, 'Chiang Mai Endurance', 'Chiang Mai Valley',  'https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?auto=format&fit=crop&w=1200&q=80', TIMESTAMP(DATE_ADD(@seed_today, INTERVAL 13 DAY), '15:00:00'), TIMESTAMP(DATE_ADD(@seed_today, INTERVAL 13 DAY), '16:00:00'), TIMESTAMP(DATE_ADD(@seed_today, INTERVAL 10 DAY), '09:00:00'), NULL, NULL, 2000, 6, 2, 'OPEN_FOR_REGISTRATION', NULL, NULL, NULL, NULL, @seed_now, @seed_now);
 
 INSERT INTO `RacePrize`
   (`racePrizeID`, `raceID`, `rankPosition`, `amount`, `ownerPercent`, `jockeyPercent`)
@@ -331,7 +335,7 @@ VALUES
 INSERT INTO `SystemFund`
   (`systemFundID`, `balance`, `bettingFeeRevenue`, `minusPoolSubsidyPaid`, `createdAt`, `updatedAt`)
 VALUES
-  (1, 0.00, 0.00, 0.00, @seed_now, @seed_now);
+  (1, 100000000.00, 0.00, 0.00, @seed_now, @seed_now);
 
 INSERT INTO `BetProduct`
   (`betProductID`, `code`, `name`, `description`, `minStake`, `maxDailyStake`, `operatorFeeRate`, `active`, `createdAt`, `updatedAt`)
@@ -342,7 +346,9 @@ VALUES
 INSERT INTO `Wallet`
   (`walletID`, `userID`, `balance`, `lockedBalance`, `currency`, `status`, `createdAt`, `updatedAt`)
 VALUES
-  (1, 39, 0.00, 0.00, 'VND', 'ACTIVE', DATE_SUB(@seed_now, INTERVAL 2 DAY), @seed_now);
+  (1, 39, 0.00, 0.00, 'VND', 'ACTIVE', DATE_SUB(@seed_now, INTERVAL 2 DAY), @seed_now),
+  (2, 40, 0.00, 0.00, 'VND', 'ACTIVE', DATE_SUB(@seed_now, INTERVAL 2 DAY), @seed_now),
+  (3, 41, 0.00, 0.00, 'VND', 'ACTIVE', DATE_SUB(@seed_now, INTERVAL 2 DAY), @seed_now);
 
 INSERT INTO `RaceEntry`
   (`raceEntryID`, `raceID`, `registrationID`, `startingStall`, `status`, `assignedAt`, `assignedBy`, `cancelledAt`, `cancelledBy`, `cancellationReason`)
