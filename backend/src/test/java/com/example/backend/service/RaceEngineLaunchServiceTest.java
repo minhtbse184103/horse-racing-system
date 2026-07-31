@@ -233,7 +233,7 @@ class RaceEngineLaunchServiceTest {
     }
 
     @Test
-    void failLaunchedRaceSetsCancelledStatus() {
+    void failLaunchedRaceReturnsRaceToReadyForRerun() {
         Race race = launchedRace();
         stubAdmin();
         when(raceRepository.findByIdForUpdate(RACE_ID))
@@ -255,9 +255,12 @@ class RaceEngineLaunchServiceTest {
         ArgumentCaptor<Race> captor = ArgumentCaptor.forClass(Race.class);
         verify(raceRepository).save(captor.capture());
 
-        assertEquals(EventStatus.CANCELLED, captor.getValue().getStatus());
+        assertEquals(EventStatus.READY, captor.getValue().getStatus());
+        assertEquals(null, captor.getValue().getRunStartedAt());
+        assertEquals(null, captor.getValue().getRunTriggeredBy());
         assertEquals(null, captor.getValue().getRaceEngineToken());
-        assertEquals(EventStatus.CANCELLED, response.getStatus());
+        assertEquals(null, captor.getValue().getRaceEngineTokenIssuedAt());
+        assertEquals(EventStatus.READY, response.getStatus());
         assertEquals("Unity stopped responding", response.getReason());
         assertNotNull(response.getRecoveredAt());
     }

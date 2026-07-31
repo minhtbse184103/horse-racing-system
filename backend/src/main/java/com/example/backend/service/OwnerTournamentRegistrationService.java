@@ -291,12 +291,11 @@ public class OwnerTournamentRegistrationService {
         if (!PrizeDistributionStatus.PENDING.equals(distribution.getStatus())) {
             throw new ApiException(
                     HttpStatus.CONFLICT,
-                    "Only pending prize payout rows can be marked as paid."
+                    "Only pending prize payout rows can be marked by the owner."
             );
         }
 
-        distribution.setStatus(PrizeDistributionStatus.PAID);
-        distribution.setDistributedAt(LocalDateTime.now());
+        distribution.setStatus(PrizeDistributionStatus.OWNER_MARKED);
     }
 
     private User getCurrentOwner() {

@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { CalendarDays, Eye, Flag, MapPin, Medal, RefreshCw, Search, Trophy, Users } from 'lucide-react';
 import { getRaceResults } from '../../services/eventService';
-import { getJockeyRaces } from '../../services/jockeyService';
+import { getJockeyRaces, markJockeyPrizeDistributionPaid } from '../../services/jockeyService';
 import { useLanguage } from '../../context/LanguageContext';
+import { getUserId } from '../../lib';
 import RaceResultLeaderboard from '../admin/events/race-entry/RaceResultLeaderboard';
 
 function getErrorText(error, fallback) {
@@ -48,8 +49,9 @@ function statusClass(status) {
   return 'open_for_registration';
 }
 
-export default function JockeyRaces() {
+export default function JockeyRaces({ currentUser }) {
   const { language, t } = useLanguage();
+  const currentJockeyId = getUserId(currentUser);
   const [races, setRaces] = useState([]);
   const [query, setQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -58,6 +60,7 @@ export default function JockeyRaces() {
   const [results, setResults] = useState([]);
   const [resultError, setResultError] = useState('');
   const [isResultLoading, setIsResultLoading] = useState(false);
+  const [markingPrizeDistributionId, setMarkingPrizeDistributionId] = useState(null);
 
   const copy = {
     eyebrow: language === 'vi' ? 'Cuộc đua của tôi' : 'Your races',
@@ -72,6 +75,9 @@ export default function JockeyRaces() {
       : 'After a Registration is approved and assigned as a RaceEntry, races will appear here.',
     noResult: language === 'vi' ? 'Chưa có kết quả chính thức' : 'No official result yet',
     viewResult: language === 'vi' ? 'Xem kết quả' : 'View result',
+    markPaid: language === 'vi' ? 'Xác nhận Jockey đã nhận giải' : 'Confirm jockey payout',
+    notYourPayout: language === 'vi' ? 'Không phải phần giải của bạn' : 'Not your payout',
+    markPaidError: language === 'vi' ? 'Không thể cập nhật trạng thái nhận giải jockey.' : 'Unable to update jockey payout status.',
     loadError: language === 'vi' ? 'Không thể tải danh sách cuộc đua của bạn.' : 'Unable to load your races.',
     resultLoadError: language === 'vi' ? 'Không thể tải kết quả cuộc đua.' : 'Unable to load race results.',
     retry: language === 'vi' ? 'Tải lại' : 'Retry',
@@ -127,6 +133,32 @@ export default function JockeyRaces() {
     } finally {
       setIsResultLoading(false);
     }
+  }
+
+  async function handleMarkJockeyPayoutPaid(result) {
+    const prizeDistributionId = result?.prizeDistributionId;
+    if (!prizeDistributionId || !canMarkJockeyPayoutPaid(result)) return;
+
+    setMarkingPrizeDistributionId(prizeDistributionId);
+    setResultError('');
+
+    try {
+      await markJockeyPrizeDistributionPaid(prizeDistributionId);
+      setResults((current) => current.map((item) => (
+        item.prizeDistributionId === prizeDistributionId
+          ? { ...item, distributionStatus: 'PAID' }
+          : item
+      )));
+    } catch (error) {
+      setResultError(getErrorText(error, copy.markPaidError));
+    } finally {
+      setMarkingPrizeDistributionId(null);
+    }
+  }
+
+  function canMarkJockeyPayoutPaid(result) {
+    if (!currentJockeyId) return false;
+    return Number(result?.jockeyId) === Number(currentJockeyId);
   }
 
   return (
@@ -230,6 +262,12 @@ export default function JockeyRaces() {
                 results={results}
                 totalPrize={getTotalPrize(results)}
                 onClose={() => setResultRace(null)}
+                onMarkPayoutPaid={handleMarkJockeyPayoutPaid}
+                canMarkPayoutPaid={canMarkJockeyPayoutPaid}
+                markableDistributionStatus="OWNER_MARKED"
+                markingPrizeDistributionId={markingPrizeDistributionId}
+                markPayoutLabel={copy.markPaid}
+                payoutUnavailableLabel={copy.notYourPayout}
               />
             )}
           </section>

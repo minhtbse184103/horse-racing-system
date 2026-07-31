@@ -543,22 +543,6 @@ CREATE TABLE `WalletTransaction` (
     CHECK (`amount` > 0)
 );
 
-CREATE TABLE `TournamentFund` (
-  `tournamentID` int PRIMARY KEY,
-  `collectedAmount` decimal(14,2) NOT NULL DEFAULT 0,
-  `paidPrizeAmount` decimal(14,2) NOT NULL DEFAULT 0,
-  `availableBalance` decimal(14,2) NOT NULL DEFAULT 0,
-  `createdAt` datetime NOT NULL,
-  `updatedAt` datetime NOT NULL,
-  CONSTRAINT `chk_tournament_fund_amounts`
-    CHECK (
-      `collectedAmount` >= 0
-      AND `paidPrizeAmount` >= 0
-      AND `availableBalance` >= 0
-      AND `paidPrizeAmount` + `availableBalance` = `collectedAmount`
-    )
-);
-
 CREATE TABLE `SystemFund` (
   `systemFundID` int PRIMARY KEY,
   `balance` decimal(14,2) NOT NULL DEFAULT 0,
@@ -587,8 +571,6 @@ CREATE TABLE `FundTransaction` (
     UNIQUE (`fundKey`, `transactionType`, `referenceType`, `referenceID`),
   CONSTRAINT `chk_fund_transaction_type`
     CHECK (`transactionType` IN (
-      'REGISTRATION_FEE',
-      'PRIZE_PAYOUT',
       'BETTING_OPERATOR_FEE',
       'MINUS_POOL_SUBSIDY'
     )),
@@ -742,7 +724,7 @@ CREATE TABLE `PrizeDistribution` (
       AND `ownerAmount` + `jockeyAmount` = `totalPrize`
     ),
   CONSTRAINT `chk_prize_distribution_status`
-    CHECK (`status` IN ('PENDING', 'PAID', 'FAILED', 'CANCELLED'))
+    CHECK (`status` IN ('PENDING', 'OWNER_MARKED', 'PAID', 'FAILED', 'CANCELLED'))
 );
 
 CREATE TABLE `HorsePerformanceSummary` (
@@ -988,8 +970,6 @@ ALTER TABLE `RaceResultReviewAction` ADD FOREIGN KEY (`actorUserID`) REFERENCES 
 ALTER TABLE `WalletTransaction` ADD FOREIGN KEY (`walletID`) REFERENCES `Wallet` (`walletID`);
 
 ALTER TABLE `WalletTransaction` ADD FOREIGN KEY (`userID`) REFERENCES `Users` (`userID`);
-
-ALTER TABLE `TournamentFund` ADD FOREIGN KEY (`tournamentID`) REFERENCES `Tournament` (`tournamentID`);
 
 ALTER TABLE `FundTransaction` ADD FOREIGN KEY (`tournamentID`) REFERENCES `Tournament` (`tournamentID`);
 

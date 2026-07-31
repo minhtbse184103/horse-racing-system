@@ -36,6 +36,7 @@ public class RaceService {
 
     private static final int MIN_RUNNERS_TO_FINALIZE = 3;
     private static final int MIN_RUNNERS_TO_READY = 3;
+    private static final int MIN_RACE_DISPLAY_NAME_LENGTH = 6;
 
     private static final Set<String> RACE_SETUP_TOURNAMENT_STATUSES =
             Set.of(
@@ -226,8 +227,12 @@ public class RaceService {
 
         validatePrizes(request.getPrizes(), request.getMaxRunners());
 
-        String raceName = request.getRaceName().trim();
-        String trackName = request.getTrackName().trim();
+        String raceName = normalizeRaceDisplayName(request.getRaceName());
+        validateRaceName(raceName);
+        String trackName = normalizeTrackNameForDisplay(
+                request.getTrackName()
+        );
+        validateTrackName(trackName);
 
         if (raceRepository.existsByTournamentIdAndRaceNameIgnoreCase(
                 tournament.getTournamentId(),
@@ -332,8 +337,12 @@ public class RaceService {
 
         validatePrizes(request.getPrizes(), request.getMaxRunners());
 
-        String raceName = request.getRaceName().trim();
-        String trackName = request.getTrackName().trim();
+        String raceName = normalizeRaceDisplayName(request.getRaceName());
+        validateRaceName(raceName);
+        String trackName = normalizeTrackNameForDisplay(
+                request.getTrackName()
+        );
+        validateTrackName(trackName);
 
         if (raceRepository
                 .existsByTournamentIdAndRaceNameIgnoreCaseAndRaceIdNot(
@@ -1041,5 +1050,31 @@ public class RaceService {
                         RaceResultRepository.RaceResultCountProjection::getRaceId,
                         RaceResultRepository.RaceResultCountProjection::getResultCount
                 ));
+    }
+
+    private String normalizeTrackNameForDisplay(String value) {
+        return normalizeRaceDisplayName(value);
+    }
+
+    private String normalizeRaceDisplayName(String value) {
+        return value.trim().replaceAll("\\s+", " ");
+    }
+
+    private void validateRaceName(String raceName) {
+        if (raceName.length() < MIN_RACE_DISPLAY_NAME_LENGTH) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Race name must be more than 5 characters."
+            );
+        }
+    }
+
+    private void validateTrackName(String trackName) {
+        if (trackName.length() < MIN_RACE_DISPLAY_NAME_LENGTH) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Race track name must be more than 5 characters."
+            );
+        }
     }
 }

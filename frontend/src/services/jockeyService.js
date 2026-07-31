@@ -42,6 +42,13 @@ export function getJockeyRaces() {
   });
 }
 
+export function markJockeyPrizeDistributionPaid(prizeDistributionId) {
+  return httpRequest(`/api/jockey/prize-distributions/${prizeDistributionId}/paid`, {
+    method: 'PUT',
+    fallbackError: 'Không thể cập nhật trạng thái nhận giải jockey.'
+  });
+}
+
 export function getJockeyInvitationDetail(invitationId) {
   return httpRequest(`/api/jockey/invitations/${invitationId}`, {
     fallbackError: 'Khong the tai chi tiet loi moi jockey.'

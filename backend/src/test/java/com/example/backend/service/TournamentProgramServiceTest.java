@@ -162,9 +162,127 @@ class TournamentProgramServiceTest {
     }
 
     @Test
+    void createTournamentProgramRejectsInvalidGenderConditionValue() {
+        CreateTournamentProgramRequest request = validProgramRequest();
+        request.getTournament().getConditions().getFirst().setValue("STALLION");
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.createTournamentProgram(request, "admin@example.com")
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        assertEquals(
+                "Gender condition value must be MALE or FEMALE.",
+                exception.getMessage()
+        );
+        verifyNoProgramSave();
+    }
+
+    @Test
+    void createTournamentProgramRejectsNegativeBetweenConditionValue() {
+        CreateTournamentProgramRequest request = validProgramRequest();
+        request.getTournament().setConditions(List.of(
+                numericBetweenCondition("AGE", new BigDecimal("-1"), new BigDecimal("10"))
+        ));
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.createTournamentProgram(request, "admin@example.com")
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        assertEquals(
+                "Numeric condition values cannot be negative.",
+                exception.getMessage()
+        );
+        verifyNoProgramSave();
+    }
+
+    @Test
+    void createTournamentProgramRejectsShortVenue() {
+        CreateTournamentProgramRequest request = validProgramRequest();
+        request.getTournament().setVenue("A B");
+
+        stubAdmin();
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.createTournamentProgram(request, "admin@example.com")
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        assertEquals(
+                "Tournament venue must be more than 5 characters.",
+                exception.getMessage()
+        );
+        verifyNoProgramSave();
+    }
+
+    @Test
+    void createTournamentProgramRejectsShortTournamentName() {
+        CreateTournamentProgramRequest request = validProgramRequest();
+        request.getTournament().setTournamentName("A B");
+
+        stubAdmin();
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.createTournamentProgram(request, "admin@example.com")
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        assertEquals(
+                "Tournament name must be more than 5 characters.",
+                exception.getMessage()
+        );
+        verifyNoProgramSave();
+    }
+
+    @Test
+    void createTournamentProgramRejectsShortRaceName() {
+        CreateTournamentProgramRequest request = validProgramRequest();
+        request.getRaces().getFirst().setRaceName("A B");
+
+        stubAdmin();
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.createTournamentProgram(request, "admin@example.com")
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        assertEquals(
+                "Race name must be more than 5 characters.",
+                exception.getMessage()
+        );
+        verifyNoProgramSave();
+    }
+
+    @Test
+    void createTournamentProgramRejectsShortTrackName() {
+        CreateTournamentProgramRequest request = validProgramRequest();
+        request.getRaces().getFirst().setTrackName("A B");
+
+        stubAdmin();
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.createTournamentProgram(request, "admin@example.com")
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        assertEquals(
+                "Race track name must be more than 5 characters.",
+                exception.getMessage()
+        );
+        verifyNoProgramSave();
+    }
+
+    @Test
     void createTournamentProgramRejectsSameTrackOverlap() {
         CreateTournamentProgramRequest request = validProgramRequest();
-        request.getRaces().get(1).setTrackName("track a");
+        request.getRaces().get(1).setTrackName(" track    a ");
         request.getRaces().get(1).setRaceStartTime(
                 request.getRaces().get(0).getRaceStartTime().plusMinutes(30)
         );
@@ -429,6 +547,19 @@ class TournamentProgramServiceTest {
         condition.setConditionType("GENDER");
         condition.setOperator("EQ");
         condition.setValue("MALE");
+        return condition;
+    }
+
+    private TournamentConditionRequest numericBetweenCondition(
+            String conditionType,
+            BigDecimal minValue,
+            BigDecimal maxValue
+    ) {
+        TournamentConditionRequest condition = new TournamentConditionRequest();
+        condition.setConditionType(conditionType);
+        condition.setOperator("BETWEEN");
+        condition.setMinValue(minValue);
+        condition.setMaxValue(maxValue);
         return condition;
     }
 

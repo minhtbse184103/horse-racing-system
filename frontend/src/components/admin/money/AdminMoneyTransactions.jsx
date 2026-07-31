@@ -453,7 +453,7 @@ export default function AdminMoneyTransactions() {
 
   const stats = useMemo(() => {
     const registrationFees = transactions
-      .filter((transaction) => transaction.transactionType === 'REGISTRATION_FEE' && transaction.source === 'FUND')
+      .filter((transaction) => transaction.transactionType === 'REGISTRATION_FEE' && transaction.source === 'PAYMENT')
       .reduce((sum, transaction) => sum + Number(transaction.amount || 0), 0);
     const walletMovement = transactions
       .filter((transaction) => transaction.source === 'WALLET')
@@ -491,7 +491,7 @@ export default function AdminMoneyTransactions() {
                 Money Transactions
               </h2>
               <p className="mt-1 max-w-3xl text-sm font-semibold leading-6 text-slate-600">
-                Read-only operational ledger across Payment, Wallet, Tournament Fund, Betting settlement and prize flows.
+                Read-only operational ledger across Payment, Wallet, System Fund, Betting settlement and prize flows.
               </p>
             </div>
           </div>

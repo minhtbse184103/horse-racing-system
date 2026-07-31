@@ -308,7 +308,7 @@ export default function OwnerRaces({ currentUser }) {
       await markOwnerPrizeDistributionPaid(prizeDistributionId);
       setResults((current) => current.map((item) => (
         item.prizeDistributionId === prizeDistributionId
-          ? { ...item, distributionStatus: 'PAID' }
+          ? { ...item, distributionStatus: 'OWNER_MARKED' }
           : item
       )));
     } catch (error) {

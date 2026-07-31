@@ -4,14 +4,10 @@ import com.example.backend.constant.FundTransactionType;
 import com.example.backend.constant.WalletReferenceType;
 import com.example.backend.entity.BetSettlement;
 import com.example.backend.entity.FundTransaction;
-import com.example.backend.entity.PaymentTransaction;
-import com.example.backend.entity.Registration;
 import com.example.backend.entity.SystemFund;
-import com.example.backend.entity.TournamentFund;
 import com.example.backend.exception.ApiException;
 import com.example.backend.repository.FundTransactionRepository;
 import com.example.backend.repository.SystemFundRepository;
-import com.example.backend.repository.TournamentFundRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -25,31 +21,8 @@ public class FundAccountingService {
 
     private static final String SYSTEM_FUND_KEY = "SYSTEM";
 
-    private final TournamentFundRepository tournamentFundRepository;
     private final SystemFundRepository systemFundRepository;
     private final FundTransactionRepository fundTransactionRepository;
-
-    @Transactional
-    public void recordRegistrationFee(PaymentTransaction payment, Registration registration) {
-        BigDecimal amount = money(payment.getAmount());
-        tournamentFundRepository.creditRegistrationFee(registration.getTournamentId(), amount);
-        TournamentFund fund = tournamentFundRepository.findByTournamentIdForUpdate(registration.getTournamentId())
-                .orElseThrow(() -> new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "Tournament fund was not created."));
-
-        FundTransaction transaction = baseTransaction(
-                tournamentFundKey(registration.getTournamentId()),
-                registration.getTournamentId(),
-                FundTransactionType.REGISTRATION_FEE,
-                "CREDIT",
-                amount,
-                WalletReferenceType.PAYMENT_TRANSACTION,
-                payment.getPaymentTransactionId(),
-                "Tournament registration fee " + registration.getRegistrationNo()
-        );
-        transaction.setBalanceAfter(fund.getAvailableBalance());
-        transaction.setBalanceBefore(fund.getAvailableBalance().subtract(amount));
-        fundTransactionRepository.save(transaction);
-    }
 
     @Transactional
     public void recordBettingOperatorFee(BetSettlement settlement) {
@@ -112,26 +85,6 @@ public class FundAccountingService {
         }
     }
 
-    public FundTransaction createPrizeDebit(
-            TournamentFund fund,
-            Integer distributionId,
-            BigDecimal amount
-    ) {
-        FundTransaction transaction = baseTransaction(
-                tournamentFundKey(fund.getTournamentId()),
-                fund.getTournamentId(),
-                FundTransactionType.PRIZE_PAYOUT,
-                "DEBIT",
-                amount,
-                WalletReferenceType.PRIZE_DISTRIBUTION,
-                distributionId,
-                "Owner and jockey race prize payout"
-        );
-        transaction.setBalanceBefore(fund.getAvailableBalance().add(amount));
-        transaction.setBalanceAfter(fund.getAvailableBalance());
-        return fundTransactionRepository.save(transaction);
-    }
-
     private FundTransaction baseTransaction(
             String fundKey,
             Integer tournamentId,
@@ -152,10 +105,6 @@ public class FundAccountingService {
         transaction.setReferenceId(referenceId);
         transaction.setDescription(description);
         return transaction;
-    }
-
-    private String tournamentFundKey(Integer tournamentId) {
-        return "TOURNAMENT:" + tournamentId;
     }
 
     private SystemFund newSystemFund() {

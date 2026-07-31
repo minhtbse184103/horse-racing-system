@@ -112,7 +112,6 @@ const MESSAGE_TRANSLATIONS = {
   'Betting open time must be before close time.': 'Thời gian mở cược phải trước thời gian đóng cược.',
   'Betting must close at least 5 minutes before race start.': 'Phải đóng cược ít nhất 5 phút trước khi race bắt đầu.',
   'Only draft, open, or closed betting events can update close time.': 'Chỉ có thể chỉnh giờ đóng của sự kiện cược ở trạng thái nháp, đang mở hoặc đã đóng.',
-  'Betting cannot open more than 12 hours before race start.': 'Không được mở cược sớm hơn 12 giờ trước khi race bắt đầu.',
   'Race entries must be finalized before betting can be configured.': 'Phải khóa danh sách RaceEntry trước khi cấu hình cược.',
   'Betting cannot be configured after the race starts.': 'Không thể cấu hình cược sau khi race đã bắt đầu.',
   'Official race results are required before settlement.': 'Cần kết quả race chính thức trước khi settle cược.',

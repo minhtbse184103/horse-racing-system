@@ -57,6 +57,7 @@ import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -650,7 +651,7 @@ class OwnerTournamentRegistrationServiceTest {
     }
 
     @Test
-    void markOwnerPrizeDistributionPaidUpdatesOnlyOwnedPendingRow() {
+    void markOwnerPrizeDistributionPaidMovesPendingRowToOwnerMarked() {
         User owner = user(30, "owner@example.com", "OWNER");
         PrizeDistribution distribution = prizeDistribution(301, 30, PrizeDistributionStatus.PENDING);
         when(userRepository.findByEmail("owner@example.com"))
@@ -660,8 +661,8 @@ class OwnerTournamentRegistrationServiceTest {
 
         service.markOwnerPrizeDistributionPaid(301);
 
-        assertEquals(PrizeDistributionStatus.PAID, distribution.getStatus());
-        assertNotNull(distribution.getDistributedAt());
+        assertEquals(PrizeDistributionStatus.OWNER_MARKED, distribution.getStatus());
+        assertNull(distribution.getDistributedAt());
     }
 
     @Test

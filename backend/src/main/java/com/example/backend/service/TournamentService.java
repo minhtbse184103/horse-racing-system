@@ -30,6 +30,11 @@ import java.util.stream.Collectors;
 @Service
 public class TournamentService {
 
+    private static final int MIN_DISPLAY_NAME_LENGTH = 6;
+
+    private static final Set<String> SUPPORTED_GENDER_CONDITION_VALUES =
+            Set.of("MALE", "FEMALE");
+
     private final TournamentRepository tournamentRepository;
     private final TournamentConditionRepository conditionRepository;
     private final RaceRepository raceRepository;
@@ -721,6 +726,14 @@ public class TournamentService {
             );
         }
 
+        String value = condition.getValue().trim().toUpperCase();
+        if (!SUPPORTED_GENDER_CONDITION_VALUES.contains(value)) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Gender condition value must be MALE or FEMALE."
+            );
+        }
+
         if (condition.getMinValue() != null
                 || condition.getMaxValue() != null) {
             throw new ApiException(
@@ -747,6 +760,14 @@ public class TournamentService {
                 throw new ApiException(
                         HttpStatus.BAD_REQUEST,
                         "BETWEEN requires minimum and maximum values."
+                );
+            }
+
+            if (condition.getMinValue().compareTo(BigDecimal.ZERO) < 0
+                    || condition.getMaxValue().compareTo(BigDecimal.ZERO) < 0) {
+                throw new ApiException(
+                        HttpStatus.BAD_REQUEST,
+                        "Numeric condition values cannot be negative."
                 );
             }
 
@@ -858,15 +879,42 @@ public class TournamentService {
             Integer maxRegistrations,
             BigDecimal entryFee
     ) {
-        tournament.setTournamentName(tournamentName.trim());
+        String normalizedTournamentName = normalizeLocationNameForDisplay(tournamentName);
+        validateTournamentName(normalizedTournamentName);
+        String normalizedVenue = normalizeLocationNameForDisplay(venue);
+        validateVenue(normalizedVenue);
+
+        tournament.setTournamentName(normalizedTournamentName);
         tournament.setDescription(normalizeNullable(description));
-        tournament.setVenue(venue.trim());
+        tournament.setVenue(normalizedVenue);
         tournament.setRegistrationOpenAt(registrationOpenAt);
         tournament.setRegistrationCloseAt(registrationCloseAt);
         tournament.setStartDate(startDate);
         tournament.setEndDate(endDate);
         tournament.setMaxRegistrations(maxRegistrations);
         tournament.setEntryFee(entryFee);
+    }
+
+    private String normalizeLocationNameForDisplay(String value) {
+        return value.trim().replaceAll("\\s+", " ");
+    }
+
+    private void validateVenue(String venue) {
+        if (venue.length() < MIN_DISPLAY_NAME_LENGTH) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Tournament venue must be more than 5 characters."
+            );
+        }
+    }
+
+    private void validateTournamentName(String tournamentName) {
+        if (tournamentName.length() < MIN_DISPLAY_NAME_LENGTH) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Tournament name must be more than 5 characters."
+            );
+        }
     }
 
     private User getAdmin(String adminEmail) {

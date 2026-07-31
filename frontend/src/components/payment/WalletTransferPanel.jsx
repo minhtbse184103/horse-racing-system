@@ -43,10 +43,22 @@ function walletTransactionLabel(type) {
     BET_WIN: 'Cược thắng',
     BET_REFUND: 'Hoàn vé đã hủy',
     BET_VOID_REFUND: 'Hoàn vé bị vô hiệu',
-    PRIZE_PAYOUT: 'Tiền thưởng'
+    PRIZE_PAYOUT: 'Tiền thưởng',
+    WITHDRAW: 'Rút tiền'
   };
   const normalized = String(type || '').toUpperCase();
-  return labels[normalized] || normalized || 'Giao dịch';
+  return labels[normalized] || 'Giao dịch';
+}
+
+function walletReferenceLabel(type) {
+  const labels = {
+    PAYMENT_TRANSACTION: 'Thanh toán',
+    BET_TICKET: 'Vé cược',
+    RACE_RESULT: 'Kết quả race',
+    PRIZE_DISTRIBUTION: 'Phân phối giải thưởng'
+  };
+  const normalized = String(type || '').toUpperCase();
+  return labels[normalized] || 'Tham chiếu';
 }
 
 function transactionAmountText(transaction) {
@@ -187,7 +199,7 @@ function WalletTransactionHistory({ transactions }) {
                 {formatVndCurrency(transaction.availableBefore)} → {formatVndCurrency(transaction.availableAfter)}
               </span>
               <span className="wallet-transaction-description" title={transaction.description || ''}>
-                {transaction.description || `${transaction.referenceType || 'Reference'} #${transaction.referenceId || '-'}`}
+                {transaction.description || `${walletReferenceLabel(transaction.referenceType)} #${transaction.referenceId || '-'}`}
               </span>
             </article>
           );

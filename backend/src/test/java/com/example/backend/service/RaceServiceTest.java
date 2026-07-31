@@ -197,6 +197,52 @@ class RaceServiceTest {
     }
 
     @Test
+    void createRaceRejectsShortTrackName() {
+        CreateRaceRequest request = createRequest();
+        request.setTrackName("A B");
+
+        stubAdmin();
+        when(tournamentRepository.findByIdForUpdate(12))
+                .thenReturn(Optional.of(tournament()));
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.createRace(request, "admin@example.com")
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        assertEquals(
+                "Race track name must be more than 5 characters.",
+                exception.getMessage()
+        );
+        verify(raceRepository, never()).saveAndFlush(any());
+        verify(racePrizeRepository, never()).saveAll(any());
+    }
+
+    @Test
+    void createRaceRejectsShortRaceName() {
+        CreateRaceRequest request = createRequest();
+        request.setRaceName("A B");
+
+        stubAdmin();
+        when(tournamentRepository.findByIdForUpdate(12))
+                .thenReturn(Optional.of(tournament()));
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.createRace(request, "admin@example.com")
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        assertEquals(
+                "Race name must be more than 5 characters.",
+                exception.getMessage()
+        );
+        verify(raceRepository, never()).saveAndFlush(any());
+        verify(racePrizeRepository, never()).saveAll(any());
+    }
+
+    @Test
     void updateRaceRejectsEmptyPrizeList() {
         Race race = race();
         UpdateRaceRequest request = updateRequest();
@@ -215,6 +261,60 @@ class RaceServiceTest {
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
         assertEquals("Race must contain at least one prize.", exception.getMessage());
+        verify(raceRepository, never()).saveAndFlush(any());
+        verify(racePrizeRepository, never()).saveAll(any());
+    }
+
+    @Test
+    void updateRaceRejectsShortTrackName() {
+        Race race = race();
+        Tournament tournament = tournament();
+        UpdateRaceRequest request = updateRequest();
+        request.setTrackName("A B");
+
+        stubAdmin();
+        when(raceRepository.findByIdForUpdate(8)).thenReturn(Optional.of(race));
+        when(raceEntryRepository.existsByRaceId(8)).thenReturn(false);
+        when(tournamentRepository.findByIdForUpdate(12))
+                .thenReturn(Optional.of(tournament));
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.updateRace(8, request, "admin@example.com")
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        assertEquals(
+                "Race track name must be more than 5 characters.",
+                exception.getMessage()
+        );
+        verify(raceRepository, never()).saveAndFlush(any());
+        verify(racePrizeRepository, never()).saveAll(any());
+    }
+
+    @Test
+    void updateRaceRejectsShortRaceName() {
+        Race race = race();
+        Tournament tournament = tournament();
+        UpdateRaceRequest request = updateRequest();
+        request.setRaceName("A B");
+
+        stubAdmin();
+        when(raceRepository.findByIdForUpdate(8)).thenReturn(Optional.of(race));
+        when(raceEntryRepository.existsByRaceId(8)).thenReturn(false);
+        when(tournamentRepository.findByIdForUpdate(12))
+                .thenReturn(Optional.of(tournament));
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.updateRace(8, request, "admin@example.com")
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        assertEquals(
+                "Race name must be more than 5 characters.",
+                exception.getMessage()
+        );
         verify(raceRepository, never()).saveAndFlush(any());
         verify(racePrizeRepository, never()).saveAll(any());
     }
@@ -254,6 +354,7 @@ class RaceServiceTest {
     @Test
     void createRaceRejectsSameTrackOverlapAcrossTournaments() {
         CreateRaceRequest request = createRequest();
+        request.setTrackName(" Test    1 ");
 
         stubAdmin();
         when(tournamentRepository.findByIdForUpdate(12))
@@ -283,7 +384,7 @@ class RaceServiceTest {
     void createRaceAllowsDifferentTrackOverlap() {
         CreateRaceRequest request = createRequest();
         request.setRaceName("Race test 2");
-        request.setTrackName("Test 2");
+        request.setTrackName(" Test    2 ");
         Race savedRace = race();
         savedRace.setRaceName("Race test 2");
         savedRace.setTrackName("Test 2");

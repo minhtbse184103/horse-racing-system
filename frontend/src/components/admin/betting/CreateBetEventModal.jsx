@@ -9,7 +9,6 @@ import {
   IconButton,
   inputClass,
   latestBetCloseAt,
-  MAX_OPEN_BEFORE_RACE_MS,
   toDateTimeLocal
 } from './bettingUi';
 
@@ -112,7 +111,6 @@ export default function CreateBetEventModal({ products, onLoadRaces, onCancel, o
     if (!form.closeAt) return 'Vui lòng nhập thời gian đóng cược.';
     if (!(openAt < closeAt)) return 'Open time phải trước close time.';
     if (raceStart && closeAt > latestBetCloseAt(raceStart)) return 'Cược phải đóng tối thiểu 5 phút trước race start.';
-    if (raceStart && openAt < new Date(raceStart.getTime() - MAX_OPEN_BEFORE_RACE_MS)) return 'Không được mở cược quá 12 giờ trước race start.';
     if (!Number.isFinite(fee) || fee < 0 || fee > 50) return 'Phí tổ chức phải từ 0% đến 50%.';
     return '';
   }
@@ -121,12 +119,7 @@ export default function CreateBetEventModal({ products, onLoadRaces, onCancel, o
   const closeTimeMax = raceStart
     ? toDateTimeLocal(latestBetCloseAt(raceStart))
     : '';
-  const openTimeMin = raceStart
-    ? toDateTimeLocal(new Date(Math.max(
-      Math.ceil(Date.now() / 60000) * 60000,
-      raceStart.getTime() - MAX_OPEN_BEFORE_RACE_MS
-    )))
-    : toDateTimeLocal(new Date(Math.ceil(Date.now() / 60000) * 60000));
+  const openTimeMin = toDateTimeLocal(new Date(Math.ceil(Date.now() / 60000) * 60000));
 
   async function submit() {
     const validation = validate();
@@ -245,7 +238,7 @@ export default function CreateBetEventModal({ products, onLoadRaces, onCancel, o
               <span className="text-xs font-semibold text-slate-500">
                 {form.openMode === 'NOW'
                   ? 'Backend sẽ ghi nhận thời điểm hiện tại chính xác khi tạo event.'
-                  : 'Event ở trạng thái DRAFT và tự chuyển OPEN tại thời gian này, trong 12 giờ cuối trước Race.'}
+                  : 'Event ở trạng thái DRAFT và tự chuyển OPEN tại thời gian đã chọn.'}
               </span>
             )}
           </Field>

@@ -266,13 +266,6 @@ VALUES
   (24, 15, NULL, 8, 'WALLET_DEPOSIT', 'VNPAY', 9000000.00, 'VND', 'SEED-WALLET-015', 'VNP-SEED-W015', 'SUCCESS', NULL, '00', '{"seed":true,"initialBalance":9000000}', DATE_SUB(@seed_now, INTERVAL 2 DAY), DATE_SUB(@seed_now, INTERVAL 2 DAY), DATE_SUB(@seed_now, INTERVAL 2 DAY)),
   (25, 16, NULL, 9, 'WALLET_DEPOSIT', 'VNPAY', 9000000.00, 'VND', 'SEED-WALLET-016', 'VNP-SEED-W016', 'SUCCESS', NULL, '00', '{"seed":true,"initialBalance":9000000}', DATE_SUB(@seed_now, INTERVAL 2 DAY), DATE_SUB(@seed_now, INTERVAL 2 DAY), DATE_SUB(@seed_now, INTERVAL 2 DAY));
 
-INSERT INTO `TournamentFund`
-  (`tournamentID`, `collectedAmount`, `paidPrizeAmount`, `availableBalance`, `createdAt`, `updatedAt`)
-VALUES
-  (1, 15000000.00, 0.00, 15000000.00, DATE_SUB(@seed_now, INTERVAL 7 DAY), @seed_now),
-  (2,  8000000.00, 0.00,  8000000.00, DATE_SUB(@seed_now, INTERVAL 160 DAY), DATE_SUB(@seed_now, INTERVAL 160 DAY)),
-  (3,  3000000.00, 0.00,  3000000.00, DATE_SUB(@seed_now, INTERVAL 5 DAY), @seed_now);
-
 INSERT INTO `SystemFund`
   (`systemFundID`, `balance`, `bettingFeeRevenue`, `createdAt`, `updatedAt`)
 VALUES
@@ -281,29 +274,7 @@ VALUES
 INSERT INTO `FundTransaction`
   (`fundTransactionID`, `fundKey`, `tournamentID`, `transactionType`, `direction`, `amount`, `balanceBefore`, `balanceAfter`, `referenceType`, `referenceID`, `description`, `createdAt`)
 VALUES
-  (1,  'TOURNAMENT:1', 1, 'REGISTRATION_FEE', 'CREDIT', 1000000.00,        0.00,  1000000.00, 'PAYMENT_TRANSACTION', 1,  'Tournament registration fee REG-DEMO-001', DATE_SUB(@seed_now, INTERVAL 5 DAY)),
-  (2,  'TOURNAMENT:1', 1, 'REGISTRATION_FEE', 'CREDIT', 1000000.00,  1000000.00,  2000000.00, 'PAYMENT_TRANSACTION', 2,  'Tournament registration fee REG-DEMO-003', DATE_SUB(@seed_now, INTERVAL 6 DAY)),
-  (3,  'TOURNAMENT:1', 1, 'REGISTRATION_FEE', 'CREDIT', 1000000.00,  2000000.00,  3000000.00, 'PAYMENT_TRANSACTION', 3,  'Tournament registration fee REG-DEMO-004', DATE_SUB(@seed_now, INTERVAL 7 DAY)),
-  (4,  'TOURNAMENT:2', 2, 'REGISTRATION_FEE', 'CREDIT', 2000000.00,        0.00,  2000000.00, 'PAYMENT_TRANSACTION', 4,  'Tournament registration fee REG-DEMO-006', DATE_SUB(@seed_now, INTERVAL 160 DAY)),
-  (5,  'TOURNAMENT:1', 1, 'REGISTRATION_FEE', 'CREDIT', 1000000.00,  3000000.00,  4000000.00, 'PAYMENT_TRANSACTION', 5,  'Tournament registration fee REG-DEMO-008', DATE_SUB(@seed_now, INTERVAL 1 DAY)),
-  (6,  'TOURNAMENT:1', 1, 'REGISTRATION_FEE', 'CREDIT', 1000000.00,  4000000.00,  5000000.00, 'PAYMENT_TRANSACTION', 6,  'Tournament registration fee REG-DEMO-009', DATE_SUB(@seed_now, INTERVAL 1 DAY)),
-  (7,  'TOURNAMENT:1', 1, 'REGISTRATION_FEE', 'CREDIT', 1000000.00,  5000000.00,  6000000.00, 'PAYMENT_TRANSACTION', 7,  'Tournament registration fee REG-DEMO-010', DATE_SUB(@seed_now, INTERVAL 1 DAY)),
-  (8,  'TOURNAMENT:1', 1, 'REGISTRATION_FEE', 'CREDIT', 1000000.00,  6000000.00,  7000000.00, 'PAYMENT_TRANSACTION', 8,  'Tournament registration fee REG-DEMO-011', DATE_SUB(@seed_now, INTERVAL 1 DAY)),
-  (9,  'TOURNAMENT:1', 1, 'REGISTRATION_FEE', 'CREDIT', 1000000.00,  7000000.00,  8000000.00, 'PAYMENT_TRANSACTION', 9,  'Tournament registration fee REG-DEMO-012', DATE_SUB(@seed_now, INTERVAL 1 DAY)),
-  (10, 'TOURNAMENT:1', 1, 'REGISTRATION_FEE', 'CREDIT', 1000000.00,  8000000.00,  9000000.00, 'PAYMENT_TRANSACTION', 10, 'Tournament registration fee REG-DEMO-013', DATE_SUB(@seed_now, INTERVAL 1 DAY)),
-  (11, 'TOURNAMENT:1', 1, 'REGISTRATION_FEE', 'CREDIT', 1000000.00,  9000000.00, 10000000.00, 'PAYMENT_TRANSACTION', 11, 'Tournament registration fee REG-DEMO-014', DATE_SUB(@seed_now, INTERVAL 1 DAY)),
-  (12, 'TOURNAMENT:1', 1, 'REGISTRATION_FEE', 'CREDIT', 1000000.00, 10000000.00, 11000000.00, 'PAYMENT_TRANSACTION', 12, 'Tournament registration fee REG-DEMO-015', DATE_SUB(@seed_now, INTERVAL 1 DAY)),
-  (13, 'TOURNAMENT:1', 1, 'REGISTRATION_FEE', 'CREDIT', 1000000.00, 11000000.00, 12000000.00, 'PAYMENT_TRANSACTION', 13, 'Tournament registration fee REG-DEMO-016', DATE_SUB(@seed_now, INTERVAL 1 DAY)),
-  (14, 'TOURNAMENT:1', 1, 'REGISTRATION_FEE', 'CREDIT', 1000000.00, 12000000.00, 13000000.00, 'PAYMENT_TRANSACTION', 14, 'Tournament registration fee REG-DEMO-017', DATE_SUB(@seed_now, INTERVAL 1 DAY)),
-  (15, 'TOURNAMENT:1', 1, 'REGISTRATION_FEE', 'CREDIT', 1000000.00, 13000000.00, 14000000.00, 'PAYMENT_TRANSACTION', 15, 'Tournament registration fee REG-DEMO-018', DATE_SUB(@seed_now, INTERVAL 1 DAY)),
-  (16, 'TOURNAMENT:1', 1, 'REGISTRATION_FEE', 'CREDIT', 1000000.00, 14000000.00, 15000000.00, 'PAYMENT_TRANSACTION', 16, 'Tournament registration fee REG-DEMO-019', DATE_SUB(@seed_now, INTERVAL 1 DAY)),
-  (17, 'SYSTEM', NULL, 'BETTING_OPERATOR_FEE', 'CREDIT', 60000.00, 0.00, 60000.00, 'BET_SETTLEMENT', 1, 'Betting operator fee for Heritage Sprint settlement', DATE_SUB(@seed_now, INTERVAL 2 HOUR)),
-  (18, 'TOURNAMENT:2', 2, 'REGISTRATION_FEE', 'CREDIT', 2000000.00, 2000000.00, 4000000.00, 'PAYMENT_TRANSACTION', 18, 'Tournament registration fee REG-DEMO-020', DATE_SUB(@seed_now, INTERVAL 160 DAY)),
-  (19, 'TOURNAMENT:2', 2, 'REGISTRATION_FEE', 'CREDIT', 2000000.00, 4000000.00, 6000000.00, 'PAYMENT_TRANSACTION', 19, 'Tournament registration fee REG-DEMO-021', DATE_SUB(@seed_now, INTERVAL 160 DAY)),
-  (20, 'TOURNAMENT:2', 2, 'REGISTRATION_FEE', 'CREDIT', 2000000.00, 6000000.00, 8000000.00, 'PAYMENT_TRANSACTION', 20, 'Tournament registration fee REG-DEMO-022', DATE_SUB(@seed_now, INTERVAL 160 DAY)),
-  (21, 'TOURNAMENT:3', 3, 'REGISTRATION_FEE', 'CREDIT', 1000000.00,       0.00, 1000000.00, 'PAYMENT_TRANSACTION', 21, 'Tournament registration fee REG-BET-FLOW-001', DATE_SUB(@seed_now, INTERVAL 5 DAY)),
-  (22, 'TOURNAMENT:3', 3, 'REGISTRATION_FEE', 'CREDIT', 1000000.00, 1000000.00, 2000000.00, 'PAYMENT_TRANSACTION', 22, 'Tournament registration fee REG-BET-FLOW-002', DATE_SUB(@seed_now, INTERVAL 5 DAY)),
-  (23, 'TOURNAMENT:3', 3, 'REGISTRATION_FEE', 'CREDIT', 1000000.00, 2000000.00, 3000000.00, 'PAYMENT_TRANSACTION', 23, 'Tournament registration fee REG-BET-FLOW-003', DATE_SUB(@seed_now, INTERVAL 5 DAY));
+  (1, 'SYSTEM', NULL, 'BETTING_OPERATOR_FEE', 'CREDIT', 60000.00, 0.00, 60000.00, 'BET_SETTLEMENT', 1, 'Betting operator fee for Heritage Sprint settlement', DATE_SUB(@seed_now, INTERVAL 2 HOUR));
 
 INSERT INTO `RaceEntry`
   (`raceEntryID`, `raceID`, `registrationID`, `startingStall`, `status`, `assignedAt`, `assignedBy`, `cancelledAt`, `cancelledBy`, `cancellationReason`)
@@ -465,7 +436,6 @@ UNION ALL SELECT 'OwnerApplication', COUNT(*) FROM `OwnerApplication`
 UNION ALL SELECT 'OwnerProfile', COUNT(*) FROM `OwnerProfile`
 UNION ALL SELECT 'user_verifications', COUNT(*) FROM `user_verifications`
 UNION ALL SELECT 'Wallet', COUNT(*) FROM `Wallet`
-UNION ALL SELECT 'TournamentFund', COUNT(*) FROM `TournamentFund`
 UNION ALL SELECT 'SystemFund', COUNT(*) FROM `SystemFund`
 UNION ALL SELECT 'FundTransaction', COUNT(*) FROM `FundTransaction`
 UNION ALL SELECT 'Horse', COUNT(*) FROM `Horse`

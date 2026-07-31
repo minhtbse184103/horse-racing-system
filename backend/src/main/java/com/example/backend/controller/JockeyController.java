@@ -43,6 +43,12 @@ public class JockeyController {
         return jockeyService.getMyRaces();
     }
 
+    // Xác nhận phần thưởng jockey đã được thanh toán sau khi owner xác nhận.
+    @PutMapping("/prize-distributions/{prizeDistributionId}/paid")
+    public void markPrizeDistributionPaid(@PathVariable Integer prizeDistributionId) {
+        jockeyService.markJockeyPrizeDistributionPaid(prizeDistributionId);
+    }
+
     // Lấy chi tiết lời mời kèm thông tin giải đấu và ngựa được mời.
     @GetMapping("/invitations/{invitationId}")
     public JockeyInvitationDetailResponse getMyInvitationDetail(@PathVariable Integer invitationId) {

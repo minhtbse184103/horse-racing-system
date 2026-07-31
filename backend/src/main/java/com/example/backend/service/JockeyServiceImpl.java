@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.example.backend.constant.PaymentStatus;
+import com.example.backend.constant.PrizeDistributionStatus;
 import com.example.backend.constant.RegistrationStatus;
 import com.example.backend.constant.EventStatus;
 import com.example.backend.dto.request.JockeyProfileRequest;
@@ -34,6 +35,7 @@ import com.example.backend.entity.JockeyPerformanceSummary;
 import com.example.backend.entity.JockeyProfile;
 import com.example.backend.entity.JockeyVerification;
 import com.example.backend.entity.JockeyVerificationFile;
+import com.example.backend.entity.PrizeDistribution;
 import com.example.backend.entity.Registration;
 import com.example.backend.entity.Tournament;
 import com.example.backend.entity.User;
@@ -45,6 +47,7 @@ import com.example.backend.repository.JockeyPerformanceSummaryRepository;
 import com.example.backend.repository.JockeyProfileRepository;
 import com.example.backend.repository.JockeyVerificationFileRepository;
 import com.example.backend.repository.JockeyVerificationRepository;
+import com.example.backend.repository.PrizeDistributionRepository;
 import com.example.backend.repository.RaceEntryRepository;
 import com.example.backend.repository.RaceResultRepository;
 import com.example.backend.repository.RegistrationRepository;
@@ -72,6 +75,7 @@ public class JockeyServiceImpl implements JockeyService {
     private final HorsePerformanceSummaryRepository horsePerformanceSummaryRepository;
     private final UserRepository userRepository;
     private final JockeyPerformanceSummaryRepository jockeyPerformanceSummaryRepository;
+    private final PrizeDistributionRepository prizeDistributionRepository;
     private final TournamentRepository tournamentRepository;
     private final TournamentService tournamentService;
     private final RegistrationAvailabilityService availabilityService;
@@ -90,6 +94,7 @@ public class JockeyServiceImpl implements JockeyService {
             HorsePerformanceSummaryRepository horsePerformanceSummaryRepository,
             UserRepository userRepository,
             JockeyPerformanceSummaryRepository jockeyPerformanceSummaryRepository,
+            PrizeDistributionRepository prizeDistributionRepository,
             TournamentRepository tournamentRepository,
             TournamentService tournamentService,
             RegistrationAvailabilityService availabilityService,
@@ -106,6 +111,7 @@ public class JockeyServiceImpl implements JockeyService {
         this.horsePerformanceSummaryRepository = horsePerformanceSummaryRepository;
         this.userRepository = userRepository;
         this.jockeyPerformanceSummaryRepository = jockeyPerformanceSummaryRepository;
+        this.prizeDistributionRepository = prizeDistributionRepository;
         this.tournamentRepository = tournamentRepository;
         this.tournamentService = tournamentService;
         this.availabilityService = availabilityService;
@@ -231,6 +237,35 @@ public class JockeyServiceImpl implements JockeyService {
     public List<JockeyRaceResponse> getMyRaces() {
         Integer jockeyId = getCurrentJockey().getUserID();
         return getJockeyRaceResponses(jockeyId);
+    }
+
+    @Transactional
+    @Override
+    public void markJockeyPrizeDistributionPaid(Integer prizeDistributionId) {
+        User jockey = getCurrentJockeyWithActiveProfile();
+        PrizeDistribution distribution = prizeDistributionRepository
+                .findByIdForUpdate(prizeDistributionId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "Prize payout row does not exist."
+                ));
+
+        if (!jockey.getUserID().equals(distribution.getJockeyId())) {
+            throw new ApiException(
+                    HttpStatus.FORBIDDEN,
+                    "Prize payout row does not belong to the current jockey."
+            );
+        }
+
+        if (!PrizeDistributionStatus.OWNER_MARKED.equals(distribution.getStatus())) {
+            throw new ApiException(
+                    HttpStatus.CONFLICT,
+                    "Owner must mark the prize payout before jockey confirmation."
+            );
+        }
+
+        distribution.setStatus(PrizeDistributionStatus.PAID);
+        distribution.setDistributedAt(LocalDateTime.now());
     }
 
     private List<JockeyRaceResponse> getJockeyRaceResponses(Integer jockeyId) {

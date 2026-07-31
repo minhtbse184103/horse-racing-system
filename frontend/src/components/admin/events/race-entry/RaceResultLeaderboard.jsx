@@ -4,6 +4,7 @@ import { useLanguage } from '../../../../context/LanguageContext';
 
 const DISTRIBUTION_STATUS_STYLES = {
   PENDING: 'border-amber-200 bg-amber-50 text-amber-800',
+  OWNER_MARKED: 'border-sky-200 bg-sky-50 text-sky-800',
   PAID: 'border-emerald-200 bg-emerald-50 text-emerald-800',
   FAILED: 'border-red-200 bg-red-50 text-red-700',
   NO_PRIZE: 'border-stone-200 bg-stone-100 text-stone-700'
@@ -13,6 +14,7 @@ function formatDistributionStatus(status) {
   const normalized = String(status || 'NO_PRIZE').toUpperCase();
   const labels = {
     PENDING: 'Pending',
+    OWNER_MARKED: 'Owner marked',
     PAID: 'Paid',
     FAILED: 'Failed',
     NO_PRIZE: 'No Prize'
@@ -95,11 +97,21 @@ export default function RaceResultLeaderboard({
   showCloseButton = true,
   onMarkOwnerPayoutPaid,
   canMarkOwnerPayoutPaid,
+  onMarkPayoutPaid,
+  canMarkPayoutPaid,
+  markableDistributionStatus = 'PENDING',
   markingPrizeDistributionId,
   markOwnerPayoutLabel = 'Mark owner payout paid',
-  ownerPayoutUnavailableLabel = 'Only your payout can be marked'
+  ownerPayoutUnavailableLabel = 'Only your payout can be marked',
+  markPayoutLabel,
+  payoutUnavailableLabel
 }) {
   const { t } = useLanguage();
+  const payoutAction = onMarkPayoutPaid || onMarkOwnerPayoutPaid;
+  const canUsePayoutAction = canMarkPayoutPaid || canMarkOwnerPayoutPaid;
+  const actionLabel = markPayoutLabel || markOwnerPayoutLabel;
+  const unavailableLabel = payoutUnavailableLabel || ownerPayoutUnavailableLabel;
+  const requiredDistributionStatus = String(markableDistributionStatus || 'PENDING').toUpperCase();
 
   return (
     <div className="max-h-[82vh] overflow-hidden rounded-lg border border-brown-700/10 bg-[linear-gradient(135deg,rgba(255,248,237,0.98),rgba(246,229,204,0.94))] shadow-[0_18px_46px_rgba(43,23,16,0.18)]">
@@ -137,8 +149,8 @@ export default function RaceResultLeaderboard({
           const rowPrizeTotal = result.totalPrize ?? result.prizeMoney ?? 0;
           const ownerSharePercent = calculateSharePercent(result.ownerAmount, rowPrizeTotal);
           const jockeySharePercent = calculateSharePercent(result.jockeyAmount, rowPrizeTotal);
-          const canMarkPayout = typeof canMarkOwnerPayoutPaid === 'function'
-            ? canMarkOwnerPayoutPaid(result)
+          const canMarkPayout = typeof canUsePayoutAction === 'function'
+            ? canUsePayoutAction(result)
             : true;
 
           return (
@@ -204,18 +216,18 @@ export default function RaceResultLeaderboard({
                     <span className="opacity-70">{t('eventResultPrizePayoutStatus')}</span>
                     <span>{formatDistributionStatus(distributionStatus)}</span>
                   </div>
-                  {typeof onMarkOwnerPayoutPaid === 'function'
+                  {typeof payoutAction === 'function'
                     && result.prizeDistributionId
-                    && distributionStatus === 'PENDING' ? (
+                    && distributionStatus === requiredDistributionStatus ? (
                     <button
                       type="button"
-                      onClick={() => onMarkOwnerPayoutPaid(result)}
+                      onClick={() => payoutAction(result)}
                       disabled={!canMarkPayout || markingPrizeDistributionId === result.prizeDistributionId}
                       className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-black uppercase text-emerald-800 transition hover:bg-emerald-100 disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {markingPrizeDistributionId === result.prizeDistributionId
                         ? `${t('loading')}...`
-                        : canMarkPayout ? markOwnerPayoutLabel : ownerPayoutUnavailableLabel}
+                        : canMarkPayout ? actionLabel : unavailableLabel}
                     </button>
                   ) : null}
                 </div>

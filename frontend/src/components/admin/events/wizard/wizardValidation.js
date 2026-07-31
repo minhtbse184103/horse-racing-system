@@ -13,6 +13,10 @@ function currentDateTimeString() {
   return new Date(now.getTime() - timezoneOffset).toISOString().slice(0, 16);
 }
 
+function normalizedLength(value) {
+  return String(value || '').trim().replace(/\s+/g, ' ').length;
+}
+
 export function validateWizardStep(step, draft, t = defaultTranslate) {
   const errors = {};
   const today = todayDateString();
@@ -20,7 +24,9 @@ export function validateWizardStep(step, draft, t = defaultTranslate) {
 
   if (step === 1) {
     if (!draft.name.trim()) errors.name = t('eventValidationTournamentNameRequired');
+    else if (normalizedLength(draft.name) < 6) errors.name = t('eventValidationTournamentNameMinLength');
     if (!draft.venue.trim()) errors.venue = t('eventValidationVenueRequired');
+    else if (normalizedLength(draft.venue) < 6) errors.venue = t('eventValidationVenueMinLength');
     if (!draft.registrationOpen) errors.registrationOpen = t('eventValidationRegistrationOpenRequired');
     if (!draft.registrationClose) errors.registrationClose = t('eventValidationRegistrationCloseRequired');
     if (!draft.start) errors.start = t('eventValidationTournamentStartRequired');
@@ -51,7 +57,9 @@ export function validateWizardStep(step, draft, t = defaultTranslate) {
     draft.races.forEach((race) => {
       const prefix = `race-${race.id}`;
       if (!race.name.trim()) errors[`${prefix}-name`] = t('eventValidationRaceNameRequired');
+      else if (normalizedLength(race.name) < 6) errors[`${prefix}-name`] = t('eventValidationRaceNameMinLength');
       if (!race.track.trim()) errors[`${prefix}-track`] = t('eventValidationRaceTrackRequired');
+      else if (normalizedLength(race.track) < 6) errors[`${prefix}-track`] = t('eventValidationRaceTrackMinLength');
       if (!race.raceStartTime) errors[`${prefix}-raceStartTime`] = t('eventValidationRaceStartRequired');
       if (!race.raceEndTime) errors[`${prefix}-raceEndTime`] = t('eventValidationRaceEndRequired');
       if (race.raceStartTime && race.raceStartTime <= now) {

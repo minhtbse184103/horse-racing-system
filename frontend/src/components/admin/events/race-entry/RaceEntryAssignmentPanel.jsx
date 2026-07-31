@@ -155,7 +155,7 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
     // FLOW: Admin Fail Running Race
     // ORDER: 3/7 - Submit handler trims/validates the reason, calls backend fail API, then clears live UI state after success.
     // FE path: IN_PROGRESS Race -> fail dialog -> PUT /api/races/{raceId}/run/fail.
-    // Purpose: stop showing live data locally only after backend cancels the failed run.
+    // Purpose: stop showing live data locally only after backend returns the failed run to READY for rerun.
     event.preventDefault();
     if (!failTargetRace) return;
 
@@ -177,7 +177,7 @@ export default function RaceEntryAssignmentPanel({ tournament, onRaceEntryCountC
         return next;
       });
       setLiveRaceId((current) => current === failTargetRace.id ? null : current);
-      onRaceStatusChange?.(failTargetRace.id, response?.status || 'CANCELLED');
+      onRaceStatusChange?.(failTargetRace.id, response?.status || 'READY');
       setFailTargetRace(null);
       setFailReason('');
     } catch (error) {

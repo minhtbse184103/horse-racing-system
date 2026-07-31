@@ -1,8 +1,10 @@
 package com.example.backend.service;
 
+import com.example.backend.constant.PrizeDistributionStatus;
 import com.example.backend.dto.response.JockeyInvitationResponse;
 import com.example.backend.entity.Horse;
 import com.example.backend.entity.JockeyInvitation;
+import com.example.backend.entity.PrizeDistribution;
 import com.example.backend.entity.Registration;
 import com.example.backend.entity.Role;
 import com.example.backend.entity.Tournament;
@@ -15,6 +17,7 @@ import com.example.backend.repository.JockeyPerformanceSummaryRepository;
 import com.example.backend.repository.JockeyProfileRepository;
 import com.example.backend.repository.JockeyVerificationFileRepository;
 import com.example.backend.repository.JockeyVerificationRepository;
+import com.example.backend.repository.PrizeDistributionRepository;
 import com.example.backend.repository.RaceEntryRepository;
 import com.example.backend.repository.RaceResultRepository;
 import com.example.backend.repository.RegistrationRepository;
@@ -34,6 +37,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Optional;
+import java.math.BigDecimal;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -58,6 +62,7 @@ class JockeyServiceInvitationEligibilityTest {
     @Mock private HorsePerformanceSummaryRepository horsePerformanceSummaryRepository;
     @Mock private UserRepository userRepository;
     @Mock private JockeyPerformanceSummaryRepository jockeyPerformanceSummaryRepository;
+    @Mock private PrizeDistributionRepository prizeDistributionRepository;
     @Mock private TournamentRepository tournamentRepository;
     @Mock private TournamentService tournamentService;
     @Mock private RegistrationAvailabilityService availabilityService;
@@ -80,6 +85,7 @@ class JockeyServiceInvitationEligibilityTest {
                 horsePerformanceSummaryRepository,
                 userRepository,
                 jockeyPerformanceSummaryRepository,
+                prizeDistributionRepository,
                 tournamentRepository,
                 tournamentService,
                 availabilityService,
@@ -167,6 +173,57 @@ class JockeyServiceInvitationEligibilityTest {
         order.verify(jockeyInvitationRepository).save(scenario.invitation());
     }
 
+    @Test
+    void markJockeyPrizeDistributionPaidRequiresOwnerMarkedRow() {
+        User jockey = activeJockey();
+        PrizeDistribution distribution = prizeDistribution(301, 40, PrizeDistributionStatus.PENDING);
+        when(userRepository.findByEmail("jockey@example.com")).thenReturn(Optional.of(jockey));
+        when(jockeyProfileRepository.existsById(40)).thenReturn(true);
+        when(prizeDistributionRepository.findByIdForUpdate(301))
+                .thenReturn(Optional.of(distribution));
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.markJockeyPrizeDistributionPaid(301)
+        );
+
+        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
+        assertEquals(PrizeDistributionStatus.PENDING, distribution.getStatus());
+    }
+
+    @Test
+    void markJockeyPrizeDistributionPaidFinalizesOwnerMarkedRow() {
+        User jockey = activeJockey();
+        PrizeDistribution distribution = prizeDistribution(301, 40, PrizeDistributionStatus.OWNER_MARKED);
+        when(userRepository.findByEmail("jockey@example.com")).thenReturn(Optional.of(jockey));
+        when(jockeyProfileRepository.existsById(40)).thenReturn(true);
+        when(prizeDistributionRepository.findByIdForUpdate(301))
+                .thenReturn(Optional.of(distribution));
+
+        service.markJockeyPrizeDistributionPaid(301);
+
+        assertEquals(PrizeDistributionStatus.PAID, distribution.getStatus());
+        assertEquals(true, distribution.getDistributedAt() != null);
+    }
+
+    @Test
+    void markJockeyPrizeDistributionPaidRejectsOtherJockeyRow() {
+        User jockey = activeJockey();
+        PrizeDistribution distribution = prizeDistribution(301, 99, PrizeDistributionStatus.OWNER_MARKED);
+        when(userRepository.findByEmail("jockey@example.com")).thenReturn(Optional.of(jockey));
+        when(jockeyProfileRepository.existsById(40)).thenReturn(true);
+        when(prizeDistributionRepository.findByIdForUpdate(301))
+                .thenReturn(Optional.of(distribution));
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.markJockeyPrizeDistributionPaid(301)
+        );
+
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
+        assertEquals(PrizeDistributionStatus.OWNER_MARKED, distribution.getStatus());
+    }
+
     private Scenario stubAcceptScenario() {
         User jockey = activeJockey();
         JockeyInvitation invitation = JockeyInvitation.builder()
@@ -216,6 +273,25 @@ class JockeyServiceInvitationEligibilityTest {
         jockey.setStatus("ACTIVE");
         jockey.setRole(role);
         return jockey;
+    }
+
+    private PrizeDistribution prizeDistribution(
+            Integer prizeDistributionId,
+            Integer jockeyId,
+            String status
+    ) {
+        PrizeDistribution distribution = new PrizeDistribution();
+        distribution.setPrizeDistributionId(prizeDistributionId);
+        distribution.setRaceId(10);
+        distribution.setRaceEntryId(20);
+        distribution.setRacePrizeId(30);
+        distribution.setOwnerId(30);
+        distribution.setJockeyId(jockeyId);
+        distribution.setTotalPrize(BigDecimal.valueOf(1_000_000));
+        distribution.setOwnerAmount(BigDecimal.valueOf(800_000));
+        distribution.setJockeyAmount(BigDecimal.valueOf(200_000));
+        distribution.setStatus(status);
+        return distribution;
     }
 
     private record Scenario(

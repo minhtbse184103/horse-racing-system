@@ -1459,7 +1459,7 @@ function ApprovedJockeyDashboard({ currentUser, onLogout, onUserUpdated }) {
 
       {activeSection === 'races' && (
         <section className="jockey-section">
-          <JockeyRaces />
+          <JockeyRaces currentUser={currentUser} />
         </section>
       )}
 

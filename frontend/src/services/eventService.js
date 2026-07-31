@@ -213,9 +213,9 @@ export function finalizeRaceEntries(raceId) {
 
 export function failRaceRun(raceId, reason) {
   // FLOW: Admin Fail Running Race
-  // ORDER: 4/7 - API wrapper sends only the admin reason; backend owns validation, cancellation, and token cleanup.
+  // ORDER: 4/7 - API wrapper sends only the admin reason; backend owns validation, run-field cleanup, and READY recovery.
   // API: PUT /api/races/{raceId}/run/fail with admin-provided reason.
-  // Purpose: backend validates the Race is launched/IN_PROGRESS, clears engine token, and marks it CANCELLED.
+  // Purpose: backend validates the Race is launched/IN_PROGRESS, clears Unity run fields, and returns it to READY for rerun.
   return httpRequest(`/api/races/${raceId}/run/fail`, {
     method: 'PUT',
     body: { reason }

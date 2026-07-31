@@ -33,6 +33,9 @@ public interface JockeyService {
     // Lấy danh sách RaceEntry đã được phân công cho jockey hiện tại.
     List<JockeyRaceResponse> getMyRaces();
 
+    // Jockey xác nhận phần tiền thưởng sau khi owner đã xác nhận.
+    void markJockeyPrizeDistributionPaid(Integer prizeDistributionId);
+
     // Lấy chi tiết lời mời kèm thông tin giải đấu và ngựa được mời.
     JockeyInvitationDetailResponse getMyInvitationDetail(Integer invitationId);
 

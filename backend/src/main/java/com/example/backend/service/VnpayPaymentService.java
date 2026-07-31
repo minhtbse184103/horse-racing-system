@@ -252,7 +252,6 @@ public class VnpayPaymentService {
             registration.setPaymentStatus(PaymentStatus.PAID);
             paymentTransactionRepository.save(paymentTransaction);
             registrationRepository.save(registration);
-            fundAccountingService.recordRegistrationFee(paymentTransaction, registration);
         } else {
             paymentTransaction.setStatus(PaymentTransactionStatus.FAILED);
             registration.setPaymentStatus(PaymentStatus.FAILED);

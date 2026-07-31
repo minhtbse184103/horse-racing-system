@@ -37,6 +37,11 @@ import java.util.Set;
 @Service
 public class TournamentProgramService {
 
+    private static final int MIN_DISPLAY_NAME_LENGTH = 6;
+
+    private static final Set<String> SUPPORTED_GENDER_CONDITION_VALUES =
+            Set.of("MALE", "FEMALE");
+
     private final TournamentRepository tournamentRepository;
     private final TournamentConditionRepository conditionRepository;
     private final RaceRepository raceRepository;
@@ -139,7 +144,14 @@ public class TournamentProgramService {
             );
             validatePrizes(request.getPrizes(), request.getMaxRunners());
 
-            String raceName = request.getRaceName().trim();
+            String raceName = normalizeLocationNameForDisplay(
+                    request.getRaceName()
+            );
+            validateRaceName(raceName);
+            String trackName = normalizeTrackNameForDisplay(
+                    request.getTrackName()
+            );
+            validateTrackName(trackName);
             String normalizedName = raceName.toLowerCase(Locale.ROOT);
             if (!usedNames.add(normalizedName)) {
                 throw new ApiException(
@@ -162,7 +174,7 @@ public class TournamentProgramService {
             drafts.add(new ProgramRaceDraft(
                     request,
                     raceName,
-                    request.getTrackName().trim(),
+                    trackName,
                     raceOrder
             ));
         }
@@ -443,6 +455,14 @@ public class TournamentProgramService {
             );
         }
 
+        String value = condition.getValue().trim().toUpperCase();
+        if (!SUPPORTED_GENDER_CONDITION_VALUES.contains(value)) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Gender condition value must be MALE or FEMALE."
+            );
+        }
+
         if (condition.getMinValue() != null
                 || condition.getMaxValue() != null) {
             throw new ApiException(
@@ -469,6 +489,14 @@ public class TournamentProgramService {
                 throw new ApiException(
                         HttpStatus.BAD_REQUEST,
                         "BETWEEN requires minimum and maximum values."
+                );
+            }
+
+            if (condition.getMinValue().compareTo(BigDecimal.ZERO) < 0
+                    || condition.getMaxValue().compareTo(BigDecimal.ZERO) < 0) {
+                throw new ApiException(
+                        HttpStatus.BAD_REQUEST,
+                        "Numeric condition values cannot be negative."
                 );
             }
 
@@ -529,9 +557,16 @@ public class TournamentProgramService {
             Tournament tournament,
             CreateTournamentRequest request
     ) {
-        tournament.setTournamentName(request.getTournamentName().trim());
+        String tournamentName = normalizeLocationNameForDisplay(
+                request.getTournamentName()
+        );
+        validateTournamentName(tournamentName);
+        String venue = normalizeLocationNameForDisplay(request.getVenue());
+        validateVenue(venue);
+
+        tournament.setTournamentName(tournamentName);
         tournament.setDescription(normalizeNullable(request.getDescription()));
-        tournament.setVenue(request.getVenue().trim());
+        tournament.setVenue(venue);
         tournament.setRegistrationOpenAt(request.getRegistrationOpenAt());
         tournament.setRegistrationCloseAt(request.getRegistrationCloseAt());
         tournament.setStartDate(request.getStartDate());
@@ -633,6 +668,56 @@ public class TournamentProgramService {
         return value.trim();
     }
 
+    private String normalizeLocationNameForDisplay(String value) {
+        return value.trim().replaceAll("\\s+", " ");
+    }
+
+    private String normalizeTrackNameForDisplay(String value) {
+        return normalizeLocationNameForDisplay(value);
+    }
+
+    private void validateVenue(String venue) {
+        if (venue.length() < MIN_DISPLAY_NAME_LENGTH) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Tournament venue must be more than 5 characters."
+            );
+        }
+    }
+
+    private void validateTournamentName(String tournamentName) {
+        if (tournamentName.length() < MIN_DISPLAY_NAME_LENGTH) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Tournament name must be more than 5 characters."
+            );
+        }
+    }
+
+    private void validateRaceName(String raceName) {
+        if (raceName.length() < MIN_DISPLAY_NAME_LENGTH) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Race name must be more than 5 characters."
+            );
+        }
+    }
+
+    private void validateTrackName(String trackName) {
+        if (trackName.length() < MIN_DISPLAY_NAME_LENGTH) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "Race track name must be more than 5 characters."
+            );
+        }
+    }
+
+    private static String normalizeTrackNameForComparison(String value) {
+        return value.trim()
+                .replaceAll("\\s+", " ")
+                .toLowerCase(Locale.ROOT);
+    }
+
     private record ProgramRaceDraft(
             CreateTournamentProgramRaceRequest request,
             String raceName,
@@ -640,7 +725,7 @@ public class TournamentProgramService {
             Integer raceOrder
     ) {
         String normalizedTrackName() {
-            return trackName.toLowerCase(Locale.ROOT);
+            return normalizeTrackNameForComparison(trackName);
         }
     }
 }

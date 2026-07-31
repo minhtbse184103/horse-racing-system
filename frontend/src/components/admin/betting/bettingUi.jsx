@@ -4,7 +4,6 @@ import { formatVndCurrency } from '../../../lib/eventFormatters';
 
 export const eventStatuses = ['ALL', 'DRAFT', 'OPEN', 'CLOSED', 'SETTLED', 'CANCELLED'];
 export const MIN_CLOSE_BEFORE_RACE_MS = 5 * 60 * 1000;
-export const MAX_OPEN_BEFORE_RACE_MS = 12 * 60 * 60 * 1000;
 
 const statusStyles = {
   DRAFT: 'border-slate-200 bg-slate-50 text-slate-700',

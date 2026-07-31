@@ -1,6 +1,7 @@
 package com.example.backend.service;
 
 import com.example.backend.constant.EventStatus;
+import com.example.backend.dto.request.TournamentConditionRequest;
 import com.example.backend.dto.request.UpdateTournamentRequest;
 import com.example.backend.dto.response.TournamentDetailResponse;
 import com.example.backend.entity.Race;
@@ -133,6 +134,108 @@ class TournamentServiceTest {
 
         assertEquals(HttpStatus.FORBIDDEN, exception.getStatus());
         verify(tournamentRepository, never()).save(any());
+    }
+
+    @Test
+    void updateTournamentRejectsInvalidGenderConditionValue() {
+        UpdateTournamentRequest request = validUpdateRequest();
+        request.setConditions(List.of(genderCondition("STALLION")));
+        Tournament tournament = tournament(1, EventStatus.OPEN_FOR_REGISTRATION);
+        when(tournamentRepository.findByIdForUpdate(1))
+                .thenReturn(Optional.of(tournament));
+        when(userRepository.findByEmail("admin@example.com"))
+                .thenReturn(Optional.of(activeAdmin()));
+        when(registrationRepository.existsByTournamentId(1)).thenReturn(false);
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.updateTournament(1, request, "admin@example.com")
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        assertEquals(
+                "Gender condition value must be MALE or FEMALE.",
+                exception.getMessage()
+        );
+        verify(tournamentRepository, never()).save(any());
+        verify(conditionRepository, never()).deleteByTournamentId(any());
+    }
+
+    @Test
+    void updateTournamentRejectsNegativeBetweenConditionValue() {
+        UpdateTournamentRequest request = validUpdateRequest();
+        request.setConditions(List.of(
+                numericBetweenCondition("WEIGHT", new BigDecimal("100"), new BigDecimal("-1"))
+        ));
+        Tournament tournament = tournament(1, EventStatus.OPEN_FOR_REGISTRATION);
+        when(tournamentRepository.findByIdForUpdate(1))
+                .thenReturn(Optional.of(tournament));
+        when(userRepository.findByEmail("admin@example.com"))
+                .thenReturn(Optional.of(activeAdmin()));
+        when(registrationRepository.existsByTournamentId(1)).thenReturn(false);
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.updateTournament(1, request, "admin@example.com")
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        assertEquals(
+                "Numeric condition values cannot be negative.",
+                exception.getMessage()
+        );
+        verify(tournamentRepository, never()).save(any());
+        verify(conditionRepository, never()).deleteByTournamentId(any());
+    }
+
+    @Test
+    void updateTournamentRejectsShortVenue() {
+        UpdateTournamentRequest request = validUpdateRequest();
+        request.setVenue("A B");
+        Tournament tournament = tournament(1, EventStatus.OPEN_FOR_REGISTRATION);
+        when(tournamentRepository.findByIdForUpdate(1))
+                .thenReturn(Optional.of(tournament));
+        when(userRepository.findByEmail("admin@example.com"))
+                .thenReturn(Optional.of(activeAdmin()));
+        when(registrationRepository.existsByTournamentId(1)).thenReturn(false);
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.updateTournament(1, request, "admin@example.com")
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        assertEquals(
+                "Tournament venue must be more than 5 characters.",
+                exception.getMessage()
+        );
+        verify(tournamentRepository, never()).save(any());
+        verify(conditionRepository, never()).deleteByTournamentId(any());
+    }
+
+    @Test
+    void updateTournamentRejectsShortTournamentName() {
+        UpdateTournamentRequest request = validUpdateRequest();
+        request.setTournamentName("A B");
+        Tournament tournament = tournament(1, EventStatus.OPEN_FOR_REGISTRATION);
+        when(tournamentRepository.findByIdForUpdate(1))
+                .thenReturn(Optional.of(tournament));
+        when(userRepository.findByEmail("admin@example.com"))
+                .thenReturn(Optional.of(activeAdmin()));
+        when(registrationRepository.existsByTournamentId(1)).thenReturn(false);
+
+        ApiException exception = assertThrows(
+                ApiException.class,
+                () -> service.updateTournament(1, request, "admin@example.com")
+        );
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        assertEquals(
+                "Tournament name must be more than 5 characters.",
+                exception.getMessage()
+        );
+        verify(tournamentRepository, never()).save(any());
+        verify(conditionRepository, never()).deleteByTournamentId(any());
     }
 
     @Test
@@ -387,6 +490,27 @@ class TournamentServiceTest {
         request.setEntryFee(new BigDecimal("1500.00"));
         request.setConditions(List.of());
         return request;
+    }
+
+    private TournamentConditionRequest genderCondition(String value) {
+        TournamentConditionRequest condition = new TournamentConditionRequest();
+        condition.setConditionType("GENDER");
+        condition.setOperator("EQ");
+        condition.setValue(value);
+        return condition;
+    }
+
+    private TournamentConditionRequest numericBetweenCondition(
+            String conditionType,
+            BigDecimal minValue,
+            BigDecimal maxValue
+    ) {
+        TournamentConditionRequest condition = new TournamentConditionRequest();
+        condition.setConditionType(conditionType);
+        condition.setOperator("BETWEEN");
+        condition.setMinValue(minValue);
+        condition.setMaxValue(maxValue);
+        return condition;
     }
 
     private User activeAdmin() {

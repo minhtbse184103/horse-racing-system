@@ -131,10 +131,10 @@ public class RaceEngineLaunchService {
             String adminEmail
     ) {
         // FLOW: Admin Fail Running Race
-        // ORDER: 6/7 - Service validates admin/reason, locks Race, cancels the failed run, and clears engine token data.
+        // ORDER: 6/7 - Service validates admin/reason, locks Race, clears the failed Unity run, and returns Race to READY.
         // Validation: ACTIVE ADMIN, nonblank reason, Race is locked, launched,
         // IN_PROGRESS, and has no recorded official RaceResult rows.
-        // DB effect: Race becomes CANCELLED and engine token fields are cleared.
+        // DB effect: Race becomes READY for rerun and Unity run/token fields are cleared.
         User admin = getAdmin(adminEmail);
         String reason = request == null ? null : request.getReason();
 
@@ -155,13 +155,15 @@ public class RaceEngineLaunchService {
 
         String trimmedReason = reason.trim();
         LocalDateTime now = LocalDateTime.now();
-        race.setStatus(EventStatus.CANCELLED);
+        race.setStatus(EventStatus.READY);
+        race.setRunStartedAt(null);
+        race.setRunTriggeredBy(null);
         race.setRaceEngineToken(null);
         race.setRaceEngineTokenIssuedAt(null);
         raceRepository.save(race);
 
         log.warn(
-                "Launched raceId={} was marked failed/cancelled by adminId={}. Reason: {}",
+                "Launched raceId={} was marked failed and returned to READY by adminId={}. Reason: {}",
                 race.getRaceId(),
                 admin.getUserID(),
                 trimmedReason
