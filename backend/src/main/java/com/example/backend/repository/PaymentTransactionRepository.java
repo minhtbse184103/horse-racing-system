@@ -24,12 +24,6 @@ public interface PaymentTransactionRepository
             String purpose
     );
 
-    Optional<PaymentTransaction> findFirstByRegistrationIdAndPurposeAndStatusOrderByCreatedAtDesc(
-            Integer registrationId,
-            String purpose,
-            String status
-    );
-
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("""
             select paymentTransaction

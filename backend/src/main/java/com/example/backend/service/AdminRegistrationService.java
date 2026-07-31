@@ -1,8 +1,6 @@
 package com.example.backend.service;
 
 import com.example.backend.constant.PaymentStatus;
-import com.example.backend.constant.PaymentPurpose;
-import com.example.backend.constant.PaymentTransactionStatus;
 import com.example.backend.constant.RegistrationStatus;
 import com.example.backend.constant.RaceEntryStatus;
 import com.example.backend.dto.request.RejectRegistrationRequest;
@@ -37,6 +35,7 @@ public class AdminRegistrationService {
             Set.of(
                     PaymentStatus.UNPAID,
                     PaymentStatus.PAID,
+                    PaymentStatus.REFUNDED,
                     PaymentStatus.FAILED
             );
 
@@ -48,8 +47,6 @@ public class AdminRegistrationService {
     private final RaceRepository raceRepository;
     private final RegistrationEligibilityService eligibilityService;
     private final DisplayNameResolver displayNameResolver;
-    private final PaymentTransactionRepository paymentTransactionRepository;
-    private final FundAccountingService fundAccountingService;
 
     public AdminRegistrationService(
             RegistrationRepository registrationRepository,
@@ -59,9 +56,7 @@ public class AdminRegistrationService {
             RaceEntryRepository raceEntryRepository,
             RaceRepository raceRepository,
             RegistrationEligibilityService eligibilityService,
-            DisplayNameResolver displayNameResolver,
-            PaymentTransactionRepository paymentTransactionRepository,
-            FundAccountingService fundAccountingService
+            DisplayNameResolver displayNameResolver
     ) {
         this.registrationRepository = registrationRepository;
         this.tournamentRepository = tournamentRepository;
@@ -71,8 +66,6 @@ public class AdminRegistrationService {
         this.raceRepository = raceRepository;
         this.eligibilityService = eligibilityService;
         this.displayNameResolver = displayNameResolver;
-        this.paymentTransactionRepository = paymentTransactionRepository;
-        this.fundAccountingService = fundAccountingService;
     }
 
     @Transactional(readOnly = true)
@@ -191,9 +184,6 @@ public class AdminRegistrationService {
         registration.setApprovalStatus(
                 RegistrationStatus.REJECTED
         );
-        if (PaymentStatus.PAID.equals(registration.getPaymentStatus())) {
-            registration.setPaymentStatus(PaymentStatus.REFUND_PENDING);
-        }
         registration.setRejectionReason(
                 request.getRejectionReason().trim()
         );
@@ -203,47 +193,6 @@ public class AdminRegistrationService {
         return toResponse(
                 registrationRepository.save(registration)
         );
-    }
-
-    @Transactional
-    public RegistrationResponse confirmManualRefund(
-            Integer registrationId,
-            String adminEmail
-    ) {
-        Registration registration = registrationRepository
-                .findByIdForUpdate(registrationId)
-                .orElseThrow(() -> new ApiException(
-                        HttpStatus.NOT_FOUND,
-                        "Registration does not exist."
-                ));
-
-        if (!RegistrationStatus.REJECTED.equals(registration.getApprovalStatus())
-                || !PaymentStatus.REFUND_PENDING.equals(registration.getPaymentStatus())) {
-            throw new ApiException(
-                    HttpStatus.CONFLICT,
-                    "Only a REJECTED registration awaiting refund can be confirmed."
-            );
-        }
-
-        User admin = getAdmin(adminEmail);
-        PaymentTransaction payment = paymentTransactionRepository
-                .findFirstByRegistrationIdAndPurposeAndStatusOrderByCreatedAtDesc(
-                        registrationId,
-                        PaymentPurpose.REGISTRATION_FEE,
-                        PaymentTransactionStatus.SUCCESS
-                )
-                .orElseThrow(() -> new ApiException(
-                        HttpStatus.CONFLICT,
-                        "Successful registration payment does not exist."
-                ));
-
-        fundAccountingService.recordManualRegistrationRefund(
-                payment,
-                registration,
-                admin
-        );
-        registration.setPaymentStatus(PaymentStatus.REFUNDED);
-        return toResponse(registrationRepository.save(registration));
     }
 
     @Transactional
@@ -268,13 +217,6 @@ public class AdminRegistrationService {
             throw new ApiException(
                     HttpStatus.BAD_REQUEST,
                     "Unsupported payment status."
-            );
-        }
-        if (PaymentStatus.REFUND_PENDING.equals(registration.getPaymentStatus())
-                || PaymentStatus.REFUNDED.equals(registration.getPaymentStatus())) {
-            throw new ApiException(
-                    HttpStatus.CONFLICT,
-                    "Refund payment status can only be changed through the refund confirmation flow."
             );
         }
         if (RegistrationStatus.APPROVED.equals(

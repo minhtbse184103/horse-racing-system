@@ -1,15 +1,12 @@
 package com.example.backend.service;
 
 import com.example.backend.constant.PaymentStatus;
-import com.example.backend.constant.PaymentPurpose;
-import com.example.backend.constant.PaymentTransactionStatus;
 import com.example.backend.constant.RaceEntryStatus;
 import com.example.backend.constant.RegistrationStatus;
 import com.example.backend.dto.request.RejectRegistrationRequest;
 import com.example.backend.dto.request.UpdatePaymentStatusRequest;
 import com.example.backend.dto.response.RegistrationResponse;
 import com.example.backend.entity.Registration;
-import com.example.backend.entity.PaymentTransaction;
 import com.example.backend.entity.Role;
 import com.example.backend.entity.Tournament;
 import com.example.backend.entity.User;
@@ -20,7 +17,6 @@ import com.example.backend.repository.OwnerApplicationRepository;
 import com.example.backend.repository.RaceEntryRepository;
 import com.example.backend.repository.RaceRepository;
 import com.example.backend.repository.RegistrationRepository;
-import com.example.backend.repository.PaymentTransactionRepository;
 import com.example.backend.repository.TournamentRepository;
 import com.example.backend.repository.UserVerificationRepository;
 import com.example.backend.repository.UserRepository;
@@ -53,8 +49,6 @@ class AdminRegistrationServiceTest {
     @Mock private RaceEntryRepository raceEntryRepository;
     @Mock private RaceRepository raceRepository;
     @Mock private RegistrationEligibilityService eligibilityService;
-    @Mock private PaymentTransactionRepository paymentTransactionRepository;
-    @Mock private FundAccountingService fundAccountingService;
     @Mock private OwnerApplicationRepository ownerApplicationRepository;
     @Mock private JockeyProfileRepository jockeyProfileRepository;
     @Mock private UserVerificationRepository userVerificationRepository;
@@ -77,9 +71,7 @@ class AdminRegistrationServiceTest {
                 raceEntryRepository,
                 raceRepository,
                 eligibilityService,
-                displayNameResolver,
-                paymentTransactionRepository,
-                fundAccountingService
+                displayNameResolver
         );
     }
 
@@ -183,46 +175,6 @@ class AdminRegistrationServiceTest {
     }
 
     @Test
-    void rejectPaidRegistrationMarksRefundPending() {
-        Registration registration = pendingRegistration();
-        registration.setPaymentStatus(PaymentStatus.PAID);
-        RejectRegistrationRequest request = new RejectRegistrationRequest();
-        request.setRejectionReason("Not eligible");
-        when(registrationRepository.findByIdForUpdate(1)).thenReturn(Optional.of(registration));
-        when(userRepository.findByEmail("admin@example.com")).thenReturn(Optional.of(activeAdmin()));
-        when(registrationRepository.save(registration)).thenReturn(registration);
-        stubResponseLookups(registration);
-
-        service.rejectRegistration(1, request, "admin@example.com");
-
-        assertEquals(RegistrationStatus.REJECTED, registration.getApprovalStatus());
-        assertEquals(PaymentStatus.REFUND_PENDING, registration.getPaymentStatus());
-    }
-
-    @Test
-    void confirmManualRefundRecordsLedgerAndMarksRefunded() {
-        Registration registration = pendingRegistration();
-        registration.setApprovalStatus(RegistrationStatus.REJECTED);
-        registration.setPaymentStatus(PaymentStatus.REFUND_PENDING);
-        PaymentTransaction payment = new PaymentTransaction();
-        payment.setPaymentTransactionId(7);
-        payment.setRegistrationId(1);
-        when(registrationRepository.findByIdForUpdate(1)).thenReturn(Optional.of(registration));
-        when(userRepository.findByEmail("admin@example.com")).thenReturn(Optional.of(activeAdmin()));
-        when(paymentTransactionRepository.findFirstByRegistrationIdAndPurposeAndStatusOrderByCreatedAtDesc(
-                1, PaymentPurpose.REGISTRATION_FEE, PaymentTransactionStatus.SUCCESS
-        )).thenReturn(Optional.of(payment));
-        when(registrationRepository.save(registration)).thenReturn(registration);
-        stubResponseLookups(registration);
-
-        RegistrationResponse response = service.confirmManualRefund(1, "admin@example.com");
-
-        assertEquals(PaymentStatus.REFUNDED, response.getPaymentStatus());
-        verify(fundAccountingService).recordManualRegistrationRefund(
-                any(PaymentTransaction.class), any(Registration.class), any(User.class));
-    }
-
-    @Test
     void updatePaymentStatusNormalizesAndSavesStatus() {
         Registration registration = pendingRegistration();
         UpdatePaymentStatusRequest request = new UpdatePaymentStatusRequest();
@@ -259,7 +211,7 @@ class AdminRegistrationServiceTest {
                 () -> service.updatePaymentStatus(1, request, "admin@example.com")
         );
 
-        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatus());
+        assertEquals(HttpStatus.CONFLICT, exception.getStatus());
         verify(registrationRepository, never()).save(any());
     }
 

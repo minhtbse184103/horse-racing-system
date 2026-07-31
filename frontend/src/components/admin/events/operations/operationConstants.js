@@ -2,7 +2,6 @@ export const PAYMENT_STATUS_LABELS = {
   PAID: 'Paid',
   UNPAID: 'Unpaid',
   PENDING: 'Pending',
-  REFUND_PENDING: 'Refund pending',
   REFUNDED: 'Refunded'
 };
 
@@ -26,7 +25,6 @@ export const STATUS_BADGE_STYLES = {
   CANCELLED: 'border-stone-200 bg-stone-100 text-stone-700 before:bg-stone-500',
   PAID: 'border-green-200 bg-green-50 text-green-900 before:bg-green-600',
   REFUNDED: 'border-sky-200 bg-sky-50 text-sky-900 before:bg-sky-500',
-  REFUND_PENDING: 'border-amber-200 bg-amber-50 text-amber-900 before:bg-amber-500',
   ASSIGNED: 'border-sky-200 bg-sky-50 text-sky-900 before:bg-sky-500',
   CONFIRMED: 'border-emerald-200 bg-emerald-50 text-emerald-900 before:bg-emerald-500'
 };

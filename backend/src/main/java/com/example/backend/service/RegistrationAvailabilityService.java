@@ -1,7 +1,6 @@
 package com.example.backend.service;
 
 import com.example.backend.constant.EventStatus;
-import com.example.backend.constant.PaymentStatus;
 import com.example.backend.constant.RegistrationStatus;
 import com.example.backend.entity.Horse;
 import com.example.backend.entity.Registration;
@@ -169,18 +168,6 @@ public class RegistrationAvailabilityService {
                     "Chủ ngựa đã có một đơn đăng ký đang hoạt động trong giải đấu này.");
         }
 
-        long refundsPending = registrationRepository
-                .countByTournamentIdAndOwnerIdAndApprovalStatusAndPaymentStatus(
-                        tournamentId,
-                        ownerId,
-                        RegistrationStatus.REJECTED,
-                        PaymentStatus.REFUND_PENDING
-                );
-        if (refundsPending > 0) {
-            throw new ApiException(HttpStatus.CONFLICT,
-                    "Registration cũ đang chờ hoàn tiền. Owner chỉ được đăng ký lại sau khi Admin xác nhận hoàn tiền.");
-        }
-
         if (jockeyInvitationRepository.existsPendingInvitationForTournamentAndOwner(
                 tournamentId,
                 ownerId,
@@ -238,14 +225,6 @@ public class RegistrationAvailabilityService {
             throw new ApiException(HttpStatus.CONFLICT,
                     "Ngựa này đang có đơn đăng ký ở một giải đấu chưa kết thúc.");
         }
-        if (registrationRepository.countRefundPendingByHorseInBlockingTournament(
-                horseId,
-                RegistrationStatus.REJECTED,
-                PaymentStatus.REFUND_PENDING,
-                BLOCKING_TOURNAMENT_STATUSES) > 0) {
-            throw new ApiException(HttpStatus.CONFLICT,
-                    "Registration của ngựa đang chờ hoàn tiền.");
-        }
         if (jockeyInvitationRepository.existsPendingInvitationInActiveTournamentForHorse(
                 horseId,
                 INVITATION_PENDING,
@@ -270,15 +249,6 @@ public class RegistrationAvailabilityService {
         if (activeTournamentRegistrations > 0) {
             throw new ApiException(HttpStatus.CONFLICT,
                     "Nài ngựa này đang có đơn đăng ký ở một giải đấu chưa kết thúc.");
-        }
-
-        if (registrationRepository.countRefundPendingByJockeyInBlockingTournament(
-                jockeyId,
-                RegistrationStatus.REJECTED,
-                PaymentStatus.REFUND_PENDING,
-                BLOCKING_TOURNAMENT_STATUSES) > 0) {
-            throw new ApiException(HttpStatus.CONFLICT,
-                    "Registration của nài ngựa đang chờ hoàn tiền.");
         }
 
         if (jockeyInvitationRepository.existsPendingInvitationInActiveTournamentForJockey(
@@ -322,15 +292,6 @@ public class RegistrationAvailabilityService {
             throw new ApiException(HttpStatus.CONFLICT,
                     "Owner already has an active registration in this tournament.");
         }
-
-        if (registrationRepository.countByTournamentIdAndOwnerIdAndApprovalStatusAndPaymentStatus(
-                tournamentId,
-                ownerId,
-                RegistrationStatus.REJECTED,
-                PaymentStatus.REFUND_PENDING) > 0) {
-            throw new ApiException(HttpStatus.CONFLICT,
-                    "Registration cũ đang chờ hoàn tiền. Owner chỉ được đăng ký lại sau khi Admin xác nhận hoàn tiền.");
-        }
     }
 
     private void validateHorseRegistrationAvailabilityForOwnerRegistration(Integer horseId) {
@@ -343,15 +304,6 @@ public class RegistrationAvailabilityService {
         if (activeTournamentCount > 0) {
             throw new ApiException(HttpStatus.CONFLICT,
                     "Horse already has an active registration in an unfinished tournament.");
-        }
-
-        if (registrationRepository.countRefundPendingByHorseInBlockingTournament(
-                horseId,
-                RegistrationStatus.REJECTED,
-                PaymentStatus.REFUND_PENDING,
-                BLOCKING_TOURNAMENT_STATUSES) > 0) {
-            throw new ApiException(HttpStatus.CONFLICT,
-                    "Registration của ngựa đang chờ hoàn tiền.");
         }
     }
 
@@ -379,15 +331,6 @@ public class RegistrationAvailabilityService {
         if (activeTournamentCount > 0) {
             throw new ApiException(HttpStatus.CONFLICT,
                     "Jockey already has an active registration in an unfinished tournament.");
-        }
-
-        if (registrationRepository.countRefundPendingByJockeyInBlockingTournament(
-                jockeyId,
-                RegistrationStatus.REJECTED,
-                PaymentStatus.REFUND_PENDING,
-                BLOCKING_TOURNAMENT_STATUSES) > 0) {
-            throw new ApiException(HttpStatus.CONFLICT,
-                    "Registration của nài ngựa đang chờ hoàn tiền.");
         }
     }
 }

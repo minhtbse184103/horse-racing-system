@@ -10,7 +10,6 @@ export default function TournamentOperationsPanel({
   retryRegistrations,
   approveRegistration,
   rejectRegistration,
-  confirmRegistrationRefund,
   onRaceEntryCountChange,
   onRaceStatusChange,
   onNavigateToResultReview,
@@ -45,7 +44,6 @@ export default function TournamentOperationsPanel({
         onRetry={retryRegistrations}
         onApprove={approveAndRefreshQueue}
         onReject={rejectRegistration}
-        onConfirmRefund={confirmRegistrationRefund}
       />
     </div>
   );

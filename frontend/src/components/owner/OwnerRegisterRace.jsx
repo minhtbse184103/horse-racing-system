@@ -224,7 +224,7 @@ function getInvitationPaymentStatus(invitation) {
   // Older API versions exposed only registrationStatus. Use it only when it is
   // unmistakably a payment state; PENDING/APPROVED are approval states.
   const legacyStatus = String(invitation?.registrationStatus || '').toUpperCase();
-  return ['PAID', 'UNPAID', 'FAILED', 'REFUND_PENDING', 'REFUNDED'].includes(legacyStatus) ? legacyStatus : '';
+  return ['PAID', 'UNPAID', 'FAILED', 'REFUNDED'].includes(legacyStatus) ? legacyStatus : '';
 }
 
 function getInvitationApprovalStatus(invitation) {
@@ -235,7 +235,7 @@ function getInvitationApprovalStatus(invitation) {
   if (explicitStatus) return String(explicitStatus).toUpperCase();
 
   const legacyStatus = String(invitation?.registrationStatus || '').toUpperCase();
-  return ['PAID', 'UNPAID', 'FAILED', 'REFUND_PENDING', 'REFUNDED'].includes(legacyStatus) ? '' : legacyStatus;
+  return ['PAID', 'UNPAID', 'FAILED', 'REFUNDED'].includes(legacyStatus) ? '' : legacyStatus;
 }
 
 function hasRegistrationStatus(invitation) {
@@ -382,16 +382,9 @@ const TOURNAMENT_WORKFLOW_CONFIG = {
   REGISTRATION_REJECTED: {
     statusKey: 'ownerRaceWorkflowRegistrationRejected',
     descriptionKey: 'ownerRaceWorkflowRegistrationRejectedDesc',
-    actionKey: 'ownerRaceWorkflowRegisterAgain',
-    actionType: 'restart-invitation',
-    tone: 'danger'
-  },
-  REGISTRATION_REFUND_PENDING: {
-    statusKey: 'ownerRaceWorkflowRefundPending',
-    descriptionKey: 'ownerRaceWorkflowRefundPendingDesc',
     actionKey: 'ownerRaceWorkflowViewRejectionReason',
     actionType: 'registration-details',
-    tone: 'waiting'
+    tone: 'danger'
   },
   REGISTRATION_CANCELLED: {
     statusKey: 'ownerRaceWorkflowRegistrationCancelled',
@@ -403,9 +396,9 @@ const TOURNAMENT_WORKFLOW_CONFIG = {
   PAYMENT_REFUNDED: {
     statusKey: 'ownerRaceWorkflowPaymentRefunded',
     descriptionKey: 'ownerRaceWorkflowPaymentRefundedDesc',
-    actionKey: 'ownerRaceWorkflowRegisterAgain',
-    actionType: 'restart-invitation',
-    tone: 'success'
+    actionKey: 'ownerRaceWorkflowViewTransaction',
+    actionType: 'transactions',
+    tone: 'info'
   },
   UNKNOWN: {
     statusKey: 'ownerRaceWorkflowUnknown',
@@ -431,9 +424,8 @@ function getTournamentWorkflowKind(invitation) {
   }
 
   if (hasRegistrationStatus(invitation)) {
-    if (paymentStatus === 'REFUND_PENDING') return 'REGISTRATION_REFUND_PENDING';
-    if (paymentStatus === 'REFUNDED') return 'PAYMENT_REFUNDED';
     if (approvalStatus === 'REJECTED') return 'REGISTRATION_REJECTED';
+    if (paymentStatus === 'REFUNDED') return 'PAYMENT_REFUNDED';
     if (paymentStatus === 'FAILED' && approvalStatus === 'CANCELLED') return 'PAYMENT_FAILED_CANCELLED';
     if (approvalStatus === 'CANCELLED') return 'REGISTRATION_CANCELLED';
     if (paymentStatus === 'PAID' && approvalStatus === 'APPROVED') return 'REGISTRATION_APPROVED';
@@ -1264,10 +1256,6 @@ export default function OwnerRegisterRace({ horses, onBackToHorses, onViewTransa
       && String(getInvitationHorseId(invitation)) === String(registrationValues.horseId)
     ));
   }, [invitations, registrationValues.horseId, registrationValues.tournamentId]);
-  const activeAcceptedJockeyInvitations = useMemo(
-    () => acceptedJockeyInvitations.filter(isActiveHorseInvitation),
-    [acceptedJockeyInvitations]
-  );
   const selectedAcceptedInvitation = useMemo(
     () => acceptedJockeyInvitations.find((invitation) => (
       selectedWorkflowInvitationId
@@ -1308,7 +1296,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses, onViewTransa
   );
   const isInviteFlowActive = flowMode === 'invite';
   const isPaymentFlowActive = flowMode === 'payment';
-  const hasAcceptedInvitation = activeAcceptedJockeyInvitations.length > 0;
+  const hasAcceptedInvitation = acceptedJockeyInvitations.length > 0;
   const selectedPaymentStatus = paymentResult?.registrationPaymentStatus
     || (paymentResult?.success ? 'PAID' : '')
     || registrationResult?.paymentStatus
@@ -1389,13 +1377,13 @@ export default function OwnerRegisterRace({ horses, onBackToHorses, onViewTransa
   }, [currentPendingInvitation, formValues.jockeyId]);
 
   useEffect(() => {
-    if (!activeAcceptedJockeyInvitations.length) return;
+    if (!acceptedJockeyInvitations.length) return;
     if (registrationValues.jockeyId) return;
-    const invitation = activeAcceptedJockeyInvitations[0];
+    const invitation = acceptedJockeyInvitations[0];
     const acceptedJockeyId = getInvitationJockeyId(invitation);
     if (!acceptedJockeyId) return;
     setRegistrationValues((current) => ({ ...current, jockeyId: String(acceptedJockeyId) }));
-  }, [activeAcceptedJockeyInvitations, registrationValues.jockeyId]);
+  }, [acceptedJockeyInvitations, registrationValues.jockeyId]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);

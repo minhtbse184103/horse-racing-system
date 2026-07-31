@@ -15,7 +15,6 @@ export default function TournamentDetails({
   retryRegistrations,
   approveRegistration,
   rejectRegistration,
-  confirmRegistrationRefund,
   onRaceEntryCountChange,
   onRaceStatusChange,
   onLifecycleAction,
@@ -61,7 +60,6 @@ export default function TournamentDetails({
         retryRegistrations={retryRegistrations}
         approveRegistration={approveRegistration}
         rejectRegistration={rejectRegistration}
-        confirmRegistrationRefund={confirmRegistrationRefund}
         onRaceEntryCountChange={onRaceEntryCountChange}
         onRaceStatusChange={onRaceStatusChange}
         onNavigateToResultReview={onNavigateToResultReview}

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, CircleDollarSign, LoaderCircle, X, XCircle } from 'lucide-react';
+import { CheckCircle2, LoaderCircle, X, XCircle } from 'lucide-react';
 import { modalBackdrop, modalPanel } from '../../ui/motion';
 import OperationStatusBadge from '../operations/OperationStatusBadge';
 import { formatOperationDateTime } from '../operations/operationHelpers';
@@ -29,7 +29,7 @@ function DetailItem({ label, value, onClick, disabled = false }) {
   );
 }
 
-export default function RegistrationReviewDialog({ registration, onClose, onDecision, onConfirmRefund, onViewEntity }) {
+export default function RegistrationReviewDialog({ registration, onClose, onDecision, onViewEntity }) {
   // FLOW: Admin Registration Entity Detail Popup
   // ORDER: 1/6 - Review dialog also exposes Horse/Owner/Jockey detail click targets before approve/reject.
   const { t } = useLanguage();
@@ -37,8 +37,6 @@ export default function RegistrationReviewDialog({ registration, onClose, onDeci
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const isPending = registration.approvalStatus === 'PENDING';
-  const isRefundPending = registration.approvalStatus === 'REJECTED'
-    && registration.paymentStatus === 'REFUND_PENDING';
 
   async function decide(status, rejectionReason = null) {
     // FLOW: Admin Approve Registration / Reject Registration
@@ -64,18 +62,6 @@ export default function RegistrationReviewDialog({ registration, onClose, onDeci
       return;
     }
     decide('REJECTED', reason.trim());
-  }
-
-  async function confirmRefund() {
-    setIsSubmitting(true);
-    setError('');
-    try {
-      await onConfirmRefund(registration);
-    } catch (refundError) {
-      setError(refundError.message || t('eventCommonActionError'));
-    } finally {
-      setIsSubmitting(false);
-    }
   }
 
   return (
@@ -109,12 +95,6 @@ export default function RegistrationReviewDialog({ registration, onClose, onDeci
         <footer className="flex shrink-0 flex-wrap justify-end gap-2 border-t border-brown-700/10 bg-white/70 p-4 md:px-5">
           <button type="button" disabled={isSubmitting} onClick={onClose} className="rounded-lg border border-brown-700/15 bg-white px-4 py-2.5 text-sm font-extrabold text-brown-700 hover:bg-cream-200 disabled:opacity-50">{t('eventCommonClose')}</button>
           {isPending && <><button type="button" disabled={isSubmitting} onClick={reject} className="inline-flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm font-extrabold text-danger hover:bg-red-100 disabled:opacity-50"><XCircle size={16} /> {t('eventCommonReject')}</button><button type="button" disabled={isSubmitting} onClick={() => decide('APPROVED')} className="inline-flex items-center gap-2 rounded-lg bg-emerald-700 px-4 py-2.5 text-sm font-extrabold text-white hover:bg-emerald-800 disabled:opacity-50">{isSubmitting ? <LoaderCircle className="animate-spin" size={16} /> : <CheckCircle2 size={16} />} {t('eventCommonApprove')}</button></>}
-          {isRefundPending && (
-            <button type="button" disabled={isSubmitting} onClick={confirmRefund} className="inline-flex items-center gap-2 rounded-lg bg-sky-700 px-4 py-2.5 text-sm font-extrabold text-white hover:bg-sky-800 disabled:opacity-50">
-              {isSubmitting ? <LoaderCircle className="animate-spin" size={16} /> : <CircleDollarSign size={16} />}
-              {t('eventRegistrationConfirmRefund')}
-            </button>
-          )}
         </footer>
       </motion.div>
     </motion.div>

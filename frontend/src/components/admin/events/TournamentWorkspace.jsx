@@ -18,7 +18,6 @@ export default function TournamentWorkspace({ adminName = 'Admin Test', focus = 
     retryRegistrations: workspace.retryRegistrations,
     approveRegistration: workspace.approveRegistration,
     rejectRegistration: workspace.rejectRegistration,
-    confirmRegistrationRefund: workspace.confirmRegistrationRefund,
     onRaceEntryCountChange: workspace.updateRaceEntryCount,
     onRaceStatusChange: workspace.updateRaceStatus,
     onNavigateToResultReview,

@@ -45,9 +45,3 @@ export function rejectRegistration(registrationId, rejectionReason) {
     body: { rejectionReason }
   });
 }
-
-export function confirmRegistrationRefund(registrationId) {
-  return httpRequest(`/api/admin/registrations/${registrationId}/confirm-refund`, {
-    method: 'PUT'
-  });
-}

@@ -280,7 +280,7 @@ CREATE TABLE `Registration` (
   `createdAt` datetime,
   `updatedAt` datetime,
   CONSTRAINT `chk_registration_payment_status`
-    CHECK (`paymentStatus` IN ('UNPAID', 'PAID', 'REFUND_PENDING', 'REFUNDED', 'FAILED')),
+    CHECK (`paymentStatus` IN ('UNPAID', 'PAID', 'REFUNDED', 'FAILED')),
   CONSTRAINT `chk_registration_approval_status`
     CHECK (`approvalStatus` IN ('PENDING', 'APPROVED', 'REJECTED', 'CANCELLED')),
   CONSTRAINT `chk_approved_registration_paid`
@@ -588,7 +588,6 @@ CREATE TABLE `FundTransaction` (
   CONSTRAINT `chk_fund_transaction_type`
     CHECK (`transactionType` IN (
       'REGISTRATION_FEE',
-      'REGISTRATION_REFUND',
       'PRIZE_PAYOUT',
       'BETTING_OPERATOR_FEE',
       'MINUS_POOL_SUBSIDY'
