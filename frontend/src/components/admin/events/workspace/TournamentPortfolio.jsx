@@ -144,7 +144,7 @@ export default function TournamentPortfolio({
               <th className="px-5 py-3.5">{t('eventDomainTournament')}</th>
               <th className="px-4 py-3.5">{t('eventWizardLocation')}</th>
               <th className="px-4 py-3.5">{t('eventSchedule')}</th>
-              <th className="px-4 py-3.5">{t('eventWizardParticipationCapacity')}</th>
+              <th className="px-4 py-3.5">{t('eventWorkspaceRegistrationsReceived')}</th>
               <th className="px-4 py-3.5">Status</th>
               <th className="px-4 py-3.5 text-right">{t('actions')}</th>
             </tr>

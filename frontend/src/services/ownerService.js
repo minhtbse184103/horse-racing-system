@@ -202,3 +202,10 @@ export function startOwnerRegistrationPayment(registrationId) {
     fallbackError: 'Khong the khoi tao thanh toan phi Tournament.'
   });
 }
+
+export function confirmOwnerRegistrationFeeRefund(registrationId) {
+  return httpRequest(`/api/owner/tournament-registrations/${registrationId}/confirm-fee-refund`, {
+    method: 'PUT',
+    fallbackError: 'Khong the xac nhan hoan phi Registration.'
+  });
+}

@@ -3,6 +3,7 @@ package com.example.backend.controller;
 import com.example.backend.dto.response.OwnerEntryFeeTransactionResponse;
 import com.example.backend.dto.response.OwnerRegistrationPaymentResponse;
 import com.example.backend.dto.response.OwnerRaceResponse;
+import com.example.backend.dto.response.RegistrationResponse;
 import com.example.backend.dto.response.TournamentResponse;
 import com.example.backend.service.OwnerTournamentRegistrationService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -66,6 +67,13 @@ public class OwnerTournamentRegistrationController {
                         registrationId,
                         getClientIp(httpRequest)
                 ));
+    }
+
+    @PutMapping("/{registrationId}/confirm-fee-refund")
+    public RegistrationResponse confirmRegistrationFeeRefund(
+            @PathVariable Integer registrationId
+    ) {
+        return registrationService.confirmRegistrationFeeRefund(registrationId);
     }
 
     private String getClientIp(HttpServletRequest request) {

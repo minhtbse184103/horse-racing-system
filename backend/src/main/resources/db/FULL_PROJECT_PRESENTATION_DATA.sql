@@ -1,7 +1,7 @@
 USE `horse_racing_system`;
 
 -- Full project presentation data.
--- Run once immediately after team_schema.sql on a fresh database.
+-- Run after team_schema.sql. This script resets project data before inserting the demo scenario.
 -- Login password for every seeded account: 123456
 --
 -- Scenario goal:
@@ -10,17 +10,64 @@ USE `horse_racing_system`;
 -- - In each Tournament:
 --   - Race 1 has 3 assigned RaceEntry rows.
 --   - Race 2 has 5 assigned RaceEntry rows.
+-- - Races stay REGISTRATION_CLOSED on purpose so the demo can still assign Referee,
+--   finalize RaceEntry, fast-forward demo time, mark READY, launch Unity, and review results.
 -- - Every RaceEntry uses a unique Owner + Horse + Jockey identity.
 -- - Every APPROVED Registration is PAID and has a SUCCESS PaymentTransaction.
 -- - Tournament registration fee payment is recorded by PaymentTransaction only.
 -- - No RefereeAssignment rows are seeded yet.
--- - No BetProduct, BetEvent, BetTicket, or BetSettlement rows are seeded yet.
+-- - BetProduct rows are seeded so Admin can create BetEvent from the UI.
+-- - No BetEvent, BetTicket, or BetSettlement rows are seeded yet.
 
 SET @seed_now = NOW();
 SET @seed_today = CURDATE();
 SET @seed_password = '$2a$10$Ieulp7E7sedpTVjs0DGXfu2/Tv74cxORzfH0ZuOgr.DRNPsc5o1te';
 
 START TRANSACTION;
+
+SET @old_foreign_key_checks = @@FOREIGN_KEY_CHECKS;
+SET @old_sql_safe_updates = @@SQL_SAFE_UPDATES;
+SET FOREIGN_KEY_CHECKS = 0;
+SET SQL_SAFE_UPDATES = 0;
+
+DELETE FROM `JockeyInvitation`;
+DELETE FROM `RefereeAssignment`;
+DELETE FROM `JockeyPerformanceSummary`;
+DELETE FROM `HorsePerformanceSummary`;
+DELETE FROM `PrizeDistribution`;
+DELETE FROM `BetSettlement`;
+DELETE FROM `BetTicket`;
+DELETE FROM `BetEvent`;
+DELETE FROM `BetProduct`;
+DELETE FROM `Bet`;
+DELETE FROM `FundTransaction`;
+DELETE FROM `SystemFund`;
+DELETE FROM `WalletTransaction`;
+DELETE FROM `RaceResultReviewAction`;
+DELETE FROM `RaceResultSubmissionEntry`;
+DELETE FROM `RaceResultSubmission`;
+DELETE FROM `RaceResult`;
+DELETE FROM `RaceEntry`;
+DELETE FROM `PaymentTransaction`;
+DELETE FROM `Wallet`;
+DELETE FROM `didit_webhook_events`;
+DELETE FROM `user_verifications`;
+DELETE FROM `Registration`;
+DELETE FROM `RacePrize`;
+DELETE FROM `Race`;
+DELETE FROM `TournamentCondition`;
+DELETE FROM `Tournament`;
+DELETE FROM `JockeyVerificationFile`;
+DELETE FROM `JockeyVerification`;
+DELETE FROM `JockeyProfile`;
+DELETE FROM `Horse`;
+DELETE FROM `OwnerProfile`;
+DELETE FROM `OwnerApplication`;
+DELETE FROM `Users`;
+DELETE FROM `Roles`;
+
+SET SQL_SAFE_UPDATES = @old_sql_safe_updates;
+SET FOREIGN_KEY_CHECKS = @old_foreign_key_checks;
 
 INSERT INTO `Roles` (`roleID`, `roleName`)
 VALUES
@@ -68,7 +115,15 @@ VALUES
   (33, 3, 'JOCKEY',    'jockeyvinh',     'jockeyvinh@gmail.com',     @seed_password, '0900000033', 'ACTIVE', @seed_now, @seed_now),
   (34, 4, 'REFEREE',   'refereegrace',   'refereegrace@gmail.com',   @seed_password, '0900000034', 'ACTIVE', @seed_now, @seed_now),
   (35, 4, 'REFEREE',   'refereehenry',   'refereehenry@gmail.com',   @seed_password, '0900000035', 'ACTIVE', @seed_now, @seed_now),
-  (36, 5, 'SPECTATOR', 'spectatorhuy',   'spectatorhuy@gmail.com',   @seed_password, '0900000036', 'ACTIVE', @seed_now, @seed_now);
+  (36, 5, 'SPECTATOR', 'spectatorhuy',   'spectatorhuy@gmail.com',   @seed_password, '0900000036', 'ACTIVE', @seed_now, @seed_now),
+  (37, 2, 'OWNER',     'owner',          'owner@gmail.com',          @seed_password, '0900000037', 'ACTIVE', @seed_now, @seed_now),
+  (38, 3, 'JOCKEY',    'jockey',         'jockey@gmail.com',         @seed_password, '0900000038', 'ACTIVE', @seed_now, @seed_now),
+  (39, 5, 'SPECTATOR', 'spectator',      'spectator@gmail.com',      @seed_password, '0900000039', 'ACTIVE', @seed_now, @seed_now);
+
+INSERT INTO `user_verifications`
+  (`verification_id`, `user_id`, `provider`, `provider_session_id`, `provider_session_number`, `workflow_id`, `vendor_data`, `verification_url`, `status`, `id_verification_status`, `liveness_status`, `face_match_status`, `verified_full_name`, `verified_date_of_birth`, `document_type`, `document_last_four`, `attempt_number`, `submitted_at`, `verified_at`, `expires_at`, `created_at`, `updated_at`)
+VALUES
+  (1, 39, 'DIDIT', 'presentation-didit-39', 39, 'presentation-workflow', 'user-39', NULL, 'VERIFIED', 'Approved', 'Approved', 'Approved', 'Presentation Spectator', DATE_SUB(@seed_today, INTERVAL 25 YEAR), 'ID_CARD', '0039', 1, DATE_SUB(@seed_now, INTERVAL 3 DAY), DATE_SUB(@seed_now, INTERVAL 2 DAY), DATE_ADD(@seed_now, INTERVAL 5 YEAR), DATE_SUB(@seed_now, INTERVAL 3 DAY), DATE_SUB(@seed_now, INTERVAL 2 DAY));
 
 INSERT INTO `OwnerApplication`
   (`applicationID`, `userID`, `stableName`, `stableAddress`, `stableCertificateUrl`, `totalHorsesOwned`, `horseOwnershipProofUrl`, `status`, `rejectReason`, `submittedAt`, `reviewedAt`, `reviewedBy`, `createdAt`, `updatedAt`)
@@ -88,7 +143,8 @@ VALUES
   (13, 14, 'Son Racing Stable',   'Chiang Mai South Stable',  'https://res.cloudinary.com/dxuyde8yr/raw/upload/v1710000000/documents/owner-son-certificate.pdf',   1, 'https://res.cloudinary.com/dxuyde8yr/raw/upload/v1710000000/documents/owner-son-proof.pdf',   'APPROVED', NULL, DATE_SUB(@seed_now, INTERVAL 30 DAY), DATE_SUB(@seed_now, INTERVAL 29 DAY), 1, DATE_SUB(@seed_now, INTERVAL 30 DAY), @seed_now),
   (14, 15, 'Nam Racing Stable',   'Chiang Mai West Stable',   'https://res.cloudinary.com/dxuyde8yr/raw/upload/v1710000000/documents/owner-nam-certificate.pdf',   1, 'https://res.cloudinary.com/dxuyde8yr/raw/upload/v1710000000/documents/owner-nam-proof.pdf',   'APPROVED', NULL, DATE_SUB(@seed_now, INTERVAL 30 DAY), DATE_SUB(@seed_now, INTERVAL 29 DAY), 1, DATE_SUB(@seed_now, INTERVAL 30 DAY), @seed_now),
   (15, 16, 'Ha Racing Stable',    'Chiang Mai Central Stable','https://res.cloudinary.com/dxuyde8yr/raw/upload/v1710000000/documents/owner-ha-certificate.pdf',    1, 'https://res.cloudinary.com/dxuyde8yr/raw/upload/v1710000000/documents/owner-ha-proof.pdf',    'APPROVED', NULL, DATE_SUB(@seed_now, INTERVAL 30 DAY), DATE_SUB(@seed_now, INTERVAL 29 DAY), 1, DATE_SUB(@seed_now, INTERVAL 30 DAY), @seed_now),
-  (16, 17, 'Ngoc Racing Stable',  'Chiang Mai East Stable',   'https://res.cloudinary.com/dxuyde8yr/raw/upload/v1710000000/documents/owner-ngoc-certificate.pdf',  1, 'https://res.cloudinary.com/dxuyde8yr/raw/upload/v1710000000/documents/owner-ngoc-proof.pdf',  'APPROVED', NULL, DATE_SUB(@seed_now, INTERVAL 30 DAY), DATE_SUB(@seed_now, INTERVAL 29 DAY), 1, DATE_SUB(@seed_now, INTERVAL 30 DAY), @seed_now);
+  (16, 17, 'Ngoc Racing Stable',  'Chiang Mai East Stable',   'https://res.cloudinary.com/dxuyde8yr/raw/upload/v1710000000/documents/owner-ngoc-certificate.pdf',  1, 'https://res.cloudinary.com/dxuyde8yr/raw/upload/v1710000000/documents/owner-ngoc-proof.pdf',  'APPROVED', NULL, DATE_SUB(@seed_now, INTERVAL 30 DAY), DATE_SUB(@seed_now, INTERVAL 29 DAY), 1, DATE_SUB(@seed_now, INTERVAL 30 DAY), @seed_now),
+  (17, 37, 'Victory Racetrack Stable', 'Bangkok Presentation Stable', 'https://res.cloudinary.com/dxuyde8yr/raw/upload/v1710000000/documents/owner-practice-certificate.pdf', 2, 'https://res.cloudinary.com/dxuyde8yr/raw/upload/v1710000000/documents/owner-practice-proof.pdf', 'APPROVED', NULL, DATE_SUB(@seed_now, INTERVAL 30 DAY), DATE_SUB(@seed_now, INTERVAL 29 DAY), 1, DATE_SUB(@seed_now, INTERVAL 30 DAY), @seed_now);
 
 INSERT INTO `OwnerProfile` (`ownerID`, `applicationID`, `createdAt`, `updatedAt`)
 VALUES
@@ -107,7 +163,8 @@ VALUES
   (14, 13, DATE_SUB(@seed_now, INTERVAL 29 DAY), @seed_now),
   (15, 14, DATE_SUB(@seed_now, INTERVAL 29 DAY), @seed_now),
   (16, 15, DATE_SUB(@seed_now, INTERVAL 29 DAY), @seed_now),
-  (17, 16, DATE_SUB(@seed_now, INTERVAL 29 DAY), @seed_now);
+  (17, 16, DATE_SUB(@seed_now, INTERVAL 29 DAY), @seed_now),
+  (37, 17, DATE_SUB(@seed_now, INTERVAL 29 DAY), @seed_now);
 
 INSERT INTO `JockeyProfile`
   (`jockeyID`, `fullName`, `weight`, `biography`, `totalRaces`, `totalWins`, `createdAt`, `updatedAt`)
@@ -127,7 +184,8 @@ VALUES
   (30, 'Jockey Son',   55.20, 'Experienced jockey for long races.',             9, 2, DATE_SUB(@seed_now, INTERVAL 40 DAY), @seed_now),
   (31, 'Jockey Trung', 53.90, 'Stable performer on mixed surfaces.',            6, 1, DATE_SUB(@seed_now, INTERVAL 40 DAY), @seed_now),
   (32, 'Jockey Kiet',  52.40, 'Lightweight tactical jockey.',                   5, 1, DATE_SUB(@seed_now, INTERVAL 40 DAY), @seed_now),
-  (33, 'Jockey Vinh',  54.70, 'Powerful jockey for final stretches.',           7, 2, DATE_SUB(@seed_now, INTERVAL 40 DAY), @seed_now);
+  (33, 'Jockey Vinh',  54.70, 'Powerful jockey for final stretches.',           7, 2, DATE_SUB(@seed_now, INTERVAL 40 DAY), @seed_now),
+  (38, 'Jockey Demo',  53.50, 'Presentation jockey account ready for invitation and tournament registration.', 0, 0, DATE_SUB(@seed_now, INTERVAL 40 DAY), @seed_now);
 
 INSERT INTO `JockeyVerification`
   (`verificationID`, `jockeyID`, `trainerName`, `trainerEmail`, `academyStableAddress`, `issuingAuthority`, `verificationLink`, `licenceType`, `expiryDate`, `weight`, `biography`, `verificationStatus`, `rejectionReason`, `resubmitCount`, `submittedAt`, `reviewedAt`, `reviewedBy`, `createdAt`, `updatedAt`)
@@ -147,7 +205,8 @@ VALUES
   (13, 30, 'Trainer Son',   'trainer.son@gmail.com',   'Chiang Mai Racing Academy', 'Thailand Racing Authority', 'https://res.cloudinary.com/dxuyde8yr/raw/upload/v1710000000/documents/jockey-son-license.pdf',  'PROFESSIONAL', DATE_ADD(@seed_today, INTERVAL 2 YEAR), 55.20, 'Approved professional jockey.', 'APPROVED', NULL, 0, DATE_SUB(@seed_now, INTERVAL 35 DAY), DATE_SUB(@seed_now, INTERVAL 34 DAY), 1, DATE_SUB(@seed_now, INTERVAL 35 DAY), @seed_now),
   (14, 31, 'Trainer Trung', 'trainer.trung@gmail.com', 'Chiang Mai Racing Academy', 'Thailand Racing Authority', 'https://res.cloudinary.com/dxuyde8yr/raw/upload/v1710000000/documents/jockey-trung-license.pdf','PROFESSIONAL', DATE_ADD(@seed_today, INTERVAL 2 YEAR), 53.90, 'Approved professional jockey.', 'APPROVED', NULL, 0, DATE_SUB(@seed_now, INTERVAL 35 DAY), DATE_SUB(@seed_now, INTERVAL 34 DAY), 1, DATE_SUB(@seed_now, INTERVAL 35 DAY), @seed_now),
   (15, 32, 'Trainer Kiet',  'trainer.kiet@gmail.com',  'Chiang Mai Racing Academy', 'Thailand Racing Authority', 'https://res.cloudinary.com/dxuyde8yr/raw/upload/v1710000000/documents/jockey-kiet-license.pdf', 'PROFESSIONAL', DATE_ADD(@seed_today, INTERVAL 2 YEAR), 52.40, 'Approved professional jockey.', 'APPROVED', NULL, 0, DATE_SUB(@seed_now, INTERVAL 35 DAY), DATE_SUB(@seed_now, INTERVAL 34 DAY), 1, DATE_SUB(@seed_now, INTERVAL 35 DAY), @seed_now),
-  (16, 33, 'Trainer Vinh',  'trainer.vinh@gmail.com',  'Chiang Mai Racing Academy', 'Thailand Racing Authority', 'https://res.cloudinary.com/dxuyde8yr/raw/upload/v1710000000/documents/jockey-vinh-license.pdf', 'PROFESSIONAL', DATE_ADD(@seed_today, INTERVAL 2 YEAR), 54.70, 'Approved professional jockey.', 'APPROVED', NULL, 0, DATE_SUB(@seed_now, INTERVAL 35 DAY), DATE_SUB(@seed_now, INTERVAL 34 DAY), 1, DATE_SUB(@seed_now, INTERVAL 35 DAY), @seed_now);
+  (16, 33, 'Trainer Vinh',  'trainer.vinh@gmail.com',  'Chiang Mai Racing Academy', 'Thailand Racing Authority', 'https://res.cloudinary.com/dxuyde8yr/raw/upload/v1710000000/documents/jockey-vinh-license.pdf', 'PROFESSIONAL', DATE_ADD(@seed_today, INTERVAL 2 YEAR), 54.70, 'Approved professional jockey.', 'APPROVED', NULL, 0, DATE_SUB(@seed_now, INTERVAL 35 DAY), DATE_SUB(@seed_now, INTERVAL 34 DAY), 1, DATE_SUB(@seed_now, INTERVAL 35 DAY), @seed_now),
+  (17, 38, 'Trainer Demo',  'trainer.demo@gmail.com',  'Bangkok Racing Academy', 'Thailand Racing Authority', 'https://res.cloudinary.com/dxuyde8yr/raw/upload/v1710000000/documents/jockey-practice-license.pdf', 'PROFESSIONAL', DATE_ADD(@seed_today, INTERVAL 2 YEAR), 53.50, 'Approved practice jockey for presentation flow.', 'APPROVED', NULL, 0, DATE_SUB(@seed_now, INTERVAL 35 DAY), DATE_SUB(@seed_now, INTERVAL 34 DAY), 1, DATE_SUB(@seed_now, INTERVAL 35 DAY), @seed_now);
 
 INSERT INTO `Horse`
   (`horseID`, `ownerID`, `horseName`, `age`, `dayOfBirth`, `weight`, `colour`, `sex`, `breeding`, `trainer`, `healthCertExpiry`, `healthCertificateUrl`, `officialHorseProfileUrl`, `status`, `rejectionReason`, `createdAt`, `updatedAt`)
@@ -167,7 +226,9 @@ VALUES
   (13, 14, 'Mountain Flash',   4, DATE_SUB(@seed_today, INTERVAL 4 YEAR), 478.00, 'Brown',    'MALE',   'Thoroughbred', 'Trainer Son',   DATE_ADD(@seed_today, INTERVAL 1 YEAR), 'https://res.cloudinary.com/dxuyde8yr/raw/upload/v1710000000/documents/mountain-flash-health.pdf',   'https://www.racingandsports.com.au/thoroughbred/horse/mountain-flash',   'ACTIVE', NULL, @seed_now, @seed_now),
   (14, 15, 'Royal Jasmine',    5, DATE_SUB(@seed_today, INTERVAL 5 YEAR), 493.00, 'Bay',      'FEMALE', 'Thoroughbred', 'Trainer Nam',   DATE_ADD(@seed_today, INTERVAL 1 YEAR), 'https://res.cloudinary.com/dxuyde8yr/raw/upload/v1710000000/documents/royal-jasmine-health.pdf',    'https://www.racingandsports.com.au/thoroughbred/horse/royal-jasmine',    'ACTIVE', NULL, @seed_now, @seed_now),
   (15, 16, 'Dragon Valley',    6, DATE_SUB(@seed_today, INTERVAL 6 YEAR), 505.00, 'Black',    'MALE',   'Thoroughbred', 'Trainer Ha',    DATE_ADD(@seed_today, INTERVAL 1 YEAR), 'https://res.cloudinary.com/dxuyde8yr/raw/upload/v1710000000/documents/dragon-valley-health.pdf',    'https://www.racingandsports.com.au/thoroughbred/horse/dragon-valley',    'ACTIVE', NULL, @seed_now, @seed_now),
-  (16, 17, 'Silver Orchid',    4, DATE_SUB(@seed_today, INTERVAL 4 YEAR), 487.00, 'Grey',     'FEMALE', 'Thoroughbred', 'Trainer Ngoc',  DATE_ADD(@seed_today, INTERVAL 1 YEAR), 'https://res.cloudinary.com/dxuyde8yr/raw/upload/v1710000000/documents/silver-orchid-health.pdf',    'https://www.racingandsports.com.au/thoroughbred/horse/silver-orchid',    'ACTIVE', NULL, @seed_now, @seed_now);
+  (16, 17, 'Silver Orchid',    4, DATE_SUB(@seed_today, INTERVAL 4 YEAR), 487.00, 'Grey',     'FEMALE', 'Thoroughbred', 'Trainer Ngoc',  DATE_ADD(@seed_today, INTERVAL 1 YEAR), 'https://res.cloudinary.com/dxuyde8yr/raw/upload/v1710000000/documents/silver-orchid-health.pdf',    'https://www.racingandsports.com.au/thoroughbred/horse/silver-orchid',    'ACTIVE', NULL, @seed_now, @seed_now),
+  (17, 37, 'Victory Flame',    4, DATE_SUB(@seed_today, INTERVAL 4 YEAR), 492.00, 'Bay',      'MALE',   'Thoroughbred', 'Trainer Demo',  DATE_ADD(@seed_today, INTERVAL 1 YEAR), 'https://res.cloudinary.com/dxuyde8yr/raw/upload/v1710000000/documents/victory-flame-health.pdf',     'https://www.racingandsports.com.au/thoroughbred/horse/victory-flame',     'ACTIVE', NULL, @seed_now, @seed_now),
+  (18, 37, 'Victory Pearl',    5, DATE_SUB(@seed_today, INTERVAL 5 YEAR), 486.00, 'Chestnut', 'FEMALE', 'Thoroughbred', 'Trainer Demo',  DATE_ADD(@seed_today, INTERVAL 1 YEAR), 'https://res.cloudinary.com/dxuyde8yr/raw/upload/v1710000000/documents/victory-pearl-health.pdf',     'https://www.racingandsports.com.au/thoroughbred/horse/victory-pearl',     'ACTIVE', NULL, @seed_now, @seed_now);
 
 INSERT INTO `Tournament`
   (`tournamentID`, `tournamentName`, `venue`, `venueImageUrl`, `description`, `registrationOpenAt`, `registrationCloseAt`, `startDate`, `endDate`, `maxRegistrations`, `entryFee`, `status`, `createdBy`, `createdAt`, `updatedAt`)
@@ -272,6 +333,17 @@ INSERT INTO `SystemFund`
 VALUES
   (1, 0.00, 0.00, 0.00, @seed_now, @seed_now);
 
+INSERT INTO `BetProduct`
+  (`betProductID`, `code`, `name`, `description`, `minStake`, `maxDailyStake`, `operatorFeeRate`, `active`, `createdAt`, `updatedAt`)
+VALUES
+  (1, 'WIN', 'Top 1', 'Pick the horse that finishes in first place.', 10000.00, 1000000.00, 0.1000, true, @seed_now, @seed_now),
+  (2, 'PLACE', 'Top 3', 'Pick a horse that finishes in the first three places.', 10000.00, 1000000.00, 0.1000, true, @seed_now, @seed_now);
+
+INSERT INTO `Wallet`
+  (`walletID`, `userID`, `balance`, `lockedBalance`, `currency`, `status`, `createdAt`, `updatedAt`)
+VALUES
+  (1, 39, 0.00, 0.00, 'VND', 'ACTIVE', DATE_SUB(@seed_now, INTERVAL 2 DAY), @seed_now);
+
 INSERT INTO `RaceEntry`
   (`raceEntryID`, `raceID`, `registrationID`, `startingStall`, `status`, `assignedAt`, `assignedBy`, `cancelledAt`, `cancelledBy`, `cancellationReason`)
 VALUES
@@ -294,15 +366,12 @@ VALUES
 
 -- Intentionally omitted:
 -- - RefereeAssignment
--- - BetProduct
 -- - BetEvent
 -- - BetTicket
 -- - BetSettlement
 -- - RaceResultSubmission
 -- - RaceResult
 -- - PrizeDistribution
--- - UserVerification
--- - Wallet
 -- - WalletTransaction
 
 COMMIT;
@@ -321,6 +390,7 @@ UNION ALL SELECT 'RacePrize', COUNT(*) FROM `RacePrize`
 UNION ALL SELECT 'Registration', COUNT(*) FROM `Registration`
 UNION ALL SELECT 'JockeyInvitation', COUNT(*) FROM `JockeyInvitation`
 UNION ALL SELECT 'PaymentTransaction', COUNT(*) FROM `PaymentTransaction`
+UNION ALL SELECT 'user_verifications', COUNT(*) FROM `user_verifications`
 UNION ALL SELECT 'SystemFund', COUNT(*) FROM `SystemFund`
 UNION ALL SELECT 'FundTransaction', COUNT(*) FROM `FundTransaction`
 UNION ALL SELECT 'RaceEntry', COUNT(*) FROM `RaceEntry`

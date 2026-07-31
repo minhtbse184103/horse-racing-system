@@ -180,6 +180,32 @@ public class OwnerTournamentRegistrationService {
                 .build();
     }
 
+    @Transactional
+    public RegistrationResponse confirmRegistrationFeeRefund(Integer registrationId) {
+        User owner = getCurrentOwner();
+        Registration registration = registrationRepository.findByIdForUpdate(registrationId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "Registration does not exist."
+                ));
+
+        if (!owner.getUserID().equals(registration.getOwnerId())) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "Registration does not belong to the current owner.");
+        }
+
+        if (!RegistrationStatus.REJECTED.equals(registration.getApprovalStatus())) {
+            throw new ApiException(HttpStatus.CONFLICT, "Only rejected registrations can confirm fee refund.");
+        }
+
+        if (!PaymentStatus.PAID.equals(registration.getPaymentStatus())) {
+            throw new ApiException(HttpStatus.CONFLICT, "Only paid rejected registrations can be marked as refunded.");
+        }
+
+        registration.setPaymentStatus(PaymentStatus.REFUNDED);
+        registration.setUpdatedAt(LocalDateTime.now());
+        return toResponse(registrationRepository.save(registration));
+    }
+
     @Transactional(readOnly = true)
     public List<TournamentResponse> getOpenTournaments() {
         getCurrentOwner();

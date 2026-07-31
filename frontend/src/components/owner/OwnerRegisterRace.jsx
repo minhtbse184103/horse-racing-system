@@ -24,6 +24,7 @@ import {
 import { getAllUsers } from '../../services/userService';
 import {
   cancelOwnerInvitation,
+  confirmOwnerRegistrationFeeRefund,
   getOpenOwnerTournaments,
   getOwnerHorses,
   getOwnerInvitations,
@@ -424,8 +425,8 @@ function getTournamentWorkflowKind(invitation) {
   }
 
   if (hasRegistrationStatus(invitation)) {
-    if (approvalStatus === 'REJECTED') return 'REGISTRATION_REJECTED';
     if (paymentStatus === 'REFUNDED') return 'PAYMENT_REFUNDED';
+    if (approvalStatus === 'REJECTED') return 'REGISTRATION_REJECTED';
     if (paymentStatus === 'FAILED' && approvalStatus === 'CANCELLED') return 'PAYMENT_FAILED_CANCELLED';
     if (approvalStatus === 'CANCELLED') return 'REGISTRATION_CANCELLED';
     if (paymentStatus === 'PAID' && approvalStatus === 'APPROVED') return 'REGISTRATION_APPROVED';
@@ -1338,6 +1339,9 @@ export default function OwnerRegisterRace({ horses, onBackToHorses, onViewTransa
     title: selectedRegistrationWorkflow.label,
     description: selectedRegistrationWorkflow.description
   };
+  const canConfirmFeeRefund = selectedRegistrationWorkflow.kind === 'REGISTRATION_REJECTED'
+    && selectedPaymentStatus === 'PAID'
+    && Boolean(selectedAcceptedInvitation?.registrationId);
   const canSubmitRegistration = Boolean(
     registrationValues.tournamentId
       && registrationValues.horseId
@@ -1929,6 +1933,37 @@ export default function OwnerRegisterRace({ horses, onBackToHorses, onViewTransa
     }
   }
 
+  async function handleConfirmRegistrationFeeRefund() {
+    const registrationId = selectedAcceptedInvitation?.registrationId;
+    if (!registrationId || isRegistering) return;
+
+    setRegistrationSubmitError('');
+    setMessage('');
+    setIsRegistering(true);
+    setActingId(`refund-${registrationId}`);
+    try {
+      const registration = await confirmOwnerRegistrationFeeRefund(registrationId);
+      setRegistrationResult(registration);
+      setInvitations((current) => current.map((item) => (
+        String(item.registrationId || '') === String(registrationId)
+          ? {
+              ...item,
+              paymentStatus: registration?.paymentStatus || 'REFUNDED',
+              approvalStatus: registration?.approvalStatus || item.approvalStatus,
+              rejectionReason: registration?.rejectionReason || item.rejectionReason
+            }
+          : item
+      )));
+      setMessage(t('ownerRaceConfirmRefundSuccess'));
+      await loadPageData();
+    } catch (err) {
+      setRegistrationSubmitError(getErrorText(err, t('ownerRaceConfirmRefundError')));
+    } finally {
+      setIsRegistering(false);
+      setActingId(null);
+    }
+  }
+
   function handleCancel(invitation) {
     setCancelInvitationTarget(invitation);
   }
@@ -2129,7 +2164,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses, onViewTransa
                         <div className="owner-tournament-workspace-metrics">
                           <span>{t('ownerRaceDateRange')} <strong>{formatDateRange(tournament.startDate, tournament.endDate, t)}</strong></span>
                           <span>{t('ownerRaceEntryFee')} <strong>{formatCurrency(tournament.entryFee)}</strong></span>
-                          <span>{t('ownerRaceCapacity')} <strong>{maxRegistrations ? `${approvedCount} / ${t('ownerRaceSlots', { count: maxRegistrations })}` : t('ownerRaceApplications', { count: approvedCount })}</strong></span>
+                          <span>{t('ownerRaceRegistrationsReceived')} <strong>{maxRegistrations ? `${approvedCount} / ${maxRegistrations}` : t('ownerRaceApplications', { count: approvedCount })}</strong></span>
                         </div>
 
                         <div className="owner-tournament-workspace-status">
@@ -2326,7 +2361,7 @@ export default function OwnerRegisterRace({ horses, onBackToHorses, onViewTransa
                   <span><Clock size={15} /> {t('ownerRaceRegistrationOpen')} <strong>{formatDateTime(getRegistrationOpenAt(selectedTournament), t, language)}</strong></span>
                   <span><Clock size={15} /> {t('ownerRaceRegistrationClose')} <strong>{formatDateTime(getRegistrationDeadline(selectedTournament), t, language)}</strong></span>
                   <span><CircleDollarSign size={15} /> {t('ownerRaceEntryFee')} <strong>{formatCurrency(selectedTournament.entryFee)}</strong></span>
-                  <span><Users size={15} /> {t('ownerRaceMaxCapacity')} <strong>{selectedTournament.maxRegistrations || selectedTournament.maxRegistration || t('ownerRaceUnlimited')}</strong></span>
+                  <span><Users size={15} /> {t('ownerRaceRegistrationLimit')} <strong>{selectedTournament.maxRegistrations || selectedTournament.maxRegistration || t('ownerRaceUnlimited')}</strong></span>
                   <span><Flag size={15} /> {t('ownerRaceRaceCount')} <strong>{selectedTournament.raceCount ?? t('notUpdated')}</strong></span>
                   <span><CheckCircle2 size={15} /> {t('ownerRaceApprovedRegistrations')} <strong>{selectedTournament.approvedRegistrationCount ?? selectedTournament.registrationCount ?? 0}</strong></span>
                 </div>
@@ -2758,6 +2793,21 @@ export default function OwnerRegisterRace({ horses, onBackToHorses, onViewTransa
               <div className="admin-form-actions tournament-modal-actions">
                 <button className="outline-button" type="button" onClick={onViewTransactions}>
                   <CircleDollarSign size={16} /> {t('ownerRaceWorkflowViewTransaction')}
+                </button>
+              </div>
+            )}
+            {canConfirmFeeRefund && (
+              <div className="admin-form-actions tournament-modal-actions">
+                <button
+                  className="primary-button"
+                  type="button"
+                  onClick={handleConfirmRegistrationFeeRefund}
+                  disabled={isRegistering || actingId === `refund-${selectedAcceptedInvitation.registrationId}`}
+                >
+                  <CircleDollarSign size={16} />
+                  {actingId === `refund-${selectedAcceptedInvitation.registrationId}`
+                    ? t('processing')
+                    : t('ownerRaceConfirmRefund')}
                 </button>
               </div>
             )}

@@ -55,7 +55,7 @@ export default function ReviewStep({ draft, prizeTotal }) {
               <dl className="mt-4 grid gap-3 text-sm">
                 <div className="flex justify-between gap-4"><dt className="font-semibold text-slate-500">{t('eventWizardRegistrationOpen')}</dt><dd className="text-right font-black text-brown-900">{draft.registrationOpen || t('eventWizardNotDefined')}</dd></div>
                 <div className="flex justify-between gap-4"><dt className="font-semibold text-slate-500">{t('eventWizardRegistrationClose')}</dt><dd className="text-right font-black text-brown-900">{draft.registrationClose || t('eventWizardNotDefined')}</dd></div>
-                <div className="flex justify-between gap-4"><dt className="font-semibold text-slate-500">{t('eventWizardParticipationCapacity')}</dt><dd className="font-black text-brown-900">{draft.maxRegistration}</dd></div>
+                <div className="flex justify-between gap-4"><dt className="font-semibold text-slate-500">{t('eventWizardMaxRegistrations')}</dt><dd className="font-black text-brown-900">{draft.maxRegistration}</dd></div>
                 <div className="flex justify-between gap-4"><dt className="font-semibold text-slate-500">{t('eventWizardEntryFee')}</dt><dd className="font-black text-brown-900">{formatVndCurrency(draft.entryFee)}</dd></div>
               </dl>
             </section>
